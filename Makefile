@@ -20,5 +20,9 @@ Dictionary: $(HEADERS) $(LINKDEF)
 doc:
 	cd $(PWD)/doxygen ; doxygen Doxyfile ; cd latex; make; cd $(PWD)
 
+doccopy:
+	cd $(PWD)/doxygen ; doxygen Doxyfile ; cd latex; make; cd $(PWD) ; \
+	$(PWD)/doxygen/copydoc.sh
+
 clean:
 	rm -f lib/libRootbeer.so rootbeer cint/Dictionary.*
