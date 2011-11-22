@@ -283,30 +283,3 @@ void rb::H3D::Clear(Option_t* option) {
   }
   HistMutex::Unlock();
 }
-
-
-// // // // For the class members that are basically identical between
-// // // // H1D, H2D, etc. we define the functions in a single file with
-// // // // the HCLASS and HBASE macros defining which histograms we are
-// // // // dealing with.
-
-// // // // One-dimentional histograms
-// // // #define HCLASS H1D // define members for rb::H1D
-// // // #define HBASE TH1D // which inherits from TH1D
-// // // #include "HistMembers.hxx"
-// // // #undef HCLASS
-// // // #undef HBASE
-
-// // // // Two-dimentional histograms
-// // // #define HCLASS H2D // define members for rb::H2D
-// // // #define HBASE TH2D // which inherits from TH2D
-// // // #include "HistMembers.hxx"
-// // // #undef HCLASS
-// // // #undef HBASE
-
-// // // // Three-dimentional histograms
-// // // #define HCLASS H3D // define members for rb::H3D
-// // // #define HBASE TH3D // which inherits from TH3D
-// // // #include "HistMembers.hxx"
-// // // #undef HCLASS
-// // // #undef HBASE
