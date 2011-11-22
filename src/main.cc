@@ -7,7 +7,7 @@
 
 namespace rb
 {
-  /// Class that runs the interactive ROOT applications.
+  /// Class that runs the interactive ROOT application.
   /*! We can essentially use the normal <tt>TRint</tt>, except
    *  we need to override the Terminate()
    *  method to stop threaded processes. */
