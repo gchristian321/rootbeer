@@ -10,7 +10,7 @@ all: rootbeer
 rootbeer: libRootbeer $(SRC)/main.cc
 	g++ $(SRC)/main.cc -D__MAIN__ -o rootbeer `root-config --cflags --libs` $(INCFLAGS) -Llib -lRootbeer
 
-libRootbeer: Dictionary $(SOURCES) $(HEADERS) $(SRC)/HistMembers.hxx $(LINKDEF)
+libRootbeer: Dictionary $(SOURCES) $(HEADERS) $(LINKDEF)
 	g++ $(DEFINITIONS) -o $(PWD)/lib/libRootbeer.so $(CXXFLAGS) -Icint -p cint/Dictionary.cxx \
 	$(SOURCES) $(ROOTFLAGS) -lTreePlayer -lThread $(BOOSTLIBS)
 
