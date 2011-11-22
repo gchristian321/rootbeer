@@ -89,7 +89,7 @@ namespace rb
     /// Thread for attaching to an online buffer source.
     TThread attachOnlineThread;
 
-    /// Thread for attaching to 
+    /// Thread for attaching to an offline buffer source.
     TThread attachOfflineThread;
 
     /// Tells if attached to an online data source or not.

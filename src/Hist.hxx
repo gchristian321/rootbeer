@@ -17,7 +17,6 @@
 #include "TTreeFormula.h"
 #include "TROOT.h"
 #include "TError.h"
-
 #include "Rootbeer.hxx"
 
 
@@ -27,79 +26,53 @@ namespace rb
   /// Base class for \c rb::HnF objects.
   /*! Main purpose is to allow polymorphism for the \c Fill()
    *  function (n.b., that's \c Fill() with no arguments).
-   *  Also implements some helper functions shared by
-   *  the various \c rb::HnF flavors.
+   *  Also implements some other functions shared by
+   *  the various \c rb::HnF flavors
    *  \note To avoid multi-inheritance issues, this function should
    *  <i>not</i> implement any methods
    *  that are contained in \c TH1 or it's derivatives. */
   class Hist
   {
   protected:
-    /// Function to turn an empty gate argument into
-    /// one that is always true.
-    static std::string CheckGate(const char* gate) {
-      if(std::string(gate) == "") return "1" ;
-      else return gate ;
-    }
+    /// Internal tree for calculating parameter values.
+    TTree* fTree;
 
-    /// Function to append \c _n to duplicate names.
-    static std::string CheckName(const char* name) {
-      std::string ret = name;
-      if(gROOT->FindObject(name)) {
-	Int_t n = 1;
-	while(1) {
-	  std::stringstream sstr;
-	  sstr << name << "_" << n++;
-	  ret = sstr.str();
-	  if(!gROOT->FindObject(ret.c_str())) break;
-	}
-	Info("AddHist", "The name %s is already in use, creating %s_%d instead.", name, name, n-1);
-      }
-      return ret;
-    }
-
-    /// Function to parse 2d parameter arguments into variables.
-    static std::string ParseParam2d(const char* par, Int_t axis) {
-      std::string spar (par);
-      Int_t p1 = spar.find(":");
-      std::string ret = "";
-      switch(axis) {
-      case 1: ret = spar.substr(0, p1); break;
-      case 0: ret = spar.substr(p1+1); break;
-      default:
-	Error("ParseParam2d",
-	      "Invalid axis specification %d (should be x:0, y:1)",
-	      axis);
-	break;
-      }
-      return ret;
-    }
-
-    /// Function to parse 3d parameter arguments into variables.
-    static std::string ParseParam3d(const char* par, Int_t axis) {
-      std::string spar (par);
-      Int_t p1 = spar.find(":");
-      Int_t p2 = spar.find_last_of(":");
-      std::string ret = "";
-      switch(axis) {
-      case 2: ret = spar.substr(0, p1);         break;
-      case 1: ret = spar.substr(p1+1, p2-p1-1); break;
-      case 0: ret = spar.substr(p2+1);          break;
-      default:
-	Error("ParseParam3d",
-	      "Invalid axis specification %d (x = 0, y = 1, z = 2)",
-	      axis);
-	break;
-      }
-      return ret;
-    }
+    /// Gate formula.
+    TTreeFormula fGate;
 
   public:
-    /// Function to fill histogram from its internal \c fTree value(s).
+    /// Function to fill histogram from its internal parameter value(s).
     virtual Int_t Fill() = 0;
+
+    /// Constructor
+    /*! Set the internal \c TTree and \c fGate fields. */
+    Hist(const char* gate, TTree* tree);
+
+    /// Default constructor.
+    Hist() { fTree = 0; };
 
     /// Destructor
     virtual ~Hist() { };
+
+    /// Function to change the histogram gate.
+    /*! Updates \c fGate to reflect the new gate formula. Returns 0 if successful,
+     *  -1 if \c newgate isn't valid. In case of invalid \c newgate, the histogram
+     *  gate condition remains unchanged. */
+    virtual Int_t Regate(const char* newgate);
+
+  protected:
+    /// Function to turn an empty gate argument into
+    /// one that is always true.
+    std::string CheckGate(const char* gate);
+
+    /// Function to append \c _n to duplicate names.
+    std::string CheckName(const char* name);
+
+    /// Function to parse 2d parameter arguments into variables.
+    std::string ParseParam2d(const char* par, Int_t axis);
+
+    /// Function to parse 3d parameter arguments into variables.
+    std::string ParseParam3d(const char* par, Int_t axis);
   };
 
 
@@ -117,14 +90,8 @@ namespace rb
   {
 
   protected:
-    /// Internal TTree for dynamic filling.
-    TTree* fTree;
-
-    /// Parameters evaluated from <tt>fTree</tt>.
+    /// Dynamically evaluated parameter.
     TTreeFormula fParam;
-
-    /// Gate evaluated from <tt>fTree</tt>.
-    TTreeFormula fGate;
 
   public:
     /// Constructor
@@ -146,7 +113,8 @@ namespace rb
 #ifndef __CINT__
     H1D (const char* name, const char* title,
          Int_t nbins, Double_t xlow, Double_t xhigh,
-	 const char* param, const char* gate = "");
+	 const char* param, const char* gate = "",
+	 TTree* tree = gUnpacker.fTree);
 #endif
 
     /// Empty constructor for \c CINT
@@ -165,12 +133,6 @@ namespace rb
     /*! Evaluates \c fParam and calls \c TH1D::Fill using the result.
       Also locks the \c gUnpacker mutex for thread safety. */
     Int_t Fill();
-
-    /// Change the gating condition to be something else.
-    /*! Updates \c fGate to reflect the new gate formula. Returns 0 if successful,
-     *  -1 if \c newgate isn't valid. In case of invalid \c newgate, the histogram
-     *  gate condition remains unchanged. */
-    Int_t Regate(const char* newgate);
 
     /// Allows the user to zero out the histogram.
     void Clear(Option_t* option = "");
@@ -199,14 +161,11 @@ namespace rb
   {
 
   protected:
-    /// Internal TTree for dynamic filling.
-    TTree* fTree;
+    /// Dynamically evaluated x parameter.
+    TTreeFormula fParamX;
 
-    /// Parameters evaluated from <tt>fTree</tt>.
-    TTreeFormula fParamX, fParamY;
-
-    /// Gate evaluated from <tt>fTree</tt>.
-    TTreeFormula fGate;
+    /// Dynamically evaluated y parameter.
+    TTreeFormula fParamY;
 
 
   public:
@@ -230,7 +189,8 @@ namespace rb
     H2D (const char* name, const char* title,
          Int_t nbinsx, Double_t xlow, Double_t xhigh,
 	 Int_t nbinsy, Double_t ylow, Double_t yhigh,
-	 const char* param, const char* gate = "");
+	 const char* param, const char* gate = "",
+	 TTree* tree = gUnpacker.fTree);
 #endif
 
     /// Empty constructor for \c CINT
@@ -249,12 +209,6 @@ namespace rb
     /*! Evaluates \c fParam and calls \c TH2D::Fill using the result.
       Also locks the \c gUnpacker mutex for thread safety. */
     Int_t Fill();
-
-    /// Change the gating condition to be something else.
-    /*! Updates \c fGate to reflect the new gate formula. Returns 0 if successful,
-     *  -1 if \c newgate isn't valid. In case of invalid \c newgate, the histogram
-     *  gate condition remains unchanged. */
-    Int_t Regate(const char* newgate);
 
     /// Allows the user to zero out the histogram.
     void Clear(Option_t* option = "");
@@ -284,14 +238,14 @@ namespace rb
   {
 
   protected:
-    /// Internal TTree for dynamic filling.
-    TTree* fTree;
+    /// Dynamically evaluated x parameter.
+    TTreeFormula fParamX;
 
-    /// Parameters evaluated from <tt>fTree</tt>.
-    TTreeFormula fParamX, fParamY, fParamZ;
+    /// Dynamically evaluated y parameter.
+    TTreeFormula fParamY;
 
-    /// Gate evaluated from <tt>fTree</tt>.
-    TTreeFormula fGate;
+    /// Dynamically evaluated z parameter.
+    TTreeFormula fParamZ;
 
 
   public:
@@ -316,7 +270,8 @@ namespace rb
          Int_t nbinsx, Double_t xlow, Double_t xhigh,
 	 Int_t nbinsy, Double_t ylow, Double_t yhigh,
 	 Int_t nbinsz, Double_t zlow, Double_t zhigh,
-	 const char* param, const char* gate = "");
+	 const char* param, const char* gate = "",
+	 TTree* tree = gUnpacker.fTree);
 #endif
 
     /// Empty constructor for \c CINT
@@ -335,12 +290,6 @@ namespace rb
     /*! Evaluates \c fParam and calls \c TH3D::Fill using the result.
       Also locks the \c gUnpacker mutex for thread safety. */
     Int_t Fill();
-
-    /// Change the gating condition to be something else.
-    /*! Updates \c fGate to reflect the new gate formula. Returns 0 if successful,
-     *  -1 if \c newgate isn't valid. In case of invalid \c newgate, the histogram
-     *  gate condition remains unchanged. */
-    Int_t Regate(const char* newgate);
 
     /// Allows the user to zero out the histogram.
     void Clear(Option_t* option = "");

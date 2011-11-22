@@ -20,12 +20,13 @@ void rb::HCLASS::Draw(Option_t* option) {
   HistMutex::Unlock();
 }
 
-// Regate function
-Int_t rb::HCLASS::Regate(const char* newgate) {
-  TTreeFormula tempFormula("temp", newgate, fTree);
+//Regate function
+Int_t rb::Hist::Regate(const char* newgate) {
+  TTreeFormula tempFormula("temp", fGate.GetExpFormula(), fGate.GetTree());
   if(!tempFormula.GetTree()) return -1;
   HistMutex::Lock();
-  fGate.Compile(newgate);
+  fGate.Compile(Hist::CheckGate(newgate).c_str());
   HistMutex::Unlock();
 }
+
 
