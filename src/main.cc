@@ -4,49 +4,59 @@
 #include "TRint.h"
 #include "Rootbeer.hxx"
 
-/// Class that inherits from the normal \c TRint
-/*! Basically we just want to override the termination
- * method to stop threaded processes. */
-class TRintRB : public TRint
+
+namespace rb
 {
-public:
-  /// Constructor
+  /// Class that runs the interactive ROOT applications.
+  /*! We can essentially use the normal <tt>TRint</tt>, except
+   *  we need to override the Terminate()
+   *  method to stop threaded processes. */
+  class Rint : public TRint
+  {
+  public:
+    /// Constructor
 
-  /// Creates a normal \c TRint object and sets the prompt to be <tt>rootbeer [\%d]</tt>
-  /// \note The \c \%d means that the number of commands entered in the session is
-  /// what's present.
-  TRintRB(const char* appClassName, int* argc, char** argv,
-	  void* options = 0, int numOptions = 0, Bool_t noLogo = kFALSE) :
-    TRint(appClassName, argc, argv, options, numOptions, noLogo) {
-    SetPrompt("rootbeer [%d] ");
-  }
+    /// Just call the standard \c TRint constructor, plus set the prompt to be
+    /// <tt>rootbeer [\%d]</tt>.
+    /// \note The \c \%d means that the number of commands entered in the session is
+    /// what's present.
+    Rint(const char* appClassName, int* argc, char** argv,
+	 void* options = 0, int numOptions = 0, Bool_t noLogo = kFALSE) :
+      TRint(appClassName, argc, argv, options, numOptions, noLogo) {
+      SetPrompt("rootbeer [%d] ");
+    }
 
-  /// Terminate the application, first closing any threaded processes that might be running.
-  void Terminate(Int_t status = 0) {
-    rb::canvas::StopUpdate();
-    rb::Unattach();
-    TRint::Terminate(status);
-  }
+    /// Terminate the application, first closing any threaded processes that might be running.
+    void Terminate(Int_t status = 0) {
+      rb::canvas::StopUpdate();
+      rb::Unattach();
+      TRint::Terminate(status);
+    }
 
-  /// Destructor
+    /// Destructor
 
-  /// Calls \c Terminate() with error code.
-  ~TRintRB() {
-    Terminate(EXIT_FAILURE);
-  }
-};
+    /// Calls \c Terminate() with error code.
+    ~Rint() {
+      Terminate(EXIT_FAILURE);
+    }
+  };
+}
 
 /// The \c main ROOTBEER function.
-/*! Creates an instance of \c TRintRB and runs it. */
-int main(int argc, char **argv)
+/*! Creates an instance of \c rb::Rint and runs it. */
+Int_t main(Int_t argc, Char_t** argv)
 {
-  TRint *theApp = new TRintRB("ROOTBEER", &argc, argv, 0, 0, true);
+  rb::Rint rbApp("ROOTBEER", &argc, argv, 0, 0, kTRUE);
   rb::Logo();
-  theApp->Run();
+  rbApp.Run();
   return 0;
 }
 
+
 // ----- END CODE ---- //
+
+
+
 
 /*!
   \mainpage ROOTBEER: The ROOT Basic Event ExtractoR
