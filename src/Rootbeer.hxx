@@ -13,7 +13,7 @@
  */
 #ifndef __ROOTBEER__
 #define __ROOTBEER__
-#include "Unpacker.hxx"
+#include "Unpack.hxx"
 
 
 /// \global Global unpacker class instance.
