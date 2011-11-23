@@ -16,7 +16,6 @@
 #include "Unpack.hxx"
 
 
-
 /// Namespace wrapping the \c ROOTBEER objects and user functions.
 namespace rb
 {
@@ -29,26 +28,30 @@ namespace rb
   /// Disconnect from a data source.
   extern void Unattach();
 
-  /// Function to create a 1d histogram. Mirors the \c TH1D constructor.
-  extern void AddHist(const char* name, const char* title,
-		      Int_t nbinsx, Double_t xlow, Double_t xhigh,
-		      const char* param, const char* gate = "");
-
-  /// Function to create a 2d histogram. Mirors the \c TH2D constructor.
-  extern void AddHist(const char* name, const char* title,
-		      Int_t nbinsx, Double_t xlow, Double_t xhigh,
-		      Int_t nbinsy, Double_t ylow, Double_t yhigh,
-		      const char* param, const char* gate = "");
-
-  /// Function to create a 3d histogram. Mirors the \c TH3D constructor.
-  extern void AddHist(const char* name, const char* title,
-		      Int_t nbinsx, Double_t xlow, Double_t xhigh,
-		      Int_t nbinsy, Double_t ylow, Double_t yhigh,
-		      Int_t nbinsz, Double_t zlow, Double_t zhigh,
-		      const char* param, const char* gate = "");
 
   /// Display the \c ROOTBEER logo.
   extern void Logo();
+
+  namespace hist
+  {
+    /// Function to create a 1d histogram. Mirors the \c TH1D constructor.
+    extern void Add(const char* name, const char* title,
+		    Int_t nbinsx, Double_t xlow, Double_t xhigh,
+		    const char* param, const char* gate = "");
+
+    /// Function to create a 2d histogram. Mirors the \c TH2D constructor.
+    extern void Add(const char* name, const char* title,
+		    Int_t nbinsx, Double_t xlow, Double_t xhigh,
+		    Int_t nbinsy, Double_t ylow, Double_t yhigh,
+		    const char* param, const char* gate = "");
+
+    /// Function to create a 3d histogram. Mirors the \c TH3D constructor.
+    extern void Add(const char* name, const char* title,
+		    Int_t nbinsx, Double_t xlow, Double_t xhigh,
+		    Int_t nbinsy, Double_t ylow, Double_t yhigh,
+		    Int_t nbinsz, Double_t zlow, Double_t zhigh,
+		    const char* param, const char* gate = "");
+  }
 
   /// Contains user functions relevant to updating canvases and other graphics.
   namespace canvas

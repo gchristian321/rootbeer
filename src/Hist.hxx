@@ -33,9 +33,9 @@ namespace rb
    *  \note To avoid multi-inheritance issues, this function should
    *  <i>not</i> implement any methods
    *  that are contained in \c TH1 or it's derivatives.
-      \todo Make the inheritance cleaner, i.e. less code duplication
-      in things that are more or less shared save for the # of dimensions.
-   */
+   \todo Make the inheritance cleaner, i.e. less code duplication
+   in things that are more or less shared save for the # of dimensions.
+  */
   class Hist
   {
   protected:
@@ -126,7 +126,7 @@ namespace rb
       Locks the \c gUnpacker mutex when adding to fgArray
       \note The constructor is hidden from \c CINT because we
       don't want users to be able to call it. Instead they use the
-      rb::AddHist() function. The reason for this choice is that
+      rb::hist::Add() function. The reason for this choice is that
       CINT allows users to duplicate symbols, deleting the old
       object, and this doesn't play nice with the threaded filling
       of all histograms in Hist::fgArray. Giving access via functions
@@ -149,7 +149,7 @@ namespace rb
 
     /// Draw function
     /*! Just calls the normal \c TH1D::Draw but with the 
-        mutex locked. */
+      mutex locked. */
     void Draw(Option_t* option);
 
     /// Fill function
@@ -159,11 +159,6 @@ namespace rb
 
     /// Allows the user to zero out the histogram.
     void Clear(Option_t* option = "");
-
-    /// Allow rb::AddHist access to protected class members.
-    friend void AddHist(const char* name, const char* title,
-			Int_t nbinsx, Double_t xlow, Double_t xhigh,
-			const char* param, const char* gate);
 
     /// ClassDef for <tt>CINT</tt>.
     ClassDef(rb::H1D, 0);
@@ -200,7 +195,7 @@ namespace rb
       Locks the \c gUnpack mutex when adding to fgArray
       \note The constructor is hidden from \c CINT because we
       don't want users to be able to call it. Instead they use the
-      rb::AddHist() function. The reason for this choice is that
+      rb::hist::Add() function. The reason for this choice is that
       CINT allows users to duplicate symbols, deleting the old
       object, and this doesn't play nice with the threaded filling
       of all histograms in Hist::fgArray. Giving access via functions
@@ -234,12 +229,6 @@ namespace rb
 
     /// Allows the user to zero out the histogram.
     void Clear(Option_t* option = "");
-
-    /// Allow rb::AddHist access to protected class members.
-    friend void AddHist(const char* name, const char* title,
-			Int_t nbinsx, Double_t xlow, Double_t xhigh,
-			Int_t nbinsy, Double_t ylow, Double_t yhigh,
-			const char* param, const char* gate);
 
     /// ClassDef for <tt>CINT</tt>.
     ClassDef(rb::H2D, 0);
@@ -279,7 +268,7 @@ namespace rb
       Locks the \c gUnpacker mutex when adding to fgArray
       \note The constructor is hidden from \c CINT because we
       don't want users to be able to call it. Instead they use the
-      rb::AddHist() function. The reason for this choice is that
+      rb::hist::Add() function. The reason for this choice is that
       CINT allows users to duplicate symbols, deleting the old
       object, and this doesn't play nice with the threaded filling
       of all histograms in Hist::fgArray. Giving access via functions
@@ -314,13 +303,6 @@ namespace rb
 
     /// Allows the user to zero out the histogram.
     void Clear(Option_t* option = "");
-
-    /// Allow rb::AddHist access to protected class members.
-    friend void AddHist(const char* name, const char* title,
-			Int_t nbinsx, Double_t xlow, Double_t xhigh,
-			Int_t nbinsy, Double_t ylow, Double_t yhigh,
-			Int_t nbinsz, Double_t zlow, Double_t zhigh,
-			const char* param, const char* gate);
 
     /// ClassDef for <tt>CINT</tt>.
     ClassDef(rb::H3D, 0);

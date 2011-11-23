@@ -12,6 +12,7 @@
 
 #pragma link C++ namespace rb;
 #pragma link C++ namespace rb::canvas;
+#pragma link C++ namespace rb::hist;
 
 #pragma link C++ class sData+;
 
