@@ -51,15 +51,6 @@ namespace rb
     /// Cleanup function
     extern void Cleanup();
 
-    /// Grab buffers from an online source (threaded).
-    extern void AttachOnline();
-
-    /// Grab buffers from an offline source (threaded).
-    extern void AttachFile(const char* filename);
-
-    /// Stop receiving buffers.
-    extern void Unattach();
-
     /// Unpack buffer into user structs
     /*! Should be user-defined, and call FillHistograms at completion.
      \todo Implement skeleton-type user interface. */

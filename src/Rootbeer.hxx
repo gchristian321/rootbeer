@@ -23,6 +23,9 @@ namespace rb
   /// Attach to an online data sorce.
   extern void AttachOnline();
 
+  /// Attach to an offline data source.
+  extern void AttachFile(const char* filename);
+
   /// Disconnect from a data source.
   extern void Unattach();
 

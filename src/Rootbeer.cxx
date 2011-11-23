@@ -49,9 +49,6 @@ void rb::AddHist(const char* name, const char* title,
   			      param, gate, unpack::fTree);
 }
 
-void rb::AttachOnline() { unpack::AttachOnline(); }
-                                                 
-void rb::Unattach() { unpack::Unattach(); }        
 
 void rb::Logo() { unpack::Initialize();
     cout << "                                                                 \n"

@@ -143,19 +143,22 @@ namespace rb
 }
 
 
-void rb::unpack::AttachOnline() {
+void rb::AttachOnline() {
+  using namespace unpack;
   Unattach();
   attachOnlineThread.Run();
 }
 
 
-void rb::unpack::AttachFile(const char* filename) {
+void rb::AttachFile(const char* filename) {
+  using namespace unpack;
   Unattach();
   attachOfflineThread.Run((void*)filename);
 }
 
 
-void rb::unpack::Unattach() {
+void rb::Unattach() {
+  using namespace unpack;
   if(kAttachedOnline) {
     kAttachedOnline = kFALSE;
     attachOnlineThread.Join();
