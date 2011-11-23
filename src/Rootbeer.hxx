@@ -11,17 +11,10 @@
  * included in the \c Linkdef.h file. This is done on purpose to keep users from inadvertently
  * doing something they shouldn't to a variable and causing a crash or other bad behavior.
  */
-
-
-
 #ifndef __ROOTBEER__
 #define __ROOTBEER__
-
-#include "TObjArray.h"
 #include "Unpacker.hxx"
 
-/// \global Global array of all \c rb::HnF objects.
-extern TObjArray gHistograms;
 
 /// \global Global unpacker class instance.
 extern rb::Unpacker gUnpacker;
@@ -53,9 +46,6 @@ namespace rb
 		      Int_t nbinsy, Double_t ylow, Double_t yhigh,
 		      Int_t nbinsz, Double_t zlow, Double_t zhigh,
 		      const char* param, const char* gate = "");
-
-  /// Return a \c const pointer to the \c gHistograms list.
-  extern const TObjArray* GetListOfHistograms();
 
   /// Display the \c ROOTBEER logo.
   extern void Logo();

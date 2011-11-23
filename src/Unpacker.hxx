@@ -34,6 +34,10 @@ namespace rb
    *  the user access to the \c CINT command line while processing online data.
    *  Generally, the locking of shared objects (e.g. Histograms) is performed by the
    *  object itself, not by the Unpacker.
+   *  \todo Change this from a class to functions in a namespace.
+   *  \todo Make the data buffer smarter and safer, i.e. have the size and type
+   *  be options (maybe use boost::variant for the type and vector to manage
+   *  the size. Or at least check that it's valid, etc.
    */
   class Unpacker
   {

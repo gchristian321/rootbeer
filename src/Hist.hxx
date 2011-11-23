@@ -17,6 +17,7 @@
 #include "TTreeFormula.h"
 #include "TROOT.h"
 #include "TError.h"
+#include "TObjArray.h"
 #include "Rootbeer.hxx"
 
 
@@ -30,7 +31,10 @@ namespace rb
    *  the various \c rb::HnF flavors
    *  \note To avoid multi-inheritance issues, this function should
    *  <i>not</i> implement any methods
-   *  that are contained in \c TH1 or it's derivatives. */
+   *  that are contained in \c TH1 or it's derivatives.
+      \todo Make the inheritance cleaner, i.e. less code duplication
+      in things that are more or less shared save for the # of dimensions.
+   */
   class Hist
   {
   protected:
@@ -40,7 +44,10 @@ namespace rb
     /// Gate formula.
     TTreeFormula fGate;
 
-  public:
+    /// Static array of all existing rb::Hist derived objects.
+    static TObjArray fgArray;
+
+  public:    
     /// Function to fill histogram from its internal parameter value(s).
     virtual Int_t Fill() = 0;
 
@@ -59,6 +66,13 @@ namespace rb
      *  -1 if \c newgate isn't valid. In case of invalid \c newgate, the histogram
      *  gate condition remains unchanged. */
     virtual Int_t Regate(const char* newgate);
+
+    /// Function to access entries of \c Hist::fgArray
+    static rb::Hist* Get(UInt_t index);
+
+    /// Function to tell the total number of entried in \c fgArray
+    static UInt_t GetNumber();
+
 
   protected:
     /// Function to turn an empty gate argument into
@@ -98,17 +112,16 @@ namespace rb
     /*! Format basically mirrors the normal TH1D constructor but
       with the addition of \c param and \c gate arguments
       to set the \c fParam and \c fGate fields. Also adds to the
-      global \c gHistograms list.
-      Locks the \c gUnpacker mutex when adding to
-      <tt>ghistograms</tt>.
+      static Hist::fgArray list.
+      Locks the \c gUnpacker mutex when adding to fgArray
       \note The constructor is hidden from \c CINT because we
       don't want users to be able to call it. Instead they use the
-      \c rb::AddHist function. The reason for this choice is that
-      \c CINT allows users to duplicate symbols, deleting the old
-      object, and this doesn't play nice with the \c gHistograms
-      list used in <tt>ROOTBEER</tt>. Giving access via functions
+      rb::AddHist() function. The reason for this choice is that
+      CINT allows users to duplicate symbols, deleting the old
+      object, and this doesn't play nice with the threaded filling
+      of all histograms in Hist::fgArray. Giving access via functions
       eliminates the problem and still allows users simple access via
-      the atomatic pointers that \c CINT creates.
+      the atomatic pointers that CINT creates.
     */
 #ifndef __CINT__
     H1D (const char* name, const char* title,
@@ -121,7 +134,7 @@ namespace rb
     H1D() { };
 
     /// Destructor.
-    /*! Remove from <tt>gHistograms</tt>.*/
+    /*! Remove from Hist::fgAarray.*/
     ~H1D();
 
     /// Draw function
@@ -173,17 +186,16 @@ namespace rb
     /*! Format basically mirrors the normal TH2D constructor but
       with the addition of \c param and \c gate arguments
       to set the \c fParam and \c fGate fields. Also adds to the
-      global \c gHistograms list.
-      Locks the \c gUnpacker mutex when adding to
-      <tt>ghistograms</tt>.
+      static Hist::fgArray list.
+      Locks the \c gUnpacker mutex when adding to fgArray
       \note The constructor is hidden from \c CINT because we
       don't want users to be able to call it. Instead they use the
-      \c rb::AddHist function. The reason for this choice is that
-      \c CINT allows users to duplicate symbols, deleting the old
-      object, and this doesn't play nice with the \c gHistograms
-      list used in <tt>ROOTBEER</tt>. Giving access via functions
+      rb::AddHist() function. The reason for this choice is that
+      CINT allows users to duplicate symbols, deleting the old
+      object, and this doesn't play nice with the threaded filling
+      of all histograms in Hist::fgArray. Giving access via functions
       eliminates the problem and still allows users simple access via
-      the atomatic pointers that \c CINT creates.
+      the atomatic pointers that CINT creates.
     */
 #ifndef __CINT__
     H2D (const char* name, const char* title,
@@ -197,7 +209,7 @@ namespace rb
     H2D() { };
 
     /// Destructor.
-    /*! Remove from <tt>gHistograms</tt>.*/
+    /*! Remove from Hist::fgAarray.*/
     ~H2D();
 
     /// Draw function
@@ -253,17 +265,16 @@ namespace rb
     /*! Format basically mirrors the normal TH3D constructor but
       with the addition of \c param and \c gate arguments
       to set the \c fParam and \c fGate fields. Also adds to the
-      global \c gHistograms list.
-      Locks the \c gUnpacker mutex when adding to
-      <tt>ghistograms</tt>.
+      static Hist::fgArray list.
+      Locks the \c gUnpacker mutex when adding to fgArray
       \note The constructor is hidden from \c CINT because we
       don't want users to be able to call it. Instead they use the
-      \c rb::AddHist function. The reason for this choice is that
-      \c CINT allows users to duplicate symbols, deleting the old
-      object, and this doesn't play nice with the \c gHistograms
-      list used in <tt>ROOTBEER</tt>. Giving access via functions
+      rb::AddHist() function. The reason for this choice is that
+      CINT allows users to duplicate symbols, deleting the old
+      object, and this doesn't play nice with the threaded filling
+      of all histograms in Hist::fgArray. Giving access via functions
       eliminates the problem and still allows users simple access via
-      the atomatic pointers that \c CINT creates.
+      the atomatic pointers that CINT creates.
     */
 #ifndef __CINT__
     H3D (const char* name, const char* title,
@@ -278,7 +289,7 @@ namespace rb
     H3D() { };
 
     /// Destructor.
-    /*! Remove from <tt>gHistograms</tt>.*/
+    /*! Remove from Hist::fgAarray.*/
     ~H3D();
 
     /// Draw function

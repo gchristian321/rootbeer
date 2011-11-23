@@ -149,11 +149,8 @@ void rb::Unpacker::Unattach() {
 
 
 void rb::Unpacker::FillHistograms() {
-  for(Int_t i=0; i< gHistograms.GetEntries(); ++i) {
-    TObject* pObj = gHistograms.At(i);
-    if(!pObj) continue;
-    rb::Hist* pHist = dynamic_cast<rb::Hist*>(pObj);
+  for(UInt_t indx = 0; indx < Hist::GetNumber(); ++indx) {
+    rb::Hist* pHist = Hist::Get(indx);
     if(pHist) pHist->Fill();
-    else Error("FillHistograms", "Invalid Histogram type %s", pObj->ClassName());
   }
 }

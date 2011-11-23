@@ -7,6 +7,8 @@
 
 
 // Class rb::Hist //
+// Static data members.
+TObjArray rb::Hist::fgArray;
 
 // Constructor
 rb::Hist::Hist(const char* gate, TTree* tree) :
@@ -23,6 +25,34 @@ Int_t rb::Hist::Regate(const char* newgate) {
   fGate.Compile(Hist::CheckGate(newgate).c_str());
   HistMutex::Unlock();
   return 0;
+}
+
+// Static "getter" function
+rb::Hist* rb::Hist::Get(UInt_t indx) {
+  rb::Hist* hist;
+
+  if(indx > fgArray.GetEntries()) {
+    Error("Get", "Invalid index: %d, maximum is %d.\n",
+	  indx, fgArray.GetEntries()-1);
+    hist = 0;
+  }
+
+  else {
+    hist = dynamic_cast<rb::Hist*>(fgArray.At(indx));
+
+    if(!hist) {
+      TObject* object = fgArray.At(indx);
+      Error("Get", "Bad dyamic cast to rb::Hist*, original class was: %s.",
+	    object->ClassName());
+    }
+  }
+
+  return hist;
+}
+
+// Get number of histograms
+UInt_t rb::Hist::GetNumber() {
+  return fgArray.GetEntries();
 }
 
 // Gate checking function
@@ -103,7 +133,7 @@ rb::H1D::H1D (const char* name, const char* title,
 {
   if(fTree && fGate.GetTree() && fParam.GetTree()) {
     HistMutex::Lock();
-    gHistograms.Add(this);
+    fgArray.Add(this);
     HistMutex::Unlock();
   }
   else {
@@ -114,8 +144,8 @@ rb::H1D::H1D (const char* name, const char* title,
 // Destructor
 rb::H1D::~H1D() {
   HistMutex::Lock();
-  gHistograms.Remove(this);
-  gHistograms.Compress();
+  fgArray.Remove(this);
+  fgArray.Compress();  
   HistMutex::Unlock();
 }
 
@@ -165,7 +195,7 @@ rb::H2D::H2D (const char* name, const char* title,
      fParamX.GetTree() &&
      fParamY.GetTree()) {
     HistMutex::Lock();
-    gHistograms.Add(this);
+    fgArray.Add(this);
     HistMutex::Unlock();
   }
   else {
@@ -176,8 +206,8 @@ rb::H2D::H2D (const char* name, const char* title,
 // Destructor
 rb::H2D::~H2D() {
   HistMutex::Lock();
-  gHistograms.Remove(this);
-  gHistograms.Compress();
+  fgArray.Remove(this);
+  fgArray.Compress();
   HistMutex::Unlock();
 }
 
@@ -234,7 +264,7 @@ rb::H3D::H3D (const char* name, const char* title,
      fParamX.GetTree() &&
      fParamY.GetTree()) {
     HistMutex::Lock();
-    gHistograms.Add(this);
+    fgArray.Add(this);
     HistMutex::Unlock();
   }
   else {
@@ -245,8 +275,8 @@ rb::H3D::H3D (const char* name, const char* title,
 // Destructor
 rb::H3D::~H3D() {
   HistMutex::Lock();
-  gHistograms.Remove(this);
-  gHistograms.Compress();
+  fgArray.Remove(this);
+  fgArray.Compress();
   HistMutex::Unlock();
 }
 

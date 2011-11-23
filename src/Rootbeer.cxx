@@ -1,7 +1,10 @@
 /*! \file Rootbeer.cxx 
  *  \brief Implements the user interface functions and
  *  also contains the \c main program.
-*/
+
+   \todo Get rid of gUnpacker, probably the best thing is to change
+   unpacker to a namespace with "private" stuff only in the C++ file.
+ */
 #include <typeinfo>
 #include <iostream>
 #include <fstream>
@@ -14,7 +17,6 @@ using namespace std;
 
 
 // Globals
-TObjArray gHistograms; 
 rb::Unpacker gUnpacker;
 
 
@@ -52,8 +54,6 @@ void rb::AddHist(const char* name, const char* title,
   			      nbinsz, zlow, zhigh,
   			      param, gate);
 }
-
-const TObjArray* rb::GetListOfHistograms() { return &gHistograms; }
 
 void rb::AttachOnline() { gUnpacker.AttachOnline(); }
                                                  
