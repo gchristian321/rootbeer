@@ -4,7 +4,6 @@
 #include "TRint.h"
 #include "Rootbeer.hxx"
 
-
 namespace rb
 {
   /// Class that runs the interactive ROOT application.
@@ -61,7 +60,7 @@ Int_t main(Int_t argc, Char_t** argv)
 /*!
   \mainpage ROOTBEER: The ROOT Basic Event ExtractoR
   \authors G. Christian \n gchristian@triumf.ca \n\n
-           S. Mosby \n mosby@nscl.msu.edu
+
 
 
   \n \section intro Introduction

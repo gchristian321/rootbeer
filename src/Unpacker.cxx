@@ -58,10 +58,12 @@ rb::Unpacker::Unpacker() :
   attachOnlineThread("attachOnline", rb::Unpacker::AttachOnline_),
   attachOfflineThread("attachOffline", rb::Unpacker::AttachFile_) {
 
-  fData = new sData();
   fTree = new TTree("t", "fTree");
   fTree->SetDirectory(0);
-  fTree->Branch("fData", "sData", &fData);
+
+#define   INIT_BRANCHES
+#include "Skeleton.hh"
+
 
   kAttachedOnline  = kFALSE;
   kAttachedOffline = kFALSE;
@@ -75,6 +77,8 @@ rb::Unpacker::~Unpacker() {
     fTree->ResetBranchAddresses();
     delete fTree;
   }
+#define DELETION
+#include "Skeleton.hh"
 }
 
 void* rb::Unpacker::AttachOnline_(void* arg) {
@@ -139,14 +143,10 @@ void rb::Unpacker::Unattach() {
   }
 }
 
-void rb::Unpacker::UnpackBuffer() {
-  Short_t* p = &fBuffer[0];
-  Int_t nEvts = *p++;
-  for(Int_t i=0; i< nEvts; ++i) {
-    p += fData->process_event(p);
-    FillHistograms();
-  }
-}
+// void rb::Unpacker::UnpackBuffer()
+#define   UNPACK_ROUTINES
+#include "Skeleton.hh"
+
 
 void rb::Unpacker::FillHistograms() {
   for(Int_t i=0; i< gHistograms.GetEntries(); ++i) {

@@ -20,7 +20,6 @@
 #include "TObjArray.h"
 #include "Unpacker.hxx"
 
-
 /// \global Global array of all \c rb::HnF objects.
 extern TObjArray gHistograms;
 
