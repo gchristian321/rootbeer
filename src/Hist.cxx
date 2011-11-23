@@ -2,8 +2,6 @@
  *  \brief Implements the histogram class member functions.
  */
 #include "Hist.hxx"
-#include "Mutex.hxx"
-
 
 
 // Class rb::Hist //
