@@ -14,11 +14,6 @@ using namespace std;
 
 
 
-
-// Globals
-////rb::Unpacker gUnpacker;
-
-
 /// User functions
 
 void rb::AddHist(const char* name, const char* title,
