@@ -1,15 +1,11 @@
 /*! \file rootbeer.hxx
  * \brief Define the \c CINT user interface to <tt>ROOTBEER</tt>
  *
- * The user interface to anyything \c ROOTBEER specific is done via functions
+ * The user interface to anything \c ROOTBEER specific is done via functions
  * in the \c rb namespace. So, to do any action specific to \c ROOTBEER (as opposed
  * to just plain <tt>ROOT</tt>), the user will call <tt>rb::DoWhatever()</tt>.  All
  * of the available user functions and their descriptions can be found in this Doxygen
  * file.
- *
- * \note \c CINT users have no access to the variables defined here since they're not
- * included in the \c Linkdef.h file. This is done on purpose to keep users from inadvertently
- * doing something they shouldn't to a variable and causing a crash or other bad behavior.
  */
 #ifndef __ROOTBEER__
 #define __ROOTBEER__
@@ -19,33 +15,37 @@
 /// Namespace wrapping the \c ROOTBEER objects and user functions.
 namespace rb
 {
-  /// Attach to an online data sorce.
+  /// Attach to an online data sorce. Implemented in Unpack.cxx
   extern void AttachOnline();
 
-  /// Attach to an offline data source.
+  /// Attach to an offline data source. Implemented in Unpack.cxx
   extern void AttachFile(const char* filename);
 
-  /// Disconnect from a data source.
+  /// Disconnect from a data source. Implemented in Unpack.cxx
   extern void Unattach();
 
 
-  /// Display the \c ROOTBEER logo.
+  /// Display the \c ROOTBEER logo. Implemented in Rootbeer.cxx
   extern void Logo();
 
+  /// Contains the user interface to creating histograms.
   namespace hist
   {
-    /// Function to create a 1d histogram. Mirors the \c TH1D constructor.
+    /// \brief Function to create a 1d histogram. Mirors the \c TH1D constructor.
+    /// Implemented in Rootbeer.cxx
     extern void Add(const char* name, const char* title,
 		    Int_t nbinsx, Double_t xlow, Double_t xhigh,
 		    const char* param, const char* gate = "");
 
-    /// Function to create a 2d histogram. Mirors the \c TH2D constructor.
+    /// \brief Function to create a 2d histogram. Mirors the \c TH2D constructor.
+    /// Implemented in Rootbeer.cxx
     extern void Add(const char* name, const char* title,
 		    Int_t nbinsx, Double_t xlow, Double_t xhigh,
 		    Int_t nbinsy, Double_t ylow, Double_t yhigh,
 		    const char* param, const char* gate = "");
 
-    /// Function to create a 3d histogram. Mirors the \c TH3D constructor.
+    /// \brief Function to create a 3d histogram. Mirors the \c TH3D constructor.
+    /// Implemented in Rootbeer.cxx
     extern void Add(const char* name, const char* title,
 		    Int_t nbinsx, Double_t xlow, Double_t xhigh,
 		    Int_t nbinsy, Double_t ylow, Double_t yhigh,
@@ -56,19 +56,20 @@ namespace rb
   /// Contains user functions relevant to updating canvases and other graphics.
   namespace canvas
   {
-    /// Update every open canvas.
+    /// Update every open canvas. Implemented in Canvas.cxx
     extern void UpdateAll();
 
-    /// Update the currently selected pad only.
+    /// Update the currently selected pad only. Implemented in Canvas.cxx
     extern void UpdateCurrent();
 
-    /// Start updating canvases in a separate thread from the main one running \c CINT.
+    /// \brief Start updating canvases in a separate thread from the main one running CINT.
+    /// Implemented in Canvas.cxx
     extern Int_t StartUpdate(Int_t rate);
 
-    /// Stop updating canvases.
+    /// Stop updating canvases. Implemented in Canvas.cxx
     extern Int_t StopUpdate();
 
-    /// Return the canvas update rate.
+    /// Return the canvas update rate. Implemented in Canvas.cxx
     extern Int_t GetUpdateRate();
   }
 

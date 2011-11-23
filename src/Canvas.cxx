@@ -1,5 +1,5 @@
-/*! \file CanvasUpdate.cxx
- * \brief Implements \c CanvasUdate.hxx
+/*! \file Canvas.cxx
+ * \brief Implements canvas updating functions.
  * 
  * Also defines a number of internal functions to be called by the
  * user ones.
