@@ -52,105 +52,124 @@ void FakeBuffer(Short_t* buf, Int_t dataRate = 0) {
 }
 
 
-//// Class Unpacker ////
 
-rb::Unpacker::Unpacker() :
-  attachOnlineThread("attachOnline", rb::Unpacker::AttachOnline_),
-  attachOfflineThread("attachOffline", rb::Unpacker::AttachFile_) {
+namespace rb
+{
+  namespace unpack
+  {
+    /// The data buffer
+    Short_t fBuffer[BUFFER_SIZE];
 
-  fTree = new TTree("t", "fTree");
-  fTree->SetDirectory(0);
+    /// 
+    void* AttachOnline_(void* arg);
+    void* AttachFile_(void* arg);
 
+    Bool_t kAttachedOnline = kFALSE;
+    Bool_t kAttachedFile = kFALSE;
+
+    TThread attachOnlineThread("attachOnline", AttachOnline_);
+    TThread attachOfflineThread("attachFile", AttachFile_);
+
+    TTree* fTree = 0;
+    sData* myData = new sData();
+
+    void Initialize() {
+      fTree = new TTree("t", "fTree");
+      fTree->SetDirectory(0);
 #define   INIT_BRANCHES
 #include "Skeleton.hh"
+    }
 
-
-  kAttachedOnline  = kFALSE;
-  kAttachedOffline = kFALSE;
-  offlineFileName  = "";
-}
-
-rb::Unpacker::~Unpacker() {
-  Unattach();
-  gSystem->Sleep(0.5e3);
-  if(fTree) {
-    fTree->ResetBranchAddresses();
-    delete fTree;
-  }
+    void Cleanup() {
+      Unattach();
+      gSystem->Sleep(0.5e3);
+      if(fTree) {
+	fTree->ResetBranchAddresses();
+	delete fTree;
+      }
 #define DELETION
 #include "Skeleton.hh"
-}
+    }
 
-void* rb::Unpacker::AttachOnline_(void* arg) {
-  rb::Unpacker* _this = (rb::Unpacker*)arg;
-  _this->kAttachedOnline = kTRUE;
 
-  /// For now just generate fake data buffers.
-  while(_this->kAttachedOnline) {
-    FakeBuffer(&(_this->fBuffer[0]));
-    _this->UnpackBuffer();
+
+    void FillHistograms() {
+      for(UInt_t indx = 0; indx < Hist::GetNumber(); ++indx) {
+	rb::Hist* pHist = Hist::Get(indx);
+	if(pHist) pHist->Fill();
+      }
+    }
+
+    void* AttachOnline_(void* arg) {
+      kAttachedOnline = kTRUE;
+
+      /// For now just generate fake data buffers.
+      while(kAttachedOnline) {
+	FakeBuffer(&(fBuffer[0]));
+	UnpackBuffer();
+      }
+      return (void*)0;
+    }
+
+    void* AttachFile_(void* arg) {
+      kAttachedFile = kTRUE;
+
+      std::string* fileName = static_cast<std::string*>(arg);
+      ifstream ifs(fileName->c_str(), ios::in);
+
+      if(!ifs.good()) {
+	Error("AtachFile_", "File %s not readable.", fileName->c_str());
+	ifs.close();
+	return (void*)-1;
+      }
+
+      while(kAttachedFile) {
+	ifs.read((Char_t*)(&fBuffer[0]), BUFFER_SIZE * (sizeof(Short_t)/sizeof(Char_t)));
+	if(!ifs.good()) break; // Done reading file.
+
+	UnpackBuffer();
+      }
+      ifs.close();
+
+      if(kAttachedFile) {
+	Info("AttachFile", "Done reading %s", fileName->c_str());
+	Unattach();
+      }
+      else Info("AttachFile", "Connection aborted by user");
+
+      return (void*)0;
+    }
   }
-  return (void*)0;
 }
 
-void* rb::Unpacker::AttachFile_(void* arg) {
-  rb::Unpacker* _this = (rb::Unpacker*)arg;
-  _this->kAttachedOffline = kTRUE;
 
-  ifstream ifs(_this->offlineFileName.c_str(), ios::in);
-  if(!ifs.good()) {
-    Error("AtachFile_", "File %s not readable.", _this->offlineFileName.c_str());
-    ifs.close();
-    _this->offlineFileName = "";
-    return (void*)-1;
-  }
-
-  while(_this->kAttachedOffline) {
-    ifs.read((Char_t*)(&_this->fBuffer[0]), BUFFER_SIZE * (sizeof(Short_t)/sizeof(Char_t)));
-    if(!ifs.good()) break; // Done reading file.
-
-    _this->UnpackBuffer();
-  }
-  ifs.close();
-
-  if(_this->kAttachedOffline) {
-    Info("AttachFile", "Done reading %s", _this->offlineFileName.c_str());
-    _this->Unattach();
-  }
-  else Info("AttachFile", "Connection aborted by user");
-
-  return (void*)0;
+void rb::unpack::AttachOnline() {
+  Unattach();
+  attachOnlineThread.Run();
 }
 
-void rb::Unpacker::AttachOnline() {
-  attachOnlineThread.Run((void*)this);
+
+void rb::unpack::AttachFile(const char* filename) {
+  Unattach();
+  attachOfflineThread.Run((void*)filename);
 }
 
-void rb::Unpacker::AttachFile(const char* filename) {
-  offlineFileName = filename;
-  attachOfflineThread.Run((void*)this);
-}
 
-void rb::Unpacker::Unattach() {
+void rb::unpack::Unattach() {
   if(kAttachedOnline) {
     kAttachedOnline = kFALSE;
     attachOnlineThread.Join();
   }
-  if(kAttachedOffline) {
-    kAttachedOffline = kFALSE;
-    offlineFileName = "";
+  if(kAttachedFile) {
+    kAttachedFile = kFALSE;
     attachOfflineThread.Join();
   }
 }
 
-// void rb::Unpacker::UnpackBuffer()
+
+
+    // void UnpackBuffer()
 #define   UNPACK_ROUTINES
 #include "Skeleton.hh"
 
 
-void rb::Unpacker::FillHistograms() {
-  for(UInt_t indx = 0; indx < Hist::GetNumber(); ++indx) {
-    rb::Hist* pHist = Hist::Get(indx);
-    if(pHist) pHist->Fill();
-  }
-}

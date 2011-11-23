@@ -127,7 +127,7 @@ namespace rb
     H1D (const char* name, const char* title,
          Int_t nbins, Double_t xlow, Double_t xhigh,
 	 const char* param, const char* gate = "",
-	 TTree* tree = gUnpacker.fTree);
+	 TTree* tree = unpack::fTree);
 #endif
 
     /// Empty constructor for \c CINT
@@ -187,7 +187,7 @@ namespace rb
       with the addition of \c param and \c gate arguments
       to set the \c fParam and \c fGate fields. Also adds to the
       static Hist::fgArray list.
-      Locks the \c gUnpacker mutex when adding to fgArray
+      Locks the \c gUnpack mutex when adding to fgArray
       \note The constructor is hidden from \c CINT because we
       don't want users to be able to call it. Instead they use the
       rb::AddHist() function. The reason for this choice is that
@@ -202,7 +202,7 @@ namespace rb
          Int_t nbinsx, Double_t xlow, Double_t xhigh,
 	 Int_t nbinsy, Double_t ylow, Double_t yhigh,
 	 const char* param, const char* gate = "",
-	 TTree* tree = gUnpacker.fTree);
+	 TTree* tree = unpack::fTree);
 #endif
 
     /// Empty constructor for \c CINT
@@ -282,7 +282,7 @@ namespace rb
 	 Int_t nbinsy, Double_t ylow, Double_t yhigh,
 	 Int_t nbinsz, Double_t zlow, Double_t zhigh,
 	 const char* param, const char* gate = "",
-	 TTree* tree = gUnpacker.fTree);
+	 TTree* tree = unpack::fTree);
 #endif
 
     /// Empty constructor for \c CINT
@@ -294,7 +294,7 @@ namespace rb
 
     /// Draw function
     /*! Just calls the normal \c TH3D::Draw but with the 
-      \c gUnpacker mutex locked. */
+      \c gUnpack mutex locked. */
     void Draw(Option_t* option);
 
     /// Fill function

@@ -17,7 +17,7 @@
 
 
 /// \global Global unpacker class instance.
-extern rb::Unpacker gUnpacker;
+///extern rb::Unpacker gUnpacker;
 
 
 /// Namespace wrapping the \c ROOTBEER objects and user functions.

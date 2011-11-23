@@ -29,6 +29,7 @@ namespace rb
     void Terminate(Int_t status = 0) {
       rb::canvas::StopUpdate();
       rb::Unattach();
+      rb::unpack::Cleanup();
       TRint::Terminate(status);
     }
 
@@ -45,6 +46,7 @@ namespace rb
 /*! Creates an instance of \c rb::Rint and runs it. */
 Int_t main(Int_t argc, Char_t** argv)
 {
+  rb::unpack::Initialize();
   rb::Rint rbApp("ROOTBEER", &argc, argv, 0, 0, kTRUE);
   rb::Logo();
   rbApp.Run();

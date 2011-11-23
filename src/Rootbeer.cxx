@@ -17,7 +17,7 @@ using namespace std;
 
 
 // Globals
-rb::Unpacker gUnpacker;
+////rb::Unpacker gUnpacker;
 
 
 /// User functions
@@ -55,11 +55,11 @@ void rb::AddHist(const char* name, const char* title,
   			      param, gate);
 }
 
-void rb::AttachOnline() { gUnpacker.AttachOnline(); }
+void rb::AttachOnline() { unpack::AttachOnline(); }
                                                  
-void rb::Unattach() { gUnpacker.Unattach(); }        
+void rb::Unattach() { unpack::Unattach(); }        
 
-void rb::Logo() {
+void rb::Logo() { unpack::Initialize();
     cout << "                                                                 \n"
 	 << "                            ___                                  \n"
 	 << "                          .'   '.                                \n"
