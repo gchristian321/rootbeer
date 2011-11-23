@@ -6,9 +6,9 @@
  */
 #include "TCanvas.h"
 #include "TThread.h"
+#include "TMutex.h"
 #include "Timer.hxx"
 #include "Hist.hxx"
-#include "Mutex.hxx"
 #include "Rootbeer.hxx"
 using namespace std;
 
@@ -28,23 +28,32 @@ namespace rb
     /// Maximum update rate, currently set to two seconds.
     static const Int_t MAX_RATE = 1;
 
-    /// The rate at which canvases are updated (int seconds).
+    /// The rate at which canvases are updated (in seconds).
     Int_t updateRate = 0;
 
     /// Thread in which the canvas updating functions are run.
     TThread thCanvas("thCanvas", rb::canvas::TimedUpdate);
+
+    /// Mutex for locking threded canvas operations.
+    TMutex Mutex;
+
+    /// Mutex locking function
+    void Lock() { rb::canvas::Mutex.Lock(); }
+
+    /// Mutex un-locking function
+    void Unlock() { rb::canvas::Mutex.UnLock(); }
   }
 }
 
 // "Private" functions, hiddend from CINT.
 
 void rb::canvas::UpdateCurrent() {
-  CanvasMutex::Lock();
+  rb::canvas::Lock();
   if(gPad) {
     gPad->Modified();
     gPad->Update();
   }
-  CanvasMutex::Unlock();
+  rb::canvas::Unlock();
 }
 
 void rb::canvas::UpdatePad(TVirtualPad* pad) {
@@ -52,20 +61,20 @@ void rb::canvas::UpdatePad(TVirtualPad* pad) {
   pad = dynamic_cast<TPad*>(pad);
   if(!pad) Error("rb::canvas::UpdatePad", "Passed an invalid type, %s.", type.c_str());
 
-  CanvasMutex::Lock();
+  rb::canvas::Lock();
   pad->cd();
   TList* primitives = pad->GetListOfPrimitives();
-  CanvasMutex::Unlock();
+  rb::canvas::Unlock();
 
   for(Int_t i=0; i< primitives->GetEntries(); ++i) {
     TVirtualPad* subpad = dynamic_cast<TVirtualPad*>(primitives->At(i));
     if(subpad) rb::canvas::UpdatePad(subpad);
   }
 
-  CanvasMutex::Lock();
+  rb::canvas::Lock();
   pad->Modified();
   pad->Update();
-  CanvasMutex::Unlock();
+  rb::canvas::Unlock();
 }
 
 void rb::canvas::UpdateAll() {
@@ -75,9 +84,9 @@ void rb::canvas::UpdateAll() {
     pad = dynamic_cast<TPad*>(gROOT->GetListOfCanvases()->At(i));
     if(pad) rb::canvas::UpdatePad(pad);
   }
-  CanvasMutex::Lock();
+  rb::canvas::Lock();
   if(pInitial) pInitial->cd();
-  CanvasMutex::Unlock();
+  rb::canvas::Unlock();
 }
 
 void* rb::canvas::TimedUpdate(void * rate) {
