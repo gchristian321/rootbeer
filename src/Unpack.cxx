@@ -69,24 +69,21 @@ namespace rb
 
     TThread attachOnlineThread("attachOnline", AttachOnline_);
     TThread attachOfflineThread("attachFile", AttachFile_);
-
-    TTree* fTree = 0;
+    
     sData* myData = new sData();
 
     void Initialize() {
-      fTree = new TTree("t", "fTree");
-      fTree->SetDirectory(0);
 #define   INIT_BRANCHES
 #include "Skeleton.hh"
+    }
+
+    void InitBranch(const char* name, const char* classname, void* obj, TTree& tree) {
+      tree.Branch(name, classname, &obj);
     }
 
     void Cleanup() {
       Unattach();
       gSystem->Sleep(0.5e3);
-      if(fTree) {
-	fTree->ResetBranchAddresses();
-	delete fTree;
-      }
 #define DELETION
 #include "Skeleton.hh"
     }

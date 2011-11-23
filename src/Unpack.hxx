@@ -35,17 +35,7 @@ namespace rb
    */
   namespace unpack
   {
-    /// Data classes.
-#define   DEF_DATA
-#include "Skeleton.hh"
-
-    /// Internal tree for histogram filling.
-    extern TTree* fTree;
-
     /// Initialization function    
-    /*! Initializes \c fTree and creates branches from \c fData.
-     *  Also initializes the internal \cc TThread and internal variables
-     *  that tell whether we're attached or not.*/
     extern void Initialize();
 
     /// Cleanup function

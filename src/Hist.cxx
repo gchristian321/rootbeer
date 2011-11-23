@@ -5,20 +5,22 @@
 
 
 // Class rb::Hist //
+
 // Static data members.
 TObjArray rb::Hist::fgArray;
+
 TMutex rb::Hist::fgMutex;
 
+TTree rb::Hist::fgTree;
+
+
 // Constructor
-rb::Hist::Hist(const char* gate, TTree* tree) :
-  fTree(tree),
-  fGate("fGate", CheckGate(gate).c_str(), fTree) {
-  if(!fTree) Error("Hist", "Passed an invalid Tree");
-}
+rb::Hist::Hist(const char* gate) : 
+  fGate("fGate", CheckGate(gate).c_str(), &fgTree) { }
 
 // Regate function
 Int_t rb::Hist::Regate(const char* newgate) {
-  TTreeFormula tempFormula("temp", CheckGate(newgate).c_str(), fTree);
+  TTreeFormula tempFormula("temp", CheckGate(newgate).c_str(), &fgTree);
   if(!tempFormula.GetTree()) return -1;
   Hist::Lock();
   fGate.Compile(Hist::CheckGate(newgate).c_str());
@@ -52,6 +54,12 @@ rb::Hist* rb::Hist::Get(UInt_t indx) {
   }
 
   return hist;
+}
+
+// Static branch creation function
+TBranch* rb::Hist::CreateBranch(const char* name, const char* classname, void** obj,
+				Int_t bufsize, Int_t splitlevel) {
+  return fgTree.Branch(name, classname, obj, bufsize, splitlevel);
 }
 
 // Static mutex locking function
@@ -135,13 +143,13 @@ std::string rb::Hist::ParseParam3d(const char* par, Int_t axis)  {
 // Constructor
 rb::H1D::H1D (const char* name, const char* title,
 	      Int_t nbinsx, Double_t xlow, Double_t xhigh,
-	      const char* param, const char* gate, TTree* tree) :
+	      const char* param, const char* gate) :
   TH1D (CheckName(name).c_str(), title,
 	nbinsx, xlow, xhigh),
-  Hist(gate, tree),
-  fParam("fParam", param, tree)
+  Hist(gate),
+  fParam("fParam", param, &fgTree)
 {
-  if(fTree && fGate.GetTree() && fParam.GetTree()) {
+  if(fGate.GetTree() && fParam.GetTree()) {
     Hist::Lock();
     fgArray.Add(this);
     Hist::Unlock();
@@ -193,15 +201,15 @@ void rb::H1D::Clear(Option_t* option) {
 rb::H2D::H2D (const char* name, const char* title,
 	      Int_t nbinsx, Double_t xlow, Double_t xhigh,
 	      Int_t nbinsy, Double_t ylow, Double_t yhigh,
-	      const char* param, const char* gate, TTree* tree) :
+	      const char* param, const char* gate) : 
   TH2D (CheckName(name).c_str(), title,
 	nbinsx, xlow, xhigh,
 	nbinsy, ylow, yhigh),
-  Hist(gate, tree),
-  fParamX("fParamX", ParseParam2d(param,0).c_str(), tree),
-  fParamY("fParamY", ParseParam2d(param,1).c_str(), tree)
+  Hist(gate), 
+  fParamX("fParamX", ParseParam2d(param,0).c_str(), &fgTree),
+  fParamY("fParamY", ParseParam2d(param,1).c_str(), &fgTree)
 {
-  if(fTree && fGate.GetTree() &&
+  if(fGate.GetTree() &&
      fParamX.GetTree() &&
      fParamY.GetTree()) {
     Hist::Lock();
@@ -260,17 +268,17 @@ rb::H3D::H3D (const char* name, const char* title,
 	      Int_t nbinsx, Double_t xlow, Double_t xhigh,
 	      Int_t nbinsy, Double_t ylow, Double_t yhigh,
 	      Int_t nbinsz, Double_t zlow, Double_t zhigh,
-	      const char* param, const char* gate, TTree* tree) :
+	      const char* param, const char* gate) :
   TH3D (CheckName(name).c_str(), title,
 	nbinsx, xlow, xhigh,
 	nbinsy, ylow, yhigh,
 	nbinsz, zlow, zhigh),
-  Hist(gate, tree),
-  fParamX("fParamX", ParseParam3d(param,0).c_str(), tree),
-  fParamY("fParamY", ParseParam3d(param,1).c_str(), tree),
-  fParamZ("fParamZ", ParseParam3d(param,2).c_str(), tree)
+  Hist(gate),
+  fParamX("fParamX", ParseParam3d(param,0).c_str(), &fgTree),
+  fParamY("fParamY", ParseParam3d(param,1).c_str(), &fgTree),
+  fParamZ("fParamZ", ParseParam3d(param,2).c_str(), &fgTree)
 {
-  if(fTree && fGate.GetTree() &&
+  if(fGate.GetTree() &&
      fParamX.GetTree() &&
      fParamY.GetTree()) {
     Hist::Lock();

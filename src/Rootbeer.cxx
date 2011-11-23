@@ -22,7 +22,7 @@ void rb::hist::Add(const char* name, const char* title,
 
   rb::H1D * hst = new rb::H1D(name, title,
 			      nbinsx, xlow, xhigh,
-			      param, gate, unpack::fTree);
+			      param, gate);
 }
 
 void rb::hist::Add(const char* name, const char* title,
@@ -33,7 +33,7 @@ void rb::hist::Add(const char* name, const char* title,
   rb::H2D * hst = new rb::H2D(name, title,
 			      nbinsx, xlow, xhigh,
 			      nbinsy, ylow, yhigh,
-			      param, gate, unpack::fTree);
+			      param, gate);
 }
 
 void rb::hist::Add(const char* name, const char* title,
@@ -46,11 +46,11 @@ void rb::hist::Add(const char* name, const char* title,
   			      nbinsx, xlow, xhigh,
   			      nbinsy, ylow, yhigh,
   			      nbinsz, zlow, zhigh,
-  			      param, gate, unpack::fTree);
+  			      param, gate);
 }
 
 
-void rb::Logo() { unpack::Initialize();
+void rb::Logo() {
     cout << "                                                                 \n"
 	 << "                            ___                                  \n"
 	 << "                          .'   '.                                \n"

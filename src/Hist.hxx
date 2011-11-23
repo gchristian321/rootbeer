@@ -14,6 +14,7 @@
 #include "TH1D.h"
 #include "TH2D.h"
 #include "TH3D.h"
+#include "TTree.h"
 #include "TTreeFormula.h"
 #include "TROOT.h"
 #include "TError.h"
@@ -39,9 +40,6 @@ namespace rb
   class Hist
   {
   protected:
-    /// Internal tree for calculating parameter values.
-    TTree* fTree;
-
     /// Gate formula.
     TTreeFormula fGate;
 
@@ -51,16 +49,19 @@ namespace rb
     /// Static mutex for locking threaded histogram actions.
     static TMutex fgMutex;
 
+    /// Static TTree for calculating parameter values.
+    static TTree fgTree;
+
   public:    
     /// Function to fill histogram from its internal parameter value(s).
     virtual Int_t Fill() = 0;
 
     /// Constructor
     /*! Set the internal \c TTree and \c fGate fields. */
-    Hist(const char* gate, TTree* tree);
+    Hist(const char* gate); //, TTree* tree);
 
     /// Default constructor.
-    Hist() { fTree = 0; };
+    Hist() { } ;//fTree = 0; };
 
     /// Destructor
     virtual ~Hist() { };
@@ -70,6 +71,10 @@ namespace rb
      *  -1 if \c newgate isn't valid. In case of invalid \c newgate, the histogram
      *  gate condition remains unchanged. */
     virtual Int_t Regate(const char* newgate);
+
+    /// Function to add branches to fgTree. \todo mirror other TBranch constructors
+    static TBranch* CreateBranch(const char* name, const char* classname, void** obj,
+				 Int_t bufsize = 32000, Int_t splitlevel = 99);
 
     /// Function to access entries of \c Hist::fgArray
     static rb::Hist* Get(UInt_t index);
@@ -136,8 +141,9 @@ namespace rb
 #ifndef __CINT__
     H1D (const char* name, const char* title,
          Int_t nbins, Double_t xlow, Double_t xhigh,
-	 const char* param, const char* gate = "",
-	 TTree* tree = 0);
+	 const char* param, const char* gate = "");
+// ,
+// 	 TTree* tree = 0);
 #endif
 
     /// Empty constructor for \c CINT
@@ -206,8 +212,7 @@ namespace rb
     H2D (const char* name, const char* title,
          Int_t nbinsx, Double_t xlow, Double_t xhigh,
 	 Int_t nbinsy, Double_t ylow, Double_t yhigh,
-	 const char* param, const char* gate = "",
-	 TTree* tree = 0);
+	 const char* param, const char* gate = "");
 #endif
 
     /// Empty constructor for \c CINT
@@ -280,8 +285,8 @@ namespace rb
          Int_t nbinsx, Double_t xlow, Double_t xhigh,
 	 Int_t nbinsy, Double_t ylow, Double_t yhigh,
 	 Int_t nbinsz, Double_t zlow, Double_t zhigh,
-	 const char* param, const char* gate = "",
-	 TTree* tree = 0);
+	 const char* param, const char* gate = "");
+    //	 TTree* tree = 0);
 #endif
 
     /// Empty constructor for \c CINT
