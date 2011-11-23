@@ -17,8 +17,8 @@ namespace rb
   /// \global Canvas mutex.
   static TMutex gCanvasMutex;
 
-  /// \global Histogram mutex.
-  static TMutex gHistMutex;
+  // /// \global Histogram mutex.
+  // static TMutex gHistMutex;
 
 
   // Classes
@@ -29,12 +29,12 @@ namespace rb
     static void Unlock() { gCanvasMutex.UnLock(); }
   };
 
-  /// Mutex wrapper for \c rb::H*F classes.
-  struct HistMutex
-  {
-    static void Lock()   { gHistMutex.Lock();   }
-    static void Unlock() { gHistMutex.UnLock(); }
-  };
+  // /// Mutex wrapper for \c rb::H*F classes.
+  // struct HistMutex
+  // {
+  //   static void Lock()   { gHistMutex.Lock();   }
+  //   static void Unlock() { gHistMutex.UnLock(); }
+  // };
 
 
 }

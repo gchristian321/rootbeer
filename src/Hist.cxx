@@ -9,6 +9,7 @@
 // Class rb::Hist //
 // Static data members.
 TObjArray rb::Hist::fgArray;
+TMutex rb::Hist::fgMutex;
 
 // Constructor
 rb::Hist::Hist(const char* gate, TTree* tree) :
@@ -21,10 +22,15 @@ rb::Hist::Hist(const char* gate, TTree* tree) :
 Int_t rb::Hist::Regate(const char* newgate) {
   TTreeFormula tempFormula("temp", CheckGate(newgate).c_str(), fTree);
   if(!tempFormula.GetTree()) return -1;
-  HistMutex::Lock();
+  Hist::Lock();
   fGate.Compile(Hist::CheckGate(newgate).c_str());
-  HistMutex::Unlock();
+  Hist::Unlock();
   return 0;
+}
+
+// Get number of histograms
+UInt_t rb::Hist::GetNumber() {
+  return fgArray.GetEntries();
 }
 
 // Static "getter" function
@@ -50,10 +56,16 @@ rb::Hist* rb::Hist::Get(UInt_t indx) {
   return hist;
 }
 
-// Get number of histograms
-UInt_t rb::Hist::GetNumber() {
-  return fgArray.GetEntries();
+// Static mutex locking function
+void rb::Hist::Lock() {
+  fgMutex.Lock();
 }
+
+// Static mutex un-locking function
+void rb::Hist::Unlock() {
+  fgMutex.UnLock();
+}
+
 
 // Gate checking function
 std::string rb::Hist::CheckGate(const char* gate) {
@@ -132,9 +144,9 @@ rb::H1D::H1D (const char* name, const char* title,
   fParam("fParam", param, tree)
 {
   if(fTree && fGate.GetTree() && fParam.GetTree()) {
-    HistMutex::Lock();
+    Hist::Lock();
     fgArray.Add(this);
-    HistMutex::Unlock();
+    Hist::Unlock();
   }
   else {
     this->Delete();
@@ -143,26 +155,26 @@ rb::H1D::H1D (const char* name, const char* title,
 
 // Destructor
 rb::H1D::~H1D() {
-  HistMutex::Lock();
+  Hist::Lock();
   fgArray.Remove(this);
   fgArray.Compress();  
-  HistMutex::Unlock();
+  Hist::Unlock();
 }
 
 // Draw function
 void rb::H1D::Draw(Option_t* option) {
-  HistMutex::Lock();
+  Hist::Lock();
   TH1D::Draw(option);
-  HistMutex::Unlock();
+  Hist::Unlock();
 }
 
 // Fill function
 Int_t rb::H1D::Fill() {
-  HistMutex::Lock();
+  Hist::Lock();
   Int_t ret = fGate.EvalInstance() ?
     TH1D::Fill(fParam.EvalInstance())
     : 0;
-  HistMutex::Unlock();
+  Hist::Unlock();
   return ret;
 }
 
@@ -170,10 +182,10 @@ Int_t rb::H1D::Fill() {
 void rb::H1D::Clear(Option_t* option) {
   if(!TString(option).EqualTo("")) Warning("Clear", "Option %s ignored", option);
 
-  HistMutex::Lock();
+  Hist::Lock();
   for(Int_t i=1; i<= GetNbinsX(); ++i)
     SetBinContent(i, 0);
-  HistMutex::Unlock();
+  Hist::Unlock();
 }
 
 
@@ -194,9 +206,9 @@ rb::H2D::H2D (const char* name, const char* title,
   if(fTree && fGate.GetTree() &&
      fParamX.GetTree() &&
      fParamY.GetTree()) {
-    HistMutex::Lock();
+    Hist::Lock();
     fgArray.Add(this);
-    HistMutex::Unlock();
+    Hist::Unlock();
   }
   else {
     this->Delete();
@@ -205,27 +217,27 @@ rb::H2D::H2D (const char* name, const char* title,
 
 // Destructor
 rb::H2D::~H2D() {
-  HistMutex::Lock();
+  Hist::Lock();
   fgArray.Remove(this);
   fgArray.Compress();
-  HistMutex::Unlock();
+  Hist::Unlock();
 }
 
 // Draw function
 void rb::H2D::Draw(Option_t* option) {
-  HistMutex::Lock();
+  Hist::Lock();
   TH2D::Draw(option);
-  HistMutex::Unlock();
+  Hist::Unlock();
 }
 
 // Fill function
 Int_t rb::H2D::Fill() {
-  HistMutex::Lock();
+  Hist::Lock();
   Int_t ret = fGate.EvalInstance() ?
     TH2D::Fill(fParamX.EvalInstance(),
 	       fParamY.EvalInstance())
     : 0;
-  HistMutex::Unlock();
+  Hist::Unlock();
   return ret;
 }
 
@@ -233,13 +245,13 @@ Int_t rb::H2D::Fill() {
 void rb::H2D::Clear(Option_t* option) {
   if(!TString(option).EqualTo("")) Warning("Clear", "Option %s ignored", option);
 
-  HistMutex::Lock();
+  Hist::Lock();
   for(Int_t i=1; i<= GetNbinsX(); ++i) {
     for(Int_t j=1; j<= GetNbinsY(); ++j) {
       SetBinContent(i, j, 0);
     }
   }
-  HistMutex::Unlock();
+  Hist::Unlock();
 }
 
 
@@ -263,9 +275,9 @@ rb::H3D::H3D (const char* name, const char* title,
   if(fTree && fGate.GetTree() &&
      fParamX.GetTree() &&
      fParamY.GetTree()) {
-    HistMutex::Lock();
+    Hist::Lock();
     fgArray.Add(this);
-    HistMutex::Unlock();
+    Hist::Unlock();
   }
   else {
     this->Delete();
@@ -274,28 +286,28 @@ rb::H3D::H3D (const char* name, const char* title,
 
 // Destructor
 rb::H3D::~H3D() {
-  HistMutex::Lock();
+  Hist::Lock();
   fgArray.Remove(this);
   fgArray.Compress();
-  HistMutex::Unlock();
+  Hist::Unlock();
 }
 
 // Draw function
 void rb::H3D::Draw(Option_t* option) {
-  HistMutex::Lock();
+  Hist::Lock();
   TH3D::Draw(option);
-  HistMutex::Unlock();
+  Hist::Unlock();
 }
 
 // Fill function
 Int_t rb::H3D::Fill() {
-  HistMutex::Lock();
+  Hist::Lock();
   Int_t ret = fGate.EvalInstance() ?
     TH3D::Fill(fParamX.EvalInstance(),
 	       fParamY.EvalInstance(),
 	       fParamZ.EvalInstance())
     : 0;
-  HistMutex::Unlock();
+  Hist::Unlock();
   return ret;
 }
 
@@ -303,7 +315,7 @@ Int_t rb::H3D::Fill() {
 void rb::H3D::Clear(Option_t* option) {
   if(option != "") Warning("Clear", "Option %s ignored", option);
 
-  HistMutex::Lock();
+  Hist::Lock();
   for(Int_t i=1; i<= GetNbinsX(); ++i) {
     for(Int_t j=1; j<= GetNbinsY(); ++j) {
       for(Int_t k=1; k<= GetNbinsZ(); ++k) {
@@ -311,5 +323,5 @@ void rb::H3D::Clear(Option_t* option) {
       }
     }
   }
-  HistMutex::Unlock();
+  Hist::Unlock();
 }

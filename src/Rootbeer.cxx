@@ -27,7 +27,7 @@ void rb::AddHist(const char* name, const char* title,
 
   rb::H1D * hst = new rb::H1D(name, title,
 			      nbinsx, xlow, xhigh,
-			      param, gate);
+			      param, gate, unpack::fTree);
 }
 
 void rb::AddHist(const char* name, const char* title,
@@ -38,7 +38,7 @@ void rb::AddHist(const char* name, const char* title,
   rb::H2D * hst = new rb::H2D(name, title,
 			      nbinsx, xlow, xhigh,
 			      nbinsy, ylow, yhigh,
-			      param, gate);
+			      param, gate, unpack::fTree);
 }
 
 void rb::AddHist(const char* name, const char* title,
@@ -51,7 +51,7 @@ void rb::AddHist(const char* name, const char* title,
   			      nbinsx, xlow, xhigh,
   			      nbinsy, ylow, yhigh,
   			      nbinsz, zlow, zhigh,
-  			      param, gate);
+  			      param, gate, unpack::fTree);
 }
 
 void rb::AttachOnline() { unpack::AttachOnline(); }

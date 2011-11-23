@@ -18,7 +18,8 @@
 #include "TROOT.h"
 #include "TError.h"
 #include "TObjArray.h"
-#include "Rootbeer.hxx"
+#include "TMutex.h"
+
 
 
 namespace rb
@@ -47,6 +48,9 @@ namespace rb
     /// Static array of all existing rb::Hist derived objects.
     static TObjArray fgArray;
 
+    /// Static mutex for locking threaded histogram actions.
+    static TMutex fgMutex;
+
   public:    
     /// Function to fill histogram from its internal parameter value(s).
     virtual Int_t Fill() = 0;
@@ -72,6 +76,12 @@ namespace rb
 
     /// Function to tell the total number of entried in \c fgArray
     static UInt_t GetNumber();
+
+    /// Static mutex locking function
+    static void Lock();
+
+    /// Static mutex un-locking function
+    static void Unlock();
 
 
   protected:
@@ -127,7 +137,7 @@ namespace rb
     H1D (const char* name, const char* title,
          Int_t nbins, Double_t xlow, Double_t xhigh,
 	 const char* param, const char* gate = "",
-	 TTree* tree = unpack::fTree);
+	 TTree* tree = 0);
 #endif
 
     /// Empty constructor for \c CINT
@@ -202,7 +212,7 @@ namespace rb
          Int_t nbinsx, Double_t xlow, Double_t xhigh,
 	 Int_t nbinsy, Double_t ylow, Double_t yhigh,
 	 const char* param, const char* gate = "",
-	 TTree* tree = unpack::fTree);
+	 TTree* tree = 0);
 #endif
 
     /// Empty constructor for \c CINT
@@ -282,7 +292,7 @@ namespace rb
 	 Int_t nbinsy, Double_t ylow, Double_t yhigh,
 	 Int_t nbinsz, Double_t zlow, Double_t zhigh,
 	 const char* param, const char* gate = "",
-	 TTree* tree = unpack::fTree);
+	 TTree* tree = 0);
 #endif
 
     /// Empty constructor for \c CINT
