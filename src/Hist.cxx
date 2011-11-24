@@ -16,7 +16,8 @@ TTree rb::Hist::fgTree;
 
 // Constructor
 rb::Hist::Hist(const char* gate) : 
-  fGate("fGate", CheckGate(gate).c_str(), &fgTree) { }
+  fGate("fGate", CheckGate(gate).c_str(), &fgTree) {
+}
 
 // Regate function
 Int_t rb::Hist::Regate(const char* newgate) {

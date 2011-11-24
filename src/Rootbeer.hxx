@@ -9,8 +9,46 @@
  */
 #ifndef __ROOTBEER__
 #define __ROOTBEER__
-#include "Unpack.hxx"
 
+
+#include "Hist.hxx"
+#include "sData.hxx"
+
+#include <typeinfo>
+#include <iostream>
+
+// #ifndef __CINT__
+// #include <boost/variant.hpp>
+// #else
+// namespace boost {class variant<sData>; }
+// #endif
+
+// //template <typename T>
+// typedef boost::variant<sData> T;
+
+// struct data {
+//   T myData;
+//   T* p;
+//   std::string name, type;
+//   data(const char* name_, const char* type_) :
+//     name(name_), type(type_) {
+//     p = &myData;    
+//   }
+//   void CreateBranch() {
+//    TBranch* br = rb::Hist::CreateBranch(name.c_str(), type.c_str(), (void**)&p);
+//   }
+
+//   void getPntr() {
+//     return boost::get<sData> myData
+//       }
+// };
+// extern data d;
+
+
+// struct test {
+//   boost::variant<int, double> v;
+  
+#include "Data.hxx"
 
 /// Namespace wrapping the \c ROOTBEER objects and user functions.
 namespace rb

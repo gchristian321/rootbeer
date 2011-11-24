@@ -13,7 +13,7 @@
 using namespace std;
 
 /// Here we define some internal functions that we don't want \c CINT
-/// to kow about
+/// to know about
 namespace rb
 {
   namespace canvas

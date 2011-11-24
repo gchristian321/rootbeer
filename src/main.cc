@@ -3,6 +3,7 @@
  */
 #include "TRint.h"
 #include "Rootbeer.hxx"
+#include "Hist.hxx"
 
 namespace rb
 {
@@ -29,13 +30,12 @@ namespace rb
     void Terminate(Int_t status = 0) {
       rb::canvas::StopUpdate();
       rb::Unattach();
-      rb::unpack::Cleanup();
+      gSystem->Sleep(0.5e3);
       TRint::Terminate(status);
     }
 
     /// Destructor
-
-    /// Calls \c Terminate() with error code.
+    /*! Calls Terminate() with error code. */
     ~Rint() {
       Terminate(EXIT_FAILURE);
     }
@@ -46,9 +46,12 @@ namespace rb
 /*! Creates an instance of \c rb::Rint and runs it. */
 Int_t main(Int_t argc, Char_t** argv)
 {
-  rb::Rint rbApp("ROOTBEER", &argc, argv, 0, 0, kTRUE);
   rb::Logo();
-  rbApp.Run(); rb::unpack::Initialize();
+  std::map<std::string, UserDataABC*>::iterator it = UserDataABC::Map.begin();
+  while(it != UserDataABC::Map.end()) (*it++).second->Add();
+  rb::Rint rbApp("ROOTBEER", &argc, argv, 0, 0, kTRUE);
+  rbApp.Run();
+
   return 0;
 }
 

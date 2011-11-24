@@ -21,6 +21,7 @@
 #include "TObjArray.h"
 #include "TMutex.h"
 
+#include "sData.hxx"
 
 
 namespace rb
@@ -38,7 +39,7 @@ namespace rb
    in things that are more or less shared save for the # of dimensions.
   */
   class Hist
-  {
+  {  
   protected:
     /// Gate formula.
     TTreeFormula fGate;

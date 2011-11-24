@@ -6,8 +6,12 @@
 #include <iostream>
 #include <fstream>
 #include <vector>
+#include <string>
 #include "TError.h"
 #include "TSystem.h"
+#include "TTree.h"
+#include "TThread.h"
+#include "TRandom3.h"
 
 #include "Hist.hxx"
 #include "Rootbeer.hxx"
@@ -51,7 +55,14 @@ void FakeBuffer(Short_t* buf, Int_t dataRate = 0) {
   buf[0] = nEvts;
 }
 
+/// Buffer size
+/// \todo Make this easier to set for users.
+static const Int_t BUFFER_SIZE = 4096;
 
+
+std::map<std::string, UserDataABC*> UserDataABC::Map;
+sData myData;
+UserDataABC* d = new UserData<sData>("myData", "sData", myData); 
 
 namespace rb
 {
@@ -69,26 +80,8 @@ namespace rb
 
     TThread attachOnlineThread("attachOnline", AttachOnline_);
     TThread attachOfflineThread("attachFile", AttachFile_);
-    
-    sData* myData = new sData();
 
-    void Initialize() {
-#define   INIT_BRANCHES
-#include "Skeleton.hh"
-    }
-
-    void InitBranch(const char* name, const char* classname, void* obj, TTree& tree) {
-      tree.Branch(name, classname, &obj);
-    }
-
-    void Cleanup() {
-      Unattach();
-      gSystem->Sleep(0.5e3);
-#define DELETION
-#include "Skeleton.hh"
-    }
-
-
+    void UnpackBuffer();
 
     void FillHistograms() {
       for(UInt_t indx = 0; indx < Hist::GetNumber(); ++indx) {

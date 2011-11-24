@@ -15,11 +15,12 @@
 #pragma link C++ namespace rb::hist;
 
 #pragma link C++ class sData+;
+#pragma link C++ class sVariables+;
 
 #pragma link C++ class rb::Hist+;
 #pragma link C++ class rb::H1D+;
 #pragma link C++ class rb::H2D+;
 #pragma link C++ class rb::H3D+;
 
-
+#pragma link C++ class UserData<sData>+;
 #endif // #ifdef __CINT__
