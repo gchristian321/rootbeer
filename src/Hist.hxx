@@ -21,9 +21,6 @@
 #include "TObjArray.h"
 #include "TMutex.h"
 
-#include "sData.hxx"
-
-
 namespace rb
 {
 
