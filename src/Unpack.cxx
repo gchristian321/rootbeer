@@ -14,6 +14,7 @@
 #include "TRandom3.h"
 
 #include "Hist.hxx"
+#include "Data.hxx"
 #include "Rootbeer.hxx"
 using namespace std;
 
@@ -59,10 +60,9 @@ void FakeBuffer(Short_t* buf, Int_t dataRate = 0) {
 /// \todo Make this easier to set for users.
 static const Int_t BUFFER_SIZE = 4096;
 
-
+/// Implementation of the statuc map of UserDataABC pointers.
 std::map<std::string, UserDataABC*> UserDataABC::Map;
-sData myData;
-UserDataABC* d = new UserData<sData>("myData", "sData", myData); 
+
 
 namespace rb
 {
@@ -161,8 +161,7 @@ void rb::Unattach() {
 
 
 
-    // void UnpackBuffer()
-#define   UNPACK_ROUTINES
+///// User Defined Unpack() Routine //////
 #include "Skeleton.hh"
 
 

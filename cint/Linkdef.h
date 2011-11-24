@@ -12,7 +12,6 @@
 
 #pragma link C++ namespace rb;
 #pragma link C++ namespace rb::canvas;
-#pragma link C++ namespace rb::hist;
 
 #pragma link C++ class sData+;
 #pragma link C++ class sVariables+;
@@ -22,5 +21,6 @@
 #pragma link C++ class rb::H2D+;
 #pragma link C++ class rb::H3D+;
 
+#pragma link C++ class UserDataABC+;
 #pragma link C++ class UserData<sData>+;
 #endif // #ifdef __CINT__
