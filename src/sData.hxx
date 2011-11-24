@@ -64,7 +64,7 @@ public:
 
   sData() { reset(); }
   sData(sData& other) : a(other.a), b(other.b), c(other.c) { };
-  ~sData() { printf("deleting sData\n"); }
+  ~sData() { }
 
 };
 
