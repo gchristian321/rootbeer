@@ -70,6 +70,9 @@ namespace rb
      *  gate condition remains unchanged. */
     virtual Int_t Regate(const char* newgate);
 
+    /// Function to access fgTree
+    static const TTree* GetTree() { return &fgTree; }
+
     /// Function to add branches to fgTree. \todo mirror other TBranch constructors
     static TBranch* CreateBranch(const char* name, const char* classname, void** obj,
 				 Int_t bufsize = 32000, Int_t splitlevel = 99);
@@ -129,7 +132,7 @@ namespace rb
       Locks the \c gUnpacker mutex when adding to fgArray
       \note The constructor is hidden from \c CINT because we
       don't want users to be able to call it. Instead they use the
-      rb::hist::Add() function. The reason for this choice is that
+      rb::AddHist() function. The reason for this choice is that
       CINT allows users to duplicate symbols, deleting the old
       object, and this doesn't play nice with the threaded filling
       of all histograms in Hist::fgArray. Giving access via functions
@@ -199,7 +202,7 @@ namespace rb
       Locks the \c gUnpack mutex when adding to fgArray
       \note The constructor is hidden from \c CINT because we
       don't want users to be able to call it. Instead they use the
-      rb::hist::Add() function. The reason for this choice is that
+      rb::AddHist() function. The reason for this choice is that
       CINT allows users to duplicate symbols, deleting the old
       object, and this doesn't play nice with the threaded filling
       of all histograms in Hist::fgArray. Giving access via functions
@@ -271,7 +274,7 @@ namespace rb
       Locks the \c gUnpacker mutex when adding to fgArray
       \note The constructor is hidden from \c CINT because we
       don't want users to be able to call it. Instead they use the
-      rb::hist::Add() function. The reason for this choice is that
+      rb::AddHist() function. The reason for this choice is that
       CINT allows users to duplicate symbols, deleting the old
       object, and this doesn't play nice with the threaded filling
       of all histograms in Hist::fgArray. Giving access via functions

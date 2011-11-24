@@ -4,6 +4,7 @@
 #include "TRint.h"
 #include "Rootbeer.hxx"
 #include "Hist.hxx"
+#include "Data.hxx"
 
 namespace rb
 {
@@ -195,7 +196,7 @@ Int_t main(Int_t argc, Char_t** argv)
   is true for gating conditions: the histogram has a gating condition associated with it and only fills for events
   where it's true.
 
-  To allow for safe creation and use of histograms, CINT users can only create them via the \c rb::::hist::Add() functions
+  To allow for safe creation and use of histograms, CINT users can only create them via the \c rb::AddHist() functions
   (the constructors are hidden from CINT). The reason for doing this is CINT's feature of implicitly
   allowing duplicate variable names, i.e. one can create two \c TH1D objects referenced by the same variable:
   \code
@@ -209,13 +210,13 @@ Int_t main(Int_t argc, Char_t** argv)
   thanks to CINT's helpful feature of automatically creating pointers that mirror object names, we have direct
   access to it.
 
-  The \c rb::::hist::Add() functions used in ROOTBEER to create histograms look very much like the normal constructors
+  The \c rb::AddHist() functions used in ROOTBEER to create histograms look very much like the normal constructors
   for \c TH*D objects.
   The only real difference is the addition of arguments that specify the parameter with which the histogram is filled
   and it's gating condition.  For example, to create a 1D histogram displaying parameter <tt>a</tt> in 100 bins from
   -100 to 100, type:
   \code
-  rb::::hist::Add("myHistName", "My histogram title", 100, -100, 100, "a", "");
+  rb::AddHist("myHistName", "My histogram title", 100, -100, 100, "a", "");
   \endcode
 
   We have now added a histogram to the ROOTBEER environment. The user has access via the \c myHistName pointer
@@ -232,7 +233,7 @@ Int_t main(Int_t argc, Char_t** argv)
   parameter \c b (y-axis, 100 bins from -100 to 100) vs. \c a (x-axis, 100 bins from -100 to 100),
   with the condition that <tt>b != -1</tt>:
   \code
-   rb::::hist::Add("histab", "B vs A", 100, -100, 100, 100, -100, 100, "b:a", "b != -1");
+   rb::AddHist("histab", "B vs A", 100, -100, 100, 100, -100, 100, "b:a", "b != -1");
   \endcode
 
   The gate argument is the same as that of \c <a href = "http://root.cern.ch/root/html/TTree.html#TTree:Draw%1">
@@ -240,7 +241,7 @@ Int_t main(Int_t argc, Char_t** argv)
   gate fields can also be compound variables, calculated from one or more static parameters. For example to plot
   <tt>sqrt(a) / 2</tt>:
   \code
-  rb::::hist::Add("sqrta2", "Root of a divided by 2", 100, -100, 100, "sqrt(a)/2", "");
+  rb::AddHist("sqrta2", "Root of a divided by 2", 100, -100, 100, "sqrt(a)/2", "");
   \endcode
 
   In the case that an invalid parameter or gate argument is entered, the user will get an error message, and no

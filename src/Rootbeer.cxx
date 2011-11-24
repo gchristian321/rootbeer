@@ -16,19 +16,19 @@ using namespace std;
 
 /// User functions
 
-void rb::hist::Add(const char* name, const char* title,
-		   Int_t nbinsx, Double_t xlow, Double_t xhigh,
-		   const char* param, const char* gate) {
+void rb::AddHist(const char* name, const char* title,
+		 Int_t nbinsx, Double_t xlow, Double_t xhigh,
+		 const char* param, const char* gate) {
 
   rb::H1D * hst = new rb::H1D(name, title,
 			      nbinsx, xlow, xhigh,
 			      param, gate);
 }
 
-void rb::hist::Add(const char* name, const char* title,
-		   Int_t nbinsx, Double_t xlow, Double_t xhigh,
-		   Int_t nbinsy, Double_t ylow, Double_t yhigh,
-		   const char* param, const char* gate) {
+void rb::AddHist(const char* name, const char* title,
+		 Int_t nbinsx, Double_t xlow, Double_t xhigh,
+		 Int_t nbinsy, Double_t ylow, Double_t yhigh,
+		 const char* param, const char* gate) {
 
   rb::H2D * hst = new rb::H2D(name, title,
 			      nbinsx, xlow, xhigh,
@@ -36,11 +36,11 @@ void rb::hist::Add(const char* name, const char* title,
 			      param, gate);
 }
 
-void rb::hist::Add(const char* name, const char* title,
-		   Int_t nbinsx, Double_t xlow, Double_t xhigh,
-		   Int_t nbinsy, Double_t ylow, Double_t yhigh,
-		   Int_t nbinsz, Double_t zlow, Double_t zhigh,
-		   const char* param, const char* gate) {
+void rb::AddHist(const char* name, const char* title,
+		 Int_t nbinsx, Double_t xlow, Double_t xhigh,
+		 Int_t nbinsy, Double_t ylow, Double_t yhigh,
+		 Int_t nbinsz, Double_t zlow, Double_t zhigh,
+		 const char* param, const char* gate) {
 
   rb::H3D * hst = new rb::H3D(name, title,
   			      nbinsx, xlow, xhigh,
@@ -110,7 +110,18 @@ void rb::Logo() {
 //   gROOT->ProcessLine(s.Data());
 // }
 
-// Int_t rb::Rootbeer::WriteConfig(const char* fname, Bool_t prompt) {
+
+
+
+// void WriteHist(TObject* object, ofstream& ofs) {
+//   rb::Hist* hst = dynamic_cast<rb::Hist*>(object);
+//   if(!hst) return; /// not derived from rb::Hist
+
+
+
+
+
+// Int_t rb::WriteConfig(const char* fname, Bool_t prompt) {
 //   TTimeStamp ts; string ts_str = ts.AsString("l");
 //   if(prompt) {
 //     ifstream ifs(fname, ios::in);
