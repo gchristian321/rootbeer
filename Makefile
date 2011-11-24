@@ -1,6 +1,6 @@
 SRC=$(PWD)/src
 SOURCES=$(SRC)/Rootbeer.cxx $(SRC)/Unpack.cxx $(SRC)/Hist.cxx $(SRC)/Canvas.cxx
-HEADERS=$(SRC)/Unpack.hxx $(SRC)/Rootbeer.hxx $(SRC)/Hist.hxx  \
+HEADERS=$(SRC)/Rootbeer.hxx $(SRC)/Hist.hxx  \
 	$(SRC)/sData.hxx
 LINKDEF=cint/Linkdef.h
 ROOTFLAGS=-dynamiclib -single_module -undefined dynamic_lookup `root-config --cflags --libs`
