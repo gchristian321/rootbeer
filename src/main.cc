@@ -48,11 +48,11 @@ namespace rb
 Int_t main(Int_t argc, Char_t** argv)
 {
   rb::Logo();
-  std::map<std::string, UserDataABC*>::iterator it = UserDataABC::Map.begin();
-  while(it != UserDataABC::Map.end()) (*it++).second->Add();
+  UserDataABC::AddBranches();
   rb::Rint rbApp("ROOTBEER", &argc, argv, 0, 0, kTRUE);
+  gROOT->ProcessLine("sData* sd = UserData<sData>::Get(\"myData\")");
+  UserDataABC::CreatePointers();
   rbApp.Run();
-
   return 0;
 }
 
