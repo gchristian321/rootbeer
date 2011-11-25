@@ -61,6 +61,12 @@ namespace rb
     /// Update the currently selected pad only. Implemented in Canvas.cxx
     extern void UpdateCurrent();
 
+    /// Clear all canvases. Implemented in Canvas.cxx
+    extern void ClearAll();
+
+    /// Clear the current canvas. Implemented in Canvas.cxx
+    extern void ClearCurrent();
+
     /// \brief Start updating canvases in a separate thread from the main one running CINT.
     /// Implemented in Canvas.cxx
     extern Int_t StartUpdate(Int_t rate);

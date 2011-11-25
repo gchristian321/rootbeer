@@ -70,6 +70,9 @@ namespace rb
      *  gate condition remains unchanged. */
     virtual Int_t Regate(const char* newgate);
 
+    /// Function to fill al hostograms
+    static void FillAll();
+
     /// Function to access fgTree
     static const TTree* GetTree() { return &fgTree; }
 

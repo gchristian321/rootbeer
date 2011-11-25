@@ -73,6 +73,14 @@ void rb::Hist::Unlock() {
   fgMutex.UnLock();
 }
 
+// Static fill all function
+void rb::Hist::FillAll() {
+  for(UInt_t indx = 0; indx < Hist::GetNumber(); ++indx) {
+    Hist* pHist = Hist::Get(indx);
+    if(pHist) pHist->Fill();
+  }
+}
+
 
 // Gate checking function
 std::string rb::Hist::CheckGate(const char* gate) {

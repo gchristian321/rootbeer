@@ -61,7 +61,7 @@ void FakeBuffer(Short_t* buf, Int_t dataRate = 0) {
 static const Int_t BUFFER_SIZE = 4096;
 
 /// Implementation of the statuc map of UserDataABC pointers.
-std::map<std::string, UserDataABC*> UserDataABC::Map;
+UserDataABC::Map_t UserDataABC::Map;
 
 
 namespace rb
@@ -82,13 +82,6 @@ namespace rb
     TThread attachOfflineThread("attachFile", AttachFile_);
 
     void UnpackBuffer();
-
-    void FillHistograms() {
-      for(UInt_t indx = 0; indx < Hist::GetNumber(); ++indx) {
-	rb::Hist* pHist = Hist::Get(indx);
-	if(pHist) pHist->Fill();
-      }
-    }
 
     void* AttachOnline_(void* arg) {
       kAttachedOnline = kTRUE;
