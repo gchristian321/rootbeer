@@ -99,11 +99,24 @@ Int_t rb::Hist::Regate(const char* newgate) {
   return 0;
 }
 
+// Return gate string
+string rb::Hist::GetGate() {
+  return fGate.GetExpFormula().Data();
+}
+
+// Return parameter string
+string rb::Hist::GetParam(Int_t axis) {
+  if(axis< fParams.size())
+    return fParams[axis]->GetExpFormula().Data();
+  Error("GetParam", "Invalid axis: %d, maximum is %d (X=0, Y=1, Z=2).",
+	axis, Int_t(fParams.size()));
+  return "";
+}
+
 // Get number of histograms
 UInt_t rb::Hist::GetNumber() {
   return fgArray.GetEntries();
 }
-
 
 // Static "getter" function
 rb::Hist* rb::Hist::Get(UInt_t indx) {

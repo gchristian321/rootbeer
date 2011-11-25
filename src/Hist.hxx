@@ -22,6 +22,7 @@
 #include "TObjArray.h"
 #include "TMutex.h"
 
+
 namespace rb
 {
 
@@ -80,6 +81,10 @@ namespace rb
      *  -1 if \c newgate isn't valid. In case of invalid \c newgate, the histogram
      *  gate condition remains unchanged. */
     virtual Int_t Regate(const char* newgate);
+
+    std::string GetGate();
+
+    std::string GetParam(Int_t axis);
 
     /// Function to fill al hostograms
     static void FillAll();
