@@ -1,6 +1,9 @@
 /*! \file DataSkeleton.hxx
  *
  */
+
+UserDataABC::Map_t UserDataABC::fgMap;
+
 #define ADD_CLASS_INSTANCE(NAME, CLASS_NAME, POINTER)			\
   CLASS_NAME NAME;							\
   UserData<CLASS_NAME>  NAME##_UserData(#NAME, #CLASS_NAME, NAME, POINTER);
@@ -17,7 +20,7 @@
 
 //// Define instances of your class here. ////
 ADD_CLASS_INSTANCE(myData, sData, kTRUE)
-ADD_CLASS_INSTANCE_ARGS(myDataCopy, sData, (myData), kFALSE)
+////// ADD_CLASS_INSTANCE_ARGS(myDataCopy, sData, (myData), kFALSE)
 
 
 

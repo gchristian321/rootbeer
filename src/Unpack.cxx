@@ -60,10 +60,6 @@ void FakeBuffer(Short_t* buf, Int_t dataRate = 0) {
 /// \todo Make this easier to set for users.
 static const Int_t BUFFER_SIZE = 4096;
 
-/// Implementation of the statuc map of UserDataABC pointers.
-UserDataABC::Map_t UserDataABC::Map;
-
-
 namespace rb
 {
   namespace unpack

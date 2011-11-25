@@ -10,90 +10,95 @@
 
 
 
+/// Base class wrapping pointers to data objects.
+/*! Since the type needs to be generic, we store the pointer as a void*
+ *  The derived classes are templates and they case the void* pointer to
+ *  the appropriate type.
+ */
 class UserDataABC
 {
 public:
-  const std::string fName;
-  const std::string fClassName;
-  Bool_t kCreatePointer;
-
+  /// Map typedef to reduce typing/increase clarity.
   typedef std::map<std::string, UserDataABC*> Map_t;
+
+  /// Map iterator typedef to reduce typing/increase clarity.
   typedef std::map<std::string, UserDataABC*>::iterator MapIterator_t;
-  static Map_t Map;
-
-  virtual TBranch* AddBranch() = 0;
-  virtual ~UserDataABC() { }
-
-  static void AddBranches() {
-    MapIterator_t it = Map.begin();
-    while(it != UserDataABC::Map.end())
-      (*it++).second->AddBranch();
-  }
-
-  static void CreatePointers() {
-    std::vector<std::string> vPrint;
-    vPrint.push_back("\nCreating pointers to user data objects:\n");
-    MapIterator_t it = Map.begin();
-    while(it != Map.end()) {
-      if(!it->second->kCreatePointer) {
-	++it; continue;
-      }
-      std::string name = it->first;
-      std::string className = it->second->fClassName;
-      std::stringstream sPrint, sExecute;
-      sPrint << "        " << className << "* " << name << std::endl;
-      vPrint.push_back(sPrint.str());
-      sExecute << className << "* " << name << " = "
-	       << "UserData<" << className << ">::Get "
-	       << "(\"" << name << "\")";
-      gROOT->ProcessLine(sExecute.str().c_str());
-      ++it;
-    }
-    if(vPrint.size() > 1) {
-      for(UInt_t u=0; u< vPrint.size(); ++u)
-	std::cout << vPrint[u];
-      std::cout << std::endl << std::endl;
-    }
-  }
 
 protected:
+  /// \c void pointer to the user data class.
+  void* fData;
+
+  /// Maps \c fName to the base class pointer.
+  /*! Currently initialized in Skeleton.hh */
+  static Map_t fgMap;
+
+public:
+
+  /// Destructor
+  virtual ~UserDataABC() { }
+
+  /// Name of the class instance.
+  const std::string fName;
+
+  /// Name of the class.
+  const std::string fClassName;
+
+  /// Tells whether we should have a pointer automatically created for use in CINT.
+  Bool_t kCintPointer;
+
+  /// Add in instance of the wrapped class as a branch parable by rb::Hist::fgTree
+  TBranch* AddBranch() {
+    return rb::Hist::CreateBranch(fName.c_str(), fClassName.c_str(), &fData);
+  }
+
+  /// Create a branch for every instance of classes derived from UserDataABC.
+  static void AddBranches();
+
+  /// Create a pointer int CINT for all instances of derived classes that ask for it.
+  static void CreatePointers();
+
+  /// Figure out class member names and print name = value; to stream
+  static void ParseAllInstances(std::ostream& strm);
+
+protected:
+  /// Constructor. Protedted because users shouldn't call it.
   UserDataABC(const char* name, const char* class_name,
 	      Bool_t createPointer = kFALSE) :
     fName(name), fClassName(class_name),
-    kCreatePointer(createPointer) { };
+    kCintPointer(createPointer) { };
 
 };
 
 
 
-template <typename T>
+template <class Class>
 class UserData : public UserDataABC
 {
-protected:
-  T* pData;
-
 public:
-  UserData(const char* name, const char* class_name, T& data, Bool_t createPointer = kFALSE) :
+  /// Constructor
+  /*! Initialize void* pointer to point to the data object, add to static map of all
+   *  UserDataABC derived classes. */
+  UserData(const char* name, const char* class_name, Class& data, Bool_t createPointer = kFALSE) :
     UserDataABC(name, class_name, createPointer) {
-    pData = &data;
-    UserDataABC::Map[fName] = this;
+    fData = static_cast<void*>(&data);
+    UserDataABC::fgMap[fName] = this;
   };
 
-  TBranch* AddBranch() {
-    return rb::Hist::CreateBranch(fName.c_str(), fClassName.c_str(), (void**)&pData);
+  /// Return the pointer to the data object, casted to the appropriate type.
+  Class* GetData() {
+    return static_cast<Class*>(fData);
   }
 
-  T* Get() {
-    return pData;
+  /// Return an appropriately-typed pointer to the data object, called by name.
+  static Class* Get(const char* name) {
+    return static_cast<UserData<Class>* >(fgMap[name])->GetData();
   }
 
-  static T* Get(const char* name) {
-    return static_cast<UserData<T>* >(Map[name])->Get();
-  }
-
+  /// Destructor
   ~UserData() { }
 
 };
+
 
 
 #endif

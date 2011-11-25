@@ -1,5 +1,5 @@
 SRC=$(PWD)/src
-SOURCES=$(SRC)/Rootbeer.cxx $(SRC)/Unpack.cxx $(SRC)/Hist.cxx $(SRC)/Canvas.cxx
+SOURCES=$(SRC)/Rootbeer.cxx $(SRC)/Unpack.cxx $(SRC)/Hist.cxx $(SRC)/Canvas.cxx $(SRC)/Data.cxx
 HEADERS=$(SRC)/Rootbeer.hxx $(SRC)/Hist.hxx $(SRC)/Data.hxx \
 	$(SRC)/sData.hxx
 LINKDEF=cint/Linkdef.h

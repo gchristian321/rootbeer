@@ -10,7 +10,7 @@ struct sVariables {
 };
 
 class sData {
-private:
+public:
   /// Raw data
   Short_t a;
   Short_t b;
