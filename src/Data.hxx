@@ -15,6 +15,7 @@ class UserDataABC
 public:
   const std::string fName;
   const std::string fClassName;
+  Bool_t kCreatePointer;
 
   typedef std::map<std::string, UserDataABC*> Map_t;
   typedef std::map<std::string, UserDataABC*>::iterator MapIterator_t;
@@ -30,26 +31,36 @@ public:
   }
 
   static void CreatePointers() {
-    std::cout << "\nCreating pointers to user data objects:\n";
+    std::vector<std::string> vPrint;
+    vPrint.push_back("\nCreating pointers to user data objects:\n");
     MapIterator_t it = Map.begin();
     while(it != Map.end()) {
+      if(!it->second->kCreatePointer) {
+	++it; continue;
+      }
       std::string name = it->first;
       std::string className = it->second->fClassName;
-      std::cout << "        " << className << "* " << name << std::endl;
-
-      std::stringstream sss;
-      sss << className << "* " << name << " = "
-	  << "UserData<" << className << ">::Get "
-	  << "(\"" << name << "\")";
-      gROOT->ProcessLine(sss.str().c_str());
+      std::stringstream sPrint, sExecute;
+      sPrint << "        " << className << "* " << name << std::endl;
+      vPrint.push_back(sPrint.str());
+      sExecute << className << "* " << name << " = "
+	       << "UserData<" << className << ">::Get "
+	       << "(\"" << name << "\")";
+      gROOT->ProcessLine(sExecute.str().c_str());
       ++it;
     }
-    std::cout << std::endl << std::endl;
+    if(vPrint.size() > 1) {
+      for(UInt_t u=0; u< vPrint.size(); ++u)
+	std::cout << vPrint[u];
+      std::cout << std::endl << std::endl;
+    }
   }
 
 protected:
-  UserDataABC(const char* name, const char* class_name) :
-    fName(name), fClassName(class_name) { };
+  UserDataABC(const char* name, const char* class_name,
+	      Bool_t createPointer = kFALSE) :
+    fName(name), fClassName(class_name),
+    kCreatePointer(createPointer) { };
 
 };
 
