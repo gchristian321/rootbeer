@@ -63,6 +63,11 @@ TBranch* rb::Hist::CreateBranch(const char* name, const char* classname, void** 
   return fgTree.Branch(name, classname, obj, bufsize, splitlevel);
 }
 
+// Static alias setting function
+Bool_t rb::Hist::SetAlias(const char* aliasName, const char* aliasFormula) {
+  return fgTree.SetAlias(aliasName, aliasFormula);
+}
+  
 // Static mutex locking function
 void rb::Hist::Lock() {
   fgMutex.Lock();
@@ -80,7 +85,6 @@ void rb::Hist::FillAll() {
     if(pHist) pHist->Fill();
   }
 }
-
 
 // Gate checking function
 std::string rb::Hist::CheckGate(const char* gate) {

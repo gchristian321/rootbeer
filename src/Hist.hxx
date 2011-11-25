@@ -29,8 +29,8 @@ namespace rb
    *  function (n.b., that's \c Fill() with no arguments).
    *  Also implements some other functions shared by
    *  the various \c rb::HnF flavors
-   *  \note To avoid multi-inheritance issues, this function should
-   *  <i>not</i> implement any methods
+   *  \note To avoid multi-inheritance issues, this class should
+   *  <i>not</i> define any methods
    *  that are contained in \c TH1 or it's derivatives.
    \todo Make the inheritance cleaner, i.e. less code duplication
    in things that are more or less shared save for the # of dimensions.
@@ -83,8 +83,11 @@ namespace rb
     /// Function to access entries of \c Hist::fgArray
     static rb::Hist* Get(UInt_t index);
 
-    /// Function to tell the total number of entried in \c fgArray
+    /// Function to tell the total number of entries in \c fgArray
     static UInt_t GetNumber();
+
+    /// Set an alias in \c fgTree
+    static Bool_t SetAlias(const char* aliasName, const char* aliasFormula);
 
     /// Static mutex locking function
     static void Lock();
