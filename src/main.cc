@@ -50,8 +50,8 @@ Int_t main(Int_t argc, Char_t** argv)
   //  rb::Logo();
   UserDataABC::AddBranches();
   rb::Rint rbApp("ROOTBEER", &argc, argv, 0, 0, kTRUE);
-  gROOT->ProcessLine("sData* sd = UserData<sData>::Get(\"myData\")");
   UserDataABC::CreatePointers();
+  gROOT->ProcessLine("enum { X=0, Y=1, Z=2 }"); // for histogram axes
   rbApp.Run();
   return 0;
 }
