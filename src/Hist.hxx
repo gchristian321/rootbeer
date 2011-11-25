@@ -11,6 +11,7 @@
 #define __HIST__
 #include <string>
 #include <sstream>
+#include <vector>
 #include "TH1D.h"
 #include "TH2D.h"
 #include "TH3D.h"
@@ -41,6 +42,9 @@ namespace rb
     /// Gate formula.
     TTreeFormula fGate;
 
+    /// Parameter formulae.
+    std::vector<TTreeFormula*> fParams;
+
     /// Static array of all existing rb::Hist derived objects.
     static TObjArray fgArray;
 
@@ -50,19 +54,26 @@ namespace rb
     /// Static TTree for calculating parameter values.
     static TTree fgTree;
 
+    /// Constructor error code: true = success, false = failure.
+    static Bool_t kConstructorSuccess;
+
+
   public:    
     /// Function to fill histogram from its internal parameter value(s).
     virtual Int_t Fill() = 0;
 
     /// Constructor
     /*! Set the internal \c TTree and \c fGate fields. */
-    Hist(const char* gate); //, TTree* tree);
+    Hist(const char* param, const char* gate, UInt_t npar);
 
     /// Default constructor.
-    Hist() { } ;//fTree = 0; };
+    Hist() { } ;
 
     /// Destructor
-    virtual ~Hist() { };
+    virtual ~Hist() {
+      for(UInt_t i=0; i< fParams.size(); ++i)
+	delete fParams[i];
+    }
 
     /// Function to change the histogram gate.
     /*! Updates \c fGate to reflect the new gate formula. Returns 0 if successful,
@@ -94,21 +105,6 @@ namespace rb
 
     /// Static mutex un-locking function
     static void Unlock();
-
-
-  protected:
-    /// Function to turn an empty gate argument into
-    /// one that is always true.
-    std::string CheckGate(const char* gate);
-
-    /// Function to append \c _n to duplicate names.
-    std::string CheckName(const char* name);
-
-    /// Function to parse 2d parameter arguments into variables.
-    std::string ParseParam2d(const char* par, Int_t axis);
-
-    /// Function to parse 3d parameter arguments into variables.
-    std::string ParseParam3d(const char* par, Int_t axis);
   };
 
 
@@ -124,10 +120,6 @@ namespace rb
    */
   class H1D : public TH1D, public Hist
   {
-
-  protected:
-    /// Dynamically evaluated parameter.
-    TTreeFormula fParam;
 
   public:
     /// Constructor
@@ -149,8 +141,6 @@ namespace rb
     H1D (const char* name, const char* title,
          Int_t nbins, Double_t xlow, Double_t xhigh,
 	 const char* param, const char* gate = "");
-// ,
-// 	 TTree* tree = 0);
 #endif
 
     /// Empty constructor for \c CINT
@@ -171,7 +161,7 @@ namespace rb
     Int_t Fill();
 
     /// Allows the user to zero out the histogram.
-    void Clear(Option_t* option = "");
+    void Clear(const Option_t* option = "");
 
     /// ClassDef for <tt>CINT</tt>.
     ClassDef(rb::H1D, 0);
@@ -190,14 +180,6 @@ namespace rb
    */
   class H2D : public TH2D, public Hist
   {
-
-  protected:
-    /// Dynamically evaluated x parameter.
-    TTreeFormula fParamX;
-
-    /// Dynamically evaluated y parameter.
-    TTreeFormula fParamY;
-
 
   public:
     /// Constructor
@@ -240,7 +222,7 @@ namespace rb
     Int_t Fill();
 
     /// Allows the user to zero out the histogram.
-    void Clear(Option_t* option = "");
+    void Clear(const Option_t* option = "");
 
     /// ClassDef for <tt>CINT</tt>.
     ClassDef(rb::H2D, 0);
@@ -259,17 +241,6 @@ namespace rb
    */
   class H3D : public TH3D, public Hist
   {
-
-  protected:
-    /// Dynamically evaluated x parameter.
-    TTreeFormula fParamX;
-
-    /// Dynamically evaluated y parameter.
-    TTreeFormula fParamY;
-
-    /// Dynamically evaluated z parameter.
-    TTreeFormula fParamZ;
-
 
   public:
     /// Constructor
@@ -293,7 +264,6 @@ namespace rb
 	 Int_t nbinsy, Double_t ylow, Double_t yhigh,
 	 Int_t nbinsz, Double_t zlow, Double_t zhigh,
 	 const char* param, const char* gate = "");
-    //	 TTree* tree = 0);
 #endif
 
     /// Empty constructor for \c CINT
@@ -314,7 +284,7 @@ namespace rb
     Int_t Fill();
 
     /// Allows the user to zero out the histogram.
-    void Clear(Option_t* option = "");
+    void Clear(const Option_t* option = "");
 
     /// ClassDef for <tt>CINT</tt>.
     ClassDef(rb::H3D, 0);

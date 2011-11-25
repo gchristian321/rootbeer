@@ -2,6 +2,56 @@
  *  \brief Implements the histogram class member functions.
  */
 #include "Hist.hxx"
+using namespace std;
+
+
+// Some utility functions for delegation.
+
+/// Function to divide strings by tokens
+inline vector<string> tokenize(const char* str, const char* token) {
+  vector<string> out;
+  string s(str), t(token);
+  while(1) {
+    int pos = s.rfind(token);
+    if(pos< s.size()) {
+      out.push_back(s.substr(pos+t.size()));
+      s.erase(pos);
+    }
+    else {
+      out.push_back(s);
+      break;
+    }
+  }
+  return out;
+}
+
+/// Gate checking function
+inline std::string check_gate(const char* gate) {
+  TString tsGate(gate);
+  tsGate.ReplaceAll(" ", "");
+  std::string sGate(tsGate.Data());
+  if(0);
+  else if(sGate == "") return "1";   // Null field means no gate, i.e. always true.
+  else if(sGate == "0") return "!1"; // Somehow "0" evaluates to true, should be false.
+  else return sGate;
+}
+
+/// Name checking function
+inline std::string check_name(const char* name) {
+  std::string ret = name;
+  if(gROOT->FindObject(name)) {
+    Int_t n = 1;
+    while(1) {
+      std::stringstream sstr;
+      sstr << name << "_" << n++;
+      ret = sstr.str();
+      if(!gROOT->FindObject(ret.c_str())) break;
+    }
+    Info("AddHist", "The name %s is already in use, creating %s_%d instead.", name, name, n-1);
+  }
+  return ret;
+}
+   
 
 
 // Class rb::Hist //
@@ -13,18 +63,38 @@ TMutex rb::Hist::fgMutex;
 
 TTree rb::Hist::fgTree;
 
+Bool_t rb::Hist::kConstructorSuccess;
+
 
 // Constructor
-rb::Hist::Hist(const char* gate) : 
-  fGate("fGate", CheckGate(gate).c_str(), &fgTree) {
+rb::Hist::Hist(const char* param, const char* gate, UInt_t npar) : 
+  fGate("fGate", check_gate(gate).c_str(), &fgTree) {
+  kConstructorSuccess = kTRUE;
+  vector<string> vPar = tokenize(param, ":");
+
+  if(vPar.size() == npar) {
+    for(UInt_t i=0; i< npar; ++i) {
+      stringstream name; name << "param" << i;
+      fParams.push_back(new TTreeFormula(name.str().c_str(), vPar[i].c_str(), &fgTree));
+
+      if(!fParams[i]->GetTree()) kConstructorSuccess = kFALSE; // Tell derived classes that the constrctor failed.
+    }
+  }
+
+  else {
+    Error("Hist", "Parameter specification %s is invalid for a %d-dimensional histogram.",
+	  param, npar);
+    kConstructorSuccess = kFALSE; // Tell derived classes that the constrctor failed.
+  }
 }
+
 
 // Regate function
 Int_t rb::Hist::Regate(const char* newgate) {
-  TTreeFormula tempFormula("temp", CheckGate(newgate).c_str(), &fgTree);
+  TTreeFormula tempFormula("temp", check_gate(newgate).c_str(), &fgTree);
   if(!tempFormula.GetTree()) return -1;
   Hist::Lock();
-  fGate.Compile(Hist::CheckGate(newgate).c_str());
+  fGate.Compile(check_gate(newgate).c_str());
   Hist::Unlock();
   return 0;
 }
@@ -33,6 +103,7 @@ Int_t rb::Hist::Regate(const char* newgate) {
 UInt_t rb::Hist::GetNumber() {
   return fgArray.GetEntries();
 }
+
 
 // Static "getter" function
 rb::Hist* rb::Hist::Get(UInt_t indx) {
@@ -86,83 +157,16 @@ void rb::Hist::FillAll() {
   }
 }
 
-// Gate checking function
-std::string rb::Hist::CheckGate(const char* gate) {
-  TString tsGate(gate);
-  tsGate.ReplaceAll(" ", "");
-  std::string sGate(tsGate.Data());
-  if(0);
-  else if(sGate == "") return "1";   // Null field means no gate, i.e. always true.
-  else if(sGate == "0") return "!1"; // Somehow "0" evaluates to true, should be false.
-  else return sGate;
-}
-
-// Name checking function
-std::string rb::Hist::CheckName(const char* name) {
-  std::string ret = name;
-  if(gROOT->FindObject(name)) {
-    Int_t n = 1;
-    while(1) {
-      std::stringstream sstr;
-      sstr << name << "_" << n++;
-      ret = sstr.str();
-      if(!gROOT->FindObject(ret.c_str())) break;
-    }
-    Info("AddHist", "The name %s is already in use, creating %s_%d instead.", name, name, n-1);
-  }
-  return ret;
-}
-
-// 2d string parsing into parameters
-std::string rb::Hist::ParseParam2d(const char* par, Int_t axis) {
-  std::string spar (par);
-  Int_t p1 = spar.find(":");
-  std::string ret = "";
-  switch(axis) {
-  case 1: ret = spar.substr(0, p1); break;
-  case 0: ret = spar.substr(p1+1); break;
-  default:
-    Error("ParseParam2d",
-	  "Invalid axis specification %d (should be x:0, y:1)",
-	  axis);
-    break;
-  }
-  return ret;
-}
-
-// 3d string parsing into parameters
-std::string rb::Hist::ParseParam3d(const char* par, Int_t axis)  {
-  std::string spar (par);
-  Int_t p1 = spar.find(":");
-  Int_t p2 = spar.find_last_of(":");
-  std::string ret = "";
-  switch(axis) {
-  case 2: ret = spar.substr(0, p1);         break;
-  case 1: ret = spar.substr(p1+1, p2-p1-1); break;
-  case 0: ret = spar.substr(p2+1);          break;
-  default:
-    Error("ParseParam3d",
-	  "Invalid axis specification %d (x = 0, y = 1, z = 2)",
-	  axis);
-    break;
-  }
-  return ret;
-}
-
-
-
 // Class rb::H1D //
 
 // Constructor
 rb::H1D::H1D (const char* name, const char* title,
 	      Int_t nbinsx, Double_t xlow, Double_t xhigh,
 	      const char* param, const char* gate) :
-  TH1D (CheckName(name).c_str(), title,
-	nbinsx, xlow, xhigh),
-  Hist(gate),
-  fParam("fParam", param, &fgTree)
+  TH1D (check_name(name).c_str(), title, nbinsx, xlow, xhigh),
+  Hist(param, gate, 1)
 {
-  if(fGate.GetTree() && fParam.GetTree()) {
+  if(kConstructorSuccess) {
     Hist::Lock();
     fgArray.Add(this);
     Hist::Unlock();
@@ -191,20 +195,19 @@ void rb::H1D::Draw(Option_t* option) {
 Int_t rb::H1D::Fill() {
   Hist::Lock();
   Int_t ret = fGate.EvalInstance() ?
-    TH1D::Fill(fParam.EvalInstance())
+    TH1D::Fill(fParams[0]->EvalInstance())
     : 0;
   Hist::Unlock();
   return ret;
 }
 
-// Clear function
-void rb::H1D::Clear(Option_t* option) {
-  if(!TString(option).EqualTo("")) Warning("Clear", "Option %s ignored", option);
-
+// Clear Function
+void rb::H1D::Clear(const Option_t* option) {
   Hist::Lock();
-  for(Int_t i=1; i<= GetNbinsX(); ++i)
-    SetBinContent(i, 0);
+  for(Int_t i=0; i< fN; ++i) fArray[i] = 0;
   Hist::Unlock();
+  if(string(option) != "")
+    Warning("Clear", "Option %s ignored", option);
 }
 
 
@@ -215,16 +218,12 @@ rb::H2D::H2D (const char* name, const char* title,
 	      Int_t nbinsx, Double_t xlow, Double_t xhigh,
 	      Int_t nbinsy, Double_t ylow, Double_t yhigh,
 	      const char* param, const char* gate) : 
-  TH2D (CheckName(name).c_str(), title,
+  TH2D (check_name(name).c_str(), title,
 	nbinsx, xlow, xhigh,
 	nbinsy, ylow, yhigh),
-  Hist(gate), 
-  fParamX("fParamX", ParseParam2d(param,0).c_str(), &fgTree),
-  fParamY("fParamY", ParseParam2d(param,1).c_str(), &fgTree)
+  Hist(param, gate, 2)
 {
-  if(fGate.GetTree() &&
-     fParamX.GetTree() &&
-     fParamY.GetTree()) {
+  if(kConstructorSuccess) {
     Hist::Lock();
     fgArray.Add(this);
     Hist::Unlock();
@@ -253,24 +252,20 @@ void rb::H2D::Draw(Option_t* option) {
 Int_t rb::H2D::Fill() {
   Hist::Lock();
   Int_t ret = fGate.EvalInstance() ?
-    TH2D::Fill(fParamX.EvalInstance(),
-	       fParamY.EvalInstance())
+    TH2D::Fill(fParams[0]->EvalInstance(),
+	       fParams[1]->EvalInstance())
     : 0;
   Hist::Unlock();
   return ret;
 }
 
-// Clear function
-void rb::H2D::Clear(Option_t* option) {
-  if(!TString(option).EqualTo("")) Warning("Clear", "Option %s ignored", option);
-
+// Clear Function
+void rb::H2D::Clear(const Option_t* option) {
   Hist::Lock();
-  for(Int_t i=1; i<= GetNbinsX(); ++i) {
-    for(Int_t j=1; j<= GetNbinsY(); ++j) {
-      SetBinContent(i, j, 0);
-    }
-  }
+  for(Int_t i=0; i< fN; ++i) fArray[i] = 0;
   Hist::Unlock();
+  if(string(option) != "")
+    Warning("Clear", "Option %s ignored", option);
 }
 
 
@@ -282,18 +277,13 @@ rb::H3D::H3D (const char* name, const char* title,
 	      Int_t nbinsy, Double_t ylow, Double_t yhigh,
 	      Int_t nbinsz, Double_t zlow, Double_t zhigh,
 	      const char* param, const char* gate) :
-  TH3D (CheckName(name).c_str(), title,
+  TH3D (check_name(name).c_str(), title,
 	nbinsx, xlow, xhigh,
 	nbinsy, ylow, yhigh,
 	nbinsz, zlow, zhigh),
-  Hist(gate),
-  fParamX("fParamX", ParseParam3d(param,0).c_str(), &fgTree),
-  fParamY("fParamY", ParseParam3d(param,1).c_str(), &fgTree),
-  fParamZ("fParamZ", ParseParam3d(param,2).c_str(), &fgTree)
-{
-  if(fGate.GetTree() &&
-     fParamX.GetTree() &&
-     fParamY.GetTree()) {
+  Hist(param, gate, 3) {
+
+  if(kConstructorSuccess) {
     Hist::Lock();
     fgArray.Add(this);
     Hist::Unlock();
@@ -322,25 +312,20 @@ void rb::H3D::Draw(Option_t* option) {
 Int_t rb::H3D::Fill() {
   Hist::Lock();
   Int_t ret = fGate.EvalInstance() ?
-    TH3D::Fill(fParamX.EvalInstance(),
-	       fParamY.EvalInstance(),
-	       fParamZ.EvalInstance())
+    TH3D::Fill(fParams[0]->EvalInstance(),
+	       fParams[1]->EvalInstance(),
+	       fParams[2]->EvalInstance())
     : 0;
   Hist::Unlock();
   return ret;
 }
 
-// Clear function
-void rb::H3D::Clear(Option_t* option) {
-  if(option != "") Warning("Clear", "Option %s ignored", option);
-
+// Clear Function
+void rb::H3D::Clear(const Option_t* option) {
   Hist::Lock();
-  for(Int_t i=1; i<= GetNbinsX(); ++i) {
-    for(Int_t j=1; j<= GetNbinsY(); ++j) {
-      for(Int_t k=1; k<= GetNbinsZ(); ++k) {
-	SetBinContent(i, j, k, 0);
-      }
-    }
-  }
+  for(Int_t i=0; i< fN; ++i) fArray[i] = 0;
   Hist::Unlock();
+  if(string(option) != "")
+    Warning("Clear", "Option %s ignored", option);
 }
+
