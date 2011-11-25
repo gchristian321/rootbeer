@@ -73,8 +73,8 @@ protected:
   T* pData;
 
 public:
-  UserData(const char* name, const char* class_name, T& data) :
-    UserDataABC(name, class_name) {
+  UserData(const char* name, const char* class_name, T& data, Bool_t createPointer = kFALSE) :
+    UserDataABC(name, class_name, createPointer) {
     pData = &data;
     UserDataABC::Map[fName] = this;
   };

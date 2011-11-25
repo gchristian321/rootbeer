@@ -1,13 +1,13 @@
 /*! \file DataSkeleton.hxx
  *
  */
-#define ADD_CLASS_INSTANCE(NAME, CLASS_NAME)				\
+#define ADD_CLASS_INSTANCE(NAME, CLASS_NAME, POINTER)			\
   CLASS_NAME NAME;							\
-  UserData<CLASS_NAME>  NAME##_UserData(#NAME, #CLASS_NAME, NAME);
+  UserData<CLASS_NAME>  NAME##_UserData(#NAME, #CLASS_NAME, NAME, POINTER);
 
-#define ADD_CLASS_INSTANCE_ARGS(NAME, CLASS_NAME, ARGS)			\
+#define ADD_CLASS_INSTANCE_ARGS(NAME, CLASS_NAME, ARGS, POINTER)	\
   CLASS_NAME NAME ARGS;							\
-  UserData<CLASS_NAME>  NAME##_UserData(#NAME, #CLASS_NAME, NAME);
+  UserData<CLASS_NAME>  NAME##_UserData(#NAME, #CLASS_NAME, NAME, POINTER);
 
 
 //// Add the includes for your headers here. ////
@@ -16,8 +16,8 @@
 
 
 //// Define instances of your class here. ////
-ADD_CLASS_INSTANCE(myData, sData)
-ADD_CLASS_INSTANCE_ARGS(myDataCopy, sData, (myData))
+ADD_CLASS_INSTANCE(myData, sData, kTRUE)
+ADD_CLASS_INSTANCE_ARGS(myDataCopy, sData, (myData), kFALSE)
 
 
 

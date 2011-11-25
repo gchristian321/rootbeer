@@ -47,7 +47,7 @@ namespace rb
 /*! Creates an instance of \c rb::Rint and runs it. */
 Int_t main(Int_t argc, Char_t** argv)
 {
-  rb::Logo();
+  //  rb::Logo();
   UserDataABC::AddBranches();
   rb::Rint rbApp("ROOTBEER", &argc, argv, 0, 0, kTRUE);
   gROOT->ProcessLine("sData* sd = UserData<sData>::Get(\"myData\")");
