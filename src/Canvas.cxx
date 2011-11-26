@@ -51,7 +51,9 @@ void rb::canvas::UpdateCurrent() {
   rb::canvas::Lock();
   if(gPad) {
     gPad->Modified();
+    rb::Hist::Lock();
     gPad->Update();
+    rb::Hist::Unlock();
   }
   rb::canvas::Unlock();
 }
@@ -73,7 +75,9 @@ void rb::canvas::UpdatePad(TVirtualPad* pad) {
 
   rb::canvas::Lock();
   pad->Modified();
+  rb::Hist::Lock();
   pad->Update();
+  rb::Hist::Unlock();
   rb::canvas::Unlock();
 }
 
@@ -134,7 +138,6 @@ void rb::canvas::ClearCurrent() {
   if(gPad) {
     for(Int_t i = 0; i < gPad->GetListOfPrimitives()->GetEntries(); ++i) {
       TObject* primitive = gPad->GetListOfPrimitives()->At(i);
-      //      if(primitive->InheritsFrom("rb::Hist")) {
 	if(0);
 	else if(primitive->ClassName() == "rb::H1D")
 	  static_cast<rb::H1D*>(primitive)->Clear();
@@ -143,7 +146,6 @@ void rb::canvas::ClearCurrent() {
 	else if(primitive->ClassName() == "rb::H3D")
 	  static_cast<rb::H3D*>(primitive)->Clear();
 	else;
-	//      }
     }
   }
   rb::canvas::Unlock();
