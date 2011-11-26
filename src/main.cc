@@ -49,7 +49,7 @@ Int_t main(Int_t argc, Char_t** argv)
 {
   //  rb::Logo();
   UserDataABC::AddBranches();
-  rb::Rint rbApp("ROOTBEER", &argc, argv, 0, 0, kTRUE);
+  rb::Rint rbApp("RootBeer", &argc, argv, 0, 0, kTRUE);
   UserDataABC::CreatePointers();
   gROOT->ProcessLine("enum { X=0, Y=1, Z=2 }"); // for histogram axes
   rbApp.Run();
