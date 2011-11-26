@@ -76,8 +76,8 @@ namespace rb
     /*! Updates \c fGate to reflect the new gate formula. Returns 0 if successful,
      *  -1 if \c newgate isn't valid. In case of invalid \c newgate, the histogram
      *  gate condition remains unchanged.
-     * \bug Calling this while attached online and updating at 1 sec caused a lock-up,
-     * maybe some mutex deadlock issue???
+     * \bug Calling this while attached online and updating at 1 sec caused a lock-up.
+     * Update: probably fixed but needs more testing, see the note about TTreeFormula::Compile().
      */
     virtual Int_t Regate(const char* newgate);
 

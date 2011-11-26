@@ -116,10 +116,11 @@ Int_t rb::Hist::Regate(const char* newgate) {
   // set new gate
   string oldGate = GetGate();
 
-  /// \note Tried using TTreeFormula here but it causes a crash if I call
+  /// \note Tried using TTreeFormula::Compile() to change the gate,
+  /// but it causes a crash if I call
   /// Regate() too many times. Could be a bug in TTreeFormula::Compile() ?
-  /// I'll ask on the ROOT forums. Anyway, deleting and re-making seems to
-  /// work;
+  /// I'll ask on the ROOT forums. Anyway, changing the gate condition
+  /// by using \c delete and \c new seems to work OK.
   if(fGate) delete fGate;
   fGate = new TTreeFormula("fGate", check_gate(newgate).c_str(), &fgTree);
 
