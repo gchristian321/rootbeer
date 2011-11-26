@@ -59,7 +59,7 @@ namespace rb
     static Bool_t kConstructorSuccess;
 
 
-  public:    
+  public:
     /// Function to fill histogram from its internal parameter value(s).
     virtual Int_t Fill() = 0;
 
@@ -82,8 +82,15 @@ namespace rb
      *  gate condition remains unchanged. */
     virtual Int_t Regate(const char* newgate);
 
+    /// Return the number of dimensions.
+    UInt_t GetNdimensions() {
+      return fParams.size();
+    }
+
+    /// Return the gate argument
     std::string GetGate();
 
+    /// Return the parameter name for the specified axis.
     std::string GetParam(Int_t axis);
 
     /// Function to fill al hostograms
