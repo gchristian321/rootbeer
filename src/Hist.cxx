@@ -51,7 +51,8 @@ inline std::string check_name(const char* name) {
   }
   return ret;
 }
-   
+
+
 
 
 // Class rb::Hist //
@@ -93,8 +94,30 @@ rb::Hist::Hist(const char* param, const char* gate, UInt_t npar) :
 Int_t rb::Hist::Regate(const char* newgate) {
   TTreeFormula tempFormula("temp", check_gate(newgate).c_str(), &fgTree);
   if(!tempFormula.GetTree()) return -1;
+
   Hist::Lock();
+  string oldGate = GetGate();
+
+  // set new gate
   fGate.Compile(check_gate(newgate).c_str());
+
+  // change title if appropriate
+  TH1* hst = dynamic_cast<TH1*>(this);
+  if(hst) { // yes we inherit from TH1 and can use SetTitle(), etc.
+    // Reconstruct initial param argument
+    stringstream sPar, sAll;
+    for(Int_t i = GetNdimensions()-1; i > 0; --i)
+      sPar << GetParam(i) << ":";
+    sPar << GetParam(0);
+    sAll << sPar.str() << " {" << oldGate << "}";
+
+    if(sAll.str() == hst->GetTitle()) { // no custom title
+      sAll.str("");
+      sAll << sPar.str() << " {" << GetGate() << "}";
+      hst->SetTitle(sAll.str().c_str());
+    }
+  }
+
   Hist::Unlock();
   return 0;
 }
@@ -180,6 +203,12 @@ rb::H1D::H1D (const char* name, const char* title,
   Hist(param, gate, 1)
 {
   if(kConstructorSuccess) {
+    if(string(title) == "") {
+      stringstream sstr;
+      sstr << param << " {" << GetGate() << "}";
+      SetTitle(sstr.str().c_str());
+    }
+    GetXaxis()->SetTitle(fParams.at(0)->GetExpFormula());
     Hist::Lock();
     fgArray.Add(this);
     Hist::Unlock();
@@ -237,6 +266,13 @@ rb::H2D::H2D (const char* name, const char* title,
   Hist(param, gate, 2)
 {
   if(kConstructorSuccess) {
+    if(string(title) == "") {
+      stringstream sstr;
+      sstr << param << " {" << GetGate() << "}";
+      SetTitle(sstr.str().c_str());
+    }
+    GetXaxis()->SetTitle(fParams.at(0)->GetExpFormula());
+    GetYaxis()->SetTitle(fParams.at(1)->GetExpFormula());
     Hist::Lock();
     fgArray.Add(this);
     Hist::Unlock();
@@ -297,6 +333,14 @@ rb::H3D::H3D (const char* name, const char* title,
   Hist(param, gate, 3) {
 
   if(kConstructorSuccess) {
+    if(string(title) == "") {
+      stringstream sstr;
+      sstr << param << " {" << GetGate() << "}";
+      SetTitle(sstr.str().c_str());
+    }
+    GetXaxis()->SetTitle(fParams.at(0)->GetExpFormula());
+    GetYaxis()->SetTitle(fParams.at(1)->GetExpFormula());
+    GetZaxis()->SetTitle(fParams.at(2)->GetExpFormula());
     Hist::Lock();
     fgArray.Add(this);
     Hist::Unlock();

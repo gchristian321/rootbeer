@@ -24,11 +24,12 @@ void branch_parse(TBranch* branch, Bool_t is_top, ostream& strm) {
     sstr << top_name << "->" << branch->GetName();
     TTreeFormula f("f", sstr.str().c_str(), branch->GetTree()); // for figuring out the value
     if(f.GetTree()) { // forula compiled OK
-      strm << sstr.str() << " = " << f.EvalInstance() << ";\n";
+      strm << "      " << sstr.str() << " = " << f.EvalInstance() << ";\n";
     }
   }
 }
 
+/// Parse a class and print it's member names to a stream.
 void class_parse(const char* name, const char* class_name, void* v, ostream& strm) {
   TTree tParse("tParse", "Temp tree for parsing a class");
   tParse.Branch(name, class_name, &v);
@@ -82,14 +83,13 @@ void UserDataABC::CreatePointers() {
 
 // Static parsing function
 void UserDataABC::ParseAllInstances(ostream& strm) {
-   MapIterator_t it = fgMap.begin();
-   while(it != fgMap.end()) {
+  MapIterator_t it;
+  for(it = fgMap.begin(); it != fgMap.end(); ++it) {
      if(it->second->kCintPointer) {
        class_parse(it->second->fName.c_str(),
 		   it->second->fClassName.c_str(),
 		   it->second->fData,
 		   strm);
-       ++it;
      }
-   }
- }
+  }
+}

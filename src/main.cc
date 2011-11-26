@@ -52,6 +52,7 @@ Int_t main(Int_t argc, Char_t** argv)
   rb::Rint rbApp("RootBeer", &argc, argv, 0, 0, kTRUE);
   UserDataABC::CreatePointers();
   gROOT->ProcessLine("enum { X=0, Y=1, Z=2 }"); // for histogram axes
+  gROOT->ProcessLine("gStyle->SetOptTitle(kTRUE)");
   rbApp.Run();
   return 0;
 }
@@ -230,10 +231,10 @@ Int_t main(Int_t argc, Char_t** argv)
   and the 7th specifies that there is no gate condition applied.  Two and three-dimensional histograms are created
   similarly, with the parameter specifier still being a single string with parameters separated by colons,
   as in \c <a href = "http://root.cern.ch/root/html/TTree.html#TTree:Draw%1">TTree::Draw</a>. For example, to plot
-  parameter \c b (y-axis, 100 bins from -100 to 100) vs. \c a (x-axis, 100 bins from -100 to 100),
+  parameter \c b (y-axis, 200 bins from -200 to 200) vs. \c a (x-axis, 100 bins from -100 to 100),
   with the condition that <tt>b != -1</tt>:
   \code
-   rb::AddHist("histab", "B vs A", 100, -100, 100, 100, -100, 100, "b:a", "b != -1");
+   rb::AddHist("histab", "B vs A", 100, -100, 100, 200, -200, 200, "b:a", "b != -1");
   \endcode
 
   The gate argument is the same as that of \c <a href = "http://root.cern.ch/root/html/TTree.html#TTree:Draw%1">
@@ -254,7 +255,15 @@ Int_t main(Int_t argc, Char_t** argv)
   \code
   myHist->Regate("a > 5");
   \endcode
-  Now \c myHist will only fill with parameter \c a is greater than 5.
+  Now \c myHist will only fill with parameter \c a is greater than 5. To set two-dimensional coutour gates,
+  you can use a normal ROOT \c <a href = "http://root.cern.ch/root/html/TCutG.html">TCutG</a> and reference it
+  via its name in the gate field of a rb::Hist.  As with
+  \c <a href = "http://root.cern.ch/root/html/TTree.html#TTree:Draw%1"> TTree::Draw</a>, you can set alises
+  for compound histogram parameters via the static \c rb::Hist::SetAlias() function:
+  \code
+  rb::Hist::SetAlias("a_times_b", "a * b");
+  rb::AddHist("hst_ab", "a times b", 100, -100, 100, "a_times_b");
+  \endcode
 
   It is also possible to zero histograms while data is coming in. For this, use the \c Clear() function:
   \code

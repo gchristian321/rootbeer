@@ -19,6 +19,7 @@ namespace rb
   extern void AttachOnline();
 
   /// Attach to an offline data source. Implemented in Unpack.cxx
+  /*! \todo Allow this to read till end, then pick up where it left off.*/
   extern void AttachFile(const char* filename);
 
   /// Disconnect from a data source. Implemented in Unpack.cxx
@@ -51,6 +52,20 @@ namespace rb
 		      Int_t nbinsz, Double_t zlow, Double_t zhigh,
 		      const char* param, const char* gate = "");
   
+  /// Write configuration file
+  extern Int_t WriteConfig(const char* filename, Bool_t prompt = kTRUE);
+
+  /// Write configuration file (directories and histograms only).
+  extern Int_t WriteHistograms(const char* filename, Bool_t prompt = kTRUE);
+
+  /// Write configuration file (variables only).
+  extern Int_t WriteVariables(const char* filename, Bool_t prompt = kTRUE);
+
+  /// Read a configuration file.
+  extern void ReadConfig(const char* filename);
+
+  /// Write canvas configuration file.
+  extern Int_t WriteCanvases(const char* filename, Bool_t prompt = kTRUE);
 
   /// Contains user functions relevant to updating canvases and other graphics.
   namespace canvas
@@ -76,6 +91,7 @@ namespace rb
 
     /// Return the canvas update rate. Implemented in Canvas.cxx
     extern Int_t GetUpdateRate();
+
   }
 
 }

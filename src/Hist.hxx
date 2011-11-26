@@ -5,7 +5,7 @@
  *  The essential design is to inherit everything
  *  from the appropriate-dimensioned <tt>TH*F</tt>.
  *  See comments in the individual classes for details.
- *  \todo Automatic TCutG variables, Getters for parameter values.
+ *  \todo Check on thread safety of other access methods.
  */
 #ifndef __HIST__
 #define __HIST__
@@ -34,9 +34,7 @@ namespace rb
    *  \note To avoid multi-inheritance issues, this class should
    *  <i>not</i> define any methods
    *  that are contained in \c TH1 or it's derivatives.
-   \todo Make the inheritance cleaner, i.e. less code duplication
-   in things that are more or less shared save for the # of dimensions.
-  */
+   */
   class Hist
   {  
   protected:
@@ -99,7 +97,7 @@ namespace rb
     /// Function to access fgTree
     static const TTree* GetTree() { return &fgTree; }
 
-    /// Function to add branches to fgTree. \todo mirror other TBranch constructors
+    /// Function to add branches to fgTree.
     static TBranch* CreateBranch(const char* name, const char* classname, void** obj,
 				 Int_t bufsize = 32000, Int_t splitlevel = 99);
 
@@ -127,8 +125,6 @@ namespace rb
    *  and thread safety. For the thread safety, we override normal \c TH1D
    *  methods to call the normal functionality within mutex locks.  For this,
    *  we make use of the static \c HistMutex::Lock() and \c HistMutex::Unlock() functions.
-   *  \todo A lot more of the access methods need to be made thread safe!!!
-   *  \todo Copy constructor.
    */
   class H1D : public TH1D, public Hist
   {
@@ -187,8 +183,6 @@ namespace rb
    *  and thread safety. For the thread safety, we override normal \c TH2D
    *  methods to call the normal functionality within mutex locks.  For this,
    *  we make use of the static \c HistMutex::Lock() and \c HistMutex::Unlock() functions.
-   *  \todo A lot more of the access methods need to be made thread safe!!!
-   *  \todo Copy constructor.
    */
   class H2D : public TH2D, public Hist
   {
@@ -248,8 +242,6 @@ namespace rb
    *  and thread safety. For the thread safety, we override normal \c TH3D
    *  methods to call the normal functionality within mutex locks.  For this,
    *  we make use of the static \c HistMutex::Lock() and \c HistMutex::Unlock() functions.
-   *  \todo A lot more of the access methods need to be made thread safe!!!
-   *  \todo Copy constructor.
    */
   class H3D : public TH3D, public Hist
   {

@@ -151,6 +151,7 @@ void rb::canvas::ClearCurrent() {
 
 
 void rb::canvas::ClearAll() {
+  /// \todo Get WOrking
   // TPad* pInitial = dynamic_cast<TPad*>(gPad);
   // TPad* pad;
   // for(Int_t i=0; i< gROOT->GetListOfCanvases()->GetEntries(); ++i) {

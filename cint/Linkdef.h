@@ -23,6 +23,7 @@
 
 #pragma link C++ class UserDataABC+;
 #pragma link C++ class UserData<sData>+;
+#pragma link C++ class UserData<sVariables>+;
 
 #pragma link C++ class std::vector<TTreeFormula*>;
 #pragma link C++ class std::map<std::string, UserDataABC*>;
