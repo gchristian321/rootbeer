@@ -68,42 +68,65 @@ Bool_t rb::Hist::kConstructorSuccess;
 
 
 // Constructor
-rb::Hist::Hist(const char* param, const char* gate, UInt_t npar) : 
-  fGate("fGate", check_gate(gate).c_str(), &fgTree) {
-  kConstructorSuccess = kTRUE;
-  vector<string> vPar = tokenize(param, ":");
+rb::Hist::Hist(const char* param, const char* gate, UInt_t npar)  {
 
+  // Flag telling derived classes that call this whether it was successful
+  kConstructorSuccess = kTRUE;
+
+  // Initialize gate
+  fGate = new TTreeFormula("fGate", check_gate(gate).c_str(), &fgTree);
+  if(!fGate->GetNdim()) kConstructorSuccess = kFALSE;
+
+  // Initialize parameters
+  vector<string> vPar = tokenize(param, ":");
   if(vPar.size() == npar) {
     for(UInt_t i=0; i< npar; ++i) {
+
       stringstream name; name << "param" << i;
       fParams.push_back(new TTreeFormula(name.str().c_str(), vPar[i].c_str(), &fgTree));
 
-      if(!fParams[i]->GetTree()) kConstructorSuccess = kFALSE; // Tell derived classes that the constrctor failed.
+      if(!fParams[i]->GetNdim()) kConstructorSuccess = kFALSE;
     }
   }
 
   else {
     Error("Hist", "Parameter specification %s is invalid for a %d-dimensional histogram.",
 	  param, npar);
-    kConstructorSuccess = kFALSE; // Tell derived classes that the constrctor failed.
+    kConstructorSuccess = kFALSE;
   }
 }
 
+// Destuctor
+rb::Hist::~Hist() {
+  delete fGate;
+  for(UInt_t i=0; i< fParams.size(); ++i)
+    delete fParams[i];
+}
 
 // Regate function
 Int_t rb::Hist::Regate(const char* newgate) {
-  TTreeFormula tempFormula("temp", check_gate(newgate).c_str(), &fgTree);
-  if(!tempFormula.GetTree()) return -1;
 
   Hist::Lock();
-  string oldGate = GetGate();
+  TTreeFormula tempFormula("temp", check_gate(newgate).c_str(), &fgTree);
+  if(!tempFormula.GetNdim()) {
+    Hist::Unlock();
+    return -1;
+  }
 
   // set new gate
-  fGate.Compile(check_gate(newgate).c_str());
+  string oldGate = GetGate();
+
+  /// \note Tried using TTreeFormula here but it causes a crash if I call
+  /// Regate() too many times. Could be a bug in TTreeFormula::Compile() ?
+  /// I'll ask on the ROOT forums. Anyway, deleting and re-making seems to
+  /// work;
+  if(fGate) delete fGate;
+  fGate = new TTreeFormula("fGate", check_gate(newgate).c_str(), &fgTree);
 
   // change title if appropriate
   TH1* hst = dynamic_cast<TH1*>(this);
   if(hst) { // yes we inherit from TH1 and can use SetTitle(), etc.
+
     // Reconstruct initial param argument
     stringstream sPar, sAll;
     for(Int_t i = GetNdimensions()-1; i > 0; --i)
@@ -124,7 +147,7 @@ Int_t rb::Hist::Regate(const char* newgate) {
 
 // Return gate string
 string rb::Hist::GetGate() {
-  return fGate.GetExpFormula().Data();
+  return fGate->GetExpFormula().Data();
 }
 
 // Return parameter string
@@ -176,13 +199,13 @@ Bool_t rb::Hist::SetAlias(const char* aliasName, const char* aliasFormula) {
 }
   
 // Static mutex locking function
-void rb::Hist::Lock() {
-  fgMutex.Lock();
+Int_t rb::Hist::Lock() {
+  return fgMutex.Lock();
 }
 
 // Static mutex un-locking function
-void rb::Hist::Unlock() {
-  fgMutex.UnLock();
+Int_t rb::Hist::Unlock() {
+  return fgMutex.UnLock();
 }
 
 // Static fill all function
@@ -203,7 +226,7 @@ rb::H1D::H1D (const char* name, const char* title,
   Hist(param, gate, 1)
 {
   if(kConstructorSuccess) {
-    if(string(title) == "") {
+    if(string(title).empty()) {
       stringstream sstr;
       sstr << param << " {" << GetGate() << "}";
       SetTitle(sstr.str().c_str());
@@ -235,8 +258,9 @@ void rb::H1D::Draw(Option_t* option) {
 
 // Fill function
 Int_t rb::H1D::Fill() {
+  Int_t ret = 0;
   Hist::Lock();
-  Int_t ret = fGate.EvalInstance() ?
+  ret = fGate->EvalInstance() ?
     TH1D::Fill(fParams[0]->EvalInstance())
     : 0;
   Hist::Unlock();
@@ -266,7 +290,7 @@ rb::H2D::H2D (const char* name, const char* title,
   Hist(param, gate, 2)
 {
   if(kConstructorSuccess) {
-    if(string(title) == "") {
+    if(string(title).empty()) {
       stringstream sstr;
       sstr << param << " {" << GetGate() << "}";
       SetTitle(sstr.str().c_str());
@@ -300,7 +324,7 @@ void rb::H2D::Draw(Option_t* option) {
 // Fill function
 Int_t rb::H2D::Fill() {
   Hist::Lock();
-  Int_t ret = fGate.EvalInstance() ?
+  Int_t ret = fGate->EvalInstance() ?
     TH2D::Fill(fParams[0]->EvalInstance(),
 	       fParams[1]->EvalInstance())
     : 0;
@@ -333,7 +357,7 @@ rb::H3D::H3D (const char* name, const char* title,
   Hist(param, gate, 3) {
 
   if(kConstructorSuccess) {
-    if(string(title) == "") {
+    if(string(title).empty()) {
       stringstream sstr;
       sstr << param << " {" << GetGate() << "}";
       SetTitle(sstr.str().c_str());
@@ -368,7 +392,7 @@ void rb::H3D::Draw(Option_t* option) {
 // Fill function
 Int_t rb::H3D::Fill() {
   Hist::Lock();
-  Int_t ret = fGate.EvalInstance() ?
+  Int_t ret = fGate->EvalInstance() ?
     TH3D::Fill(fParams[0]->EvalInstance(),
 	       fParams[1]->EvalInstance(),
 	       fParams[2]->EvalInstance())

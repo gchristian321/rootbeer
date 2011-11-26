@@ -39,7 +39,7 @@ namespace rb
   {  
   protected:
     /// Gate formula.
-    TTreeFormula fGate;
+    TTreeFormula* fGate;
 
     /// Parameter formulae.
     std::vector<TTreeFormula*> fParams;
@@ -69,15 +69,16 @@ namespace rb
     Hist() { } ;
 
     /// Destructor
-    virtual ~Hist() {
-      for(UInt_t i=0; i< fParams.size(); ++i)
-	delete fParams[i];
-    }
+    /*! Free resorces allocted to TTreeFormulas */
+    virtual ~Hist();
 
     /// Function to change the histogram gate.
     /*! Updates \c fGate to reflect the new gate formula. Returns 0 if successful,
      *  -1 if \c newgate isn't valid. In case of invalid \c newgate, the histogram
-     *  gate condition remains unchanged. */
+     *  gate condition remains unchanged.
+     * \bug Calling this while attached online and updating at 1 sec caused a lock-up,
+     * maybe some mutex deadlock issue???
+     */
     virtual Int_t Regate(const char* newgate);
 
     /// Return the number of dimensions.
@@ -111,10 +112,10 @@ namespace rb
     static Bool_t SetAlias(const char* aliasName, const char* aliasFormula);
 
     /// Static mutex locking function
-    static void Lock();
+    static Int_t Lock();
 
     /// Static mutex un-locking function
-    static void Unlock();
+    static Int_t Unlock();
   };
 
 
