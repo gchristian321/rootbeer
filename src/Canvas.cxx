@@ -3,7 +3,6 @@
  * 
  * Also defines a number of internal functions to be called by the
  * user ones.
- * \todo Implement Clear() functions based on canvases: ClearCurrent() and ClearAll().
  */
 #include "TCanvas.h"
 #include "TThread.h"
@@ -22,6 +21,10 @@ namespace rb
     /*! \brief Update whatever histograms are on the current canvas/pad,
      * including any sub-pads owned by this one. */
     void UpdatePad(TVirtualPad* pad);
+
+    /*! \brief Clear whatever histograms are on the current canvas/pad,
+     * including any sub-pads owned by this one. */
+    void ClearPad(TVirtualPad* pad);
 
     /// Set cavases to update every on a regular basis.
     void* TimedUpdate(void* rate);
@@ -132,35 +135,44 @@ Int_t rb::canvas::GetUpdateRate() {
   return updateRate;
 }
 
-
 void rb::canvas::ClearCurrent() {
   rb::canvas::Lock();
   if(gPad) {
     for(Int_t i = 0; i < gPad->GetListOfPrimitives()->GetEntries(); ++i) {
-      TObject* primitive = gPad->GetListOfPrimitives()->At(i);
-	if(0);
-	else if(primitive->ClassName() == "rb::H1D")
-	  static_cast<rb::H1D*>(primitive)->Clear();
-	else if(primitive->ClassName() == "rb::H2D")
-	  static_cast<rb::H2D*>(primitive)->Clear();
-	else if(primitive->ClassName() == "rb::H3D")
-	  static_cast<rb::H3D*>(primitive)->Clear();
-	else;
+      TH1* hst = dynamic_cast<TH1*> (gPad->GetListOfPrimitives()->At(i));
+      if(hst) hst->Clear();
+      gPad->Modified();
+      gPad->Update();
     }
   }
   rb::canvas::Unlock();
 }
 
+void rb::canvas::ClearPad(TVirtualPad* pad) {
+  string type = pad->ClassName();
+  pad = dynamic_cast<TPad*>(pad);
+  if(!pad) Error("rb::canvas::UpdatePad", "Passed an invalid type, %s.", type.c_str());
+
+  rb::canvas::Lock();
+  pad->cd();
+  TList* primitives = pad->GetListOfPrimitives();
+  rb::canvas::Unlock();
+
+  for(Int_t i=0; i< primitives->GetEntries(); ++i) {
+    TVirtualPad* subpad = dynamic_cast<TVirtualPad*>(primitives->At(i));
+    if(subpad) rb::canvas::ClearPad(subpad);
+  }
+  ClearCurrent();
+}
 
 void rb::canvas::ClearAll() {
-  /// \todo Get WOrking
-  // TPad* pInitial = dynamic_cast<TPad*>(gPad);
-  // TPad* pad;
-  // for(Int_t i=0; i< gROOT->GetListOfCanvases()->GetEntries(); ++i) {
-  //   pad = dynamic_cast<TPad*>(gROOT->GetListOfCanvases()->At(i));
-  //   if(pad) rb::canvas::ClearPad(pad);
-  // }
-  // rb::canvas::Lock();
-  // if(pInitial) pInitial->cd();
-  // rb::canvas::Unlock();
+  TPad* pInitial = dynamic_cast<TPad*>(gPad);
+  TPad* pad;
+  for(Int_t i=0; i< gROOT->GetListOfCanvases()->GetEntries(); ++i) {
+    pad = dynamic_cast<TPad*>(gROOT->GetListOfCanvases()->At(i));
+    if(pad) rb::canvas::ClearPad(pad);
+  }
+  rb::canvas::Lock();
+  if(pInitial) pInitial->cd();
+  rb::canvas::Unlock();
 }
