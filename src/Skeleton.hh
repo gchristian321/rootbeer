@@ -2,7 +2,6 @@
  *  \brief Lays out a code skeleton that users can fill in with their analysis codes.
  */
 
-rb::MData::Map_t rb::MData::fgMap;
 
 /// Macro to add a class instance to ROOTBEER
 /*! NAME should be the variable name that you want to refer to the instance by.

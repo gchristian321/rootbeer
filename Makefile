@@ -1,11 +1,17 @@
 SRC=$(PWD)/src
-SOURCES=$(SRC)/Rootbeer.cxx $(SRC)/Unpack.cxx $(SRC)/Hist.cxx $(SRC)/Canvas.cxx $(SRC)/Data.cxx $(SRC)/WriteConfig.cxx
+
+SOURCES=$(SRC)/Rootbeer.cxx $(SRC)/Data.cxx $(SRC)/Unpack.cxx $(SRC)/Hist.cxx $(SRC)/Canvas.cxx $(SRC)/WriteConfig.cxx
+
+### Add user dources above
 HEADERS=$(SRC)/Rootbeer.hxx $(SRC)/Hist.hxx $(SRC)/Data.hxx \
 	$(SRC)/sData.hxx
+
+### Add user headers above
+
 LINKDEF=cint/Linkdef.h
 ROOTFLAGS=-dynamiclib -single_module -undefined dynamic_lookup `root-config --cflags --libs`
 INCFLAGS=-I$(SRC) -I$(PWD)/cint
-CXXFLAGS=-ggdb -O0
+####CXXFLAGS=-ggdb -O0
 
 all: rootbeer
 

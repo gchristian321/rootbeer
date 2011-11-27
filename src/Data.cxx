@@ -32,6 +32,9 @@ void branch_parse(TBranch* branch, Bool_t is_top, ostream& strm) {
 
 // Class rb::MData //
 
+// Static data member initialization
+rb::MData::Map_t rb::MData::fgMap;
+
 // Constructor
 rb::MData::MData(const char* name, const char* class_name, void* data, Bool_t createPointer):
   kName(name), kClassName(class_name), kCintPointer(createPointer) {
