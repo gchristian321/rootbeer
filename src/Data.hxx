@@ -75,7 +75,7 @@ namespace rb
     /*! Remove from fgMap */
     virtual ~MData() {
       MapIterator_t it = fgMap.find(kName);
-      fgMap.erase(it);
+      if(it != fgMap.end()) fgMap.erase(it);
     }
 
     /// Add in instance of the wrapped class as a branch parable by rb::Hist::fgTree

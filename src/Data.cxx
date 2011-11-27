@@ -80,7 +80,7 @@ void rb::MData::CreatePointers() {
 /// Parse a class and print it's member names to a stream.
 void rb::MData::SavePrimitive(ostream& strm) {
   TTree tParse("tParse", "Temp tree for parsing a class");
-  tParse.Branch(kName.c_str(), kClassName.c_str(), fData);
+  tParse.Branch(kName.c_str(), kClassName.c_str(), &fData);
 
   TIter it(tParse.GetListOfBranches());
   for(it = it.Begin(); it != it.End(); ++it) {
