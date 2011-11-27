@@ -137,7 +137,7 @@ Int_t main(Int_t argc, Char_t** argv)
 
   - \link data Customizing For Your Experiment \endlink
 
-  - \link data For Developers \endlink
+  - \link develop For Developers \endlink
 
 
 
@@ -354,7 +354,7 @@ Int_t main(Int_t argc, Char_t** argv)
 
 
   \page data Customizing for Your Experiment
-  \todo Write section on implementing user data.
+  To customize..
 
 
   \page develop Developers
