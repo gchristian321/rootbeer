@@ -19,10 +19,10 @@
 #pragma link C++ class rb::MData+; 
 
 // User templates
-#pragma link C++ class sData+;
-#pragma link C++ class rb::Data<sData>+;
-#pragma link C++ class sVariables+;
-#pragma link C++ class rb::Data<sVariables>+;
+#pragma link C++ class ExampleData+;
+#pragma link C++ class rb::Data<ExampleData>+;
+#pragma link C++ class ExampleVariables+;
+#pragma link C++ class rb::Data<ExampleVariables>+;
 
 
 #endif // #ifdef __CINT__

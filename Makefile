@@ -4,13 +4,18 @@ SOURCES=$(SRC)/Rootbeer.cxx $(SRC)/Data.cxx $(SRC)/Unpack.cxx $(SRC)/Hist.cxx $(
 
 ### Add user dources above
 HEADERS=$(SRC)/Rootbeer.hxx $(SRC)/Hist.hxx $(SRC)/Data.hxx \
-	$(SRC)/sData.hxx
+	$(SRC)/ExampleData.hh
 
 ### Add user headers above
 
 LINKDEF=cint/Linkdef.h
 ROOTFLAGS=-dynamiclib -single_module -undefined dynamic_lookup `root-config --cflags --libs`
+
+
+### In case your ROOT headers aren't searched for automatically, add
+# -I/where/your/root/headers/are to the next line.
 INCFLAGS=-I$(SRC) -I$(PWD)/cint
+
 ####CXXFLAGS=-ggdb -O0
 
 all: rootbeer

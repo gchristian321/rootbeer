@@ -44,7 +44,7 @@
 ////////////////////////////////////////////////////////
 //// Add the header includes for your classes here. ////
 ////////////////////////////////////////////////////////
-#include "sData.hxx"
+#include "ExampleData.hh"
 
 
 
@@ -55,11 +55,11 @@
 //// (using the ADD_CLASS_INSTANCE macros). ////
 ////////////////////////////////////////////////
 
-// Here we add an instance of sData, called myData and do not create a pointer for CINT.
-ADD_CLASS_INSTANCE(myData, sData, kFALSE)
+// Here we add an instance of ExampleData, called myData and do not create a pointer for CINT.
+ADD_CLASS_INSTANCE(myData, ExampleData, kFALSE)
 
 // Here we add an instance of sVaraibles, calles myVars and do create a pointer for CINT.
-ADD_CLASS_INSTANCE(myVars, sVariables, kTRUE)
+ADD_CLASS_INSTANCE(myVars, ExampleVariables, kTRUE)
 
 
 

@@ -1,15 +1,15 @@
-/*! \file sData.hxx
+/*! \file ExampleData.hh
  *  \brief An example of a user data class that can be plugged
  *  into the ROOTBEER framework.
  */
-#ifndef __SDATA__
-#define __SDATA__
+#ifndef __EXAMPLE_DATA__
+#define __EXAMPLE_DATA__
 
 /// Code to tell us that there was no data in a given event.
 static const Int_t NO_DATA = -1;
 
 /// Example of a class to hold experiment variables.
-struct sVariables {
+struct ExampleVariables {
 
   /// Variable 1
   Double_t var1;
@@ -19,7 +19,7 @@ struct sVariables {
 
   /// Constructor
   /*! Initialize everthing to unity. */
-  sVariables() {
+  ExampleVariables() {
     var1=1;
     var2=1;
   }
@@ -27,7 +27,7 @@ struct sVariables {
 
 
 /// Example of a class to hold experiment parameters.
-class sData {
+class ExampleData {
 
 public:
   /// Some raw parameter
@@ -57,7 +57,7 @@ public:
   }
 
   /// Some function to get calibrated params from raw params and variables.
-  void calibrate(sVariables& v) {
+  void calibrate(ExampleVariables& v) {
     if(a > 0 && b > 0 && v.var1 != 0) {
       cal1 = (a*b) / v.var1;
     }
@@ -93,18 +93,18 @@ public:
   // }
 
   /// Constructor, initialize all to NO_DATA.
-  sData() {
+  ExampleData() {
     reset();
   }
 
   /// Copy constructor
-  sData(sData& other) :
+  ExampleData(ExampleData& other) :
     a(other.a), b(other.b), c(other.c),
     cal1(other.cal1), cal2(other.cal2)			
   { };
 
   /// Destructor
-  ~sData() { }
+  ~ExampleData() { }
 };
 
 

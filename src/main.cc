@@ -66,6 +66,7 @@ Int_t main(Int_t argc, Char_t** argv)
 /*!
   \mainpage ROOTBEER: The ROOT Basic Event ExtractoR
   \authors G. Christian \n gchristian@triumf.ca \n\n
+  \authors S. Mosby \n mosby@nscl.msu.edu \n\n
 
 
 
@@ -136,11 +137,42 @@ Int_t main(Int_t argc, Char_t** argv)
 
   - \link data Customizing For Your Experiment \endlink
 
+  - \link data For Developers \endlink
+
 
 
   \page install Installation
-  \todo Write installation section.
 
+  \n \section op Operating Systems & Prerequisites
+  Currently, ROOTBEER has only been tested on Unix-based systems (Linux and Apple OS/X). This doesn't mean it won't
+  work on Windows too, but we've never tried (the main source of problems would likely be in the threading parts,
+  though the TThread library we use is supposed to be platform-indpendent).  In any case, the present
+  instructions all assume a *NIX system.
+
+  You need to have ROOT installed on your system and have access to the standard class headers an libraries.
+  Instructions on installing ROOT can be found at http://root.cern.ch/drupal/content/downloading-root  You will
+  also need a C++ compiler installed, for example <a href="http://gcc.gnu.org">g++</a>. Otherwise, you should be
+  good to go as ROOTBEER doesn't make use of any external libraries other than the ROOT ones.
+  
+
+  \n \section compile Downloading & Compiling
+  The ROOTBEER source code can be downloaded from http:://trshare/triumf.ca/~gchristian/rootbeer/download/ Both .zip
+  and .tar.gz formats are available.  Potential developers or those who want to stay on top of bug fixes and other
+  improvements can check out the sources using <a href="http://git-scm.com">git</a>
+  \code
+  git checkout somewhere....
+  \endcode
+  For more information on contributing to ROOTBEER, see the \link develop Developers \endlink page.
+
+  To compile, unpack the sources and \c cd to the top-level ROOTBEER directory.  If the location of the ROOT
+  header files is not normally searched by your compiler, then you will need to edit the Makefile. Open up
+  \c Makefile and follow the instructions above the <tt>\$(INCFLAGS)</tt> line.  Having done this, exit and type <tt>make</tt>.
+  This should compile the \c rootbeer executable in the top-level directory as well as a shared library in the
+  \c /lib directory.  If you are adding your own analysis codes to the ROOTBEER framework, then you will need
+  to make some modifiations to the Makefile. These modifications are explained in the
+  \link data Customizing for Your Experiment \endlink section.
+
+  
 
   \page user Command Line Interface
   Users can interact with the ROOTBEER via the CINT command line.  All of the normal functionality of ROOT is still
@@ -313,11 +345,12 @@ Int_t main(Int_t argc, Char_t** argv)
   \todo Write GIU section
 
 
-  \page data Data Classes
+  \page data Customizing for Your Experiment
   \todo Write section on implementing user data.
 
 
-
+  \page develop Developers
+  ...
 
 
 
