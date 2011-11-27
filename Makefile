@@ -17,7 +17,7 @@ libRootbeer: Dictionary $(SOURCES) $(HEADERS) $(LINKDEF)
 	$(SOURCES) $(ROOTFLAGS) -lTreePlayer -lThread $(BOOSTLIBS)
 
 Dictionary: $(HEADERS) $(LINKDEF)
-	rootcint -f cint/Dictionary.cxx -c $(CXXFLAGS) $(DEFINITIONS) -p $^
+	$(PWD)/cint/auto_linkdef.sh ; rootcint -f cint/Dictionary.cxx -c $(CXXFLAGS) $(DEFINITIONS) -p $^
 
 doc:
 	cd $(PWD)/doxygen ; doxygen Doxyfile ; cd latex; make; cd $(PWD)
