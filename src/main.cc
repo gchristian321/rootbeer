@@ -181,7 +181,7 @@ Int_t main(Int_t argc, Char_t** argv)
 
   - \link attach Attaching to Data \endlink
   - \link hist Working with Histograms \endlink
-  - \link update Updating Canvases \endlink
+  - \link update Canvases \endlink
 
 
   For a complete list of all of the user commands and their documentation, visit the Rootbeer.hxx Doxygen page.
@@ -317,28 +317,36 @@ Int_t main(Int_t argc, Char_t** argv)
   \endcode
 
 
-  \n \section update Updating Canvases
+  \n \section canvas Canvases
 
-  Once you have drawn a histogram on a canvas, it is possible to have ROOTBEER automatically refresh it
-  at a set update rate to reflect new incoming data.  This is done via a call to the rb::canvas::StartUpdate()
-  function:
+  In general, you can work with <a href="http:://root.cern.ch/root/html/TCanvas.html">TCanvas</a> objects just
+  as you would in normal ROOT.  However, ROOTBEER adds a bit of functionality relevant to the display of streaming
+  data. The main addition is the ability to have ROOTBEER auto-refresh your canvases on a regular basis. 
+  To Start/Stop auto-updating use the StartUpdate() or StopUpdate() functions:
+
   \code
-  rb::canvas::StartUpdate(5);
-  \endcode
-  This will cause ROOTBEER to update every open canvas evert five seconds. To stop auto-update, use the
-  StopUpdate() function:
-  \code
-  rb::canvas::StopUpdate();
+  rb::canvas::StartUpdate(5); // All canvases will now refresh every five seconds.
+
+  rb::canvas::StopUpdate(); // Canvases will no longer auto-refresh
   \endcode
 
-  One can also update all canvases manually
+
+  You can also update canvases manually, either individual or all at once
   \code
-  rb::canvas::UpdateAll();
+  rb::canvas::UpdateAll(); // Update all canvases
+
+  rb::canvas::UpdateCurrent(); // Update just the currently selected canvas
   \endcode
-  or just the current one
+
+  as well as clear them
+
   \code
-  rb::canvas::UpdateCurrent();
+  rb::canvas::ClearAll(); // Clear all canvases
+
+  rb::canvas::UpdateCurrent(); // Clear just the currently selected canvas
   \endcode
+
+
 
 
   \page gui Graphical User Interface
@@ -350,7 +358,7 @@ Int_t main(Int_t argc, Char_t** argv)
 
 
   \page develop Developers
-  ...
+  Developers....
 
 
 
