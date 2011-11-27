@@ -5,6 +5,7 @@ HEADERS=$(SRC)/Rootbeer.hxx $(SRC)/Hist.hxx $(SRC)/Data.hxx \
 LINKDEF=cint/Linkdef.h
 ROOTFLAGS=-dynamiclib -single_module -undefined dynamic_lookup `root-config --cflags --libs`
 INCFLAGS=-I$(SRC) -I$(PWD)/cint
+CXXFLAGS=-ggdb -O0
 
 all: rootbeer
 

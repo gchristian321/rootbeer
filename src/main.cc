@@ -48,9 +48,9 @@ namespace rb
 Int_t main(Int_t argc, Char_t** argv)
 {
   //  rb::Logo();
-  UserDataABC::AddBranches();
+  rb::MData::AddBranches();
   rb::Rint rbApp("RootBeer", &argc, argv, 0, 0, kTRUE);
-  UserDataABC::CreatePointers();
+  rb::MData::CreatePointers();
   gROOT->ProcessLine("enum { X=0, Y=1, Z=2 }"); // for histogram axes
   gROOT->ProcessLine("gStyle->SetOptTitle(kTRUE)");
   rbApp.Run();

@@ -125,7 +125,7 @@ namespace rb
    *  itself from an internal \c TTree pointer, using <tt>TTreeFormula</tt>,
    *  and thread safety. For the thread safety, we override normal \c TH1D
    *  methods to call the normal functionality within mutex locks.  For this,
-   *  we make use of the static \c HistMutex::Lock() and \c HistMutex::Unlock() functions.
+   *  we make use of the static \c rb::Hist::Lock() and \c rb::Hist::Unlock() functions.
    */
   class H1D : public TH1D, public Hist
   {
@@ -183,7 +183,7 @@ namespace rb
    *  itself from an internal \c TTree pointer, using <tt>TTreeFormula</tt>,
    *  and thread safety. For the thread safety, we override normal \c TH2D
    *  methods to call the normal functionality within mutex locks.  For this,
-   *  we make use of the static \c HistMutex::Lock() and \c HistMutex::Unlock() functions.
+   *  we make use of the static \c rb::Hist::Lock() and \c rb::Hist::Unlock() functions.
    */
   class H2D : public TH2D, public Hist
   {
@@ -242,7 +242,7 @@ namespace rb
    *  itself from an internal \c TTree pointer, using <tt>TTreeFormula</tt>,
    *  and thread safety. For the thread safety, we override normal \c TH3D
    *  methods to call the normal functionality within mutex locks.  For this,
-   *  we make use of the static \c HistMutex::Lock() and \c HistMutex::Unlock() functions.
+   *  we make use of the static \c rb::Hist::Lock() and \c rb::Hist::Unlock() functions.
    */
   class H3D : public TH3D, public Hist
   {

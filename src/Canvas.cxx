@@ -29,7 +29,7 @@ namespace rb
     /// Set cavases to update every on a regular basis.
     void* TimedUpdate(void* rate);
 
-    /// Maximum update rate, currently set to two seconds.
+    /// Maximum update rate, currently set to one second.
     static const Int_t MAX_RATE = 1;
 
     /// The rate at which canvases are updated (in seconds).

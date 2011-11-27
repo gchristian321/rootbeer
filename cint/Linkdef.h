@@ -1,8 +1,6 @@
-/** @file rbeer_utils_linkdef.hxx */
-/*!
- *  This file is where CINT is told to generate dictionaries
- *  for the various classes we create.
- */
+/** \file Linkdef.h */
+/*! \brief Tells CINT to generate dictionaries for our classes. */
+
 
 #ifdef __CINT__
 #pragma link off all globals;
@@ -21,11 +19,9 @@
 #pragma link C++ class rb::H2D+;
 #pragma link C++ class rb::H3D+;
 
-#pragma link C++ class UserDataABC+;
-#pragma link C++ class UserData<sData>+;
-#pragma link C++ class UserData<sVariables>+;
+#pragma link C++ class rb::MData+;
+#pragma link C++ class rb::Data<sData>+;
+#pragma link C++ class rb::Data<sVariables>+;
 
-#pragma link C++ class std::vector<TTreeFormula*>;
-#pragma link C++ class std::map<std::string, UserDataABC*>;
 
 #endif // #ifdef __CINT__

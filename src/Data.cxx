@@ -29,35 +29,32 @@ void branch_parse(TBranch* branch, Bool_t is_top, ostream& strm) {
   }
 }
 
-/// Parse a class and print it's member names to a stream.
-void class_parse(const char* name, const char* class_name, void* v, ostream& strm) {
-  TTree tParse("tParse", "Temp tree for parsing a class");
-  tParse.Branch(name, class_name, &v);
-  for(Int_t i=0; i< tParse.GetListOfBranches()->GetEntries(); ++i) {
-    branch_parse(static_cast<TBranch*>(tParse.GetListOfBranches()->At(i)), kTRUE, strm);
-  }
+
+// Class rb::MData //
+
+// Constructor
+rb::MData::MData(const char* name, const char* class_name, void* data, Bool_t createPointer):
+  kName(name), kClassName(class_name), kCintPointer(createPointer) {
+      fData = data;
+      fgMap[kName] = this;
 }
 
-
-
-// Class UserDataABC //
-
 // Static branch adding function
-void UserDataABC::AddBranches() {
+void rb::MData::AddBranches() {
   MapIterator_t it = fgMap.begin();
-  while(it != UserDataABC::fgMap.end())
+  while(it != rb::MData::fgMap.end())
     (*it++).second->AddBranch();
 }
 
 // Static CINT pointer creation function
-void UserDataABC::CreatePointers() {
+void rb::MData::CreatePointers() {
   vector<string> vPrint; /// For message printing
   vPrint.push_back("\nCreating pointers to user data objects:\n");
 
   for(MapIterator_t it = fgMap.begin(); it != fgMap.end(); ++it) {
     if(it->second->kCintPointer) {
       string name = it->first;
-      string className = it->second->fClassName;
+      string className = it->second->kClassName;
 
       stringstream sPrint;
       sPrint << "        " << className << "* " << name << endl;
@@ -65,7 +62,7 @@ void UserDataABC::CreatePointers() {
 
       stringstream  sExecute;
       sExecute << className << "* " << name << " = "
-	       << "UserData<" << className << ">::Get "
+	       << "rb::Data<" << className << ">::Get "
 	       << "(\"" << name << "\")";
 
       gROOT->ProcessLine(sExecute.str().c_str());
@@ -80,16 +77,23 @@ void UserDataABC::CreatePointers() {
   }
 }
 
+/// Parse a class and print it's member names to a stream.
+void rb::MData::SavePrimitive(ostream& strm) {
+  TTree tParse("tParse", "Temp tree for parsing a class");
+  tParse.Branch(kName.c_str(), kClassName.c_str(), fData);
+
+  TIter it(tParse.GetListOfBranches());
+  for(it = it.Begin(); it != it.End(); ++it) {
+    branch_parse(static_cast<TBranch*>(*it), kTRUE, strm);
+  }
+}
 
 // Static parsing function
-void UserDataABC::ParseAllInstances(ostream& strm) {
+void rb::MData::SaveAllPrimitive(ostream& strm) {
   MapIterator_t it;
   for(it = fgMap.begin(); it != fgMap.end(); ++it) {
-     if(it->second->kCintPointer) {
-       class_parse(it->second->fName.c_str(),
-		   it->second->fClassName.c_str(),
-		   it->second->fData,
-		   strm);
-     }
+    if(it->second->kCintPointer) {
+      it->second->SavePrimitive(strm);
+    }
   }
 }
