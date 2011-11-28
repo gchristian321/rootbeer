@@ -33,8 +33,7 @@ TGLVEntry_mod
     ;
 }
 
-void TGLVEntry_mod::SetSubnamesFromHist(rb::Hist* hst) {
-  string arg[14] = { "", "", "", "", "", "", "", "", "", "", "", "", "", "" };
+void TGLVEntry_mod::SetSubnames(rb::Hist* hst) {
   // type
   // x param
   // x bins
@@ -49,8 +48,19 @@ void TGLVEntry_mod::SetSubnamesFromHist(rb::Hist* hst) {
   // z low
   // z high
   // gate
+
+  vector<string> arg(14, "");
   Int_t naxes = hst->GetNdimensions();
-  arg[0] = string_cast<Int_t>(naxes); arg[0] += "D";
+
+  // Figure out type
+  TObject* obj = dynamic_cast<TObject*>(hst);
+  if(!obj) arg[0] = "???";
+  else {
+    arg[0] = obj->ClassName();
+    if(arg[0].find("rb::") == 0) arg[0] = arg[0].substr(4);
+  }
+
+  // Get axis-specific info
   for(Int_t i=0; i< naxes; ++i) {
     TAxis* axis = hst->GetAxis(i);
     if(!axis) break;
@@ -59,11 +69,38 @@ void TGLVEntry_mod::SetSubnamesFromHist(rb::Hist* hst) {
     arg[3 + (i*4)] = string_cast<Double_t>(axis->GetBinLowEdge(1));
     arg[4 + (i*4)] = string_cast<Double_t>(axis->GetBinLowEdge(1+axis->GetNbins()));
   }
+  // And finally the gate.
   arg[13] = hst->GetGate();
 
-  SetSubnames(arg[0].c_str(), arg[1].c_str(), arg[2].c_str(), arg[3].c_str(), arg[4].c_str(), arg[5].c_str(), arg[6].c_str(), arg[7].c_str(), arg[8].c_str(), arg[9].c_str(), arg[10].c_str(), arg[11].c_str(), arg[12].c_str(), arg[13].c_str());
+  SetSubnames(arg);
 }
 
+
+void TGLVEntry_mod::SetSubnames(const std::vector<std::string>& args) {
+  // Sets new subnames.
+  if (fSubnames) {
+    for (Int_t i = 0; fSubnames[i] != 0; ++i) delete fSubnames[i];
+    delete [] fSubnames;
+    delete [] fCtw;
+  }
+  fSubnames = 0;
+
+  Int_t ncol = args.size();
+  if(!ncol) return;
+
+  fSubnames = new TGString* [ncol+1];
+  for(Int_t i=0; i< ncol; ++i)
+    fSubnames[i] = new TGString(args.at(i).c_str());
+  fSubnames[ncol] = 0;
+
+  fCtw = new Int_t[ncol];
+  fCtw[ncol-1] = 0;
+
+  for (int i = 0; i<ncol; i++) {
+    fCtw[i] = gVirtualX->TextWidth(fFontStruct, fSubnames[i]->GetString(),
+				   fSubnames[i]->GetLength());
+  }
+}
   
 
 void TGLVEntry_mod::SetSubnames(const char* n1, const char* n2, const char* n3, const char* n4, const char* n5, const char* n6, const char* n7, const char* n8, const char* n9, const char* n10, const char* n11, const char* n12,const char* n13, const char* n14)
@@ -419,7 +456,7 @@ void
 HistMaker::MakeHistFromGui()
 {
   if(fInfo[NAME] == "") {
-    Error("MakeHistFromGui", "Please specify a name");
+    Error("MakeHistFromGui", "Please specify a name.");
     return;
   }
 
@@ -447,40 +484,44 @@ HistMaker::MakeHistFromGui()
 
   static Atoi a2i = basic_cast<Int_t>;
   static Atof a2d = basic_cast<Double_t>;
-  TGLVEntry_mod* entry = 0;
+  TH1* hst = 0;
 
   switch(nAxes) {
-  case 1: {
-    rb::H1D* hst = new rb::H1D (fInfo[NAME].c_str(), "",
-				a2i(fInfo[BINS_X]), a2d(fInfo[LOW_X]), a2d(fInfo[HIGH_X]),
-				par.c_str(), fInfo[GATE].c_str());
 
-    entry = new TGLVEntry_mod(cont, static_cast<TH1*>(hst)->GetName(), static_cast<TH1*>(hst)->GetName());
-    entry->SetSubnamesFromHist(hst);
-    cont->AddItem(entry);
-    histlist->Layout();
+  case 1: hst = new rb::H1D (fInfo[NAME].c_str(), "",
+			     a2i(fInfo[BINS_X]), a2d(fInfo[LOW_X]), a2d(fInfo[HIGH_X]),
+			     par.c_str(), fInfo[GATE].c_str());     break;
 
-    break;
+  case 2: hst = new rb::H2D (fInfo[NAME].c_str(), "",
+			     a2i(fInfo[BINS_X]), a2d(fInfo[LOW_X]), a2d(fInfo[HIGH_X]),
+			     a2i(fInfo[BINS_Y]), a2d(fInfo[LOW_Y]), a2d(fInfo[HIGH_Y]),
+			     par.c_str(), fInfo[GATE].c_str());     break;
+
+  case 3: hst = new rb::H3D (fInfo[NAME].c_str(), "",
+			     a2i(fInfo[BINS_X]), a2d(fInfo[LOW_X]), a2d(fInfo[HIGH_X]),
+			     a2i(fInfo[BINS_Y]), a2d(fInfo[LOW_Y]), a2d(fInfo[HIGH_Y]),
+			     a2i(fInfo[BINS_Z]), a2d(fInfo[LOW_Z]), a2d(fInfo[HIGH_Z]),
+			     par.c_str(), fInfo[GATE].c_str());     break;
+
+  default: Error("MakeHistFromGui", "nAxes %d isn't valid", nAxes); break;
   }
-  case 2: rb::Hist::New(fInfo[NAME].c_str(), "",
-			a2i(fInfo[BINS_X]), a2d(fInfo[LOW_X]), a2d(fInfo[HIGH_X]),
-			a2i(fInfo[BINS_Y]), a2d(fInfo[LOW_Y]), a2d(fInfo[HIGH_Y]),
-			par.c_str(), fInfo[GATE].c_str()); break;
-  case 3: rb::Hist::New(fInfo[NAME].c_str(), "",
-			a2i(fInfo[BINS_X]), a2d(fInfo[LOW_X]), a2d(fInfo[HIGH_X]),
-			a2i(fInfo[BINS_Y]), a2d(fInfo[LOW_Y]), a2d(fInfo[HIGH_Y]),
-			a2i(fInfo[BINS_Z]), a2d(fInfo[LOW_Z]), a2d(fInfo[HIGH_Z]),
-			par.c_str(), fInfo[GATE].c_str()); break;
-
-  default: Error("MakeHistFromGui", "nAxes %d isn't valid", nAxes);
-  }
+  string hname = hst->GetName();
+  rb::Hist* rbhist = dynamic_cast<rb::Hist*>(hst);
+  if(!rbhist) { Error("MakeHistFromGui", "Invalid dynamic_cast to rb::Hist*"); return; }
+  TGLVEntry_mod* entry = new TGLVEntry_mod(cont, hname.c_str(), hname.c_str());
+  entry->SetSubnames(rbhist);
+  cont->AddItem(entry);
+  histlist->Layout();
 }
 
 
 HistMaker::HistMaker(const TGWindow *p,UInt_t w,UInt_t h) {
-    // Initialize fInfo
-  /// \warning This relies on the orderig of elements in CommandIdentifiers
-  for(Int_t i = PARAM_X; i < GATE; ++i) fInfo[i] = "";
+   // Initialize fInfo
+  fInfo[PARAM_X] = ""; fInfo[PARAM_Y] = ""; fInfo[PARAM_Z] = "";
+  fInfo[BINS_X]  = ""; fInfo[BINS_Y]  = ""; fInfo[BINS_Z]  = "";
+  fInfo[LOW_X]   = ""; fInfo[LOW_Y]   = ""; fInfo[LOW_Z]   = ""; 
+  fInfo[HIGH_X]  = ""; fInfo[HIGH_Y]  = ""; fInfo[HIGH_Z]  = ""; 
+  fInfo[NAME]    = ""; fInfo[GATE]    = "";
 
 
     // Create a main frame

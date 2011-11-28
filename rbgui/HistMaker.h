@@ -44,11 +44,9 @@
 using namespace std;
 
 
-/// Id arguments to command boxes.
-/// \remark Moved to the header file. -GC
-/// \warning There are currently functions that rely on the ordering of
-/// elements in this enum. So if you change, them you'll need to change the
-/// functions too (they are HistMaker::HistMaker() and HistMaker::MakeHistFromGui()
+/// Enum to id arguments to command boxes.
+/// \remark Moved to the header file and gt rid of the
+/// one in HistViewer.cc. -GC
 enum CommandIdentifiers {
     ATTACH_ONLINE,
     ATTACH_TFILE,
@@ -95,8 +93,11 @@ class TGLVEntry_mod:public TGLVEntry{
 
         void SetSubnames(const char* n1 = "", const char* n2 = "", const char* n3 = "", const char* n4 = "", const char* n5 = "", const char* n6 = "", const char* n7 = "", const char* n8 = "", const char* n9 = "", const char* n10 = "", const char* n11 = "", const char* n12 = "",const char* n13 = "", const char* n14 = "");
 
+	/// \remark Added method allowing setting from a vector.
+	void SetSubnames(const std::vector<std::string>& args);
+
 	/// \remark Added method allowing setting from histogram.
-	void SetSubnamesFromHist(rb::Hist* hst);
+	void SetSubnames(rb::Hist* hst);
 };
 
 
