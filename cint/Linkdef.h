@@ -11,12 +11,8 @@
 #pragma link C++ namespace rb; 
 #pragma link C++ namespace rb::canvas; 
  
-#pragma link C++ class rb::Hist+; 
-#pragma link C++ class rb::H1D+; 
-#pragma link C++ class rb::H2D+; 
-#pragma link C++ class rb::H3D+; 
- 
 #pragma link C++ class rb::MData+; 
+
 
 // User templates
 #pragma link C++ class ExampleData+;

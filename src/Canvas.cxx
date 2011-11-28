@@ -8,7 +8,6 @@
 #include "TThread.h"
 #include "TMutex.h"
 #include "Timer.hxx"
-#include "Hist.hxx"
 #include "Rootbeer.hxx"
 using namespace std;
 
@@ -54,9 +53,7 @@ void rb::canvas::UpdateCurrent() {
   rb::canvas::Lock();
   if(gPad) {
     gPad->Modified();
-    rb::Hist::Lock();
     gPad->Update();
-    rb::Hist::Unlock();
   }
   rb::canvas::Unlock();
 }
@@ -78,9 +75,7 @@ void rb::canvas::UpdatePad(TVirtualPad* pad) {
 
   rb::canvas::Lock();
   pad->Modified();
-  rb::Hist::Lock();
   pad->Update();
-  rb::Hist::Unlock();
   rb::canvas::Unlock();
 }
 

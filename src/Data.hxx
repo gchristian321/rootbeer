@@ -6,8 +6,9 @@
 #include <sstream>
 #include <iostream>
 #include <map>
+#include "TTree.h"
+#include "TError.h"
 #include "Hist.hxx"
-
 
 namespace rb
 {
@@ -60,8 +61,6 @@ namespace rb
     void* fData;
 
     /// Maps \c kName to the base class pointer.
-    /*! Currently initialized in Skeleton.hh
-     *  \todo Crashes if initialized in Data.cxx...try to figure out why and fix. */
     static Map_t fgMap;
 
     /// Constructor.
@@ -78,9 +77,9 @@ namespace rb
       if(it != fgMap.end()) fgMap.erase(it);
     }
 
-    /// Add in instance of the wrapped class as a branch parable by rb::Hist::fgTree
+    /// Add fData as a branch in a TTree.
     TBranch* AddBranch() {
-      return rb::Hist::CreateBranch(kName.c_str(), kClassName.c_str(), &fData);
+      return rb::Hist::AddBranch(kName.c_str(), kClassName.c_str(), &fData);
     }
 
     /// Write the fData data members and their current values to a stream.
@@ -94,7 +93,7 @@ namespace rb
     /// Run SavePrimitive() on every instance of MData that has kCintPointer == true.
     static void SaveAllPrimitive(std::ostream& strm);
 
-    /// Create a rb::Hist::fgTree branch for every instance of classes derived from MData.
+    /// Call AddBranch() on everything in rb::MData::fgMap
     static void AddBranches();
 
     /// Create a pointer in CINT for all instances of derived classes that ask for it (i.e. have set kCintPointer true).

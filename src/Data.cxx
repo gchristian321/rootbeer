@@ -1,6 +1,8 @@
 /*! \file Data.cxx
  *  \brief Implements Data.hxx
  */
+#include "TROOT.h"
+#include "TTreeFormula.h"
 #include "Data.hxx"
 using namespace std;
 

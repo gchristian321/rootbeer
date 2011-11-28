@@ -189,8 +189,8 @@ rb::Hist* rb::Hist::Get(UInt_t indx) {
 }
 
 // Static branch creation function
-TBranch* rb::Hist::CreateBranch(const char* name, const char* classname, void** obj,
-				Int_t bufsize, Int_t splitlevel) {
+TBranch* rb::Hist::AddBranch(const char* name, const char* classname, void** obj,
+			     Int_t bufsize, Int_t splitlevel) {
   return fgTree.Branch(name, classname, obj, bufsize, splitlevel);
 }
 
@@ -216,6 +216,42 @@ void rb::Hist::FillAll() {
     if(pHist) pHist->Fill();
   }
 }
+
+
+void rb::Hist::New(const char* name, const char* title,
+		   Int_t nbinsx, Double_t xlow, Double_t xhigh,
+		   const char* param, const char* gate) {
+
+  rb::H1D * hst = new rb::H1D(name, title,
+			      nbinsx, xlow, xhigh,
+			      param, gate);
+}
+
+void rb::Hist::New(const char* name, const char* title,
+		   Int_t nbinsx, Double_t xlow, Double_t xhigh,
+		   Int_t nbinsy, Double_t ylow, Double_t yhigh,
+		   const char* param, const char* gate) {
+
+  rb::H2D * hst = new rb::H2D(name, title,
+			      nbinsx, xlow, xhigh,
+			      nbinsy, ylow, yhigh,
+			      param, gate);
+}
+
+void rb::Hist::New(const char* name, const char* title,
+		   Int_t nbinsx, Double_t xlow, Double_t xhigh,
+		   Int_t nbinsy, Double_t ylow, Double_t yhigh,
+		   Int_t nbinsz, Double_t zlow, Double_t zhigh,
+		   const char* param, const char* gate) {
+
+  rb::H3D * hst = new rb::H3D(name, title,
+  			      nbinsx, xlow, xhigh,
+  			      nbinsy, ylow, yhigh,
+  			      nbinsz, zlow, zhigh,
+  			      param, gate);
+}
+
+
 
 // Class rb::H1D //
 

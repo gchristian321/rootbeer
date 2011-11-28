@@ -1,7 +1,5 @@
 /*! \file Unpack.cxx
  *  \brief Implements data attaching/unpacking rotines.
- *  \note Much of the unpacking is user-defined, so this
- *  is really more of a skeleton or framework.
  */
 #include <iostream>
 #include <fstream>
@@ -13,7 +11,6 @@
 #include "TThread.h"
 #include "TRandom3.h"
 
-#include "Hist.hxx"
 #include "Data.hxx"
 #include "Rootbeer.hxx"
 using namespace std;

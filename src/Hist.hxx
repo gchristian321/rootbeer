@@ -25,6 +25,10 @@
 
 namespace rb
 {
+  /// Forward declaration of rb::Hist derived classes.
+  class H1D;
+  class H2D;
+  class H3D;
 
   /// Base class for \c rb::HnF objects.
   /*! Main purpose is to allow polymorphism for the \c Fill()
@@ -96,11 +100,11 @@ namespace rb
     static void FillAll();
 
     /// Function to access fgTree
-    static const TTree* GetTree() { return &fgTree; }
+    static TTree* GetTree() { return &fgTree; }
 
     /// Function to add branches to fgTree.
-    static TBranch* CreateBranch(const char* name, const char* classname, void** obj,
-				 Int_t bufsize = 32000, Int_t splitlevel = 99);
+    static TBranch* AddBranch(const char* name, const char* classname, void** obj,
+			      Int_t bufsize = 32000, Int_t splitlevel = 99);
 
     /// Function to access entries of \c Hist::fgArray
     static rb::Hist* Get(UInt_t index);
@@ -116,6 +120,24 @@ namespace rb
 
     /// Static mutex un-locking function
     static Int_t Unlock();
+
+    /// \brief Function to create a 1d histogram. Mirors the \c TH1D constructor.
+    static void New(const char* name, const char* title,
+		    Int_t nbinsx, Double_t xlow, Double_t xhigh,
+		    const char* param, const char* gate = "");
+
+    /// \brief Function to create a 2d histogram. Mirors the \c TH2D constructor.
+    static void New(const char* name, const char* title,
+		    Int_t nbinsx, Double_t xlow, Double_t xhigh,
+		    Int_t nbinsy, Double_t ylow, Double_t yhigh,
+		    const char* param, const char* gate = "");
+
+    /// \brief Function to create a 3d histogram. Mirors the \c TH3D constructor.
+    static void New(const char* name, const char* title,
+		    Int_t nbinsx, Double_t xlow, Double_t xhigh,
+		    Int_t nbinsy, Double_t ylow, Double_t yhigh,
+		    Int_t nbinsz, Double_t zlow, Double_t zhigh,
+		    const char* param, const char* gate = "");
   };
 
 
