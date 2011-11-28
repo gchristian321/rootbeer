@@ -1,0 +1,22 @@
+To work:
+- Need to load all libraries loaded at NSCL.
+- Need to load shared MoNA libraries.
+- Need .rootrc file and proper .rootlogon file.
+
+Gates:
+
+- Use TTreeFormula to evaluate gate strings.
+- Use Map class to correlate gate names and strings.
+- Need to load the shared library containing TTreeFormula:
+	gSystem->Load("libTreePlayer");
+- Constructor used during the expansion of an alias is different.
+
+CINT input/output:
+
+- http://root.cern.ch/root/html/tutorials/gui/guiWithCINT.C.html
+
+Histogram Viewer:
+
+- Should put a button to restart the Histogram Viewer, using the command:
+	fView = new HistViewer(gClient->GetRoot(),800,300,hmaker)
+- How can we choose color or no?

@@ -1,0 +1,15 @@
+HEADERS=HistViewer.h HistMaker.h TH2D_SF.h TH1D_SF.h TH3D_SF.h
+SOURCES=HistViewer.cc HistMaker.cc TH2D_SF.cc TH1D_SF.cc TH3D_SF.cc
+ROOTFLAGS=`root-config --libs --cflags`
+CXXFLAGS=-fPIC
+
+rbgui.so: HistDict.cxx $(SOURCES)
+	g++ -shared -o $@ `root-config --ldflags` $(CXXFLAGS) -I$(ROOTSYS)/include/root $^
+
+HistDict.cxx: $(HEADERS) Linkdef.h
+	rootcint -f $@ -c $(CXXFLAGS) -p $^
+
+#HistViewer.o:
+#	g++ -c $(ROOTFLAGS) $(CXXFLAGS) HistViewer.cc
+
+
