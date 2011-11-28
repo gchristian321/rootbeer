@@ -96,6 +96,9 @@ namespace rb
     /// Return the parameter name for the specified axis.
     std::string GetParam(Int_t axis);
 
+    /// Return the specified axis pointer.
+    TAxis* GetAxis(Int_t axis);
+
     /// Function to fill al hostograms
     static void FillAll();
 

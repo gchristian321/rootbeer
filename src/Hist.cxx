@@ -160,6 +160,28 @@ string rb::Hist::GetParam(Int_t axis) {
   return "";
 }
 
+// Return axis
+TAxis* rb::Hist::GetAxis(Int_t axis) {
+  TH1* hst = dynamic_cast<TH1*>(this);
+  if(!hst) {
+    Error("GetAxis", "This method can't be called on classes that don't inherit from TH1");
+    return 0;
+  }
+  if(axis >= fParams.size()) {
+    Error("GetAxis",
+	  "Invalid axis specification: %d for a %d-dimensional histogram",
+	  axis, Int_t(fParams.size()));
+    return 0;
+  }
+  switch(axis) {
+  case 0: return hst->GetXaxis(); break;
+  case 1: return hst->GetYaxis(); break;
+  case 2: return hst->GetZaxis(); break;
+  default: break;
+  }
+  Error("GetAxis", "Axis specification %d too large", axis);
+}    
+
 // Get number of histograms
 UInt_t rb::Hist::GetNumber() {
   return fgArray.GetEntries();
