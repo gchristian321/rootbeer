@@ -396,7 +396,17 @@ HistMaker::MakeHistFromGui()
   }
 
   // Check if duplicate. If so, replace.
-  TObject* 
+  /// \todo Crashes on delete trying to remove from frame...fix
+  rb::Hist* previous = rb::Hist::Find(fInfo[NAME].c_str());
+  if(previous) {
+    TGLVEntry_mod* e =
+      static_cast<TGLVEntry_mod*> (cont->FindItem(fInfo[NAME].c_str()));
+    if(!e) Error("MakeHistFromGui", "Can't remove frame entry.");
+    delete e;
+    //    cont->RemoveItem(e);
+    delete previous;
+    previous = 0;
+  }
 
   //  Figure out no. of dimensions
   string par("");
