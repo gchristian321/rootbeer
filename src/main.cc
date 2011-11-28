@@ -7,44 +7,6 @@
 #include "Data.hxx"
 
 
-
-namespace rb
-{
-  /// Class that runs the interactive ROOT application.
-  /*! We can essentially use the normal <tt>TRint</tt>, except
-   *  we need to override the Terminate()
-   *  method to stop threaded processes. */
-  class Rint : public TRint
-  {
-  public:
-    /// Constructor
-
-    /// Just call the standard \c TRint constructor, plus set the prompt to be
-    /// <tt>rootbeer [\%d]</tt>.
-    /// \note The \c \%d means that the number of commands entered in the session is
-    /// what's present.
-    Rint(const char* appClassName, int* argc, char** argv,
-	 void* options = 0, int numOptions = 0, Bool_t noLogo = kFALSE) :
-      TRint(appClassName, argc, argv, options, numOptions, noLogo) {
-      SetPrompt("rootbeer [%d] ");
-    }
-
-    /// Terminate the application, first closing any threaded processes that might be running.
-    void Terminate(Int_t status = 0) {
-      rb::canvas::StopUpdate();
-      rb::Unattach();
-      gSystem->Sleep(0.5e3);
-      TRint::Terminate(status);
-    }
-
-    /// Destructor
-    /*! Calls Terminate() with error code. */
-    ~Rint() {
-      Terminate(EXIT_FAILURE);
-    }
-  };
-}
-
 /// The \c main ROOTBEER function.
 /*! Creates an instance of \c rb::Rint and runs it. */
 Int_t main(Int_t argc, Char_t** argv)
@@ -58,6 +20,10 @@ Int_t main(Int_t argc, Char_t** argv)
   rbApp.Run();
   return 0;
 }
+
+
+
+
 
 
 // ----- END CODE ---- //

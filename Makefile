@@ -19,7 +19,7 @@ all: rootbeer
 
 
 rootbeer: libHist.so libRootbeer.so $(SRC)/main.cc 
-	g++ $(SRC)/main.cc -lHist -lRootbeer -o rootbeer $(ROOTFLAGS) $(CXXFLAGS) 
+	g++ -lRootbeer $(SRC)/main.cc -o rootbeer $(ROOTFLAGS) $(CXXFLAGS) 
 
 
 #### ROOTBEER LIBRARY ####

@@ -38,3 +38,14 @@ void rb::Logo() {
       ;
   }
 
+
+
+// class rb::Rint //
+// Terminate function
+void rb::Rint::Terminate(Int_t status) {
+  rb::canvas::StopUpdate();
+  rb::Unattach();
+  gSystem->Sleep(0.5e3);
+  rb::Hist::FillAll();
+  TRint::Terminate(status);
+}

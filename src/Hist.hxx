@@ -12,6 +12,7 @@
 #include <string>
 #include <sstream>
 #include <vector>
+#include <list>
 #include "TH1D.h"
 #include "TH2D.h"
 #include "TH3D.h"
@@ -34,6 +35,7 @@ namespace rb
    *  <i>not</i> define any methods
    *  that are contained in \c TH1 or it's derivatives.
    */
+  class H1D;
   class Hist
   {  
   protected:
@@ -43,8 +45,8 @@ namespace rb
     /// Parameter formulae.
     std::vector<TTreeFormula*> fParams;
 
-    /// Static array of all existing rb::Hist derived objects.
-    static TObjArray fgArray;
+    /// Static list of all existing rb::Hist derived objects.
+    static std::list<rb::Hist*> fgArray;
 
     /// Static mutex for locking threaded histogram actions.
     static TMutex fgMutex;
@@ -55,14 +57,14 @@ namespace rb
     /// Constructor error code: true = success, false = failure.
     static Bool_t kConstructorSuccess;
 
+    /// Constructor
+    /*! Set the internal \c TTree and \c fGate fields.
+     *  \note Protected b/c we shouldn't create explicit instances of this. */
+    Hist(const char* param, const char* gate, UInt_t npar);
 
   public:
     /// Function to fill histogram from its internal parameter value(s).
     virtual Int_t Fill() = 0;
-
-    /// Constructor
-    /*! Set the internal \c TTree and \c fGate fields. */
-    Hist(const char* param, const char* gate, UInt_t npar);
 
     /// Default constructor.
     Hist() { } ;
@@ -105,7 +107,10 @@ namespace rb
 			      Int_t bufsize = 32000, Int_t splitlevel = 99);
 
     /// Function to access entries of \c Hist::fgArray
-    static rb::Hist* Get(UInt_t index);
+    static rb::Hist* Find(const char* name);
+
+    /// Function to delete all entries of \c Hist::fgArray
+    static void DeleteAll();
 
     /// Function to tell the total number of entries in \c fgArray
     static UInt_t GetNumber();

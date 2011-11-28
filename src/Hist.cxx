@@ -1,6 +1,7 @@
 /*! \file Hist.cxx
  *  \brief Implements the histogram class member functions.
  */
+#include <algorithm>
 #include "Hist.hxx"
 using namespace std;
 
@@ -58,7 +59,7 @@ inline std::string check_name(const char* name) {
 // Class rb::Hist //
 
 // Static data members.
-TObjArray rb::Hist::fgArray;
+list<rb::Hist*> rb::Hist::fgArray;
 
 TMutex rb::Hist::fgMutex;
 
@@ -184,31 +185,36 @@ TAxis* rb::Hist::GetAxis(Int_t axis) {
 
 // Get number of histograms
 UInt_t rb::Hist::GetNumber() {
-  return fgArray.GetEntries();
+  return fgArray.size();
 }
 
 // Static "getter" function
-rb::Hist* rb::Hist::Get(UInt_t indx) {
-  rb::Hist* hist;
-
-  if(indx > fgArray.GetEntries()) {
-    Error("Get", "Invalid index: %d, maximum is %d.\n",
-	  indx, fgArray.GetEntries()-1);
-    hist = 0;
-  }
-
-  else {
-    hist = dynamic_cast<rb::Hist*>(fgArray.At(indx));
-
-    if(!hist) {
-      TObject* object = fgArray.At(indx);
-      Error("Get", "Bad dyamic cast to rb::Hist*, original class was: %s.",
-	    object->ClassName());
-    }
-  }
-
-  return hist;
+rb::Hist* rb::Hist::Find(const char* name) {
+  return dynamic_cast<rb::Hist*>(gROOT->FindObjectAny(name));
+  // if(!hst) return hst;
+  // return dynamic_cast<rb::Hist*> (find(fgArray.begin(), fgArray.end(), obj));
 }
+
+//   rb::Hist* hist;
+
+//   if(indx > fgArray.size()) { //GetEntries()) {
+//     Error("Get", "Invalid index: %d, maximum is %d.\n",
+// 	  indx, Int_t(fgArray.size() - 1)); //GetEntries()-1);
+//     hist = 0;
+//   }
+//   /*
+//   else {
+//     hist = dynamic_cast<rb::Hist*>(fgArray.At(indx));
+
+//     if(!hist) {
+//       TObject* object = fgArray.At(indx);
+//       Error("Get", "Bad dyamic cast to rb::Hist*, original class was: %s.",
+// 	    object->ClassName());
+//     }
+//   }
+//   */
+//   return fgArray.at(indx); ///hist;
+// }
 
 // Static branch creation function
 TBranch* rb::Hist::AddBranch(const char* name, const char* classname, void** obj,
@@ -233,12 +239,16 @@ Int_t rb::Hist::Unlock() {
 
 // Static fill all function
 void rb::Hist::FillAll() {
-  for(UInt_t indx = 0; indx < Hist::GetNumber(); ++indx) {
-    Hist* pHist = Hist::Get(indx);
-    if(pHist) pHist->Fill();
+  list<rb::Hist*>::iterator it;
+  for( it = fgArray.begin(); it != fgArray.end(); ++it) {
+    (*it)->Fill();
   }
 }
 
+void rb::Hist::DeleteAll() {
+  while(fgArray.size() > 0)
+    delete *fgArray.begin();
+}  
 
 void rb::Hist::New(const char* name, const char* title,
 		   Int_t nbinsx, Double_t xlow, Double_t xhigh,
@@ -292,7 +302,7 @@ rb::H1D::H1D (const char* name, const char* title,
     }
     GetXaxis()->SetTitle(fParams.at(0)->GetExpFormula());
     Hist::Lock();
-    fgArray.Add(this);
+    fgArray.push_back(this);
     Hist::Unlock();
   }
   else {
@@ -303,8 +313,7 @@ rb::H1D::H1D (const char* name, const char* title,
 // Destructor
 rb::H1D::~H1D() {
   Hist::Lock();
-  fgArray.Remove(this);
-  fgArray.Compress();  
+  fgArray.remove(this);
   Hist::Unlock();
 }
 
@@ -357,7 +366,7 @@ rb::H2D::H2D (const char* name, const char* title,
     GetXaxis()->SetTitle(fParams.at(0)->GetExpFormula());
     GetYaxis()->SetTitle(fParams.at(1)->GetExpFormula());
     Hist::Lock();
-    fgArray.Add(this);
+    fgArray.push_back(this); //Add(this);
     Hist::Unlock();
   }
   else {
@@ -368,8 +377,7 @@ rb::H2D::H2D (const char* name, const char* title,
 // Destructor
 rb::H2D::~H2D() {
   Hist::Lock();
-  fgArray.Remove(this);
-  fgArray.Compress();
+  fgArray.remove(this);
   Hist::Unlock();
 }
 
@@ -425,7 +433,7 @@ rb::H3D::H3D (const char* name, const char* title,
     GetYaxis()->SetTitle(fParams.at(1)->GetExpFormula());
     GetZaxis()->SetTitle(fParams.at(2)->GetExpFormula());
     Hist::Lock();
-    fgArray.Add(this);
+    fgArray.push_back(this);
     Hist::Unlock();
   }
   else {
@@ -436,8 +444,7 @@ rb::H3D::H3D (const char* name, const char* title,
 // Destructor
 rb::H3D::~H3D() {
   Hist::Lock();
-  fgArray.Remove(this);
-  fgArray.Compress();
+  fgArray.remove(this);
   Hist::Unlock();
 }
 

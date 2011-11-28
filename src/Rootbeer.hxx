@@ -10,6 +10,7 @@
 #ifndef __ROOTBEER__
 #define __ROOTBEER__
 
+#include "TRint.h"
 #include "Hist.hxx"
 
 
@@ -72,6 +73,38 @@ namespace rb
     extern Int_t GetUpdateRate();
 
   }
+
+
+  /// Class that runs the interactive ROOT application.
+  /*! We can essentially use the normal <tt>TRint</tt>, except
+   *  we need to override the Terminate()
+   *  method to stop threaded processes. */
+  class Rint : public TRint
+  {
+  public:
+    /// Constructor
+    //! Just call the standard \c TRint constructor, plus set the prompt to be
+    //! <tt>rootbeer [\%d]</tt>.
+    //! \note The \c \%d means that the number of commands entered in the session is
+    //! what's present.
+    Rint(const char* appClassName, int* argc, char** argv,
+	 void* options = 0, int numOptions = 0, Bool_t noLogo = kFALSE) :
+      TRint(appClassName, argc, argv, options, numOptions, noLogo) {
+      SetPrompt("rootbeer [%d] ");
+    }
+
+    /// Terminate the application.
+    //! Stops any running threads and frees any memory that was allocated during
+    //! the CINT session.
+    void Terminate(Int_t status = 0);
+
+    /// Destructor
+    //! Calls Terminate() with error code.
+    ~Rint() {
+      Terminate(EXIT_FAILURE);
+    }
+  };
+
 
 }
 

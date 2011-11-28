@@ -91,12 +91,11 @@ class TGLVEntry_mod:public TGLVEntry{
     public:
         TGLVEntry_mod(const TGLVContainer* p, const TString& name, const TString& cname, TGString** subnames = 0, UInt_t options = kChildFrame, Pixel_t back = GetWhitePixel());
 
-        void SetSubnames(const char* n1 = "", const char* n2 = "", const char* n3 = "", const char* n4 = "", const char* n5 = "", const char* n6 = "", const char* n7 = "", const char* n8 = "", const char* n9 = "", const char* n10 = "", const char* n11 = "", const char* n12 = "",const char* n13 = "", const char* n14 = "");
-
-	/// \remark Added method allowing setting from a vector.
+	/// \remark Changed to accepting a vector of strings instead of individual argments.
+	/// The latter is nice for CINT but not so great for real code IMO. -GC
 	void SetSubnames(const std::vector<std::string>& args);
 
-	/// \remark Added method allowing setting from histogram.
+	/// \remark Added method allowing setting from histogram. -GC
 	void SetSubnames(rb::Hist* hst);
 };
 

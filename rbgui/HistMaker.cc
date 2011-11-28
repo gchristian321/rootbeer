@@ -34,19 +34,11 @@ TGLVEntry_mod
 }
 
 void TGLVEntry_mod::SetSubnames(rb::Hist* hst) {
-  // type
-  // x param
-  // x bins
-  // x low
-  // x high
-  // y param
-  // y bins
-  // y low
-  // y high
-  // z param
-  // z bins
-  // z low
-  // z high
+  // Argument Order //
+  // type,
+  // xpar, xbins, xlow, xhigh,
+  // ypar, ybins, ylow, yhigh,
+  // zpar, zbins, zlow, zhigh,
   // gate
 
   vector<string> arg(14, "");
@@ -103,73 +95,16 @@ void TGLVEntry_mod::SetSubnames(const std::vector<std::string>& args) {
 }
   
 
-void TGLVEntry_mod::SetSubnames(const char* n1, const char* n2, const char* n3, const char* n4, const char* n5, const char* n6, const char* n7, const char* n8, const char* n9, const char* n10, const char* n11, const char* n12,const char* n13, const char* n14)
-{
-       // Sets new subnames.
-
-   if (fSubnames) {
-      for (Int_t i = 0; fSubnames[i] != 0; ++i) delete fSubnames[i];
-      delete [] fSubnames;
-      delete [] fCtw;
-   }
-
-   Int_t ncol = 0;
-   fSubnames = 0;
-
-   if (n14 && strlen(n14)) ncol=14;
-   else if (n13 && strlen(n13)) ncol=13;
-   else if (n12 && strlen(n12)) ncol=12;
-   else if (n11 && strlen(n11)) ncol=11;
-   else if (n10 && strlen(n10)) ncol=10;
-   else if (n9 && strlen(n9)) ncol=9;
-   else if (n8 && strlen(n8)) ncol=8;
-   else if (n7 && strlen(n7)) ncol=7;
-   else if (n6 && strlen(n6)) ncol=6;
-   else if (n5 && strlen(n5)) ncol=5;
-   else if (n4 && strlen(n4)) ncol=4;
-   else if (n3 && strlen(n3)) ncol=3;
-   else if (n2 && strlen(n2)) ncol=2;
-   else if (n1 && strlen(n1)) ncol=1;
-
-   if (!ncol) return;
-
-   fSubnames = new TGString* [ncol+1];
-
-   if (ncol>13) fSubnames[13] = new TGString(n14);
-   if (ncol>12) fSubnames[12] = new TGString(n13);
-   if (ncol>11) fSubnames[11] = new TGString(n12);
-   if (ncol>10) fSubnames[10] = new TGString(n11);
-   if (ncol>9) fSubnames[9] = new TGString(n10);
-   if (ncol>8) fSubnames[8] = new TGString(n9);
-   if (ncol>7) fSubnames[7] = new TGString(n8);
-   if (ncol>6) fSubnames[6] = new TGString(n7);
-   if (ncol>5) fSubnames[5] = new TGString(n6);
-   if (ncol>4) fSubnames[4] = new TGString(n5);
-   if (ncol>3) fSubnames[3] = new TGString(n4);
-   if (ncol>2) fSubnames[2] = new TGString(n3);
-   if (ncol>1) fSubnames[1] = new TGString(n2);
-   if (ncol>0) fSubnames[0] = new TGString(n1);
-   fSubnames[ncol] = 0;
-
-   fCtw = new int[ncol];
-   fCtw[ncol-1] = 0;
-
-   for (int i = 0; i<ncol; i++) {
-      fCtw[i] = gVirtualX->TextWidth(fFontStruct, fSubnames[i]->GetString(),
-                                     fSubnames[i]->GetLength());
-   }
-}
-
 void
 HistMaker::DoTextEntry(const char* text)
 {
   // handle text input
+  /// \remark Changed from switch...case to using a std::map
+  /// Seems like a cleaner way to do it. -GC
   TGTextEntry *te = (TGTextEntry *) gTQSender;
   Int_t id = te->WidgetId();
-  //  cout << id << endl;
   fInfo[id] = text;
-} ///< \remark Changed from switch...case to using a std::map
-  /// Seems like a cleaner way to do it.
+}
 
 void
 HistMaker::DoTypeRadio()
@@ -301,7 +236,7 @@ HistMaker::MakeHist(TTree* t,const char* hn,Int_t ht,Int_t foptions,const char* 
                 sprintf(bxs,"%i",bx); sprintf(lxs,"%.3f",lx); sprintf(hxs,"%.3f",hx);
                 sprintf(bys,"-"); sprintf(lys,"-"); sprintf(hys,"-");
                 sprintf(bzs,"-"); sprintf(lzs,"-"); sprintf(hzs,"-");
-                entry->SetSubnames(hts,parx,bxs,lxs,hxs,"-",bys,lys,hys,"-",bzs,lzs,hzs,ngate);
+		//                entry->SetSubnames(hts,parx,bxs,lxs,hxs,"-",bys,lys,hys,"-",bzs,lzs,hzs,ngate);
                 cont->AddItem(entry);
                 histlist->Layout();
             }
@@ -353,7 +288,7 @@ HistMaker::MakeHist(TTree* t,const char* hn,Int_t ht,Int_t foptions,const char* 
                 sprintf(bxs,"%i",bx); sprintf(lxs,"%.3f",lx); sprintf(hxs,"%.3f",hx);
                 sprintf(bys,"%i",by); sprintf(lys,"%.3f",ly); sprintf(hys,"%.3f",hy);
                 sprintf(bzs,"-"); sprintf(lzs,"-"); sprintf(hzs,"-");
-                entry->SetSubnames(hts,parx,bxs,lxs,hxs,pary,bys,lys,hys,"-",bzs,lzs,hzs,ngate);
+		//                entry->SetSubnames(hts,parx,bxs,lxs,hxs,pary,bys,lys,hys,"-",bzs,lzs,hzs,ngate);
                 cont->AddItem(entry);
                 histlist->Layout();
             }
@@ -404,7 +339,7 @@ HistMaker::MakeHist(TTree* t,const char* hn,Int_t ht,Int_t foptions,const char* 
                 sprintf(bxs,"%i",bx); sprintf(lxs,"%.3f",lx); sprintf(hxs,"%.3f",hx);
                 sprintf(bys,"%i",by); sprintf(lys,"%.3f",ly); sprintf(hys,"%.3f",hy);
                 sprintf(bzs,"%i",bz); sprintf(lzs,"%.3f",lz); sprintf(hzs,"%.3f",hz);
-                entry->SetSubnames(hts,parx,bxs,lxs,hxs,pary,bys,lys,hys,parz,bzs,lzs,hzs,ngate);
+		//                entry->SetSubnames(hts,parx,bxs,lxs,hxs,pary,bys,lys,hys,parz,bzs,lzs,hzs,ngate);
                 cont->AddItem(entry);
                 histlist->Layout();
             }
@@ -459,6 +394,9 @@ HistMaker::MakeHistFromGui()
     Error("MakeHistFromGui", "Please specify a name.");
     return;
   }
+
+  // Check if duplicate. If so, replace.
+  TObject* 
 
   //  Figure out no. of dimensions
   string par("");
