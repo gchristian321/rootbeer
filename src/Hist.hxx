@@ -25,11 +25,6 @@
 
 namespace rb
 {
-  /// Forward declaration of rb::Hist derived classes.
-  class H1D;
-  class H2D;
-  class H3D;
-
   /// Base class for \c rb::HnF objects.
   /*! Main purpose is to allow polymorphism for the \c Fill()
    *  function (n.b., that's \c Fill() with no arguments).
