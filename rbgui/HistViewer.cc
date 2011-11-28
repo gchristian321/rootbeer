@@ -9,6 +9,8 @@ const char *filetypes[] = {
                             "All files",     "*",
                             0,               0 };
 
+#if 0
+// now defined in HistMaker.h
 enum CommandIdentifiers {
     ATTACH_ONLINE,
     ATTACH_TFILE,
@@ -47,6 +49,9 @@ enum CommandIdentifiers {
 
     DRAW_OPTION
 };
+#endif
+
+
 void 
 HistViewer::DoTextEntry(const char* text)
 {

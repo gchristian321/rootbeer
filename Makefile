@@ -19,8 +19,7 @@ all: rootbeer
 
 
 rootbeer: libHist.so libRootbeer.so $(SRC)/main.cc 
-	g++ $(SRC)/main.cc -o rootbeer $(ROOTFLAGS) $(CXXFLAGS) -lHist -lRootbeer
-
+	g++ $(SRC)/main.cc -lHist -lRootbeer -o rootbeer $(ROOTFLAGS) $(CXXFLAGS) 
 
 
 #### ROOTBEER LIBRARY ####
@@ -71,8 +70,8 @@ doccopy:
 
 
 GUI=$(PWD)/rbgui
-GUIHEADERS=$(GUI)/HistViewer.h $(GUI)/HistMaker.h $(GUI)/TH2D_SF.h $(GUI)/TH1D_SF.h $(GUI)/TH3D_SF.h $(SRC)/Hist.hxx
-GUISOURCES=$(GUI)/HistViewer.cc $(GUI)/HistMaker.cc $(GUI)/TH2D_SF.cc $(GUI)/TH1D_SF.cc $(GUI)/TH3D_SF.cc $(SRC)/Hist.cxx
+GUIHEADERS=$(GUI)/HistViewer.h $(GUI)/HistMaker.h $(GUI)/TH2D_SF.h $(GUI)/TH1D_SF.h $(GUI)/TH3D_SF.h
+GUISOURCES=$(GUI)/HistViewer.cc $(GUI)/HistMaker.cc $(GUI)/TH2D_SF.cc $(GUI)/TH1D_SF.cc $(GUI)/TH3D_SF.cc
 
 GUIROOTFLAGS=-dynamiclib -single_module -undefined dynamic_lookup `root-config --cflags --libs` -lTreePlayer
 
@@ -81,11 +80,13 @@ GUICXXFLAGS=-fPIC
 gui: librbgui.so
 
 librbgui.so: libHist.so HistDict.cxx $(GUISOURCES)
-	g++ -shared -o lib/$@ $(GUICXXFLAGS) -I/opt/local/include/root $(GUI)/HistDict.cxx $(GUISOURCES) $(GUIROOTFLAGS)
+	g++ -Llib -lHist -shared -o lib/$@ $(GUICXXFLAGS) -I/opt/local/include/root $(GUI)/HistDict.cxx $(GUISOURCES) $(GUIROOTFLAGS) -I$(PWD)/src
 
 HistDict.cxx: $(GUIHEADERS) rbgui/Linkdef.h
-	rootcint -f rbgui/$@ -c $(GUICXXFLAGS) -p $^
+	rootcint -f rbgui/$@ -c -Isrc $(GUICXXFLAGS) -p $^
 
 #HistViewer.o:
 #	g++ -c $(ROOTFLAGS) $(CXXFLAGS) HistViewer.cc
 
+guiclean:
+	rm -f lib/librbgui.so rbgui/HistDict.*

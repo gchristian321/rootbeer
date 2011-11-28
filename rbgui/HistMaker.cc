@@ -2,8 +2,29 @@
 #include "TGFileDialog.h"
 #include "TCanvas.h"
 #include <stdlib.h>
+#include <sstream>
 
-#include "Hist.hxx"
+
+/// Simple function to convert strings to basic data types.
+template <typename basic>
+basic basic_cast (const std::string& str) {
+  std::stringstream sstr(str);
+  basic out;
+  sstr >> out;
+  return out;
+}
+
+/// Simple function to convert basic data types to a string.
+template <typename basic>
+std::string string_cast (const basic& data) {
+  std::stringstream sstr;
+  sstr << data;
+  return sstr.str();
+}
+
+typedef Double_t (*Atof)(const std::string&);
+typedef Int_t    (*Atoi)(const std::string&);
+
 
 
 TGLVEntry_mod
@@ -11,8 +32,41 @@ TGLVEntry_mod
 {
     ;
 }
-void 
-TGLVEntry_mod::SetSubnames(const char* n1, const char* n2, const char* n3, const char* n4, const char* n5, const char* n6, const char* n7, const char* n8, const char* n9, const char* n10, const char* n11, const char* n12,const char* n13, const char* n14)
+
+void TGLVEntry_mod::SetSubnamesFromHist(rb::Hist* hst) {
+  string arg[14] = { "", "", "", "", "", "", "", "", "", "", "", "", "", "" };
+  // type
+  // x param
+  // x bins
+  // x low
+  // x high
+  // y param
+  // y bins
+  // y low
+  // y high
+  // z param
+  // z bins
+  // z low
+  // z high
+  // gate
+  Int_t naxes = hst->GetNdimensions();
+  arg[0] = string_cast<Int_t>(naxes); arg[0] += "D";
+  for(Int_t i=0; i< naxes; ++i) {
+    TAxis* axis = hst->GetAxis(i);
+    if(!axis) break;
+    arg[1 + (i*4)] = hst->GetParam(i);
+    arg[2 + (i*4)] = string_cast<Int_t>(axis->GetNbins());
+    arg[3 + (i*4)] = string_cast<Double_t>(axis->GetBinLowEdge(1));
+    arg[4 + (i*4)] = string_cast<Double_t>(axis->GetBinLowEdge(1+axis->GetNbins()));
+  }
+  arg[13] = hst->GetGate();
+
+  SetSubnames(arg[0].c_str(), arg[1].c_str(), arg[2].c_str(), arg[3].c_str(), arg[4].c_str(), arg[5].c_str(), arg[6].c_str(), arg[7].c_str(), arg[8].c_str(), arg[9].c_str(), arg[10].c_str(), arg[11].c_str(), arg[12].c_str(), arg[13].c_str());
+}
+
+  
+
+void TGLVEntry_mod::SetSubnames(const char* n1, const char* n2, const char* n3, const char* n4, const char* n5, const char* n6, const char* n7, const char* n8, const char* n9, const char* n10, const char* n11, const char* n12,const char* n13, const char* n14)
 {
        // Sets new subnames.
 
@@ -68,128 +122,18 @@ TGLVEntry_mod::SetSubnames(const char* n1, const char* n2, const char* n3, const
                                      fSubnames[i]->GetLength());
    }
 }
-enum CommandIdentifiers {
-    ATTACH_ONLINE,
-    ATTACH_TFILE,
-    ATTACH_TCHAIN,
-    ATTACH_PIPE,
 
-    D1,
-    D2,
-    D3,
-    SUMMARY,
-    SUMMATION,
-    BITMASK,
-
-    FILL_TREE,
-    FILL_ONLINE,
-    FILL_TREE_ONLINE,
-
-    PARAM_X,
-    PARAM_Y,
-    PARAM_Z,
-
-    BINS_X,
-    BINS_Y,
-    BINS_Z,
-
-    LOW_X,
-    LOW_Y,
-    LOW_Z,
-
-    HIGH_X,
-    HIGH_Y,
-    HIGH_Z,
-
-    NAME,
-    GATE,
-
-    DRAW_OPTION
-};
 void
 HistMaker::DoTextEntry(const char* text)
 {
-    // handle text input
-    TGTextEntry *te = (TGTextEntry *) gTQSender;
-    Int_t id = te->WidgetId();
-    cout << id << endl;
+  // handle text input
+  TGTextEntry *te = (TGTextEntry *) gTQSender;
+  Int_t id = te->WidgetId();
+  //  cout << id << endl;
+  fInfo[id] = text;
+} ///< \remark Changed from switch...case to using a std::map
+  /// Seems like a cleaner way to do it.
 
-    switch (id)
-    {
-        case PARAM_X:
-            {
-                sprintf(px,"%s",text);
-            }
-            break;
-        case PARAM_Y:
-            {
-                sprintf(py,"%s",text);
-            }
-            break;
-        case PARAM_Z:
-            {
-                sprintf(pz,"%s",text);
-            }
-            break;
-        case BINS_X:
-            {
-                bins[0] = atoi(text);
-            }
-            break;
-        case BINS_Y:
-            {
-                bins[1] = atoi(text);
-            }
-            break;
-        case BINS_Z:
-            {
-                bins[2] = atoi(text);
-            }
-            break;
-        case LOW_X:
-            {
-                low[0] = atof(text);
-            }
-            break;
-        case LOW_Y:
-            {
-                low[1] = atof(text);
-            }
-            break;
-        case LOW_Z:
-            {
-                low[2] = atof(text);
-            }
-            break;
-        case HIGH_X:
-            {
-                high[0] = atof(text);
-            }
-            break;
-        case HIGH_Y:
-            {
-                high[1] = atof(text);
-            }
-            break;
-        case HIGH_Z:
-            {
-                high[2] = atof(text);
-            }
-            break;
-        case NAME:
-            {
-                sprintf(hname,"%s",text);
-            }
-            break;
-        case GATE:
-            {
-                sprintf(hgate,"%s",text);
-            }
-            break;
-        default:
-            break;
-    }
-}
 void
 HistMaker::DoTypeRadio()
 {
@@ -451,16 +395,94 @@ HistMaker::MakeHist(TTree* t,const char* hn,Int_t ht,Int_t foptions,const char* 
     //entry->Activate(1);
 }
 
+/// Check if all fields are present for a given axis.
+Int_t processAxis(Int_t param, Int_t bins, Int_t low, Int_t high, string& gparam, map<Int_t, string>& _map) {
+  Int_t allFields[4] = {param, bins, low, high}, nFilled(0);
+  for(Int_t i=0; i< 4; ++i) {
+    if(_map[allFields[i]] != "") ++nFilled;
+  }
+  Int_t ret;
+  switch(nFilled) {
+  case 0: ret = 0;
+    break;
+  case 4: ret = 1;
+    gparam += _map[param];
+    gparam += ":";
+    break;
+  default: ret = -100;
+    break;
+  }
+  return ret;
+}
+
 void
 HistMaker::MakeHistFromGui()
 {
-    cout << "Making histogram from gui\n";
-    cout << "bins0 " << bins[0] << endl;
-    rb::Hist::New(hname, "", bins[0], low[0], high[0], px, hgate);
-    //    MakeHist(fView->intree,hname,htype,hfilloption,hgate,px,bins[0],low[0],high[0],py,bins[1],low[1],high[1],pz,bins[2],low[2],high[2],invalide);
+  if(fInfo[NAME] == "") {
+    Error("MakeHistFromGui", "Please specify a name");
+    return;
+  }
+
+  //  Figure out no. of dimensions
+  string par("");
+  Int_t nAxes(0);
+  nAxes += processAxis(PARAM_Z, BINS_Z, LOW_Z, HIGH_Z, par, fInfo);
+  nAxes += processAxis(PARAM_Y, BINS_Y, LOW_Y, HIGH_Y, par, fInfo);
+  nAxes += processAxis(PARAM_X, BINS_X, LOW_X, HIGH_X, par, fInfo);
+  if(nAxes < 0) {
+    Error("MakeHistFromGui", "Incomplete axis specification.");
+    return;
+  }
+  string whatParShouldBe, params[3] = {fInfo[PARAM_X], fInfo[PARAM_Y], fInfo[PARAM_Z]};
+  for(Int_t i = nAxes - 1; i >= 0; --i) {
+    whatParShouldBe += params[i];
+    whatParShouldBe += ":";
+  }
+  if(whatParShouldBe != par) {
+    Error("MakeHistFromGui", "Invalid axis combination.");
+    return;
+  }
+  par.erase(par.size() - 1);
+
+
+  static Atoi a2i = basic_cast<Int_t>;
+  static Atof a2d = basic_cast<Double_t>;
+  TGLVEntry_mod* entry = 0;
+
+  switch(nAxes) {
+  case 1: {
+    rb::H1D* hst = new rb::H1D (fInfo[NAME].c_str(), "",
+				a2i(fInfo[BINS_X]), a2d(fInfo[LOW_X]), a2d(fInfo[HIGH_X]),
+				par.c_str(), fInfo[GATE].c_str());
+
+    entry = new TGLVEntry_mod(cont, static_cast<TH1*>(hst)->GetName(), static_cast<TH1*>(hst)->GetName());
+    entry->SetSubnamesFromHist(hst);
+    cont->AddItem(entry);
+    histlist->Layout();
+
+    break;
+  }
+  case 2: rb::Hist::New(fInfo[NAME].c_str(), "",
+			a2i(fInfo[BINS_X]), a2d(fInfo[LOW_X]), a2d(fInfo[HIGH_X]),
+			a2i(fInfo[BINS_Y]), a2d(fInfo[LOW_Y]), a2d(fInfo[HIGH_Y]),
+			par.c_str(), fInfo[GATE].c_str()); break;
+  case 3: rb::Hist::New(fInfo[NAME].c_str(), "",
+			a2i(fInfo[BINS_X]), a2d(fInfo[LOW_X]), a2d(fInfo[HIGH_X]),
+			a2i(fInfo[BINS_Y]), a2d(fInfo[LOW_Y]), a2d(fInfo[HIGH_Y]),
+			a2i(fInfo[BINS_Z]), a2d(fInfo[LOW_Z]), a2d(fInfo[HIGH_Z]),
+			par.c_str(), fInfo[GATE].c_str()); break;
+
+  default: Error("MakeHistFromGui", "nAxes %d isn't valid", nAxes);
+  }
 }
 
+
 HistMaker::HistMaker(const TGWindow *p,UInt_t w,UInt_t h) {
+    // Initialize fInfo
+  /// \warning This relies on the orderig of elements in CommandIdentifiers
+  for(Int_t i = PARAM_X; i < GATE; ++i) fInfo[i] = "";
+
+
     // Create a main frame
     fMain = new TGMainFrame(p,w,h);
     // Create a horizontal frame widget with buttons
