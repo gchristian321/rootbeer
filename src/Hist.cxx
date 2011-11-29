@@ -48,7 +48,7 @@ inline std::string check_name(const char* name) {
       ret = sstr.str();
       if(!gROOT->FindObject(ret.c_str())) break;
     }
-    Info("AddHist", "The name %s is already in use, creating %s_%d instead.", name, name, n-1);
+    Info("rb::Hist::New", "The name %s is already in use, creating %s_%d instead.", name, name, n-1);
   }
   return ret;
 }
@@ -188,33 +188,10 @@ UInt_t rb::Hist::GetNumber() {
   return fgArray.size();
 }
 
-// Static "getter" function
+// Static find-by-name function
 rb::Hist* rb::Hist::Find(const char* name) {
   return dynamic_cast<rb::Hist*>(gROOT->FindObjectAny(name));
-  // if(!hst) return hst;
-  // return dynamic_cast<rb::Hist*> (find(fgArray.begin(), fgArray.end(), obj));
 }
-
-//   rb::Hist* hist;
-
-//   if(indx > fgArray.size()) { //GetEntries()) {
-//     Error("Get", "Invalid index: %d, maximum is %d.\n",
-// 	  indx, Int_t(fgArray.size() - 1)); //GetEntries()-1);
-//     hist = 0;
-//   }
-//   /*
-//   else {
-//     hist = dynamic_cast<rb::Hist*>(fgArray.At(indx));
-
-//     if(!hist) {
-//       TObject* object = fgArray.At(indx);
-//       Error("Get", "Bad dyamic cast to rb::Hist*, original class was: %s.",
-// 	    object->ClassName());
-//     }
-//   }
-//   */
-//   return fgArray.at(indx); ///hist;
-// }
 
 // Static branch creation function
 TBranch* rb::Hist::AddBranch(const char* name, const char* classname, void** obj,
@@ -232,6 +209,11 @@ Int_t rb::Hist::Lock() {
   return fgMutex.Lock();
 }
 
+// Static mutex try locking function
+Int_t rb::Hist::TryLock() {
+  return fgMutex.TryLock();
+}
+
 // Static mutex un-locking function
 Int_t rb::Hist::Unlock() {
   return fgMutex.UnLock();
@@ -239,10 +221,12 @@ Int_t rb::Hist::Unlock() {
 
 // Static fill all function
 void rb::Hist::FillAll() {
-  list<rb::Hist*>::iterator it;
+  static list<rb::Hist*>::iterator it;
+  Hist::Lock();
   for( it = fgArray.begin(); it != fgArray.end(); ++it) {
     (*it)->Fill();
   }
+  Hist::Unlock();
 }
 
 void rb::Hist::DeleteAll() {
@@ -326,12 +310,11 @@ void rb::H1D::Draw(Option_t* option) {
 
 // Fill function
 Int_t rb::H1D::Fill() {
-  Int_t ret = 0;
-  Hist::Lock();
-  ret = fGate->EvalInstance() ?
+  Int_t lock = Hist::TryLock();
+  Int_t ret = fGate->EvalInstance() ?
     TH1D::Fill(fParams[0]->EvalInstance())
     : 0;
-  Hist::Unlock();
+  if(!lock) Hist::Unlock();
   return ret;
 }
 
@@ -366,7 +349,7 @@ rb::H2D::H2D (const char* name, const char* title,
     GetXaxis()->SetTitle(fParams.at(0)->GetExpFormula());
     GetYaxis()->SetTitle(fParams.at(1)->GetExpFormula());
     Hist::Lock();
-    fgArray.push_back(this); //Add(this);
+    fgArray.push_back(this);
     Hist::Unlock();
   }
   else {
@@ -390,12 +373,12 @@ void rb::H2D::Draw(Option_t* option) {
 
 // Fill function
 Int_t rb::H2D::Fill() {
-  Hist::Lock();
+  Int_t lock = Hist::TryLock();
   Int_t ret = fGate->EvalInstance() ?
     TH2D::Fill(fParams[0]->EvalInstance(),
 	       fParams[1]->EvalInstance())
     : 0;
-  Hist::Unlock();
+  if(!lock) Hist::Unlock();
   return ret;
 }
 
@@ -457,13 +440,13 @@ void rb::H3D::Draw(Option_t* option) {
 
 // Fill function
 Int_t rb::H3D::Fill() {
-  Hist::Lock();
+  Int_t lock = Hist::TryLock();
   Int_t ret = fGate->EvalInstance() ?
     TH3D::Fill(fParams[0]->EvalInstance(),
 	       fParams[1]->EvalInstance(),
 	       fParams[2]->EvalInstance())
     : 0;
-  Hist::Unlock();
+  if(!lock) Hist::Unlock();
   return ret;
 }
 

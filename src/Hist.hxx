@@ -35,7 +35,6 @@ namespace rb
    *  <i>not</i> define any methods
    *  that are contained in \c TH1 or it's derivatives.
    */
-  class H1D;
   class Hist
   {  
   protected:
@@ -121,6 +120,10 @@ namespace rb
     /// Static mutex locking function
     static Int_t Lock();
 
+    /// Static mutex try-to-lock function
+    //! Returns 0 on success.
+    static Int_t TryLock();
+
     /// Static mutex un-locking function
     static Int_t Unlock();
 
@@ -181,8 +184,20 @@ namespace rb
     H1D() { };
 
     /// Destructor.
-    /*! Remove from Hist::fgAarray.*/
-    ~H1D();
+    /*! Removes the object from fgArray;
+        \note The removal from fgArray \emph must be done in the derived class destructor,
+        not the parent.  Otherwise it causes problems with threading:
+        \code
+           thread_1: H1D* hst (in array) --> ~H1D(hst) ---> Hist* hst (still in array) ---> hst gone :)
+                                                                   |
+					   			   |          *!*!*!* <-- (explosion)
+                                                                [Fill()] ---> *!*!*!* [pure virtual method called]
+                                                                   |          *!*!*!* 
+           thread_2: ------->------- FillAll() ---------->---------^
+       \endcode
+                                                                                
+    */
+    virtual ~H1D();
 
     /// Draw function
     /*! Just calls the normal \c TH1D::Draw but with the 
@@ -240,8 +255,7 @@ namespace rb
     H2D() { };
 
     /// Destructor.
-    /*! Remove from Hist::fgAarray.*/
-    ~H2D();
+    virtual ~H2D();
 
     /// Draw function
     /*! Just calls the normal \c TH2D::Draw but with the 
@@ -300,8 +314,7 @@ namespace rb
     H3D() { };
 
     /// Destructor.
-    /*! Remove from Hist::fgAarray.*/
-    ~H3D();
+    virtual ~H3D();
 
     /// Draw function
     /*! Just calls the normal \c TH3D::Draw but with the 

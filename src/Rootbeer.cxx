@@ -46,6 +46,6 @@ void rb::Rint::Terminate(Int_t status) {
   rb::canvas::StopUpdate();
   rb::Unattach();
   gSystem->Sleep(0.5e3);
-  rb::Hist::FillAll();
+  rb::Hist::DeleteAll();
   TRint::Terminate(status);
 }
