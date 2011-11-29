@@ -61,7 +61,7 @@ inline std::string check_name(const char* name) {
 // Static data members.
 list<rb::Hist*> rb::Hist::fgArray;
 
-TMutex rb::Hist::fgMutex;
+TMutex rb::Hist::fgMutex (kTRUE);
 
 TTree rb::Hist::fgTree;
 
@@ -310,11 +310,11 @@ void rb::H1D::Draw(Option_t* option) {
 
 // Fill function
 Int_t rb::H1D::Fill() {
-  Int_t lock = Hist::TryLock();
+  Hist::Lock();
   Int_t ret = fGate->EvalInstance() ?
     TH1D::Fill(fParams[0]->EvalInstance())
     : 0;
-  if(!lock) Hist::Unlock();
+  Hist::Unlock();
   return ret;
 }
 
@@ -373,12 +373,12 @@ void rb::H2D::Draw(Option_t* option) {
 
 // Fill function
 Int_t rb::H2D::Fill() {
-  Int_t lock = Hist::TryLock();
+  Hist::Lock();
   Int_t ret = fGate->EvalInstance() ?
     TH2D::Fill(fParams[0]->EvalInstance(),
 	       fParams[1]->EvalInstance())
     : 0;
-  if(!lock) Hist::Unlock();
+  Hist::Unlock();
   return ret;
 }
 
@@ -440,13 +440,13 @@ void rb::H3D::Draw(Option_t* option) {
 
 // Fill function
 Int_t rb::H3D::Fill() {
-  Int_t lock = Hist::TryLock();
+  Hist::Lock();
   Int_t ret = fGate->EvalInstance() ?
     TH3D::Fill(fParams[0]->EvalInstance(),
 	       fParams[1]->EvalInstance(),
 	       fParams[2]->EvalInstance())
     : 0;
-  if(!lock) Hist::Unlock();
+  Hist::Unlock();
   return ret;
 }
 

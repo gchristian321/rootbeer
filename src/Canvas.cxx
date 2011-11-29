@@ -38,7 +38,8 @@ namespace rb
     TThread thCanvas("thCanvas", rb::canvas::TimedUpdate);
 
     /// Mutex for locking threded canvas operations.
-    TMutex Mutex;
+    //! Recursive = kTRUE
+    TMutex Mutex (kTRUE);
 
     /// Mutex locking function
     void Lock() { rb::canvas::Mutex.Lock(); }

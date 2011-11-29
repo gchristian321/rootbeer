@@ -48,6 +48,8 @@ namespace rb
     static std::list<rb::Hist*> fgArray;
 
     /// Static mutex for locking threaded histogram actions.
+    //! \note Defined as recursive (\c true argument in the constructor).
+    //! This avoids deadlock if we call it twice from the same thread.
     static TMutex fgMutex;
 
     /// Static TTree for calculating parameter values.

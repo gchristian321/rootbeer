@@ -90,6 +90,7 @@ enum CommandIdentifiers {
 class TGLVEntry_mod:public TGLVEntry{
     public:
         TGLVEntry_mod(const TGLVContainer* p, const TString& name, const TString& cname, TGString** subnames = 0, UInt_t options = kChildFrame, Pixel_t back = GetWhitePixel());
+	~TGLVEntry_mod() { };
 
 	/// \remark Changed to accepting a vector of strings instead of individual argments.
 	/// The latter is nice for CINT but not so great for real code IMO. -GC
