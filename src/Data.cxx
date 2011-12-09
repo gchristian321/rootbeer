@@ -49,16 +49,16 @@ void branch_parse(TBranch* branch, Bool_t is_top, ostream& strm) {
   }
 }
 
-// Class rb::MData //
+// Class rb::Data //
 
 // Static data member initialization
-rb::MData::Map_t       rb::MData::fgMap;
-rb::MData::SetMap_t    rb::MData::fgSetFunctionMap;
-rb::MData::GetMap_t    rb::MData::fgGetFunctionMap;
-rb::MData::ObjectMap_t rb::MData::fgObjectMap;
+rb::Data::Map_t       rb::Data::fgMap;
+rb::Data::SetMap_t    rb::Data::fgSetFunctionMap;
+rb::Data::GetMap_t    rb::Data::fgGetFunctionMap;
+rb::Data::ObjectMap_t rb::Data::fgObjectMap;
 
 // Constructor
-rb::MData::MData(const char* name, const char* class_name, void* data, Bool_t createPointer):
+rb::Data::Data(const char* name, const char* class_name, void* data, Bool_t createPointer):
   kName(name), kClassName(class_name), kCintPointer(createPointer) {
       fData = data;
       fgMap[kName] = this;
@@ -94,7 +94,7 @@ rb::MData::MData(const char* name, const char* class_name, void* data, Bool_t cr
       FMAP_INSERT(unsigned short);
 }
 
-Double_t rb::MData::Get(const char* name) {
+Double_t rb::Data::Get(const char* name) {
   ObjectMapIterator_t it = fgObjectMap.find(name);
   if(it == fgObjectMap.end()) {
     Error("Get", "%s not found.", name);
@@ -110,7 +110,7 @@ Double_t rb::MData::Get(const char* name) {
   return Double_t(itGet->second(name));
 }
 
-void rb::MData::Set(const char* name, Double_t newvalue) {
+void rb::Data::Set(const char* name, Double_t newvalue) {
   ObjectMapIterator_t itObject = fgObjectMap.find(name);
   if(itObject == fgObjectMap.end()) {
     Error("SetData", "Data object: %s not found.", name);
@@ -131,16 +131,19 @@ void rb::MData::Set(const char* name, Double_t newvalue) {
 
 
 // Static branch adding function
-void rb::MData::AddBranches() {
+void rb::Data::AddBranches() {
   MapIterator_t it = fgMap.begin();
-  while(it != rb::MData::fgMap.end())
+  while(it != rb::Data::fgMap.end())
     (*it++).second->AddBranch();
 }
 
 // Static CINT pointer creation function
-void rb::MData::CreatePointers() {
+void rb::Data::CreatePointers() {
   vector<string> vPrint; /// For message printing
-  vPrint.push_back("\nCreating pointers to user data objects:\n");
+  vPrint.push_back("\nMapping the address of user data objects:\n");
+  vPrint.push_back("      Name\t\tClass Name\n");
+  vPrint.push_back("      ----\t\t----------\n");
+  Int_t printMinSize = vPrint.size();
 
   for(MapIterator_t it = fgMap.begin(); it != fgMap.end(); ++it) {
     if(it->second->kCintPointer) {
@@ -148,20 +151,14 @@ void rb::MData::CreatePointers() {
       string className = it->second->kClassName;
 
       stringstream sPrint;
-      sPrint << "        " << className << "* " << name << endl;
+      sPrint << "      " << name << "\t\t" << className << endl;
       vPrint.push_back(sPrint.str());
 
-      stringstream  sExecute;
-      sExecute << className << "* " << name << " = "
-	       << "rb::Data<" << className << ">::Get "
-	       << "(\"" << name << "\")";
-
-      //      gROOT->ProcessLine(sExecute.str().c_str());
       ParseClass(name.c_str(), className.c_str(), it->second->fData);
     }
   }
 
-  if(vPrint.size() > 1) { // At least one pointer was created
+  if(vPrint.size() > printMinSize) {
     for(UInt_t u=0; u< vPrint.size(); ++u) {
       cout << vPrint[u];
     }
@@ -169,30 +166,17 @@ void rb::MData::CreatePointers() {
   }
 }
 
-/// Parse a class and print it's member names to a stream.
-void rb::MData::SavePrimitive(ostream& strm) {
-  TTree tParse("tParse", "Temp tree for parsing a class");
-  tParse.Branch(kName.c_str(), kClassName.c_str(), &fData);
-
-  TIter it(tParse.GetListOfBranches());
-  for(it = it.Begin(); it != it.End(); ++it) {
-    branch_parse(static_cast<TBranch*>(*it), kTRUE, strm);
-  }
-}
-
 // Static save all function
-void rb::MData::SaveAllPrimitive(ostream& strm) {
-  MapIterator_t it;
-  for(it = fgMap.begin(); it != fgMap.end(); ++it) {
-    if(it->second->kCintPointer) {
-      it->second->SavePrimitive(strm);
-    }
+void rb::Data::SavePrimitive(ostream& strm) {
+  ObjectMapIterator_t it;
+  for(it = fgObjectMap.begin(); it != fgObjectMap.end(); ++it) {
+    strm << "rb::Data::Set(\"" << it->first << ", " << Get(it->first.c_str()) << ");\n";
   }
 }
 
 
 // Static class parsing function
-Bool_t rb::MData::MapDataAddress(const char* name, TStreamerElement* element, void* base_address) {
+Bool_t rb::Data::MapDataAddress(const char* name, TStreamerElement* element, void* base_address) {
 
   string typeName = element->GetTypeName();
   remove_duplicate_spaces(typeName); // in case someone did 'unsigned    short' or whatever
@@ -201,12 +185,11 @@ Bool_t rb::MData::MapDataAddress(const char* name, TStreamerElement* element, vo
   if(it == fgSetFunctionMap.end()) return kFALSE;
 
   void* address = base_address;
+  void_pointer_add(address, element->GetOffset());
   Int_t arrLen = element->GetArrayLength();
-    void_pointer_add(address, element->GetOffset());
 
   if(!arrLen) {
     fgObjectMap.insert(std::make_pair(name, std::make_pair(address, typeName)));
-    cout << name <<": " << address << endl;
   }
   else {
     Int_t size = element->GetSize() / arrLen;
@@ -215,13 +198,12 @@ Bool_t rb::MData::MapDataAddress(const char* name, TStreamerElement* element, vo
       fullName << name << "[" << i << "]";
       void_pointer_add(address, size*(i>0));
       fgObjectMap.insert(std::make_pair(fullName.str(), std::make_pair(address, typeName)));
-      cout << fullName.str() <<": " << address << endl;
     }
   }
   return kTRUE;
 }
 
-void rb::MData::ParseClass(const char* name, const char* classname, void* address) {
+void rb::Data::ParseClass(const char* name, const char* classname, void* address) {
 
   TClass* cl = TClass::GetClass(classname);
   if(!cl) return;
@@ -242,7 +224,7 @@ void rb::MData::ParseClass(const char* name, const char* classname, void* addres
   }
 }
 
-void rb::MData::list() {
+void rb::Data::list() {
   ObjectMapIterator_t it = fgObjectMap.begin();
   while(it != fgObjectMap.end()) {
     cout << (*it++).first << endl;

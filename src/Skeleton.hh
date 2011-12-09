@@ -24,14 +24,14 @@
  */
 #define ADD_CLASS_INSTANCE(NAME, CLASS_NAME, CREATE_POINTER)		\
   CLASS_NAME NAME;							\
-  rb::Data<CLASS_NAME>  NAME##_Data(#NAME, #CLASS_NAME, NAME, CREATE_POINTER);
+  rb::Data  NAME##_Data(#NAME, #CLASS_NAME, reinterpret_cast<void*>(&NAME), CREATE_POINTER);
   
 
 /// Macro to add a class instance to ROOTBEER
 /*! In case you need to use a non-default constructor for your class. */
 #define ADD_CLASS_INSTANCE_ARGS(NAME, CLASS_NAME, ARGS, CREATE_POINTER)	\
   CLASS_NAME NAME ARGS;							\
-  rb::Data<CLASS_NAME>  NAME##_Data(#NAME, #CLASS_NAME, NAME, CREATE_POINTER);
+  rb::Data  NAME##_Data(#NAME, #CLASS_NAME, reinterpret_cast<void*>(&NAME), CREATE_POINTER);
 
 
 

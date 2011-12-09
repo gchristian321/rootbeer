@@ -156,7 +156,7 @@ Int_t rb::WriteConfig(const char* fname, Bool_t prompt) {
   dirInitial->cd();
 
   ofs << "\n\n" << "  // VARIABLES //\n";
-  rb::MData::SaveAllPrimitive(ofs);
+  rb::Data::SavePrimitive(ofs);
 
   ofs << "\n}";
   return 0;
@@ -206,7 +206,7 @@ Int_t rb::WriteVariables(const char* fname, Bool_t prompt) {
 
 
   ofs << "\n\n" << "  // VARIABLES //\n";
-  rb::MData::SaveAllPrimitive(ofs);
+  rb::Data::SavePrimitive(ofs);
 
   ofs << "\n}";
   return 0;

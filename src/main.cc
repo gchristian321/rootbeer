@@ -12,9 +12,9 @@
 Int_t main(Int_t argc, Char_t** argv)
 {
   //  rb::Logo();
-  rb::MData::AddBranches();
+  rb::Data::AddBranches();
   rb::Rint rbApp("RootBeer", &argc, argv, 0, 0, kTRUE);
-  rb::MData::CreatePointers();
+  rb::Data::CreatePointers();
   gROOT->ProcessLine("enum { X=0, Y=1, Z=2 }"); // for histogram axes
   gROOT->ProcessLine("gStyle->SetOptTitle(kTRUE)");
   rbApp.Run();

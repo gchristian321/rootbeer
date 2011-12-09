@@ -27,7 +27,7 @@ namespace rb
    *  user data object that is created on the stack and has global scope. That's what this class
    *  is. In addition to the pointer, it also stores some useful information, like the variable
    *  name and class name. It also contains a static \c std::map that maps the variable name to
-   *  the corresponding MData pointer for every existing MData derived object.
+   *  the corresponding Data pointer for every existing Data derived object.
    *  Finally, it implements some methods that are useful, like creating branches
    *  in the static rb::fgTree from which histograms are filled. Some of these are called at startup
    *  in main() so that everything is ready to go in terms of being able to parse strings referring to
@@ -36,7 +36,7 @@ namespace rb
    * In general, instances of this class should not be created directly. Instead, use the template
    * derived classes, which allow type-safe access to the wrapped data.
    */
-  class MData
+  class Data
   {
   public:
     /// Function typedef void_cast <--> void func(void*, Double_t).
@@ -45,8 +45,8 @@ namespace rb
     /// Function typedef void_get <--> void func(const char*).
      typedef Double_t (*void_get)(const char*);
 
-    /// Map typedef (string -> MData*).
-    typedef std::map<std::string, MData*> Map_t;
+    /// Map typedef (string -> Data*).
+    typedef std::map<std::string, Data*> Map_t;
 
     /// Map typedef (string -> pair<void*, string>).
     typedef std::map<std::string, std::pair<void*, std::string> > ObjectMap_t;
@@ -57,8 +57,8 @@ namespace rb
     /// Map typedef (string -> void_get).
     typedef std::map<std::string, void_get> GetMap_t;
 
-    /// Map iterator typedef (string -> MData*).
-    typedef std::map<std::string, MData*>::iterator MapIterator_t;
+    /// Map iterator typedef (string -> Data*).
+    typedef std::map<std::string, Data*>::iterator MapIterator_t;
 
     /// Map iterator typedef (string -> pair<void*, string>).
     typedef std::map<std::string, std::pair<void*, std::string> >::iterator ObjectMapIterator_t;
@@ -96,11 +96,12 @@ namespace rb
     static GetMap_t fgGetFunctionMap;
 
 
+  public:
     /// Constructor.
     /*! Sets the data pointer, name, class name, and create pointer members.
      *  \note This is protected because we shouldn't create instances explicitly, instead
      *  use the template derived classe. */
-    MData(const char* name, const char* class_name, void* data, Bool_t createPointer = kFALSE);
+    Data(const char* name, const char* class_name, void* data, Bool_t createPointer = kFALSE);
 
     /// Template function to set data values to the appropriate type.
     template<typename T>
@@ -123,7 +124,7 @@ namespace rb
   public:
     /// Destructor
     /*! Remove from fgMap */
-    virtual ~MData() {
+    virtual ~Data() {
       MapIterator_t it = fgMap.find(kName);
       if(it != fgMap.end()) fgMap.erase(it);
     }
@@ -135,17 +136,9 @@ namespace rb
     }
 
     /// Write the fData data members and their current values to a stream.
-    /*! Makes use of a temporary TTree to parse the class into string named.
-     *  \todo Try to implement this directly instead of relying on TTree. Implementing
-     *  with TTree::Branch has some limitations. For example, if anything was prevented
-     *  from being put into the tree with an \c //! comment, we wouldn't be able to write it.
-     */
-    void SavePrimitive(std::ostream& ofs);
+    static void SavePrimitive(std::ostream& ofs);
 
-    /// Run SavePrimitive() on every instance of MData that has kCintPointer == true.
-    static void SaveAllPrimitive(std::ostream& strm);
-
-    /// Call AddBranch() on everything in rb::MData::fgMap
+    /// Call AddBranch() on everything in rb::Data::fgMap
     static void AddBranches();
 
     /// Create a pointer in CINT for all instances of derived classes that ask for it (i.e. have set kCintPointer true).
@@ -166,49 +159,49 @@ namespace rb
   };
 
 
-  /// Template class derived from MData.
-  /*! As noted in the MData documentation, instances of MData-derived classes should be created using this
-   *  template class. It's main function is to provide type-safe access to the user data classes. */
-  template <class UserClass>
-  class Data : public MData
-  {
-  public:
-    /// Constructor
-    /*! Pass everything off to the MData constructor. */
-    Data(const char* name, const char* class_name, UserClass& data, Bool_t createPointer = kFALSE) :
-      MData(name, class_name, static_cast<void*>(&data), createPointer) {
-      //      if(createPointer) MData::ParseClass(name, class_name);
-    }
+//   /// Template class derived from Data.
+//   /*! As noted in the Data documentation, instances of Data-derived classes should be created using this
+//    *  template class. It's main function is to provide type-safe access to the user data classes. */
+//   template <class UserClass>
+//   class Data : public Data
+//   {
+//   public:
+//     /// Constructor
+//     /*! Pass everything off to the Data constructor. */
+//     Data(const char* name, const char* class_name, UserClass& data, Bool_t createPointer = kFALSE) :
+//       Data(name, class_name, static_cast<void*>(&data), createPointer) {
+//       //      if(createPointer) Data::ParseClass(name, class_name);
+//     }
 
-    /// Return a pointer to the data object, casted to the appropriate type.
-    UserClass* GetData() {
-      return static_cast<UserClass*>(fData);
-    }
+//     /// Return a pointer to the data object, casted to the appropriate type.
+//     UserClass* GetData() {
+//       return static_cast<UserClass*>(fData);
+//     }
 
-    /// Return an appropriately-typed pointer to the data object, called by name.
-    /*! Searches MData::fgMap for an instance keyed with <tt>name</tt>. If it finds
-     *  one, returns the corresponding pointer to the wrapped user data class.
-     *  If called for the wrong template class, returns 0 and gives an error message. */
-    static UserClass* Get(const char* name) {
-      MapIterator_t it = fgMap.find(name);
-      if(it == fgMap.end()) {
-	Error("Data<T>::Get", "\"%s\" not found.", name);
-	return 0;
-      }
-      MData* data = it->second;
-      Data<UserClass>* cast_data = dynamic_cast <Data <UserClass>* >(data);
-      if(!cast_data) {
-	Error("rb::Data<T>::Get", "Invalid class specification. Try rb::Data<%s>::Get() instead",
-	      data->kClassName.c_str());
-	return 0;
-      }
-      return cast_data->GetData();
-    }
+//     /// Return an appropriately-typed pointer to the data object, called by name.
+//     /*! Searches Data::fgMap for an instance keyed with <tt>name</tt>. If it finds
+//      *  one, returns the corresponding pointer to the wrapped user data class.
+//      *  If called for the wrong template class, returns 0 and gives an error message. */
+//     static UserClass* Get(const char* name) {
+//       MapIterator_t it = fgMap.find(name);
+//       if(it == fgMap.end()) {
+// 	Error("Data<T>::Get", "\"%s\" not found.", name);
+// 	return 0;
+//       }
+//       Data* data = it->second;
+//       Data<UserClass>* cast_data = dynamic_cast <Data <UserClass>* >(data);
+//       if(!cast_data) {
+// 	Error("rb::Data<T>::Get", "Invalid class specification. Try rb::Data<%s>::Get() instead",
+// 	      data->kClassName.c_str());
+// 	return 0;
+//       }
+//       return cast_data->GetData();
+//     }
 
-    /// Destructor
-    ~Data() { }
+//     /// Destructor
+//     ~Data() { }
 
-  };
+//   };
 }
 
 #endif

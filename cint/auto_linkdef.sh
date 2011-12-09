@@ -19,7 +19,7 @@ echo \
 #pragma link C++ namespace rb; 
 #pragma link C++ namespace rb::canvas; 
  
-#pragma link C++ class rb::MData+; 
+#pragma link C++ class rb::Data+; 
 
 
 // User templates" > $DIR/Linkdef.h 
@@ -29,7 +29,6 @@ awk -F ", " '
      /ADD_CLASS_INSTANCE/ {
           if(index($1, "#define") == 0 && index($1, "#undef") == 0 && index($1, "//") == 0) {
                 printf("#pragma link C++ class %s+;\n", $2);
-                printf("#pragma link C++ class rb::Data<%s>+;\n", $2);
           }
 }' $DIR/../src/Skeleton.hh  >>$DIR/Linkdef.h
 
