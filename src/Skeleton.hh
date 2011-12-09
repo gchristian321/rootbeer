@@ -35,42 +35,42 @@
 
 
 
-///////////////////////////////////////
-//                                   //
-// ROOTBEER USER DATA CODE SKELETON  //
-//                                   //
-///////////////////////////////////////
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+//                                   \\
+// ROOTBEER USER DATA CODE SKELETON  \\
+//                                   \\
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 
 
-////////////////////////////////////////////////////////
-//// Add the header includes for your classes here. ////
-////////////////////////////////////////////////////////
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+//\\ Add the header includes for your classes here. \\\\
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+
 #include "ExampleData.hh"
 
 
 
 
 
-////////////////////////////////////////////////
-//// Define instances of your class here    ////
-//// (using the ADD_CLASS_INSTANCE macros). ////
-////////////////////////////////////////////////
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+//\\ Define instances of your class here    \\\\
+//\\ (using the ADD_CLASS_INSTANCE macros). \\\\
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 
-// Here we add an instance of ExampleData, called myData and do not create a pointer for CINT.
+// Here we add an instance of ExampleData, called myData and do not allow viewing in CINT.
 ADD_CLASS_INSTANCE(myData, ExampleData, kFALSE)
 
-// Here we add an instance of sVaraibles, calles myVars and do create a pointer for CINT.
+// Here we add an instance of sVariables, calles myVars and do allow viewing in CINT.
 ADD_CLASS_INSTANCE(myVars, ExampleVariables, kTRUE)
-ADD_CLASS_INSTANCE(InnerVars, InnerVariables, kFALSE)
 
 
 
 
 
-///////////////////////////////////////////////////////////////
-//// Here you should define how to process your data buffers //
-//// by implementing the UnpackBuffer() function.            //
-///////////////////////////////////////////////////////////////
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+//\\ Here you should define how to process your data buffers \\
+//\\ by implementing the UnpackBuffer() function.            \\
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 
 void rb::unpack::UnpackBuffer() {
 
@@ -85,12 +85,14 @@ void rb::unpack::UnpackBuffer() {
 
 
 
-    ////////////////////////////////////////////////////////////////////////////
-    // NOTE: You need to include this call to rb::Hist::FillAll() at the end  //
-    // of your event loop if you want to be able to see histogrammed data.    //
-    ////////////////////////////////////////////////////////////////////////////
-      rb::Hist::FillAll();  ///
-    ///////////////////////////
+    //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+    // NOTE: You need to include this call to rb::Hist::FillAll() at the end  \\
+    // of your event loop if you want to be able to see histogrammed data.    \\
+    //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+    //\\\\\\\\\\\\\\\\\\\\\\\
+       rb::Hist::FillAll();//
+    //\\\\\\\\\\\\\\\\\\\\\\\
+
   } // End event loop
 
 } // End function
