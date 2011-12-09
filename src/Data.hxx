@@ -35,10 +35,10 @@ namespace rb
   class Data
   {
   public:
-    /// Function typedef void_cast <--> void func(void*, Double_t).
+    /// Typedef for: void some_function(void*, Double_t).
      typedef void (*void_cast)(void*, Double_t);
 
-    /// Function typedef void_get <--> void func(const char*).
+    /// Typedef for: void some_function(const char*).
      typedef Double_t (*void_get)(const char*);
 
     /// Map typedef (string -> Data*).
@@ -66,7 +66,7 @@ namespace rb
     typedef std::map<std::string, void_get>::iterator GetMapIterator_t;
 
   protected:
-    /// Tells whether we should have a pointer automatically created for use in CINT.
+    /// Tells whether we should map the map a user class instance's data members or not.
     const Bool_t kMapClass;
 
     /// Name of the class instance. Equivalent to the variable defined in Skeleton.hh
@@ -125,7 +125,7 @@ namespace rb
 
   public:
     /// Constructor.
-    /*! Sets the data pointer, name, class name, and create pointer members. */
+    /*! Sets data fields and fills internal std::maps. */
     Data(const char* name, const char* class_name, void* data, Bool_t createPointer = kFALSE);
 
     /// Destructor
@@ -150,11 +150,36 @@ namespace rb
     /// Call MapClass on all instances that ask for it (i.e. have set kMapClass true).
     static void MapClasses();
 
-    /// Return the value of a user class data member. Thread safe.
-    static Double_t Get(const char* name);
+    /// Return a direct pointer to the top-level user class object, casted to a specific type.
+    //! \warning The template argument must be the appropriate type (same as what's pointed
+    template<class AClass>
+    static AClass* GetPointer(const char* name, Bool_t forceCast = kFALSE) {
+      MapIterator_t it = fgMap.find(name);
+      if(it == fgMap.end()) {
+	Error("GetPointer", "%s wasn't found", name);
+        return 0;
+      }
+      else {
+	void* addr = it->second->fData;
+	if(typeid(AClass) != typeid(addr) && !forceCast) {
+	  Error("GetPointer",
+		"Called with inappropriate type argument. "
+		"Either try rb::Data::GetPointer<%s>() or set the forceCast argument to kTRUE.",
+		it->second->kClassName.c_str());
+	  return 0;
+	}
+	else
+	  return reinterpret_cast<AClass*>(addr);
+      }
+    }
 
-    /// Set the value of a user class data member. Thread safe.
-    static void Set(const char* name, Double_t value);
+    /// Return the value of a user class data member.
+    //! \note Thread safe and should be used in CINT.
+    static Double_t GetValue(const char* name);
+
+    /// Set the value of a user class data member.
+    //! \note Thread safe and should be used in CINT.
+    static void SetValue(const char* name, Double_t newvalue);
 
     /// Print the fill name and current value of every data member in every listed class.
     static void PrintAll();

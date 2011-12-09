@@ -11,10 +11,10 @@ using namespace std;
 
 
 
-///////////////////////////////////////////////////////////
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // Helper Functions                                      //
 //                                                       //
-///////////////////////////////////////////////////////////
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 
 
 /// Add an offset to a void* pointer
@@ -34,23 +34,23 @@ void remove_duplicate_spaces(string& str) {
 
 
 
-///////////////////////////////////////////////////////////
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // Class                                                 //
 // rb::Data                                              //
-///////////////////////////////////////////////////////////
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 
-///////////////////////////////////////////////////////////
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // Static data member initialization                     //
-///////////////////////////////////////////////////////////
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 rb::Data::Map_t       rb::Data::fgMap;
 rb::Data::SetMap_t    rb::Data::fgSetFunctionMap;
 rb::Data::GetMap_t    rb::Data::fgGetFunctionMap;
 rb::Data::ObjectMap_t rb::Data::fgObjectMap;
 
 
-///////////////////////////////////////////////////////////
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // Constructor                                           //
-///////////////////////////////////////////////////////////
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 rb::Data::Data(const char* name, const char* class_name, void* data, Bool_t createPointer):
   kName(name), kClassName(class_name), kMapClass(createPointer) {
       fData = data;
@@ -89,30 +89,30 @@ rb::Data::Data(const char* name, const char* class_name, void* data, Bool_t crea
 }
 
 
-///////////////////////////////////////////////////////////
-// rb::Data::Get                                         //
-///////////////////////////////////////////////////////////
-Double_t rb::Data::Get(const char* name) {
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// rb::Data::Getvalue                                    //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+Double_t rb::Data::GetValue(const char* name) {
   ObjectMapIterator_t it = fgObjectMap.find(name);
   if(it == fgObjectMap.end()) {
-    Error("Get", "%s not found.", name);
+    Error("GetValue", "%s not found.", name);
     return -1.;
   }
   string typeName = it->second.second;
 
   GetMapIterator_t itGet = fgGetFunctionMap.find(typeName);
   if(itGet == fgGetFunctionMap.end()) {
-    Error("Get", "Invalid type %s", typeName.c_str());
+    Error("GetValue", "Invalid type %s", typeName.c_str());
     return -1.;
   }
   return Double_t(itGet->second(name));
 }
 
 
-///////////////////////////////////////////////////////////
-// static rb::Data::Set                                  //
-///////////////////////////////////////////////////////////
-void rb::Data::Set(const char* name, Double_t newvalue) {
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// static rb::Data::SetValue                             //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+void rb::Data::SetValue(const char* name, Double_t newvalue) {
   ObjectMapIterator_t itObject = fgObjectMap.find(name);
   if(itObject == fgObjectMap.end()) {
     Error("SetData", "Data object: %s not found.", name);
@@ -132,18 +132,18 @@ void rb::Data::Set(const char* name, Double_t newvalue) {
 }
 
 
-///////////////////////////////////////////////////////////
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // static branch adding function                         //
-///////////////////////////////////////////////////////////
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 void rb::Data::AddBranches() {
   MapIterator_t it = fgMap.begin();
   while(it != rb::Data::fgMap.end())
     (*it++).second->AddBranch();
 }
 
-///////////////////////////////////////////////////////////
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // static class mapping function                         //
-///////////////////////////////////////////////////////////
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 void rb::Data::MapClasses() {
   vector<string> vPrint; /// For message printing
   vPrint.push_back("\nMapping the address of user data objects:\n");
@@ -172,19 +172,19 @@ void rb::Data::MapClasses() {
   }
 }
 
-///////////////////////////////////////////////////////////
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // static rb::Data::SavePrimitive                        //
-///////////////////////////////////////////////////////////
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 void rb::Data::SavePrimitive(ostream& strm) {
   ObjectMapIterator_t it;
   for(it = fgObjectMap.begin(); it != fgObjectMap.end(); ++it) {
-    strm << "rb::Data::Set(\"" << it->first << ", " << Get(it->first.c_str()) << ");\n";
+    strm << "rb::Data::Set(\"" << it->first << ", " << GetValue(it->first.c_str()) << ");\n";
   }
 }
 
-///////////////////////////////////////////////////////////
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // static rb::Data::MapData                              //
-///////////////////////////////////////////////////////////
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 Bool_t rb::Data::MapData(const char* name, TStreamerElement* element, void* base_address) {
 
   string typeName = element->GetTypeName();
@@ -212,9 +212,9 @@ Bool_t rb::Data::MapData(const char* name, TStreamerElement* element, void* base
   return kTRUE;
 }
 
-///////////////////////////////////////////////////////////
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // static rb::Data::MapClass                             //
-///////////////////////////////////////////////////////////
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 void rb::Data::MapClass(const char* name, const char* classname, void* address) {
 
   TClass* cl = TClass::GetClass(classname);
@@ -236,13 +236,13 @@ void rb::Data::MapClass(const char* name, const char* classname, void* address) 
   }
 }
 
-///////////////////////////////////////////////////////////
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // static rb::Data::PrintAll                             //
-///////////////////////////////////////////////////////////
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 void rb::Data::PrintAll() {
   ObjectMapIterator_t it = fgObjectMap.begin();
   while(it != fgObjectMap.end()) {
     string name = (*it++).first;
-    cout << name << " = " << Get(name.c_str()) << endl;
+    cout << name << " = " << GetValue(name.c_str()) << endl;
   }
 }
