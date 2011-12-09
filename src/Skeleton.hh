@@ -25,6 +25,7 @@
 #define ADD_CLASS_INSTANCE(NAME, CLASS_NAME, CREATE_POINTER)		\
   CLASS_NAME NAME;							\
   rb::Data<CLASS_NAME>  NAME##_Data(#NAME, #CLASS_NAME, NAME, CREATE_POINTER);
+  
 
 /// Macro to add a class instance to ROOTBEER
 /*! In case you need to use a non-default constructor for your class. */
@@ -60,7 +61,7 @@ ADD_CLASS_INSTANCE(myData, ExampleData, kFALSE)
 
 // Here we add an instance of sVaraibles, calles myVars and do create a pointer for CINT.
 ADD_CLASS_INSTANCE(myVars, ExampleVariables, kTRUE)
-
+ADD_CLASS_INSTANCE(InnerVars, InnerVariables, kFALSE)
 
 
 

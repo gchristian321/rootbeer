@@ -8,20 +8,43 @@
 /// Code to tell us that there was no data in a given event.
 static const Int_t NO_DATA = -1;
 
+
+/// Example of a variable class we can nest
+struct InnerVariables {
+  /// Example float
+  Long64_t inner1;
+
+  /// Example int array
+  Int_t innerArray[27];
+
+  /// Constructor, initialize to unity
+  InnerVariables() {
+    inner1 = 1.;
+    for(Int_t i=0; i< 27;++i) innerArray[i] = 1.;
+  }
+};
+
 /// Example of a class to hold experiment variables.
 struct ExampleVariables {
 
   /// Variable 1
   Double_t var1;
 
-  /// Variabl 2
+  /// Variable 2
   Double_t var2;
+
+  /// An array of variables
+  Double_t varr[14];
+
+  /// A nested class
+  InnerVariables inner;
 
   /// Constructor
   /*! Initialize everthing to unity. */
   ExampleVariables() {
-    var1=1;
-    var2=1;
+    var1=1.;
+    var2=1.;
+    for(Int_t i=0; i< 14; ++i) varr[i] = 1.;
   }
 };
 

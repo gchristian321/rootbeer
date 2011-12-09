@@ -19,6 +19,8 @@
 #pragma link C++ class rb::Data<ExampleData>+;
 #pragma link C++ class ExampleVariables+;
 #pragma link C++ class rb::Data<ExampleVariables>+;
+#pragma link C++ class InnerVariables+;
+#pragma link C++ class rb::Data<InnerVariables>+;
 
 
 #endif // #ifdef __CINT__

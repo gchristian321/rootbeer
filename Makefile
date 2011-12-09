@@ -19,7 +19,7 @@ all: rootbeer
 
 
 rootbeer: libHist.so libRootbeer.so $(SRC)/main.cc 
-	g++ -lRootbeer $(SRC)/main.cc -o rootbeer $(ROOTFLAGS) $(CXXFLAGS) 
+	g++ $(CXXFLAGS) -lRootbeer $(SRC)/main.cc -o rootbeer $(ROOTFLAGS)
 
 
 #### ROOTBEER LIBRARY ####
@@ -27,7 +27,7 @@ SOURCES=$(SRC)/Rootbeer.cxx $(SRC)/Data.cxx $(SRC)/Unpack.cxx $(SRC)/Canvas.cxx 
 HEADERS=$(SRC)/Rootbeer.hxx $(SRC)/Data.hxx $(USER_HEADERS)
 
 libRootbeer.so: libHist.so cint/RBDictionary.cxx $(SOURCES) Skeleton.hh
-	g++ -lHist -o lib/$@ $(CXXFLAGS) $(ROOTFLAGS) -lThread $(DYLIB) -p cint/RBDictionary.cxx $(SOURCES)
+	g++ $(CXXFLAGS) -lHist -o $(PWD)/lib/$@ $(ROOTFLAGS) -lThread $(DYLIB) -p cint/RBDictionary.cxx $(SOURCES)
 
 
 cint/RBDictionary.cxx: $(HEADERS) Linkdef.h
@@ -38,7 +38,7 @@ cint/RBDictionary.cxx: $(HEADERS) Linkdef.h
 #### COMPILE HISTOGRAM LIBRARY ####
 
 libHist.so: Hist.cxx cint/HistDictionary.cxx
-	g++ -o lib/$@ $(CXXFLAGS) $(ROOTFLAGS) -lTreePlayer $(DYLIB) -p $^
+	g++ -o $(PWD)/lib/$@ $(CXXFLAGS) $(ROOTFLAGS) -lTreePlayer $(DYLIB) -p $^
 
 
 cint/HistDictionary.cxx: Hist.hxx HistLinkdef.h
@@ -80,7 +80,7 @@ GUICXXFLAGS=-fPIC
 gui: librbgui.so
 
 librbgui.so: libHist.so HistDict.cxx $(GUISOURCES)
-	g++ -Llib -lHist -shared -o lib/$@ $(GUICXXFLAGS) -I/opt/local/include/root $(GUI)/HistDict.cxx $(GUISOURCES) $(GUIROOTFLAGS) -I$(PWD)/src
+	g++ -L$(PWD)/lib -lHist -shared -o $(PWD)/lib/$@ $(GUICXXFLAGS) -I/opt/local/include/root $(GUI)/HistDict.cxx $(GUISOURCES) $(GUIROOTFLAGS) -I$(PWD)/src
 
 HistDict.cxx: $(GUIHEADERS) rbgui/Linkdef.h
 	rootcint -f rbgui/$@ -c -Isrc $(GUICXXFLAGS) -p $^
