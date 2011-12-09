@@ -31,7 +31,7 @@ libRootbeer.so: libHist.so cint/RBDictionary.cxx $(SOURCES) Skeleton.hh
 
 
 cint/RBDictionary.cxx: $(HEADERS) Linkdef.h
-	$(PWD)/cint/auto_linkdef.sh ; rootcint -f $@ -c $(CXXFLAGS)  -p $^
+	rootcint -f $@ -c $(CXXFLAGS)  -p $^
 
 
 
