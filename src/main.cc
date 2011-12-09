@@ -14,7 +14,7 @@ Int_t main(Int_t argc, Char_t** argv)
   //  rb::Logo();
   rb::Data::AddBranches();
   rb::Rint rbApp("RootBeer", &argc, argv, 0, 0, kTRUE);
-  rb::Data::CreatePointers();
+  rb::Data::MapClasses();
   gROOT->ProcessLine("enum { X=0, Y=1, Z=2 }"); // for histogram axes
   gROOT->ProcessLine("gStyle->SetOptTitle(kTRUE)");
   rbApp.Run();

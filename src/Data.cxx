@@ -10,7 +10,12 @@
 using namespace std;
 
 
-// Some helper functions.
+
+///////////////////////////////////////////////////////////
+// Helper Functions                                      //
+//                                                       //
+///////////////////////////////////////////////////////////
+
 
 /// Add an offset to a void* pointer
 void void_pointer_add(void*& initial, Int_t offset) {
@@ -27,39 +32,27 @@ void remove_duplicate_spaces(string& str) {
   }
 }
 
-/// Figure out the lowest-level names of subbranches of a TBranch and print to a stream.
-void branch_parse(TBranch* branch, Bool_t is_top, ostream& strm) {
-  // Store the top level branch name for later use.
-  static string top_name;
-  if(is_top) top_name = branch->GetName();
 
-  Int_t nBranches = branch->GetListOfBranches()->GetEntries();
-  if(branch->IsFolder()) { // this branch contains subbranches, recurse into them
-    for(Int_t i=0; i< nBranches; ++i) {
-      branch_parse(static_cast<TBranch*>(branch->GetListOfBranches()->At(i)), kFALSE, strm);
-    }
-  }
-  else { // at a lowest-level branch, print the name and value into strm
-    stringstream sstr;
-    sstr << top_name << "->" << branch->GetName();
-    TTreeFormula f("f", sstr.str().c_str(), branch->GetTree()); // for figuring out the value
-    if(f.GetTree()) { // forula compiled OK
-      strm << "      " << sstr.str() << " = " << f.EvalInstance() << ";\n";
-    }
-  }
-}
 
-// Class rb::Data //
+///////////////////////////////////////////////////////////
+// Class                                                 //
+// rb::Data                                              //
+///////////////////////////////////////////////////////////
 
-// Static data member initialization
+///////////////////////////////////////////////////////////
+// Static data member initialization                     //
+///////////////////////////////////////////////////////////
 rb::Data::Map_t       rb::Data::fgMap;
 rb::Data::SetMap_t    rb::Data::fgSetFunctionMap;
 rb::Data::GetMap_t    rb::Data::fgGetFunctionMap;
 rb::Data::ObjectMap_t rb::Data::fgObjectMap;
 
-// Constructor
+
+///////////////////////////////////////////////////////////
+// Constructor                                           //
+///////////////////////////////////////////////////////////
 rb::Data::Data(const char* name, const char* class_name, void* data, Bool_t createPointer):
-  kName(name), kClassName(class_name), kCintPointer(createPointer) {
+  kName(name), kClassName(class_name), kMapClass(createPointer) {
       fData = data;
       fgMap[kName] = this;
 
@@ -95,6 +88,10 @@ rb::Data::Data(const char* name, const char* class_name, void* data, Bool_t crea
 #undef FMAP_INSERT
 }
 
+
+///////////////////////////////////////////////////////////
+// rb::Data::Get                                         //
+///////////////////////////////////////////////////////////
 Double_t rb::Data::Get(const char* name) {
   ObjectMapIterator_t it = fgObjectMap.find(name);
   if(it == fgObjectMap.end()) {
@@ -111,6 +108,10 @@ Double_t rb::Data::Get(const char* name) {
   return Double_t(itGet->second(name));
 }
 
+
+///////////////////////////////////////////////////////////
+// static rb::Data::Set                                  //
+///////////////////////////////////////////////////////////
 void rb::Data::Set(const char* name, Double_t newvalue) {
   ObjectMapIterator_t itObject = fgObjectMap.find(name);
   if(itObject == fgObjectMap.end()) {
@@ -131,15 +132,19 @@ void rb::Data::Set(const char* name, Double_t newvalue) {
 }
 
 
-// Static branch adding function
+///////////////////////////////////////////////////////////
+// static branch adding function                         //
+///////////////////////////////////////////////////////////
 void rb::Data::AddBranches() {
   MapIterator_t it = fgMap.begin();
   while(it != rb::Data::fgMap.end())
     (*it++).second->AddBranch();
 }
 
-// Static CINT pointer creation function
-void rb::Data::CreatePointers() {
+///////////////////////////////////////////////////////////
+// static class mapping function                         //
+///////////////////////////////////////////////////////////
+void rb::Data::MapClasses() {
   vector<string> vPrint; /// For message printing
   vPrint.push_back("\nMapping the address of user data objects:\n");
   vPrint.push_back("      Name\t\tClass Name\n");
@@ -147,7 +152,7 @@ void rb::Data::CreatePointers() {
   Int_t printMinSize = vPrint.size();
 
   for(MapIterator_t it = fgMap.begin(); it != fgMap.end(); ++it) {
-    if(it->second->kCintPointer) {
+    if(it->second->kMapClass) {
       string name = it->first;
       string className = it->second->kClassName;
 
@@ -167,7 +172,9 @@ void rb::Data::CreatePointers() {
   }
 }
 
-// Static save all function
+///////////////////////////////////////////////////////////
+// static rb::Data::SavePrimitive                        //
+///////////////////////////////////////////////////////////
 void rb::Data::SavePrimitive(ostream& strm) {
   ObjectMapIterator_t it;
   for(it = fgObjectMap.begin(); it != fgObjectMap.end(); ++it) {
@@ -175,8 +182,9 @@ void rb::Data::SavePrimitive(ostream& strm) {
   }
 }
 
-
-// Static class parsing function
+///////////////////////////////////////////////////////////
+// static rb::Data::MapData                              //
+///////////////////////////////////////////////////////////
 Bool_t rb::Data::MapData(const char* name, TStreamerElement* element, void* base_address) {
 
   string typeName = element->GetTypeName();
@@ -204,7 +212,9 @@ Bool_t rb::Data::MapData(const char* name, TStreamerElement* element, void* base
   return kTRUE;
 }
 
-// Class parsing function.
+///////////////////////////////////////////////////////////
+// static rb::Data::MapClass                             //
+///////////////////////////////////////////////////////////
 void rb::Data::MapClass(const char* name, const char* classname, void* address) {
 
   TClass* cl = TClass::GetClass(classname);
@@ -226,6 +236,9 @@ void rb::Data::MapClass(const char* name, const char* classname, void* address) 
   }
 }
 
+///////////////////////////////////////////////////////////
+// static rb::Data::PrintAll                             //
+///////////////////////////////////////////////////////////
 void rb::Data::PrintAll() {
   ObjectMapIterator_t it = fgObjectMap.begin();
   while(it != fgObjectMap.end()) {

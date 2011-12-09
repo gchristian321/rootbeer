@@ -67,7 +67,7 @@ namespace rb
 
   protected:
     /// Tells whether we should have a pointer automatically created for use in CINT.
-    const Bool_t kCintPointer;
+    const Bool_t kMapClass;
 
     /// Name of the class instance. Equivalent to the variable defined in Skeleton.hh
     const std::string kName;
@@ -102,7 +102,9 @@ namespace rb
     //! The template argument should always be the same as the type of data pointed to by address.
     template<typename T>
     static void SetDataValue(void* address, Double_t newval) {
+      rb::Hist::Lock();
       *reinterpret_cast<T*>(address) = T(newval);
+      rb::Hist::Unlock();
     }
 
     /// Template function to get the value of data at a generic address.
@@ -115,8 +117,10 @@ namespace rb
 	Error("Get", "%s not found.", name);
 	return T(-1);
       }
+      rb::Hist::Lock();
       void* address = it->second.first;
       return Double_t(*reinterpret_cast<T*>(address));
+      rb::Hist::Unlock();
     }
 
   public:
@@ -143,8 +147,8 @@ namespace rb
     /// Call AddBranch() on everything in rb::Data::fgMap
     static void AddBranches();
 
-    /// Create a pointer in CINT for all instances of derived classes that ask for it (i.e. have set kCintPointer true).
-    static void CreatePointers();
+    /// Call MapClass on all instances that ask for it (i.e. have set kMapClass true).
+    static void MapClasses();
 
     /// Return the value of a user class data member. Thread safe.
     static Double_t Get(const char* name);
