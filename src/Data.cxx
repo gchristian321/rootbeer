@@ -92,6 +92,7 @@ rb::Data::Data(const char* name, const char* class_name, void* data, Bool_t crea
       FMAP_INSERT(unsigned int);
       FMAP_INSERT(unsigned);
       FMAP_INSERT(unsigned short);
+#undef FMAP_INSERT
 }
 
 Double_t rb::Data::Get(const char* name) {
@@ -154,7 +155,7 @@ void rb::Data::CreatePointers() {
       sPrint << "      " << name << "\t\t" << className << endl;
       vPrint.push_back(sPrint.str());
 
-      ParseClass(name.c_str(), className.c_str(), it->second->fData);
+      MapClass(name.c_str(), className.c_str(), it->second->fData);
     }
   }
 
@@ -176,7 +177,7 @@ void rb::Data::SavePrimitive(ostream& strm) {
 
 
 // Static class parsing function
-Bool_t rb::Data::MapDataAddress(const char* name, TStreamerElement* element, void* base_address) {
+Bool_t rb::Data::MapData(const char* name, TStreamerElement* element, void* base_address) {
 
   string typeName = element->GetTypeName();
   remove_duplicate_spaces(typeName); // in case someone did 'unsigned    short' or whatever
@@ -203,7 +204,8 @@ Bool_t rb::Data::MapDataAddress(const char* name, TStreamerElement* element, voi
   return kTRUE;
 }
 
-void rb::Data::ParseClass(const char* name, const char* classname, void* address) {
+// Class parsing function.
+void rb::Data::MapClass(const char* name, const char* classname, void* address) {
 
   TClass* cl = TClass::GetClass(classname);
   if(!cl) return;
@@ -216,17 +218,18 @@ void rb::Data::ParseClass(const char* name, const char* classname, void* address
       reinterpret_cast <TStreamerElement*>(elems->At(i));
     stringstream ssName;
     ssName << name << "." << element->GetName();
-    Bool_t basic = MapDataAddress(ssName.str().c_str(), element, address);
+    Bool_t basic = MapData(ssName.str().c_str(), element, address);
     if(!basic) {
       void_pointer_add(address, element->GetOffset());
-      ParseClass(ssName.str().c_str(), element->GetTypeName(), address);
+      MapClass(ssName.str().c_str(), element->GetTypeName(), address);
     }
   }
 }
 
-void rb::Data::list() {
+void rb::Data::PrintAll() {
   ObjectMapIterator_t it = fgObjectMap.begin();
   while(it != fgObjectMap.end()) {
-    cout << (*it++).first << endl;
+    string name = (*it++).first;
+    cout << name << " = " << Get(name.c_str()) << endl;
   }
 }
