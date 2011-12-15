@@ -17,16 +17,16 @@ private:
 public:
   LockingPointer(volatile T& object, TMutex& mutex) :
     fObject(const_cast<T*>(&object)), fMutex(&mutex) {
-    TThread::Lock();
+    fMutex->Lock();
   }
 
   LockingPointer(volatile T* object, TMutex& mutex) :
     fObject(const_cast<T*>(object)), fMutex(&mutex) {
-    TThread::Lock();
+    fMutex->Lock();
   }
 
   ~LockingPointer() {
-    TThread::UnLock();
+    fMutex->UnLock();
   }
   T* operator-> () {
     return fObject;
