@@ -136,7 +136,10 @@ void rb::canvas::ClearCurrent() {
   if(gPad) {
     for(Int_t i = 0; i < gPad->GetListOfPrimitives()->GetEntries(); ++i) {
       TH1* hst = dynamic_cast<TH1*> (gPad->GetListOfPrimitives()->At(i));
-      if(hst) hst->Clear();
+      if(hst) {
+	TH1D* hstd = static_cast<TH1D*>(hst);
+	for(UInt_t p = 0; p < hstd->fN; ++p) hstd->fArray[p] = 0.;
+      }
       gPad->Modified();
       gPad->Update();
     }

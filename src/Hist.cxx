@@ -2,18 +2,24 @@
  *  \brief Implements the histogram class member functions.
  */
 #include <algorithm>
+#include <iostream>
 #include "Hist.hxx"
 using namespace std;
 
 
-// Some utility functions for delegation.
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// Utility functions                                     //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 
-/// Function to divide strings by tokens
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// tokenize                                              //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+/// Divides a string into tokens
 inline vector<string> tokenize(const char* str, const char* token) {
   vector<string> out;
   string s(str), t(token);
   while(1) {
-    int pos = s.rfind(token);
+    ULong_t pos = s.rfind(token);
     if(pos< s.size()) {
       out.push_back(s.substr(pos+t.size()));
       s.erase(pos);
@@ -26,6 +32,9 @@ inline vector<string> tokenize(const char* str, const char* token) {
   return out;
 }
 
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+//  check_gate                                           //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 /// Gate checking function
 inline std::string check_gate(const char* gate) {
   TString tsGate(gate);
@@ -37,6 +46,9 @@ inline std::string check_gate(const char* gate) {
   else return sGate;
 }
 
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+//  check_name                                           //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 /// Name checking function
 inline std::string check_name(const char* name) {
   std::string ret = name;
@@ -54,408 +66,283 @@ inline std::string check_name(const char* name) {
 }
 
 
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// Class                                                 //
+// rb::Hist                                              //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// Static data members.                                  //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+TMutex rb::Hist::fgMutex (kFALSE);
+volatile rb::Hist::List_t rb::Hist::fgList;
+volatile TTree  rb::Hist::fgTree;
 
 
-// Class rb::Hist //
-
-// Static data members.
-list<rb::Hist*> rb::Hist::fgArray;
-
-TMutex rb::Hist::fgMutex (kTRUE);
-
-TTree rb::Hist::fgTree;
-
-Bool_t rb::Hist::kConstructorSuccess;
-
-
-// Constructor
-rb::Hist::Hist(const char* param, const char* gate, UInt_t npar)  {
-
-  // Flag telling derived classes that call this whether it was successful
-  kConstructorSuccess = kTRUE;
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// Constructor                                           //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+rb::Hist::Hist(const char* name, const char* title, const char* param, const char* gate, UInt_t npar) :
+  kConstructorSuccess(kTRUE), kDimensions(npar), fHistogramClone(0) {
+  LockFreePointer<CriticalElements>  critical(fCritical);
+  critical->fHistogram = 0;
 
   // Initialize gate
-  fGate = new TTreeFormula("fGate", check_gate(gate).c_str(), &fgTree);
-  if(!fGate->GetNdim()) kConstructorSuccess = kFALSE;
+  fCritical.fGate = new TTreeFormula("fGate", check_gate(gate).c_str(), critical->GetTree());
+  if(!fCritical.fGate->GetNdim()) {
+    kConstructorSuccess = kFALSE;
+    return;
+  }
 
   // Initialize parameters
   vector<string> vPar = tokenize(param, ":");
-  if(vPar.size() == npar) {
-    for(UInt_t i=0; i< npar; ++i) {
-
-      stringstream name; name << "param" << i;
-      fParams.push_back(new TTreeFormula(name.str().c_str(), vPar[i].c_str(), &fgTree));
-
-      if(!fParams[i]->GetNdim()) kConstructorSuccess = kFALSE;
-    }
-  }
-
-  else {
+  if(vPar.size() != npar) {
     Error("Hist", "Parameter specification %s is invalid for a %d-dimensional histogram.",
 	  param, npar);
     kConstructorSuccess = kFALSE;
+    return;
   }
+
+  for(UInt_t i=0; i< npar; ++i) {
+    stringstream parname; parname << "param" << i;
+    critical->fParams.push_back(new TTreeFormula(parname.str().c_str(), vPar[i].c_str(), critical->GetTree()));
+
+    if(!critical->fParams[i]->GetNdim())
+      kConstructorSuccess = kFALSE;
+  }
+
+  // Set name & title
+  fName  = check_name(name).c_str();
+
+  stringstream sstr;
+  sstr << param << " {" << fCritical.fGate->GetExpFormula().Data() << "}";
+  kDefaultTitle = sstr.str();
+  if(string(title).empty())
+    fTitle = kDefaultTitle.c_str();
+  else
+    fTitle = title;
+  kInitialTitle = fTitle;
 }
 
-// Destuctor
+
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// Destuctor                                             //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 rb::Hist::~Hist() {
-  delete fGate;
-  for(UInt_t i=0; i< fParams.size(); ++i)
-    delete fParams[i];
+  LockingPointer<CriticalElements> critical(fCritical, fgMutex);
+
+  // remove from fgList and directory
+  List_t* pList = critical->GetList();
+  List_t::iterator it = find(pList->begin(), pList->end(), this);
+  pList->erase(it);
+  fDirectory->Remove(this);
+
+  // free memory allocated to TTreeFormulae
+  delete critical->fGate;
+  for(UInt_t i=0; i< critical->fParams.size(); ++i)
+    delete critical->fParams[i];
+
+  if(critical->fHistogram) delete critical->fHistogram;
+  if(fHistogramClone) delete fHistogramClone;
 }
 
-// Regate function
-Int_t rb::Hist::Regate(const char* newgate) {
 
-  Hist::Lock();
-  TTreeFormula tempFormula("temp", check_gate(newgate).c_str(), &fgTree);
-  if(!tempFormula.GetNdim()) {
-    Hist::Unlock();
-    return -1;
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// static rb::Hist::Initialize                           //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+Bool_t rb::Hist::Initialize(const char* name, const char* title,
+			    const char* param, const char* gate, UInt_t ndim,
+			    Int_t nbinsx, Double_t xlow, Double_t xhigh,
+			    Int_t nbinsy = 0, Double_t ylow = 0, Double_t yhigh = 0,
+			    Int_t nbinsz = 0, Double_t zlow = 0, Double_t zhigh = 0) {
+  // Create rb::Hist instance
+  rb::Hist* _this = new rb::Hist(name, title, param, gate, ndim);
+  if(!_this->kConstructorSuccess) return kFALSE;
+
+  // Set internal histogram
+  //! \note The histogram isn't accessable to any other threads until we add it to
+  //! fgList, so it's safe to access the critical elements via a non-locking pointer.
+  LockFreePointer<CriticalElements> unlocked_critical(_this->fCritical);
+
+  Bool_t successfulHistCreation = kTRUE;
+  TH1::AddDirectory(kFALSE);
+  switch(ndim) {
+  case 1:
+    unlocked_critical->fHistogram =
+      new TH1D(_this->fName, _this->fTitle, nbinsx, xlow, xhigh);
+    unlocked_critical->fHistogram->GetXaxis()->SetTitle(unlocked_critical->fParams.at(0)->GetExpFormula());
+    break;
+  case 2:
+    unlocked_critical->fHistogram =
+      new TH2D(_this->fName, _this->fTitle, nbinsx, xlow, xhigh, nbinsy, ylow, yhigh);
+    unlocked_critical->fHistogram->GetXaxis()->SetTitle(unlocked_critical->fParams.at(0)->GetExpFormula());
+    unlocked_critical->fHistogram->GetYaxis()->SetTitle(unlocked_critical->fParams.at(1)->GetExpFormula());
+    break;
+  case 3:
+    unlocked_critical->fHistogram =
+      new TH3D(_this->fName, _this->fTitle, nbinsx, xlow, xhigh, nbinsy, ylow, yhigh, nbinsz, zlow, zhigh);
+    unlocked_critical->fHistogram->GetXaxis()->SetTitle(unlocked_critical->fParams.at(0)->GetExpFormula());
+    unlocked_critical->fHistogram->GetYaxis()->SetTitle(unlocked_critical->fParams.at(1)->GetExpFormula());
+    unlocked_critical->fHistogram->GetZaxis()->SetTitle(unlocked_critical->fParams.at(2)->GetExpFormula());
+    break;
+  default:
+    _this->Error("Initialize", "%d-dimenstional histograms are not supported.", ndim);
+    successfulHistCreation = kFALSE;
+    break;
   }
+  TH1::AddDirectory(kTRUE);
 
-  // set new gate
-  string oldGate = GetGate();
+  // Add to collections
+  LockingPointer<List_t> hlist(fgList, fgMutex);
+  if(successfulHistCreation) {
+    hlist->push_back(_this);
 
-  /// \note Tried using TTreeFormula::Compile() to change the gate,
-  /// but it causes a crash if I call
-  /// Regate() too many times. Could be a bug in TTreeFormula::Compile() ?
-  /// I'll ask on the ROOT forums. Anyway, changing the gate condition
-  /// by using \c delete and \c new seems to work OK.
-  if(fGate) delete fGate;
-  fGate = new TTreeFormula("fGate", check_gate(newgate).c_str(), &fgTree);
-
-  // change title if appropriate
-  TH1* hst = dynamic_cast<TH1*>(this);
-  if(hst) { // yes we inherit from TH1 and can use SetTitle(), etc.
-
-    // Reconstruct initial param argument
-    stringstream sPar, sAll;
-    for(Int_t i = GetNdimensions()-1; i > 0; --i)
-      sPar << GetParam(i) << ":";
-    sPar << GetParam(0);
-    sAll << sPar.str() << " {" << oldGate << "}";
-
-    if(sAll.str() == hst->GetTitle()) { // no custom title
-      sAll.str("");
-      sAll << sPar.str() << " {" << GetGate() << "}";
-      hst->SetTitle(sAll.str().c_str());
+    if(gDirectory) {
+      _this->fDirectory = gDirectory;
+      _this->fDirectory->Append(_this, kTRUE);
     }
   }
-
-  Hist::Unlock();
-  return 0;
+  return successfulHistCreation;
 }
 
-// Return gate string
-string rb::Hist::GetGate() {
-  return fGate->GetExpFormula().Data();
-}
-
-// Return parameter string
-string rb::Hist::GetParam(Int_t axis) {
-  if(axis< fParams.size())
-    return fParams[axis]->GetExpFormula().Data();
-  Error("GetParam", "Invalid axis: %d, maximum is %d (X=0, Y=1, Z=2).",
-	axis, Int_t(fParams.size()));
-  return "";
-}
-
-// Return axis
-TAxis* rb::Hist::GetAxis(Int_t axis) {
-  TH1* hst = dynamic_cast<TH1*>(this);
-  if(!hst) {
-    Error("GetAxis", "This method can't be called on classes that don't inherit from TH1");
-    return 0;
-  }
-  if(axis >= fParams.size()) {
-    Error("GetAxis",
-	  "Invalid axis specification: %d for a %d-dimensional histogram",
-	  axis, Int_t(fParams.size()));
-    return 0;
-  }
-  switch(axis) {
-  case 0: return hst->GetXaxis(); break;
-  case 1: return hst->GetYaxis(); break;
-  case 2: return hst->GetZaxis(); break;
-  default: break;
-  }
-  Error("GetAxis", "Axis specification %d too large", axis);
-}    
-
-// Get number of histograms
-UInt_t rb::Hist::GetNumber() {
-  return fgArray.size();
-}
-
-// Static find-by-name function
-rb::Hist* rb::Hist::Find(const char* name) {
-  return dynamic_cast<rb::Hist*>(gROOT->FindObjectAny(name));
-}
-
-// Static branch creation function
-TBranch* rb::Hist::AddBranch(const char* name, const char* classname, void** obj,
-			     Int_t bufsize, Int_t splitlevel) {
-  return fgTree.Branch(name, classname, obj, bufsize, splitlevel);
-}
-
-// Static alias setting function
-Bool_t rb::Hist::SetAlias(const char* aliasName, const char* aliasFormula) {
-  return fgTree.SetAlias(aliasName, aliasFormula);
-}
-  
-// Static mutex locking function
-Int_t rb::Hist::Lock() {
-  return fgMutex.Lock();
-}
-
-// Static mutex try locking function
-Int_t rb::Hist::TryLock() {
-  return fgMutex.TryLock();
-}
-
-// Static mutex un-locking function
-Int_t rb::Hist::Unlock() {
-  return fgMutex.UnLock();
-}
-
-// Static fill all function
-void rb::Hist::FillAll() {
-  static list<rb::Hist*>::iterator it;
-  Hist::Lock();
-  for( it = fgArray.begin(); it != fgArray.end(); ++it) {
-    (*it)->Fill();
-  }
-  Hist::Unlock();
-}
-
-void rb::Hist::DeleteAll() {
-  while(fgArray.size() > 0)
-    delete *fgArray.begin();
-}  
-
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// static rb::Hist::New (One-dimensional)                //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 void rb::Hist::New(const char* name, const char* title,
 		   Int_t nbinsx, Double_t xlow, Double_t xhigh,
 		   const char* param, const char* gate) {
-
-  rb::H1D * hst = new rb::H1D(name, title,
-			      nbinsx, xlow, xhigh,
-			      param, gate);
+  rb::Hist::Initialize(name, title, param, gate, 1, nbinsx, xlow, xhigh);
 }
 
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// static rb::Hist::New (Two-dimensional)                //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 void rb::Hist::New(const char* name, const char* title,
 		   Int_t nbinsx, Double_t xlow, Double_t xhigh,
 		   Int_t nbinsy, Double_t ylow, Double_t yhigh,
 		   const char* param, const char* gate) {
-
-  rb::H2D * hst = new rb::H2D(name, title,
-			      nbinsx, xlow, xhigh,
-			      nbinsy, ylow, yhigh,
-			      param, gate);
+  rb::Hist::Initialize(name, title, param, gate, 2, nbinsx, xlow, xhigh, nbinsy, ylow, yhigh);
 }
 
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// static rb::Hist::New (Three-dimensional)              //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 void rb::Hist::New(const char* name, const char* title,
 		   Int_t nbinsx, Double_t xlow, Double_t xhigh,
 		   Int_t nbinsy, Double_t ylow, Double_t yhigh,
 		   Int_t nbinsz, Double_t zlow, Double_t zhigh,
 		   const char* param, const char* gate) {
-
-  rb::H3D * hst = new rb::H3D(name, title,
-  			      nbinsx, xlow, xhigh,
-  			      nbinsy, ylow, yhigh,
-  			      nbinsz, zlow, zhigh,
-  			      param, gate);
+  rb::Hist::Initialize(name, title, param, gate, 3, nbinsx, xlow, xhigh, nbinsy, ylow, yhigh, nbinsz, zlow, zhigh);
 }
 
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// rb::Hist::Regate                                      //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+Int_t rb::Hist::Regate(const char* newgate) {
+  LockingPointer<CriticalElements> critical(fCritical, fgMutex);
 
-
-// Class rb::H1D //
-
-// Constructor
-rb::H1D::H1D (const char* name, const char* title,
-	      Int_t nbinsx, Double_t xlow, Double_t xhigh,
-	      const char* param, const char* gate) :
-  TH1D (check_name(name).c_str(), title, nbinsx, xlow, xhigh),
-  Hist(param, gate, 1)
-{
-  if(kConstructorSuccess) {
-    if(string(title).empty()) {
-      stringstream sstr;
-      sstr << param << " {" << GetGate() << "}";
-      SetTitle(sstr.str().c_str());
-    }
-    GetXaxis()->SetTitle(fParams.at(0)->GetExpFormula());
-    Hist::Lock();
-    fgArray.push_back(this);
-    Hist::Unlock();
+  // check that new gate formula is valid
+  TTreeFormula tempFormula("temp", check_gate(newgate).c_str(), critical->GetTree());
+  if(!tempFormula.GetNdim()) {
+    return -1;
   }
-  else {
-    this->Delete();
+
+  // It's valid, so set the new gate
+  if(critical->fGate) delete critical->fGate;
+  critical->fGate = new TTreeFormula("fGate", check_gate(newgate).c_str(), critical->GetTree());
+
+  // Change title if appropriate
+  if(kInitialTitle == kDefaultTitle) {
+    stringstream newTitle;
+    for(Int_t i = GetNdimensions()-1; i > 0; --i)
+      newTitle << critical->fParams.at(i)->GetExpFormula().Data() << ":";
+    newTitle << critical->fParams.at(0)->GetExpFormula().Data();
+    newTitle << " {" << critical->fGate->GetExpFormula().Data() << "}";
+    fTitle = newTitle.str().c_str();
+    critical->fHistogram->SetTitle(fTitle);
   }
 }
 
-// Destructor
-rb::H1D::~H1D() {
-  Hist::Lock();
-  fgArray.remove(this);
-  Hist::Unlock();
-}
 
-// Draw function
-void rb::H1D::Draw(Option_t* option) {
-  Hist::Lock();
-  TH1D::Draw(option);
-  Hist::Unlock();
-}
-
-// Fill function
-Int_t rb::H1D::Fill() {
-  Hist::Lock();
-  Int_t ret = fGate->EvalInstance() ?
-    TH1D::Fill(fParams[0]->EvalInstance())
-    : 0;
-  Hist::Unlock();
-  return ret;
-}
-
-// Clear Function
-void rb::H1D::Clear(const Option_t* option) {
-  Hist::Lock();
-  for(Int_t i=0; i< fN; ++i) fArray[i] = 0;
-  Hist::Unlock();
-  if(string(option) != "")
-    Warning("Clear", "Option %s ignored", option);
-}
-
-
-// Class rb::H2D //
-
-// Constructor
-rb::H2D::H2D (const char* name, const char* title,
-	      Int_t nbinsx, Double_t xlow, Double_t xhigh,
-	      Int_t nbinsy, Double_t ylow, Double_t yhigh,
-	      const char* param, const char* gate) : 
-  TH2D (check_name(name).c_str(), title,
-	nbinsx, xlow, xhigh,
-	nbinsy, ylow, yhigh),
-  Hist(param, gate, 2)
-{
-  if(kConstructorSuccess) {
-    if(string(title).empty()) {
-      stringstream sstr;
-      sstr << param << " {" << GetGate() << "}";
-      SetTitle(sstr.str().c_str());
-    }
-    GetXaxis()->SetTitle(fParams.at(0)->GetExpFormula());
-    GetYaxis()->SetTitle(fParams.at(1)->GetExpFormula());
-    Hist::Lock();
-    fgArray.push_back(this);
-    Hist::Unlock();
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// rb::Hist::GetParam                                    //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+string rb::Hist::GetParam(UInt_t axis) {
+  LockingPointer<CriticalElements> critical(fCritical, fgMutex);
+  if(axis < critical->fParams.size()) {
+    return critical->fParams[axis]->GetExpFormula().Data();
   }
-  else {
-    this->Delete();
-  }
+  Error("GetParam", "Invalid axis: %d, maximum is %d (X=0, Y=1, Z=2).",
+	axis, Int_t(critical->fParams.size()));
+  return "";
 }
 
-// Destructor
-rb::H2D::~H2D() {
-  Hist::Lock();
-  fgArray.remove(this);
-  Hist::Unlock();
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// rb::Hist::GetHist()                                   //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+TH1* rb::Hist::GetHist() {
+  if(fHistogramClone) delete fHistogramClone;
+  TH1::AddDirectory(kFALSE);
+  fHistogramClone =
+    static_cast<TH1*>(LockingPointer<CriticalElements>(fCritical, fgMutex)->fHistogram->Clone());
+  TH1::AddDirectory(kTRUE);
+  return fHistogramClone;
 }
 
-// Draw function
-void rb::H2D::Draw(Option_t* option) {
-  Hist::Lock();
-  TH2D::Draw(option);
-  Hist::Unlock();
-}
+ Int_t fill(UInt_t ndimensions, TH1* hst, TTreeFormula* gate, vector<TTreeFormula*> params) {
+   if(!gate->EvalInstance()) return 0;
 
-// Fill function
-Int_t rb::H2D::Fill() {
-  Hist::Lock();
-  Int_t ret = fGate->EvalInstance() ?
-    TH2D::Fill(fParams[0]->EvalInstance(),
-	       fParams[1]->EvalInstance())
-    : 0;
-  Hist::Unlock();
-  return ret;
-}
-
-// Clear Function
-void rb::H2D::Clear(const Option_t* option) {
-  Hist::Lock();
-  for(Int_t i=0; i< fN; ++i) fArray[i] = 0;
-  Hist::Unlock();
-  if(string(option) != "")
-    Warning("Clear", "Option %s ignored", option);
-}
+   switch(ndimensions) {
+   case 1:
+     return static_cast<TH1D*>(hst)->Fill(params[0]->EvalInstance());
+     break;
+   case 2:
+     return static_cast<TH2D*>(hst)->Fill(params[0]->EvalInstance(),
+					  params[1]->EvalInstance());
+     break;
+   case 3:
+     return static_cast<TH2D*>(hst)->Fill(params[0]->EvalInstance(),
+					  params[1]->EvalInstance(),
+					  params[2]->EvalInstance());
+     break;
+   default:
+     Error("Fill", "Invalid ndimensions %d", ndimensions);
+     return -1;
+     break;
+   }
+ }
+   
 
 
-// Class rb::H3D //
-
-// Constructor
-rb::H3D::H3D (const char* name, const char* title,
-	      Int_t nbinsx, Double_t xlow, Double_t xhigh,
-	      Int_t nbinsy, Double_t ylow, Double_t yhigh,
-	      Int_t nbinsz, Double_t zlow, Double_t zhigh,
-	      const char* param, const char* gate) :
-  TH3D (check_name(name).c_str(), title,
-	nbinsx, xlow, xhigh,
-	nbinsy, ylow, yhigh,
-	nbinsz, zlow, zhigh),
-  Hist(param, gate, 3) {
-
-  if(kConstructorSuccess) {
-    if(string(title).empty()) {
-      stringstream sstr;
-      sstr << param << " {" << GetGate() << "}";
-      SetTitle(sstr.str().c_str());
-    }
-    GetXaxis()->SetTitle(fParams.at(0)->GetExpFormula());
-    GetYaxis()->SetTitle(fParams.at(1)->GetExpFormula());
-    GetZaxis()->SetTitle(fParams.at(2)->GetExpFormula());
-    Hist::Lock();
-    fgArray.push_back(this);
-    Hist::Unlock();
-  }
-  else {
-    this->Delete();
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// static rb::Hist::FillAll                              //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+void rb::Hist::FillAll() {
+  LockingPointer<List_t> hlist(fgList, fgMutex); // makes it safe to not lock the others
+  List_t::iterator it;
+  for(it = hlist->begin(); it != hlist->end(); ++it) {
+    LockFreePointer<CriticalElements> critical((*it)->fCritical);
+    fill((*it)->kDimensions, critical->fHistogram, critical->fGate, critical->fParams);
   }
 }
 
-// Destructor
-rb::H3D::~H3D() {
-  Hist::Lock();
-  fgArray.remove(this);
-  Hist::Unlock();
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// static rb::Hist::DeleteAll                            //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+void rb::Hist::DeleteAll() {
+  TMutex deleteMutex; // create a local mutex to avoid deadlock when calling delete
+  LockingPointer<List_t> hlist(fgList, deleteMutex);
+   while(1) {
+     if(hlist->size() == 0) break;
+     delete *hlist->begin();
+   }
 }
 
-// Draw function
-void rb::H3D::Draw(Option_t* option) {
-  Hist::Lock();
-  TH3D::Draw(option);
-  Hist::Unlock();
-}
 
-// Fill function
-Int_t rb::H3D::Fill() {
-  Hist::Lock();
-  Int_t ret = fGate->EvalInstance() ?
-    TH3D::Fill(fParams[0]->EvalInstance(),
-	       fParams[1]->EvalInstance(),
-	       fParams[2]->EvalInstance())
-    : 0;
-  Hist::Unlock();
-  return ret;
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// rb::Hist::Fill()                                      //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+Int_t rb::Hist::Fill() {
+  LockingPointer<CriticalElements> critical(fCritical, fgMutex);
+  fill(kDimensions, critical->fHistogram, critical->fGate, critical->fParams);
 }
-
-// Clear Function
-void rb::H3D::Clear(const Option_t* option) {
-  Hist::Lock();
-  for(Int_t i=0; i< fN; ++i) fArray[i] = 0;
-  Hist::Unlock();
-  if(string(option) != "")
-    Warning("Clear", "Option %s ignored", option);
-}
-

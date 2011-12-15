@@ -1,11 +1,6 @@
 /*! \file Hist.hxx
- *  \brief Defines the histogram classes
+ *  \brief Defines the histogram class.
  *  used in <tt>ROOTBEER</tt>.
- *
- *  The essential design is to inherit everything
- *  from the appropriate-dimensioned <tt>TH*F</tt>.
- *  See comments in the individual classes for details.
- *  \todo Check on thread safety of other access methods.
  */
 #ifndef __HIST__
 #define __HIST__
@@ -18,54 +13,117 @@
 #include "TH3D.h"
 #include "TTree.h"
 #include "TTreeFormula.h"
-#include "TROOT.h"
-#include "TError.h"
-#include "TObjArray.h"
-#include "TMutex.h"
+#include <TROOT.h>
+#include <TError.h>
+#include <TObjArray.h>
+#include <TMutex.h>
+#include "LockingPointer.hxx"
 
 
 namespace rb
 {
-  /// Base class for \c rb::HnF objects.
-  /*! Main purpose is to allow polymorphism for the \c Fill()
-   *  function (n.b., that's \c Fill() with no arguments).
-   *  Also implements some other functions shared by
-   *  the various \c rb::HnF flavors
-   *  \note To avoid multi-inheritance issues, this class should
-   *  <i>not</i> define any methods
-   *  that are contained in \c TH1 or it's derivatives.
-   */
-  class Hist
-  {  
-  protected:
+  ///
+  class Hist : public TNamed
+  {
+    typedef std::list<rb::Hist*> List_t;
+
+  private:
+    /// Number of dimensions
+    UInt_t kDimensions;
+
+    /// The original title
+    //! Used for changing the title in Regate()
+    std::string kInitialTitle;
+
+    /// Default title, set from the parameters and gate condition.
+    std::string kDefaultTitle;
+
+    /// Internal histogram.
+    //    volatile TH1* fHistogram;
+
+    /// Clone of the internal histogram.
+    //! This is basically the only thing that CINT users can access, via the GetHist() function.
+    //! The reason for doing it this way is thread safety. By only allowing CINT users access to
+    //! a copy of fHistogram (created within a mutex lock), we ensure that there will never be any
+    //! conflicts between the main therad and others that can modify the internal histogram.
+    TH1* fHistogramClone;
+
+    /// Directory owning a rb::Hist instance.
+    TDirectory* fDirectory;
+
     /// Gate formula.
-    TTreeFormula* fGate;
+    //    volatile TTreeFormula* fGate;
 
     /// Parameter formulae.
-    std::vector<TTreeFormula*> fParams;
+    //    volatile std::vector<TTreeFormula*> fParams;
 
-    /// Static list of all existing rb::Hist derived objects.
-    static std::list<rb::Hist*> fgArray;
+    /// Internal mutex.
+    TMutex fMutex;
 
-    /// Static mutex for locking threaded histogram actions.
-    //! \note Defined as recursive (\c true argument in the constructor).
-    //! This avoids deadlock if we call it twice from the same thread.
+    /// Global mutex.
     static TMutex fgMutex;
 
+    /// Static list of all existing rb::Hist derived objects.
+    static volatile List_t fgList;
+
     /// Static TTree for calculating parameter values.
-    static TTree fgTree;
+    static volatile TTree fgTree;
 
     /// Constructor error code: true = success, false = failure.
-    static Bool_t kConstructorSuccess;
+    Bool_t kConstructorSuccess;
+
+    /// Function to initialize a histogram.
+    //! Basically this is just a helper function that is called by the various
+    //! 1d, 2d, 3d flavors of rb::AddHist().  It handles the following:
+    //!    - Creation of the rb::Hist object itself via the protected constructor.
+    //!    - Initialization of the internal fHistogram TH1* pointer to the appropriate type
+    //!      (e.g. TH1D for 1d, etc)
+    //!    - Adding of the rb::Hist object to both ROOT's gDirectory->fList and the static
+    //!      rb::Hist::fgList list of all rb::Hist objects.
+    static Bool_t Initialize(const char* name, const char* title,
+			     const char* param, const char* gate, UInt_t ndim,
+			     Int_t nbinsx, Double_t xlow, Double_t xhigh,
+			     Int_t nbinsy, Double_t ylow, Double_t yhigh,
+			     Int_t nbinsz, Double_t zlow, Double_t zhigh);
 
     /// Constructor
-    /*! Set the internal \c TTree and \c fGate fields.
-     *  \note Protected b/c we shouldn't create explicit instances of this. */
-    Hist(const char* param, const char* gate, UInt_t npar);
+    //! Set the internal \c TTree and \c fGate fields.
+    //! \note Protected b/c we shouldn't create explicit instances of this.
+    Hist(const char* name, const char* title, const char* param, const char* gate, UInt_t npar);
+
+    volatile struct CriticalElements
+    {
+      TH1* fHistogram;
+      TTreeFormula* fGate;
+      std::vector<TTreeFormula*> fParams;
+      TTree* GetTree() {
+	return const_cast<TTree*>(&fgTree);
+      }
+      List_t* GetList() {
+	return const_cast<List_t*>(&fgList);
+      }
+    } fCritical;
+
 
   public:
     /// Function to fill histogram from its internal parameter value(s).
-    virtual Int_t Fill() = 0;
+    virtual Int_t Fill();
+
+    /// Returns a copy of fHistogram.
+    TH1* GetHist();
+
+    /// Draw function.
+    //! Calls GetHist() and then Draw() one the result.
+    void Draw(Option_t* option = "") {
+      LockingPointer<CriticalElements>(fCritical, fgMutex)->fHistogram->Draw(option);
+    }
+
+    /// Clear function.
+    void Clear() {
+      LockingPointer<CriticalElements> critical(fCritical, fgMutex);
+      TH1D* hist = static_cast<TH1D*>(critical->fHistogram);
+      for(Int_t p = 0; p < hist->fN; ++p) hist->fArray[p] = 0.;
+    }
 
     /// Default constructor.
     Hist() { } ;
@@ -75,267 +133,108 @@ namespace rb
     virtual ~Hist();
 
     /// Function to change the histogram gate.
-    /*! Updates \c fGate to reflect the new gate formula. Returns 0 if successful,
-     *  -1 if \c newgate isn't valid. In case of invalid \c newgate, the histogram
-     *  gate condition remains unchanged.
-     * \bug Calling this while attached online and updating at 1 sec caused a lock-up.
-     * Update: probably fixed but needs more testing, see the note about TTreeFormula::Compile().
-     */
+    //! Updates \c fGate to reflect the new gate formula. Returns 0 if successful,
+    //!  -1 if \c newgate isn't valid. In case of invalid \c newgate, the histogram
+    //!  gate condition remains unchanged.
     virtual Int_t Regate(const char* newgate);
 
     /// Return the number of dimensions.
     UInt_t GetNdimensions() {
-      return fParams.size();
+      return kDimensions;
     }
 
     /// Return the gate argument
-    std::string GetGate();
+    std::string GetGate() {
+      return LockingPointer<CriticalElements>(fCritical, fgMutex)->fGate->GetExpFormula().Data();
+    }
 
     /// Return the parameter name for the specified axis.
-    std::string GetParam(Int_t axis);
+    std::string GetParam(UInt_t axis);
 
-    /// Return the specified axis pointer.
-    TAxis* GetAxis(Int_t axis);
+    ///
+    static TMutex& GetMutex() {
+      return fgMutex;
+    }
 
-    /// Function to fill al hostograms
+    /// Function to fill all histograms
     static void FillAll();
 
     /// Function to access fgTree
-    static TTree* GetTree() { return &fgTree; }
+    static TTree* GetTreeClone() {
+      return static_cast<TTree*> (LockingPointer<TTree>(fgTree, fgMutex)->Clone());
+    }
 
     /// Function to add branches to fgTree.
     static TBranch* AddBranch(const char* name, const char* classname, void** obj,
-			      Int_t bufsize = 32000, Int_t splitlevel = 99);
+			      Int_t bufsize = 32000, Int_t splitlevel = 99) {
+      return LockingPointer<TTree>(fgTree, fgMutex)->Branch(name, classname, obj, bufsize, splitlevel);
+    }
 
-    /// Function to access entries of \c Hist::fgArray
-    static rb::Hist* Find(const char* name);
+    /// Function to access entries of \c Hist::fgList
+    static rb::Hist* Find(const char* name) {
+      LockingPointer<List_t> hlist(fgList, fgMutex);
+      List_t::iterator it;
+      for(it = hlist->begin(); it != hlist->end(); ++it) {
+	if(!strcmp((*it)->GetName(), name)) return *it;
+      }
+      fprintf(stderr, "Error in <rb::Hist::Find>: %s was not found\n", name);
+      return 0;
+    }
 
-    /// Function to delete all entries of \c Hist::fgArray
+    /// Function to delete all entries of \c Hist::fgList
     static void DeleteAll();
 
-    /// Function to tell the total number of entries in \c fgArray
-    static UInt_t GetNumber();
+    /// Function to tell the total number of entries in \c fgList
+    static UInt_t GetNumber() {
+      return LockingPointer<List_t>(fgList, fgMutex)->size();
+    }
 
     /// Set an alias in \c fgTree
-    static Bool_t SetAlias(const char* aliasName, const char* aliasFormula);
+    static Bool_t SetAlias(const char* aliasName, const char* aliasFormula) {
+      LockingPointer<TTree>(fgTree, fgMutex)->SetAlias(aliasName, aliasFormula);
+    }
 
     /// Static mutex locking function
-    static Int_t Lock();
+    static Int_t Lock() {
+      return fgMutex.Lock();
+    }
 
     /// Static mutex try-to-lock function
     //! Returns 0 on success.
-    static Int_t TryLock();
+    static Int_t TryLock() {
+      return fgMutex.TryLock();
+    }
 
     /// Static mutex un-locking function
-    static Int_t Unlock();
+    static Int_t Unlock() {
+      return fgMutex.UnLock();
+    }
 
-    /// \brief Function to create a 1d histogram. Mirors the \c TH1D constructor.
+    /// One-dimensional creation function
     static void New(const char* name, const char* title,
 		    Int_t nbinsx, Double_t xlow, Double_t xhigh,
 		    const char* param, const char* gate = "");
 
-    /// \brief Function to create a 2d histogram. Mirors the \c TH2D constructor.
+    /// Two-dimensional creation function
     static void New(const char* name, const char* title,
 		    Int_t nbinsx, Double_t xlow, Double_t xhigh,
 		    Int_t nbinsy, Double_t ylow, Double_t yhigh,
 		    const char* param, const char* gate = "");
 
-    /// \brief Function to create a 3d histogram. Mirors the \c TH3D constructor.
+    /// Three-dimensional creation function
     static void New(const char* name, const char* title,
 		    Int_t nbinsx, Double_t xlow, Double_t xhigh,
 		    Int_t nbinsy, Double_t ylow, Double_t yhigh,
 		    Int_t nbinsz, Double_t zlow, Double_t zhigh,
 		    const char* param, const char* gate = "");
+
+    /// \c CINT Classdef.
+    ClassDef(Hist, 0);
   };
-
-
-  /// \brief One-dimensional histogram class for <tt>rootbeer</tt>.
-  /*! Essentially inherits all of the functionality of a normal
-   *  <tt>TH1D</tt>. The main additions are the ability to fill (and gate)
-   *  itself from an internal \c TTree pointer, using <tt>TTreeFormula</tt>,
-   *  and thread safety. For the thread safety, we override normal \c TH1D
-   *  methods to call the normal functionality within mutex locks.  For this,
-   *  we make use of the static \c rb::Hist::Lock() and \c rb::Hist::Unlock() functions.
-   */
-  class H1D : public TH1D, public Hist
-  {
-
-  public:
-    /// Constructor
-    /*! Format basically mirrors the normal TH1D constructor but
-      with the addition of \c param and \c gate arguments
-      to set the \c fParam and \c fGate fields. Also adds to the
-      static Hist::fgArray list.
-      Locks the \c gUnpacker mutex when adding to fgArray
-      \note The constructor is hidden from \c CINT because we
-      don't want users to be able to call it. Instead they use the
-      rb::AddHist() function. The reason for this choice is that
-      CINT allows users to duplicate symbols, deleting the old
-      object, and this doesn't play nice with the threaded filling
-      of all histograms in Hist::fgArray. Giving access via functions
-      eliminates the problem and still allows users simple access via
-      the atomatic pointers that CINT creates.
-    */
-#ifndef __CINT__
-    H1D (const char* name, const char* title,
-         Int_t nbins, Double_t xlow, Double_t xhigh,
-	 const char* param, const char* gate = "");
-#endif
-
-    /// Empty constructor for \c CINT
-    H1D() { };
-
-    /// Destructor.
-    /*! Removes the object from fgArray;
-        \note The removal from fgArray \emph must be done in the derived class destructor,
-        not the parent.  Otherwise it causes problems with threading:
-        \code
-           thread_1: H1D* hst (in array) --> ~H1D(hst) ---> Hist* hst (still in array) ---> hst gone :)
-                                                                   |
-					   			   |          *!*!*!* <-- (explosion)
-                                                                [Fill()] ---> *!*!*!* [pure virtual method called]
-                                                                   |          *!*!*!* 
-           thread_2: ------->------- FillAll() ---------->---------^
-       \endcode
-                                                                                
-    */
-    virtual ~H1D();
-
-    /// Draw function
-    /*! Just calls the normal \c TH1D::Draw but with the 
-      mutex locked. */
-    void Draw(Option_t* option);
-
-    /// Fill function
-    /*! Evaluates \c fParam and calls \c TH1D::Fill using the result.
-      Also locks the \c gUnpacker mutex for thread safety. */
-    Int_t Fill();
-
-    /// Allows the user to zero out the histogram.
-    void Clear(const Option_t* option = "");
-
-    /// ClassDef for <tt>CINT</tt>.
-    ClassDef(rb::H1D, 0);
-  };
-
-
-  /// \brief Two-dimensional histogram class for <tt>rootbeer</tt>.
-  /*! Essentially inherits all of the functionality of a normal
-   *  <tt>TH2D</tt>. The main additions are the ability to fill (and gate)
-   *  itself from an internal \c TTree pointer, using <tt>TTreeFormula</tt>,
-   *  and thread safety. For the thread safety, we override normal \c TH2D
-   *  methods to call the normal functionality within mutex locks.  For this,
-   *  we make use of the static \c rb::Hist::Lock() and \c rb::Hist::Unlock() functions.
-   */
-  class H2D : public TH2D, public Hist
-  {
-
-  public:
-    /// Constructor
-    /*! Format basically mirrors the normal TH2D constructor but
-      with the addition of \c param and \c gate arguments
-      to set the \c fParam and \c fGate fields. Also adds to the
-      static Hist::fgArray list.
-      Locks the \c gUnpack mutex when adding to fgArray
-      \note The constructor is hidden from \c CINT because we
-      don't want users to be able to call it. Instead they use the
-      rb::AddHist() function. The reason for this choice is that
-      CINT allows users to duplicate symbols, deleting the old
-      object, and this doesn't play nice with the threaded filling
-      of all histograms in Hist::fgArray. Giving access via functions
-      eliminates the problem and still allows users simple access via
-      the atomatic pointers that CINT creates.
-    */
-#ifndef __CINT__
-    H2D (const char* name, const char* title,
-         Int_t nbinsx, Double_t xlow, Double_t xhigh,
-	 Int_t nbinsy, Double_t ylow, Double_t yhigh,
-	 const char* param, const char* gate = "");
-#endif
-
-    /// Empty constructor for \c CINT
-    H2D() { };
-
-    /// Destructor.
-    virtual ~H2D();
-
-    /// Draw function
-    /*! Just calls the normal \c TH2D::Draw but with the 
-      \c gUnpacker mutex locked. */
-    void Draw(Option_t* option);
-
-    /// Fill function
-    /*! Evaluates \c fParam and calls \c TH2D::Fill using the result.
-      Also locks the \c gUnpacker mutex for thread safety. */
-    Int_t Fill();
-
-    /// Allows the user to zero out the histogram.
-    void Clear(const Option_t* option = "");
-
-    /// ClassDef for <tt>CINT</tt>.
-    ClassDef(rb::H2D, 0);
-  };
-
-
-  /// \brief Three-dimensional histogram class for <tt>rootbeer</tt>.
-  /*! Essentially inherits all of the functionality of a normal
-   *  <tt>TH3D</tt>. The main additions are the ability to fill (and gate)
-   *  itself from an internal \c TTree pointer, using <tt>TTreeFormula</tt>,
-   *  and thread safety. For the thread safety, we override normal \c TH3D
-   *  methods to call the normal functionality within mutex locks.  For this,
-   *  we make use of the static \c rb::Hist::Lock() and \c rb::Hist::Unlock() functions.
-   */
-  class H3D : public TH3D, public Hist
-  {
-
-  public:
-    /// Constructor
-    /*! Format basically mirrors the normal TH3D constructor but
-      with the addition of \c param and \c gate arguments
-      to set the \c fParam and \c fGate fields. Also adds to the
-      static Hist::fgArray list.
-      Locks the \c gUnpacker mutex when adding to fgArray
-      \note The constructor is hidden from \c CINT because we
-      don't want users to be able to call it. Instead they use the
-      rb::AddHist() function. The reason for this choice is that
-      CINT allows users to duplicate symbols, deleting the old
-      object, and this doesn't play nice with the threaded filling
-      of all histograms in Hist::fgArray. Giving access via functions
-      eliminates the problem and still allows users simple access via
-      the atomatic pointers that CINT creates.
-    */
-#ifndef __CINT__
-    H3D (const char* name, const char* title,
-         Int_t nbinsx, Double_t xlow, Double_t xhigh,
-	 Int_t nbinsy, Double_t ylow, Double_t yhigh,
-	 Int_t nbinsz, Double_t zlow, Double_t zhigh,
-	 const char* param, const char* gate = "");
-#endif
-
-    /// Empty constructor for \c CINT
-    H3D() { };
-
-    /// Destructor.
-    virtual ~H3D();
-
-    /// Draw function
-    /*! Just calls the normal \c TH3D::Draw but with the 
-      \c gUnpack mutex locked. */
-    void Draw(Option_t* option);
-
-    /// Fill function
-    /*! Evaluates \c fParam and calls \c TH3D::Fill using the result.
-      Also locks the \c gUnpacker mutex for thread safety. */
-    Int_t Fill();
-
-    /// Allows the user to zero out the histogram.
-    void Clear(const Option_t* option = "");
-
-    /// ClassDef for <tt>CINT</tt>.
-    ClassDef(rb::H3D, 0);
-  };
-
 
 }
+
+
+
 
 #endif

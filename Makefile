@@ -41,7 +41,7 @@ libHist.so: Hist.cxx cint/HistDictionary.cxx
 	g++ -o $(PWD)/lib/$@ $(CXXFLAGS) $(ROOTFLAGS) -lTreePlayer $(DYLIB) -p $^
 
 
-cint/HistDictionary.cxx: Hist.hxx HistLinkdef.h
+cint/HistDictionary.cxx: Hist.hxx LockingPointer.hxx HistLinkdef.h
 	rootcint -f $@ -c $(CXXFLAGS) -p $^
 
 
@@ -50,7 +50,6 @@ cint/HistDictionary.cxx: Hist.hxx HistLinkdef.h
 
 clean:
 	rm -f lib/*.so rootbeer cint/RBDictionary.* cint/HistDictionary.* rbgui/HistDict.*
-
 
 
 

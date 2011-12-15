@@ -102,9 +102,8 @@ namespace rb
     //! The template argument should always be the same as the type of data pointed to by address.
     template<typename T>
     static void SetDataValue(void* address, Double_t newval) {
-      rb::Hist::Lock();
-      *reinterpret_cast<T*>(address) = T(newval);
-      rb::Hist::Unlock();
+      LockingPointer<T> pAddress(reinterpret_cast<T* >(address), rb::Hist::GetMutex());
+      *pAddress = T(newval);
     }
 
     /// Template function to get the value of data at a generic address.
@@ -117,10 +116,8 @@ namespace rb
 	Error("Get", "%s not found.", name);
 	return T(-1);
       }
-      rb::Hist::Lock();
-      void* address = it->second.first;
-      return Double_t(*reinterpret_cast<T*>(address));
-      rb::Hist::Unlock();
+      LockingPointer<T> pAddress(reinterpret_cast<T* >(it->second.first), rb::Hist::GetMutex());
+      return Double_t(*pAddress);
     }
 
   public:

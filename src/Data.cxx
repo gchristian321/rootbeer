@@ -13,10 +13,11 @@ using namespace std;
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // Helper Functions                                      //
-//                                                       //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 
-
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// void_pointer_add                                      //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 /// Add an offset to a void* pointer
 void void_pointer_add(void*& initial, Int_t offset) {
   char* temp =  reinterpret_cast<char*>(initial);
@@ -24,6 +25,9 @@ void void_pointer_add(void*& initial, Int_t offset) {
   initial = reinterpret_cast<void*>(temp);
 }
 
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// remove_duplicate_spaces                               //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 /// Remove adjacent whitespace from a \c std::string
 void remove_duplicate_spaces(string& str) {
   for(int i=str.size()-1; i > 0; --i) {
