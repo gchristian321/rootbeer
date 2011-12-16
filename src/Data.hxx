@@ -35,8 +35,12 @@ namespace rb
   class Data
   {
   public:
-    /// Typedef for: void some_function(void*, Double_t).
+    /// Typedef for: void some_function(volatile void*, Double_t).
+#ifndef __CINT__
+     typedef void (*void_cast)(volatile void*, Double_t);
+#else
      typedef void (*void_cast)(void*, Double_t);
+#endif
 
     /// Typedef for: void some_function(const char*).
      typedef Double_t (*void_get)(const char*);
@@ -44,8 +48,12 @@ namespace rb
     /// Map typedef (string -> Data*).
     typedef std::map<std::string, Data*> Map_t;
 
-    /// Map typedef (string -> pair<void*, string>).
+    /// Map typedef (string -> pair<volatile void*, string>).
+#ifndef __CINT__
+    typedef std::map<std::string, std::pair<volatile void*, std::string> > ObjectMap_t;
+#else
     typedef std::map<std::string, std::pair<void*, std::string> > ObjectMap_t;
+#endif
 
     /// Map typedef (string -> void_cast).
     typedef std::map<std::string, void_cast> SetMap_t;
@@ -56,8 +64,12 @@ namespace rb
     /// Map iterator typedef (string -> Data*).
     typedef std::map<std::string, Data*>::iterator MapIterator_t;
 
-    /// Map iterator typedef (string -> pair<void*, string>).
+    /// Map iterator typedef (string -> pair<volatile void*, string>).
+#ifndef __CINT__
+    typedef std::map<std::string, std::pair<volatile void*, std::string> >::iterator ObjectMapIterator_t;
+#else
     typedef std::map<std::string, std::pair<void*, std::string> >::iterator ObjectMapIterator_t;
+#endif
 
     /// Map iteratortypedef (string -> void_cast).
     typedef std::map<std::string, void_cast>::iterator SetMapIterator_t;
@@ -76,7 +88,10 @@ namespace rb
     const std::string kClassName;
 
     /// \c void pointer to the user data class.
-    void* fData;
+    volatile void* fData;
+
+    /// Mutex to protect access to the data.
+    TMutex fMutex;
 
     /// Maps \c kName to the base class address.
     static Map_t fgMap;
@@ -91,18 +106,18 @@ namespace rb
     static GetMap_t fgGetFunctionMap;
 
     /// Recurse through a class and add each of it's basic data objects to fgObjectMap.
-    static void MapClass(const char* name, const char* classname, void* address);
+    static void MapClass(const char* name, const char* classname, volatile void* address);
 
     /// Adds a specific element to fgObjectMap.
     //! For a specific element of a class, check if it's a basic data type. If so, add it to
     //! fgObjectMap. If not, return \c false.
-    static Bool_t MapData(const char* name, TStreamerElement* element, void* base_address);
+    static Bool_t MapData(const char* name, TStreamerElement* element, volatile void* base_address);
 
     /// Template function to set the value of data located at a generic address.
     //! The template argument should always be the same as the type of data pointed to by address.
     template<typename T>
-    static void SetDataValue(void* address, Double_t newval) {
-      LockingPointer<T> pAddress(reinterpret_cast<T* >(address), rb::Hist::GetMutex());
+    static void SetDataValue(volatile void* address, Double_t newval) {
+      LockingPointer<T> pAddress(reinterpret_cast<volatile T*>(address), rb::Hist::GetMutex());
       *pAddress = T(newval);
     }
 
@@ -113,17 +128,27 @@ namespace rb
     static Double_t GetDataValue(const char* name) {
       ObjectMapIterator_t it = fgObjectMap.find(name);
       if(it == fgObjectMap.end()) {
-	Error("Get", "%s not found.", name);
-	return T(-1);
+	Error("GetDataValue", "%s not found.", name);
+	return -1.;
       }
-      LockingPointer<T> pAddress(reinterpret_cast<T* >(it->second.first), rb::Hist::GetMutex());
+      LockingPointer<T> pAddress(reinterpret_cast<volatile T*>(it->second.first), rb::Hist::GetMutex());
       return Double_t(*pAddress);
     }
 
   public:
+    template<typename T>
+    volatile T* GetDataPointer() {
+      return reinterpret_cast<volatile T*>(fData);
+    }
+
+    TMutex* GetMutex() {
+      return &fMutex;
+    }
+    
+
     /// Constructor.
     /*! Sets data fields and fills internal std::maps. */
-    Data(const char* name, const char* class_name, void* data, Bool_t createPointer = kFALSE);
+    Data(const char* name, const char* class_name, volatile void* data, Bool_t createPointer = kFALSE);
 
     /// Destructor
     /*! Remove from fgMap */
@@ -135,7 +160,9 @@ namespace rb
     /// Add fData as a branch in a TTree.
     TBranch* AddBranch() {
       std::string brName = kName; brName += ".";
-      return rb::Hist::AddBranch(brName.c_str(), kClassName.c_str(), &fData);
+      LockingPointer<char> pData (reinterpret_cast<volatile char*>(fData), fMutex);
+      void* v = reinterpret_cast<void*>(pData.operator->());
+      return rb::Hist::AddBranch(brName.c_str(), kClassName.c_str(), &v);
     }
 
     /// Write the fData data members and their current values to a stream.
@@ -146,29 +173,6 @@ namespace rb
 
     /// Call MapClass on all instances that ask for it (i.e. have set kMapClass true).
     static void MapClasses();
-
-    /// Return a direct pointer to the top-level user class object, casted to a specific type.
-    //! \warning The template argument must be the appropriate type (same as what's pointed
-    template<class AClass>
-    static AClass* GetPointer(const char* name, Bool_t forceCast = kFALSE) {
-      MapIterator_t it = fgMap.find(name);
-      if(it == fgMap.end()) {
-	Error("GetPointer", "%s wasn't found", name);
-        return 0;
-      }
-      else {
-	void* addr = it->second->fData;
-	if(typeid(AClass) != typeid(addr) && !forceCast) {
-	  Error("GetPointer",
-		"Called with inappropriate type argument. "
-		"Either try rb::Data::GetPointer<%s>() or set the forceCast argument to kTRUE.",
-		it->second->kClassName.c_str());
-	  return 0;
-	}
-	else
-	  return reinterpret_cast<AClass*>(addr);
-      }
-    }
 
     /// Return the value of a user class data member.
     //! \note Thread safe and should be used in CINT.

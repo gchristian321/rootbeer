@@ -22,16 +22,24 @@
  *  If you do it this way instead of automatically here, then whatever is in \c myDataTypeInstanceName
  *  won't get written to configuration files.
  */
+#include <assert.h>
 #define ADD_CLASS_INSTANCE(NAME, CLASS_NAME, CREATE_POINTER)		\
-  CLASS_NAME NAME;							\
-  rb::Data  NAME##_Data(#NAME, #CLASS_NAME, reinterpret_cast<void*>(&NAME), CREATE_POINTER);
+  volatile CLASS_NAME NAME;						\
+  LockFreePointer<CLASS_NAME> p##NAME(NAME);				\
+  rb::Data  NAME##_Data(#NAME, #CLASS_NAME, &NAME , CREATE_POINTER);
   
 
 /// Macro to add a class instance to ROOTBEER
 /*! In case you need to use a non-default constructor for your class. */
 #define ADD_CLASS_INSTANCE_ARGS(NAME, CLASS_NAME, ARGS, CREATE_POINTER)	\
-  CLASS_NAME NAME ARGS;							\
-  rb::Data  NAME##_Data(#NAME, #CLASS_NAME, reinterpret_cast<void*>(&NAME), CREATE_POINTER);
+  volatile CLASS_NAME NAME ARGS;					\
+  volatile CLASS_NAME NAME;						\
+  LockFreePointer<CLASS_NAME> p##NAME(NAME);				\
+  rb::Data  NAME##_Data(#NAME, #CLASS_NAME, &(*p##NAME), CREATE_POINTER);
+
+
+#define GET_LOCKING_POINTER(SYMBOL, NAME, CLASS)		\
+  LockingPointer<CLASS> SYMBOL (NAME##_Data.GetDataPointer<CLASS>(), *NAME##_Data.GetMutex());
 
 
 
@@ -64,9 +72,6 @@ ADD_CLASS_INSTANCE(myData, ExampleData, kFALSE)
 ADD_CLASS_INSTANCE(myVars, ExampleVariables, kTRUE)
 
 
-
-
-
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 //\\ Here you should define how to process your data buffers //
 //\\ by implementing the UnpackBuffer() function.            //
@@ -78,8 +83,11 @@ void rb::unpack::UnpackBuffer() {
   Int_t nEvts = *p++;   // Figure out the number of events
 
   for (Int_t event = 0; event < nEvts; ++event) { // Loop over all events
-    p += myData.process_event(p);   // Process each event using external user code
-    myData.calibrate(myVars);   // Calibrate everything for this event
+    GET_LOCKING_POINTER(pData, myData, ExampleData);
+    GET_LOCKING_POINTER(pVars, myVars, ExampleVariables);
+
+    p += pData->process_event(p);   // Process each event using external user code
+    pData->calibrate(*pVars);   // Calibrate everything for this event
 
 
 
@@ -101,3 +109,5 @@ void rb::unpack::UnpackBuffer() {
 
 
 #undef ADD_CLASS_INSTANCE
+#undef ADD_CLASS_INSTANCE_ARGS
+#undef GET_LOCKING_POINTER

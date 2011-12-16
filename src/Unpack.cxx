@@ -146,7 +146,6 @@ void rb::Unattach() {
 }
 
 
-
 ///// User Defined Unpack() Routine //////
 #include "Skeleton.hh"
 

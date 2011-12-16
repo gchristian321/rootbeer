@@ -19,10 +19,10 @@ using namespace std;
 // void_pointer_add                                      //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 /// Add an offset to a void* pointer
-void void_pointer_add(void*& initial, Int_t offset) {
-  char* temp =  reinterpret_cast<char*>(initial);
+void void_pointer_add(volatile void*& initial, Int_t offset) {
+  volatile char* temp =  reinterpret_cast<volatile char*>(initial);
   temp += offset;
-  initial = reinterpret_cast<void*>(temp);
+  initial = reinterpret_cast<volatile void*>(temp);
 }
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
@@ -55,7 +55,7 @@ rb::Data::ObjectMap_t rb::Data::fgObjectMap;
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // Constructor                                           //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-rb::Data::Data(const char* name, const char* class_name, void* data, Bool_t createPointer):
+rb::Data::Data(const char* name, const char* class_name, volatile void* data, Bool_t createPointer):
   kName(name), kClassName(class_name), kMapClass(createPointer) {
       fData = data;
       fgMap[kName] = this;
@@ -123,7 +123,7 @@ void rb::Data::SetValue(const char* name, Double_t newvalue) {
     return;
   }
 
-  void* objectAddress = itObject->second.first;
+  volatile void* objectAddress = itObject->second.first;
   string type = itObject->second.second;
   SetMapIterator_t itCast = fgSetFunctionMap.find(type);
   if(itCast == fgSetFunctionMap.end()) {
@@ -189,7 +189,7 @@ void rb::Data::SavePrimitive(ostream& strm) {
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // static rb::Data::MapData                              //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-Bool_t rb::Data::MapData(const char* name, TStreamerElement* element, void* base_address) {
+Bool_t rb::Data::MapData(const char* name, TStreamerElement* element, volatile void* base_address) {
 
   string typeName = element->GetTypeName();
   remove_duplicate_spaces(typeName); // in case someone did 'unsigned    short' or whatever
@@ -197,7 +197,7 @@ Bool_t rb::Data::MapData(const char* name, TStreamerElement* element, void* base
   SetMapIterator_t it = fgSetFunctionMap.find(typeName);
   if(it == fgSetFunctionMap.end()) return kFALSE;
 
-  void* address = base_address;
+  volatile void* address = base_address;
   void_pointer_add(address, element->GetOffset());
   Int_t arrLen = element->GetArrayLength();
 
@@ -219,7 +219,7 @@ Bool_t rb::Data::MapData(const char* name, TStreamerElement* element, void* base
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // static rb::Data::MapClass                             //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-void rb::Data::MapClass(const char* name, const char* classname, void* address) {
+void rb::Data::MapClass(const char* name, const char* classname, volatile void* address) {
 
   TClass* cl = TClass::GetClass(classname);
   if(!cl) return;

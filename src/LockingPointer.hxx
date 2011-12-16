@@ -28,9 +28,11 @@ public:
   ~LockingPointer() {
     fMutex->UnLock();
   }
+
   T* operator-> () {
     return fObject;
   }
+
   T& operator* () {
     return *fObject;
   }
@@ -59,6 +61,7 @@ public:
   T* operator-> () {
     return fObject;
   }
+
   T& operator* () {
     return *fObject;
   }
