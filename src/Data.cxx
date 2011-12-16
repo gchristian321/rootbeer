@@ -50,6 +50,7 @@ rb::Data::Map_t       rb::Data::fgMap;
 rb::Data::SetMap_t    rb::Data::fgSetFunctionMap;
 rb::Data::GetMap_t    rb::Data::fgGetFunctionMap;
 rb::Data::ObjectMap_t rb::Data::fgObjectMap;
+rb::Data::DeleteMap_t rb::Data::fgDeleteMap;
 
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
@@ -60,35 +61,38 @@ rb::Data::Data(const char* name, const char* class_name, volatile void* data, Bo
       fData = data;
       fgMap[kName] = this;
 
+
 #define FMAP_INSERT(KEY)						\
       fgSetFunctionMap.insert(std::make_pair(#KEY , &SetDataValue<KEY>)); \
       fgGetFunctionMap.insert(std::make_pair(#KEY , &GetDataValue<KEY>));
 
-      FMAP_INSERT(Double_t);
-      FMAP_INSERT(Float_t);
-      FMAP_INSERT(Long64_t);
-      FMAP_INSERT(Long_t);
-      FMAP_INSERT(Int_t);
-      FMAP_INSERT(Short_t);
-      FMAP_INSERT(Char_t);
-      FMAP_INSERT(Bool_t);
-      FMAP_INSERT(ULong64_t);
-      FMAP_INSERT(ULong_t);
-      FMAP_INSERT(UInt_t);
-      FMAP_INSERT(UShort_t);
-      FMAP_INSERT(double);
-      FMAP_INSERT(float);
-      FMAP_INSERT(long long);
-      FMAP_INSERT(long);
-      FMAP_INSERT(int);
-      FMAP_INSERT(short);
-      FMAP_INSERT(char);
-      FMAP_INSERT(bool);
-      FMAP_INSERT(unsigned long long);
-      FMAP_INSERT(unsigned long);
-      FMAP_INSERT(unsigned int);
-      FMAP_INSERT(unsigned);
-      FMAP_INSERT(unsigned short);
+      if(fgSetFunctionMap.empty()) {
+	FMAP_INSERT(Double_t);
+	FMAP_INSERT(Float_t);
+	FMAP_INSERT(Long64_t);
+	FMAP_INSERT(Long_t);
+	FMAP_INSERT(Int_t);
+	FMAP_INSERT(Short_t);
+	FMAP_INSERT(Char_t);
+	FMAP_INSERT(Bool_t);
+	FMAP_INSERT(ULong64_t);
+	FMAP_INSERT(ULong_t);
+	FMAP_INSERT(UInt_t);
+	FMAP_INSERT(UShort_t);
+	FMAP_INSERT(double);
+	FMAP_INSERT(float);
+	FMAP_INSERT(long long);
+	FMAP_INSERT(long);
+	FMAP_INSERT(int);
+	FMAP_INSERT(short);
+	FMAP_INSERT(char);
+	FMAP_INSERT(bool);
+	FMAP_INSERT(unsigned long long);
+	FMAP_INSERT(unsigned long);
+	FMAP_INSERT(unsigned int);
+	FMAP_INSERT(unsigned);
+	FMAP_INSERT(unsigned short);
+      }
 #undef FMAP_INSERT
 }
 

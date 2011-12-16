@@ -29,6 +29,10 @@ public:
     fMutex->UnLock();
   }
 
+  T* Get() {
+    return fObject;
+  }
+
   T* operator-> () {
     return fObject;
   }
@@ -57,6 +61,10 @@ public:
     fObject(const_cast<T*>(object)) {  }
 
   ~LockFreePointer() { }
+
+  T* Get() {
+    return fObject;
+  }
 
   T* operator-> () {
     return fObject;

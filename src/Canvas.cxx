@@ -4,11 +4,11 @@
  * Also defines a number of internal functions to be called by the
  * user ones.
  */
-#include "TCanvas.h"
-#include "TThread.h"
-#include "TMutex.h"
+#include <TCanvas.h>
+#include <TThread.h>
 #include "Timer.hxx"
 #include "Rootbeer.hxx"
+#include "LockingPointer.hxx"
 using namespace std;
 
 /// Here we define some internal functions that we don't want \c CINT
@@ -39,13 +39,13 @@ namespace rb
 
     /// Mutex for locking threded canvas operations.
     //! Recursive = kTRUE
-    TMutex Mutex (kTRUE);
+    TMutex gMutex (kTRUE);
 
     /// Mutex locking function
-    void Lock() { rb::canvas::Mutex.Lock(); }
+    void Lock() { rb::canvas::gMutex.Lock(); }
 
     /// Mutex un-locking function
-    void Unlock() { rb::canvas::Mutex.UnLock(); }
+    void Unlock() { rb::canvas::gMutex.UnLock(); }
   }
 }
 
@@ -137,7 +137,7 @@ void rb::canvas::ClearCurrent() {
     for(Int_t i = 0; i < gPad->GetListOfPrimitives()->GetEntries(); ++i) {
       TH1* hst = dynamic_cast<TH1*> (gPad->GetListOfPrimitives()->At(i));
       if(hst) {
-	TH1D* hstd = static_cast<TH1D*>(hst);
+	LockingPointer<TH1D> hstd (static_cast<TH1D*>(hst), rb::Hist::GetMutex());
 	for(UInt_t p = 0; p < hstd->fN; ++p) hstd->fArray[p] = 0.;
       }
       gPad->Modified();

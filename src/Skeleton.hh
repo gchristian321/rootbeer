@@ -24,22 +24,19 @@
  */
 #include <assert.h>
 #define ADD_CLASS_INSTANCE(NAME, CLASS_NAME, CREATE_POINTER)		\
-  volatile CLASS_NAME NAME;						\
-  LockFreePointer<CLASS_NAME> p##NAME(NAME);				\
-  rb::Data  NAME##_Data(#NAME, #CLASS_NAME, &NAME , CREATE_POINTER);
-  
+  rb::Data* NAME##_Data = rb::Data::Create<CLASS_NAME>(#NAME, #CLASS_NAME, CREATE_POINTER);
 
 /// Macro to add a class instance to ROOTBEER
 /*! In case you need to use a non-default constructor for your class. */
 #define ADD_CLASS_INSTANCE_ARGS(NAME, CLASS_NAME, ARGS, CREATE_POINTER)	\
-  volatile CLASS_NAME NAME ARGS;					\
-  volatile CLASS_NAME NAME;						\
-  LockFreePointer<CLASS_NAME> p##NAME(NAME);				\
-  rb::Data  NAME##_Data(#NAME, #CLASS_NAME, &(*p##NAME), CREATE_POINTER);
+  rb::Data* NAME##_Data = rb::Data::Create<CLASS_NAME>(#NAME, #CLASS_NAME, CREATE_POINTER, ARGS);
 
 
 #define GET_LOCKING_POINTER(SYMBOL, NAME, CLASS)		\
-  LockingPointer<CLASS> SYMBOL (NAME##_Data.GetDataPointer<CLASS>(), *NAME##_Data.GetMutex());
+  LockingPointer<CLASS> SYMBOL (NAME##_Data->GetDataPointer<CLASS>(), *NAME##_Data->GetMutex());
+
+
+
 
 
 
@@ -69,7 +66,8 @@
 ADD_CLASS_INSTANCE(myData, ExampleData, kFALSE)
 
 // Here we add an instance of sVariables, calles myVars and do allow viewing in CINT.
-ADD_CLASS_INSTANCE(myVars, ExampleVariables, kTRUE)
+//ADD_CLASS_INSTANCE(myVars, ExampleVariables, kTRUE)
+ADD_CLASS_INSTANCE_ARGS(myVars, ExampleVariables, "32", kTRUE)
 
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
@@ -81,10 +79,10 @@ void rb::unpack::UnpackBuffer() {
 
   Short_t* p = &fBuffer[0]; // Point to the beginning of the buffer
   Int_t nEvts = *p++;   // Figure out the number of events
-
-  for (Int_t event = 0; event < nEvts; ++event) { // Loop over all events
     GET_LOCKING_POINTER(pData, myData, ExampleData);
     GET_LOCKING_POINTER(pVars, myVars, ExampleVariables);
+  for (Int_t event = 0; event < nEvts; ++event) { // Loop over all events
+
 
     p += pData->process_event(p);   // Process each event using external user code
     pData->calibrate(*pVars);   // Calibrate everything for this event

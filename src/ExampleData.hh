@@ -46,6 +46,13 @@ struct ExampleVariables {
     var2=1.;
     for(Int_t i=0; i< 14; ++i) varr[i] = 1.;
   }
+  /// Non-default constructor
+  //! Initialize everything to initVal
+  ExampleVariables(Int_t initVal) {
+    var1=initVal;
+    var2=initVal;
+    for(Int_t i=0; i< 14; ++i) varr[i] = initVal;
+  }
 };
 
 
@@ -105,15 +112,6 @@ public:
     }
     return p - p0 - 2;
   }
-
-  // Int_t unpack_buffer(Short_t* pBuf) {
-  //   Short_t* p = pBuf;
-  //   Int_t nEvts = *p++;
-  //   for(Int_t i=0; i< nEvts; ++i) {
-  //     p += process_event(p);
-  //   }
-  //   return 0;
-  // }
 
   /// Constructor, initialize all to NO_DATA.
   ExampleData() {

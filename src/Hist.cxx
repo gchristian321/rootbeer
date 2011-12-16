@@ -344,5 +344,5 @@ void rb::Hist::DeleteAll() {
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 Int_t rb::Hist::Fill() {
   LockingPointer<CriticalElements> critical(fCritical, fgMutex);
-  fill(kDimensions, critical->fHistogram, critical->fGate, critical->fParams);
+  return fill(kDimensions, critical->fHistogram, critical->fGate, critical->fParams);
 }

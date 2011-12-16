@@ -64,7 +64,7 @@ namespace rb
 
     /// \brief Start updating canvases in a separate thread from the main one running CINT.
     /// Implemented in Canvas.cxx
-    extern Int_t StartUpdate(Int_t rate);
+    extern Int_t StartUpdate(Int_t rate = 5);
 
     /// Stop updating canvases. Implemented in Canvas.cxx
     extern Int_t StopUpdate();

@@ -6,32 +6,34 @@
 #include <sstream>
 #include <iostream>
 #include <map>
-#include "TTree.h"
-#include "TBranchElement.h"
-#include "TError.h"
+#include <TROOT.h>
+#include <TTree.h>
+#include <TBranchElement.h>
+#include <TError.h>
 #include "Hist.hxx"
 
 
 namespace rb
 {
+  namespace unpack { extern void UnpackBuffer(); };
+
   /// Class wrapping pointers to user data objects.
-  /*! The basic idea behind this class is to create a generic framework
-   *  into which users can plug their own classes with minimal effort (or re-coding if their
-   *  data storage and analysis routines are already written). By adding
-   *  a couple of lines to a file, the user should get an instance of his/her class which
-   *  he/she can use to code how event data are handled, as well as the ability to later
-   *  access class member data in CINT, in a thread safe way.
-   *
-   *  The way this is implemented is to have the Data class wrap a \c void* pointer to a
-   *  user data object that is created on the stack and has global scope.
-   *  In addition to the pointer, it also stores some useful information, like the variable
-   *  name and class name. It also contains a static \c std::map that maps the variable name to
-   *  the corresponding Data pointer for every existing Data derived object.
-   *  Finally, it implements some methods that are useful, like creating branches
-   *  in the static rb::fgTree from which histograms are filled. Some of these are called at startup
-   *  in main() so that everything is ready to go in terms of being able to parse strings referring to
-   *  data members and fill them in histograms.
-   */
+  //! The basic idea behind this class is to create a generic framework
+  //! into which users can plug their own classes with minimal effort (or re-coding if their
+  //! data storage and analysis routines are already written). By adding
+  //! a couple of lines to a file, the user should get an instance of his/her class which
+  //! he/she can use to code how event data are handled, as well as the ability to later
+  //! access class member data in CINT, in a thread safe way.
+  //!
+  //! The way this is implemented is to have the Data class wrap a \c void* pointer to a
+  //! user data object that is created on the stack and has global scope.
+  //! In addition to the pointer, it also stores some useful information, like the variable
+  //! name and class name. It also contains a static \c std::map that maps the variable name to
+  //! the corresponding Data pointer for every existing Data derived object.
+  //! Finally, it implements some methods that are useful, like creating branches
+  //! in the static rb::fgTree from which histograms are filled. Some of these are called at startup
+  //! in main() so that everything is ready to go in terms of being able to parse strings referring to
+  //! data members and fill them in histograms.
   class Data
   {
   public:
@@ -44,6 +46,8 @@ namespace rb
 
     /// Typedef for: void some_function(const char*).
      typedef Double_t (*void_get)(const char*);
+
+    typedef void (*delete_function)(Data*);
 
     /// Map typedef (string -> Data*).
     typedef std::map<std::string, Data*> Map_t;
@@ -77,7 +81,11 @@ namespace rb
     /// Map iteratortypedef (string -> void_get).
     typedef std::map<std::string, void_get>::iterator GetMapIterator_t;
 
-  protected:
+    typedef std::map<std::string, delete_function> DeleteMap_t;
+
+    typedef std::map<std::string, delete_function>::iterator DeleteMapIterator_t;
+
+  private:
     /// Tells whether we should map the map a user class instance's data members or not.
     const Bool_t kMapClass;
 
@@ -104,6 +112,8 @@ namespace rb
 
     /// Map of string (type names, i.e. Double_t, etc) -> GetDataValue pointers 
     static GetMap_t fgGetFunctionMap;
+
+    static DeleteMap_t fgDeleteMap;
 
     /// Recurse through a class and add each of it's basic data objects to fgObjectMap.
     static void MapClass(const char* name, const char* classname, volatile void* address);
@@ -135,7 +145,6 @@ namespace rb
       return Double_t(*pAddress);
     }
 
-  public:
     template<typename T>
     volatile T* GetDataPointer() {
       return reinterpret_cast<volatile T*>(fData);
@@ -147,22 +156,56 @@ namespace rb
     
 
     /// Constructor.
-    /*! Sets data fields and fills internal std::maps. */
+    //! Sets data fields and fills internal std::maps.
     Data(const char* name, const char* class_name, volatile void* data, Bool_t createPointer = kFALSE);
 
+  public:
     /// Destructor
-    /*! Remove from fgMap */
+    //! Remove from fgMap
     virtual ~Data() {
+      DeleteMapIterator_t itDelete = fgDeleteMap.find(kClassName);
+      assert(itDelete != fgDeleteMap.end());
+      itDelete->second(this);
+      fData = 0;
+
       MapIterator_t it = fgMap.find(kName);
-      if(it != fgMap.end()) fgMap.erase(it);
+      if(it != fgMap.end()) {
+	fgMap.erase(it);
+      }
     }
 
     /// Add fData as a branch in a TTree.
     TBranch* AddBranch() {
       std::string brName = kName; brName += ".";
       LockingPointer<char> pData (reinterpret_cast<volatile char*>(fData), fMutex);
-      void* v = reinterpret_cast<void*>(pData.operator->());
+      void* v = reinterpret_cast<void*>(pData.Get());
       return rb::Hist::AddBranch(brName.c_str(), kClassName.c_str(), &v);
+    }
+
+    template <class T>
+    static Data* Create(const char* name, const char* class_name, Bool_t createPointer = kFALSE, const char* args = "") {
+      fgDeleteMap[class_name] = &FreeDataMemory<T>;
+      T* data = 0;
+      if(!strcmp(args, ""))  data = new T();
+      else {
+	std::stringstream cmd;
+	cmd << "new " << class_name << "(" << args  << ");";
+	data = reinterpret_cast<T*> (gROOT->ProcessLineFast(cmd.str().c_str()));
+      }
+      Data* _this = new Data(name, class_name, data, createPointer);
+      return _this;
+    }
+
+    template <class T>
+    static void FreeDataMemory(Data* _this) {
+      LockingPointer<T> pData(reinterpret_cast<volatile T*> (_this->fData), _this->fMutex);
+      delete pData.Get();
+    }
+
+    static void DeleteAll() {
+      while(fgMap.size() != 0) {
+	delete fgMap.begin()->second;
+      }
     }
 
     /// Write the fData data members and their current values to a stream.
@@ -185,6 +228,7 @@ namespace rb
     /// Print the fill name and current value of every data member in every listed class.
     static void PrintAll();
 
+    friend void rb::unpack::UnpackBuffer();
   };
 
 }
