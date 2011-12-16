@@ -10,7 +10,8 @@
 #ifndef __ROOTBEER__
 #define __ROOTBEER__
 
-#include "TRint.h"
+#include <TCutG.h>
+#include <TRint.h>
 #include "Hist.hxx"
 
 
@@ -22,12 +23,10 @@ namespace rb
   extern void AttachOnline();
 
   /// Attach to an offline data source. Implemented in Unpack.cxx
-  /*! \todo Allow this to read till end, then pick up where it left off.*/
-  extern void AttachFile(const char* filename);
+  extern void AttachFile(const char* filename, Bool_t stop_at_end = kTRUE);
 
   /// Disconnect from a data source. Implemented in Unpack.cxx
   extern void Unattach();
-
 
   /// Display the \c ROOTBEER logo. Implemented in Rootbeer.cxx
   extern void Logo();
@@ -42,7 +41,14 @@ namespace rb
   extern Int_t WriteVariables(const char* filename, Bool_t prompt = kTRUE);
 
   /// Read a configuration file.
-  extern void ReadConfig(const char* filename);
+  //! Options are:
+  //! -# "r" (reset). Delete all current histograms and gates and read in the new ones.
+  //! -# "o" (overwrite). Overwrite any matching gates or histograms, add any new ones (default).
+  //! -# "c" (cumulate). Delete nothing. Any duplicate names in the file will create a
+  //!     new histogram with \c _1, \c _2, etc. appended to the name.
+  //!
+  //!  Note that the option string is not case sensitive.
+  extern void ReadConfig(const char* filename, Option_t* option = "o");
 
   /// Write canvas configuration file.
   extern Int_t WriteCanvases(const char* filename, Bool_t prompt = kTRUE);
@@ -74,7 +80,12 @@ namespace rb
 
   }
 
-
+  namespace CutG {
+    extern TCutG* New(const char* name, const char* title, const char* varx, const char* vary,
+		      const std::vector<Double_t>& xpoints, const std::vector<Double_t>& ypoints,
+		      Color_t fillColor = kWhite, Color_t LineColor = kBlack, Int_t lineWidth = 2, Bool_t overwrite = kFALSE);
+  }
+    
   /// Class that runs the interactive ROOT application.
   /*! We can essentially use the normal <tt>TRint</tt>, except
    *  we need to override the Terminate()

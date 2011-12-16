@@ -186,7 +186,7 @@ void rb::Data::MapClasses() {
 void rb::Data::SavePrimitive(ostream& strm) {
   ObjectMapIterator_t it;
   for(it = fgObjectMap.begin(); it != fgObjectMap.end(); ++it) {
-    strm << "rb::Data::Set(\"" << it->first << ", " << GetValue(it->first.c_str()) << ");\n";
+    strm << "  rb::Data::SetValue(\"" << it->first << "\", " << GetValue(it->first.c_str()) << ");\n";
   }
 }
 

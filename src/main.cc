@@ -177,7 +177,9 @@ Int_t main(Int_t argc, Char_t** argv)
   rb::AttachFile("myOfflineFileName.evt");
   \endcode
 
-  As with online data, this is run in a separate thread.
+  As with online data, this is run in a separate thread. Optionally, you can specify a second argument (a boolean)
+  that tells whether to Unattach() at the end of the file (argument <tt>true</tt>, the default) or to stay attached
+  and wait for more data to come in (argument <tt>false</tt>).
 
   Note that if the user calls any of the \c Attach commands while already conneted to a data source, ROOTBEER
   will first Unattach() from the old one before connecting to the new one.

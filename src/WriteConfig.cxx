@@ -30,12 +30,13 @@ TAxis* get_axis(TH1* hst, UInt_t n) {
 
 /// Write a histogram constructor format to a stream.
 void write_hist(TObject* object, ostream& ofs) {
-  TH1* hst = dynamic_cast<TH1*>(object);
   rb::Hist* rbhst = dynamic_cast<rb::Hist*>(object);
-  if(!(hst && rbhst)) return;
+  if(!rbhst) return;
+  TH1* hst = rbhst->GetHist();
+  if(!hst) return;
 
   for(int i=0; i< ntabs; ++i) ofs << "    ";
-  ofs << "  rb::AddHist(\"" << hst->GetName() << "\", \"" << ((TH1*)hst)->GetTitle() << "\", ";
+  ofs << "  rb::Hist::New(\"" << rbhst->GetName() << "\", \"" << rbhst->GetTitle() << "\", ";
   string param = "";
   for(UInt_t i=0; i< rbhst->GetNdimensions(); ++i) {
     param.insert(0, rbhst->GetParam(i));
@@ -44,8 +45,7 @@ void write_hist(TObject* object, ostream& ofs) {
     ofs << axis->GetNbins() << ", " << axis->GetBinLowEdge(1) << ", " << axis->GetBinLowEdge(1+axis->GetNbins()) <<", ";
   }
   param.erase(0, 1); // get rid of leading ":"
-  ofs << "\"" << param << "\", \"" << rbhst->GetGate() << "\"); "
-      << "// " << hst->GetDirectory()->GetName() << "\n";
+  ofs << "\"" << param << "\", \"" << rbhst->GetGate() << "\");\n";
 }
 
 /// Write a diretory constructor to a stream.
@@ -79,6 +79,18 @@ void recurse_directory(TDirectory* dir, ostream& ofs) {
   --ntabs;
 }
 
+inline void write_hists_and_directories(ostream& ofs) {
+  TDirectory* dirInitial = gDirectory;
+  string initialName = (dirInitial == gROOT) ? "gROOT" : dirInitial->GetName();
+
+  gROOT->cd();
+  ofs << "  // DIRECTORIES AND HISTOGRAMS //\n";
+  ofs << "  // gROOT\n";
+  recurse_directory(gROOT, ofs);
+  ofs << "  "<< initialName << "->cd();\n";
+  dirInitial->cd();
+}
+
 
 /// Save a TCutG.
 void write_cut(TObject* obj, ostream& ofs)
@@ -86,29 +98,22 @@ void write_cut(TObject* obj, ostream& ofs)
   TCutG* cut = dynamic_cast<TCutG*>(obj);
   if(!cut) return;
   const char* nme   = cut->GetName();
+  const char* ttl   = cut->GetTitle();
   const char* varx  = cut->GetVarX();
   const char* vary  = cut->GetVarY();
   const Width_t www = cut->GetLineWidth();
   const Color_t ccc = cut->GetLineColor();
 
   int np = cut->GetN();
-  double *xx = new double[np], *yy = new double[np];
+  ofs << "     vector<double> vx(" << np << "), vy(" << np << ");\n";
   for(int i(0); i<np; ++i) {
-    cut->GetPoint(i,xx[i],yy[i]);
+    double xx, yy;
+    cut->GetPoint(i, xx, yy);
+    ofs << "     vx[" << i << "] = " << xx << ";\tvy[" << i << "] = " << yy << ";\n";
   }
 
-  ofs << "     TCutG* " << nme << " = new TCutG(\"" << nme << "\", " << np << ");\n";
-  ofs << "         " << nme << "->SetVarX(\"" << varx << "\");\n";
-  ofs << "         " << nme << "->SetVarY(\"" << vary << "\");\n";
-  ofs << "         " << nme << "->SetTitle(\"" << nme << "\");\n";
-  ofs << "         " << nme << "->SetFillColor(1);\n";
-  ofs << "         " << nme << "->SetLineColor(" << ccc << ");\n";
-  ofs << "         " << nme << "->SetLineWidth(" << www << ");\n";
-  for(int i=0; i< np; ++i) {
-    ofs << "         " << nme << "->SetPoint(" << i << ", " << xx[i] << ", " << yy[i] << ");\n";
-  }
-  ofs << "\n";
-  delete[] xx; delete[] yy;
+  ofs << "     TCutG* " << nme << " = rb::CutG::New(\"" << nme << "\", \"" << ttl << "\", \""
+      << varx << "\", \"" << vary << "\", " << "vx, vy, kWhite, " << ccc << ", " << www << ", kFALSE);\n";
 }
 
 /// Ask user to overwrite a file or not.
@@ -147,13 +152,7 @@ Int_t rb::WriteConfig(const char* fname, Bool_t prompt) {
   }
   ofs << "\n\n";
 
-  TDirectory* dirInitial = gDirectory;
-  gROOT->cd();
-  ofs << "  // DIRECTORIES AND HISTOGRAMS //\n";
-  ofs << "  // gROOT\n";
-  recurse_directory(gROOT, ofs);
-  ofs << "  gROOT->cd();\n";
-  dirInitial->cd();
+  write_hists_and_directories(ofs);
 
   ofs << "\n\n" << "  // VARIABLES //\n";
   rb::Data::SavePrimitive(ofs);
@@ -177,14 +176,8 @@ Int_t rb::WriteHistograms(const char* fname, Bool_t prompt) {
       << "\n"
       << "{\n\n";
 
+  write_hists_and_directories(ofs);
 
-  TDirectory* dirInitial = gDirectory;
-  gROOT->cd();
-  ofs << "  // DIRECTORIES AND HISTOGRAMS //\n";
-  ofs << "  // gROOT\n";
-  recurse_directory(gROOT, ofs);
-  ofs << "  gROOT->cd();\n";
-  dirInitial->cd();
 
   ofs << "\n}";
   return 0;
@@ -213,14 +206,102 @@ Int_t rb::WriteVariables(const char* fname, Bool_t prompt) {
 }
 
 
-void rb::ReadConfig(const char* filename) {
-  stringstream sstr;
-  sstr << ".x " << filename;
-  gROOT->ProcessLine(sstr.str().c_str());
+TCutG* rb::CutG::New(const char* name, const char* title, const char* varx, const char* vary,
+		     const std::vector<Double_t>& xpoints, const std::vector<Double_t>& ypoints,
+		     Color_t fillColor, Color_t lineColor, Int_t lineWidth, Bool_t overwrite) {
+
+  string setName(name);
+  TObject* oldObject = gROOT->GetListOfSpecials()->FindObject(name);
+  if(oldObject) {
+    if(overwrite) {
+      TCutG* old = dynamic_cast<TCutG*>(oldObject);
+      if(old) delete old;
+    }
+    else {
+      Int_t n = 1;
+      while(1) {
+	std::stringstream sstr;
+	sstr << name << "_" << n++;
+	setName = sstr.str();
+	if(!dynamic_cast<TCutG*>(gROOT->GetListOfSpecials()->FindObject(setName.c_str()))) break;
+      }
+    }
+  }
+
+  TCutG* ret = new TCutG(setName.c_str(), xpoints.size(), &xpoints[0], &ypoints[0]);
+  ret->SetTitle(title);
+  ret->SetVarX(varx);
+  ret->SetVarY(vary);
+  ret->SetFillColor(fillColor);
+  ret->SetLineColor(lineColor);
+  ret->SetLineWidth(lineWidth);
+  return ret;
 }
 
+void rb::ReadConfig(const char* filename, Option_t* option) {
+  ifstream ifs(filename);
+  if(ifs.fail()) {
+    Error("ReadConfig", "The file %s wasn't found or isn't readable.", filename);
+    return;
+  }
+  ifs.close();
 
+  TString opt(option);
+  opt.ToLower();
+  if(0);
+  else if(!opt.CompareTo("c")) {
+    stringstream sstr;
+    sstr << ".x " << filename;
+    gROOT->ProcessLine(sstr.str().c_str());
+  }
+  else if(!opt.CompareTo("o")) {
+    TDirectory* dirInitial = gDirectory;
+    ifstream ifs(filename);
+    string line;
+    while(1) {
+      getline(ifs, line);
+      if(!ifs.good()) break;
+      int pos = line.find("rb::CutG::New"); 
+      if(pos < line.size()) {
+	line = line.substr(pos);
+	line = line.substr(1+line.find("("));
+	line = line.substr(1+line.find("\""));
+	string name = line.substr(0, line.find("\""));
+	TCutG* old = dynamic_cast<TCutG*> (gROOT->GetListOfSpecials()->FindObject(name.c_str()));
+	if(old) delete old;
+	continue;
+      }
 
+      pos = line.find("cd()");
+      if(pos < line.size()) gROOT->ProcessLine(line.c_str());
+
+      pos = line.find("rb::Hist::New");
+      if(pos < line.size()) {
+	line = line.substr(pos);
+	line = line.substr(1+line.find("("));
+	line = line.substr(1+line.find("\""));
+	string name = line.substr(0, line.find("\""));
+	rb::Hist* old = dynamic_cast<rb::Hist*> (gDirectory->FindObject(name.c_str()));
+	if(old) delete old;
+	continue;
+      }
+    }
+    ReadConfig(filename, "c");
+  }
+  else if(!opt.CompareTo("r")) {
+    rb::Hist::DeleteAll();
+    TSeqCollection* primitives = gROOT->GetListOfSpecials();
+    for(Int_t i=0; i< primitives->GetSize(); ++i) {
+      TCutG* cut = dynamic_cast<TCutG*>(primitives->At(i));
+      if(cut) delete cut;
+    }
+    ReadConfig(filename, "c");
+  }
+  else {
+    Error("ReadConfig", "Valid options are: \"r\" (reset), \"o\" (overwrite), and \"c\" (cumulate).");
+  }
+
+}
 
 
 // Just write the canvases.

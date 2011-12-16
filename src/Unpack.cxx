@@ -84,36 +84,54 @@ namespace rb
 	FakeBuffer(&(fBuffer[0]));
 	UnpackBuffer();
       }
-      return (void*)0;
+      return arg;
     }
 
     void* AttachFile_(void* arg) {
+      /// \note 'arg' Was casted from a \c new string before passing it here.
+      /// We neeed to free the memory allocated to it with <tt>delete</tt>.
+
       kAttachedFile = kTRUE;
+      string* sarg = static_cast<std::string*>(arg);
+      // Decide whether to stop reading at eof or not from the first character.
+      std::stringstream ss_stop;
+      ss_stop << sarg->substr(0, 1);
+      Bool_t stopAtEnd;
+      ss_stop >> stopAtEnd;
+      // Set filename from the rest.
+      std::string fileName = sarg->substr(1);
+      delete sarg;
 
-      std::string* fileName = static_cast<std::string*>(arg);
-      ifstream ifs(fileName->c_str(), ios::in);
-
+      ifstream ifs(fileName.c_str(), ios::in);
       if(!ifs.good()) {
-	Error("AtachFile_", "File %s not readable.", fileName->c_str());
+	Error("AtachFile_", "File %s not readable.", fileName.c_str());
 	ifs.close();
-	return (void*)-1;
+	return 0;
       }
 
       while(kAttachedFile) {
 	ifs.read((Char_t*)(&fBuffer[0]), BUFFER_SIZE * (sizeof(Short_t)/sizeof(Char_t)));
-	if(!ifs.good()) break; // Done reading file.
-
+	if(!ifs.good()) { // At end of file
+	  if(stopAtEnd) { // We're done.
+	    break;
+	  }
+	  else { // Wait 10 seconds for more data to come in.
+	    ifs.clear(); 
+	    gSystem->Sleep(10e3);
+	    continue;
+	  }
+	}
 	UnpackBuffer();
       }
       ifs.close();
 
       if(kAttachedFile) {
-	Info("AttachFile", "Done reading %s", fileName->c_str());
+	Info("AttachFile", "Done reading %s", fileName.c_str());
 	Unattach();
       }
       else Info("AttachFile", "Connection aborted by user");
 
-      return (void*)0;
+      return arg;
     }
   }
 }
@@ -126,10 +144,15 @@ void rb::AttachOnline() {
 }
 
 
-void rb::AttachFile(const char* filename) {
+void rb::AttachFile(const char* filename, Bool_t stop_at_end) {
   using namespace unpack;
   Unattach();
-  attachOfflineThread.Run((void*)filename);
+  int stop = int(stop_at_end);
+  stringstream arg;
+  arg << stop << filename;
+  string* sarg = new string(arg.str());
+  void * varg = (void*)(sarg);
+  attachOfflineThread.Run(varg);
 }
 
 
