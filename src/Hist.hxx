@@ -22,24 +22,38 @@
 
 namespace rb
 {
-  ///
+  /// Rootbeer Histogram class.
+
+  //! This class extends the stock ROOT TH*D histograms to allow additional functionality.
+  //! The main thing that is added is the ability to associate each histogram instance directly
+  //! with data values (using TTreeFormula) and then automatically Fill itself with those values.
+  //! The class is also (supposed to be) thread-safe, since the aforementioned filling typically
+  //! happens in a background thread while the user can still interact with the histogram in CINT.
+  //! Thread safety is achieved by marking any shared class members as \c volatile and then accessing
+  //! them through the RAII mutex locking LockingPointer class. Mainly for this reason, rb::Hist wraps
+  //! a stock ROOT histogram rather than inheriting from it, so that we can basically treat the entire
+  //! wrapped histogram as a critical object shared between threads. Wrapping also allows the cration of
+  //! just one rb::Hist class rather than one for each dimension, since we can simply polymorphically cast
+  //! the wrapped TH1* to the right type in the constructor.
   class Hist : public TNamed
   {
+  public:
+    /// Typedef for a std::list of rb::Hist pointers.
     typedef std::list<rb::Hist*> List_t;
 
   private:
-    /// Number of dimensions
+    /// Constructor error code: true = success, false = failure.
+    Bool_t kConstructorSuccess;
+
+    /// Number of dimensions (axes).
     UInt_t kDimensions;
 
-    /// The original title
-    //! Used for changing the title in Regate()
+    /// The original title.
+    //! Used for changing the title in Regate().
     std::string kInitialTitle;
 
     /// Default title, set from the parameters and gate condition.
     std::string kDefaultTitle;
-
-    /// Internal histogram.
-    //    volatile TH1* fHistogram;
 
     /// Clone of the internal histogram.
     //! This is basically the only thing that CINT users can access, via the GetHist() function.
@@ -48,33 +62,62 @@ namespace rb
     //! conflicts between the main therad and others that can modify the internal histogram.
     TH1* fHistogramClone;
 
-    /// Directory owning a rb::Hist instance.
+    /// Directory owning this rb::Hist instance.
     TDirectory* fDirectory;
 
-    /// Gate formula.
-    //    volatile TTreeFormula* fGate;
+    /// Struct wrapping all of the non-static critical elements.
+    //! Any rb::Hist instance member that can be shared between threads is contained
+    //! inside this struct, and then the whole thing is declared volatile and should
+    //! be accessed via a LockingPointer (or, in cases where safe/appropriate, a LockFreePointer).
+    //! The struct also provides access to \c static critical members via getter functions.
+    //! \note We also create an instance, fCritical when defining the struct.
+    volatile struct CriticalElements
+    {
+      /// Internal histogram.
+      //! This is what is filled with the evaluation of fParams, and what is used for Drawing, etc.
+      //! It is cast to the appropriate derived class (TH1D*, TH2D*, or TH3D*) in the constructor, depending
+      //! on the number of dimensions.
+      TH1* fHistogram;
 
-    /// Parameter formulae.
-    //    volatile std::vector<TTreeFormula*> fParams;
+      /// Formula to evaluate the histogram gate condition.
+      TTreeFormula* fGate;
 
-    /// Internal mutex.
-    TMutex fMutex;
+      /// Vector of formulas allowing evaluation of the histogram parameters.
+      //! One entry per axis (0 = X, 1 = Y, 2 = Z).
+      std::vector<TTreeFormula*> fParams;
 
-    /// Global mutex.
-    static TMutex fgMutex;
+      /// Returns a pointer to fgTree.
+      //! \note We can safely return a LockFreePointer here since we're already inside a \c volatile
+      //! member, which means that fgMutex should already be locked.
+      TTree* GetTree() {
+	return LockFreePointer<TTree>(fgTree).Get();
+      }
 
-    /// Static list of all existing rb::Hist derived objects.
+      /// Returns a pointer to fgList.
+      //! \note We can safely return a LockFreePointer here since we're already inside a \c volatile
+      //! member, which means that fgMutex should already be locked.
+      List_t* GetList() {
+	return LockFreePointer<List_t>(&fgList).Get();
+      }
+    } fCritical;
+
+    /// List of all existing rb::Hist objects.
+    //! \note Declared \c volatile because it is a resource shared between threads.
+    //! Access via LockingPointer.
     static volatile List_t fgList;
 
-    /// Static TTree for calculating parameter values.
+    /// TTree for calculating parameter and gate values.
+    //! \note Declared \c volatile because it is a resource shared between threads.
+    //! Access via LockingPointer.
     static volatile TTree fgTree;
 
-    /// Constructor error code: true = success, false = failure.
-    Bool_t kConstructorSuccess;
+    /// Global mutex
+    //! Protects all rb::Hist objects.
+    static TMutex fgMutex;
 
     /// Function to initialize a histogram.
     //! Basically this is just a helper function that is called by the various
-    //! 1d, 2d, 3d flavors of rb::AddHist().  It handles the following:
+    //! 1d, 2d, 3d flavors of rb::Hist::New().  It handles the following:
     //!    - Creation of the rb::Hist object itself via the protected constructor.
     //!    - Initialization of the internal fHistogram TH1* pointer to the appropriate type
     //!      (e.g. TH1D for 1d, etc)
@@ -88,37 +131,32 @@ namespace rb
 
     /// Constructor
     //! Set the internal \c TTree and \c fGate fields.
-    //! \note Protected b/c we shouldn't create explicit instances of this.
+    //! \note This is made \c private so that CINT users can't create explicit instances of rb::Hist
+    //! objects. Instead they use rb::Hist::New and then access via the automatic pointer CINT provides. 
     Hist(const char* name, const char* title, const char* param, const char* gate, UInt_t npar);
 
-    volatile struct CriticalElements
-    {
-      TH1* fHistogram;
-      TTreeFormula* fGate;
-      std::vector<TTreeFormula*> fParams;
-      TTree* GetTree() {
-	return const_cast<TTree*>(&fgTree);
-      }
-      List_t* GetList() {
-	return const_cast<List_t*>(&fgList);
-      }
-    } fCritical;
-
-
   public:
-    /// Function to fill histogram from its internal parameter value(s).
+    /// Fill the histogram from its internal parameter value(s).
+    //! This function first evaluates fGate, and if true, evaluates each index of fParams, then calls
+    //! fHistogram->Fill() using the results.
     virtual Int_t Fill();
 
     /// Returns a copy of fHistogram.
+    //! This is so that users can get access to the histogram data in CINT, thus allowing higher-order analysis
+    //! such as fitting, but without having to worry about thread-related issues. Since the histogram returned is
+    //! a /emph copy of fHistogram, other threads can happily continue to alter fHistogram behind the scenes while
+    //! users do analysis on the returned copy.
     TH1* GetHist();
 
     /// Draw function.
-    //! Calls GetHist() and then Draw() one the result.
+    //! \Note that this draws fHistogram directly, not a copy (to that it can still continue to be auto-updated
+    //! by the rb::canvas functions).
     void Draw(Option_t* option = "") {
       LockingPointer<CriticalElements>(fCritical, fgMutex)->fHistogram->Draw(option);
     }
 
     /// Clear function.
+    //! Zeros-out all axes of fHistogram.
     void Clear() {
       LockingPointer<CriticalElements> critical(fCritical, fgMutex);
       TH1D* hist = static_cast<TH1D*>(critical->fHistogram);
@@ -126,10 +164,11 @@ namespace rb
     }
 
     /// Default constructor.
+    //! Does nothing, just here to make rootcint happy.
     Hist() { } ;
 
     /// Destructor
-    /*! Free resorces allocted to TTreeFormulas */
+    //! Free resorces allocted to TTreeFormulae, remove this from fgList.
     virtual ~Hist();
 
     /// Function to change the histogram gate.
@@ -148,10 +187,10 @@ namespace rb
       return LockingPointer<CriticalElements>(fCritical, fgMutex)->fGate->GetExpFormula().Data();
     }
 
-    /// Return the parameter name for the specified axis.
+    /// Return the parameter name associated with the specified axis.
     std::string GetParam(UInt_t axis);
 
-    ///
+    /// Return a reference to the global histogram mutex.
     static TMutex& GetMutex() {
       return fgMutex;
     }
@@ -159,7 +198,9 @@ namespace rb
     /// Function to fill all histograms
     static void FillAll();
 
-    /// Function to access fgTree
+    /// Returns a copy of fgTree.
+    //! \note Since this uses TTree::Clone(), it dynamically allocetes memory that
+    //! should be deleted by the user.
     static TTree* GetTreeClone() {
       return static_cast<TTree*> (LockingPointer<TTree>(fgTree, fgMutex)->Clone());
     }
@@ -181,10 +222,10 @@ namespace rb
       return 0;
     }
 
-    /// Function to delete all entries of \c Hist::fgList
+    /// Deletes all entries of \c Hist::fgList
     static void DeleteAll();
 
-    /// Function to tell the total number of entries in \c fgList
+    /// Returns the total number of entries in \c fgList
     static UInt_t GetNumber() {
       return LockingPointer<List_t>(fgList, fgMutex)->size();
     }
@@ -192,22 +233,6 @@ namespace rb
     /// Set an alias in \c fgTree
     static Bool_t SetAlias(const char* aliasName, const char* aliasFormula) {
       LockingPointer<TTree>(fgTree, fgMutex)->SetAlias(aliasName, aliasFormula);
-    }
-
-    /// Static mutex locking function
-    static Int_t Lock() {
-      return fgMutex.Lock();
-    }
-
-    /// Static mutex try-to-lock function
-    //! Returns 0 on success.
-    static Int_t TryLock() {
-      return fgMutex.TryLock();
-    }
-
-    /// Static mutex un-locking function
-    static Int_t Unlock() {
-      return fgMutex.UnLock();
     }
 
     /// One-dimensional creation function
@@ -228,7 +253,6 @@ namespace rb
 		    Int_t nbinsz, Double_t zlow, Double_t zhigh,
 		    const char* param, const char* gate = "");
 
-    /// \c CINT Classdef.
     ClassDef(Hist, 0);
   };
 

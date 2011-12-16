@@ -1,6 +1,5 @@
-/*! \file Data.cxx
- *  \brief Implements Data.hxx
- */
+//! \file Data.cxx
+//!  \brief Implements Data.hxx
 #include <TROOT.h>
 #include <TClass.h>
 #include <TStreamerInfo.h>

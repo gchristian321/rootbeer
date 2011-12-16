@@ -112,9 +112,8 @@ namespace rb
       while(kAttachedFile) {
 	ifs.read((Char_t*)(&fBuffer[0]), BUFFER_SIZE * (sizeof(Short_t)/sizeof(Char_t)));
 	if(!ifs.good()) { // At end of file
-	  if(stopAtEnd) { // We're done.
+	  if(stopAtEnd) // We're done.
 	    break;
-	  }
 	  else { // Wait 10 seconds for more data to come in.
 	    ifs.clear(); 
 	    gSystem->Sleep(10e3);
@@ -129,7 +128,7 @@ namespace rb
 	Info("AttachFile", "Done reading %s", fileName.c_str());
 	Unattach();
       }
-      else Info("AttachFile", "Connection aborted by user");
+      else Info("AttachFile", "Connection aborted by user.");
 
       return arg;
     }
@@ -150,7 +149,7 @@ void rb::AttachFile(const char* filename, Bool_t stop_at_end) {
   int stop = int(stop_at_end);
   stringstream arg;
   arg << stop << filename;
-  string* sarg = new string(arg.str());
+  string* sarg = new string(arg.str()); // delted in AttachFile_
   void * varg = (void*)(sarg);
   attachOfflineThread.Run(varg);
 }

@@ -1,7 +1,8 @@
-/*! \file Data.hxx
- *  \brief Defines generic wrappers for user-defined data classes.
- */
-#ifndef __DATA_HXX__
+//! \file Data.hxx
+//!  \brief Defines generic wrappers for user-defined data classes.
+#ifndef _DATA_HXX_
+#define _DATA_HXX_
+#include <assert.h>
 #include <string>
 #include <sstream>
 #include <iostream>
