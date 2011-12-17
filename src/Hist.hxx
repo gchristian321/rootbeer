@@ -65,7 +65,9 @@ namespace rb
     /// Directory owning this rb::Hist instance.
     TDirectory* fDirectory;
 
-    /// Struct wrapping all of the non-static critical elements.
+
+    /// Struct wrapping all of the non-static critical elements in rb::Hist
+
     //! Any rb::Hist instance member that can be shared between threads is contained
     //! inside this struct, and then the whole thing is declared volatile and should
     //! be accessed via a LockingPointer (or, in cases where safe/appropriate, a LockFreePointer).

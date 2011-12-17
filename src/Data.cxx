@@ -144,8 +144,13 @@ void rb::Data::SetValue(const char* name, Double_t newvalue) {
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 void rb::Data::AddBranches() {
   MapIterator_t it = fgMap.begin();
-  while(it != rb::Data::fgMap.end())
-    (*it++).second->AddBranch();
+  while(it != rb::Data::fgMap.end()) {
+    rb::Data* data = (*it++).second;
+    std::string brName = data->kName; brName += ".";
+    LockingPointer<char> pData (reinterpret_cast<volatile char*>(data->fData), data->fMutex);
+    void* v = reinterpret_cast<void*>(pData.Get());
+    rb::Hist::AddBranch(brName.c_str(), data->kClassName.c_str(), &v);
+  }
 }
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//

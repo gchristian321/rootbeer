@@ -11,18 +11,17 @@
 #include "LockingPointer.hxx"
 using namespace std;
 
-/// Here we define some internal functions that we don't want \c CINT
-/// to know about
 namespace rb
 {
+  // Here we declare some internal functions.
   namespace canvas
   {
-    /*! \brief Update whatever histograms are on the current canvas/pad,
-     * including any sub-pads owned by this one. */
+    /// Update whatever histograms are on the current canvas/pad,
+    /// including any sub-pads owned by this one.
     void UpdatePad(TVirtualPad* pad);
 
-    /*! \brief Clear whatever histograms are on the current canvas/pad,
-     * including any sub-pads owned by this one. */
+    /// Clear whatever histograms are on the current canvas/pad,
+    /// including any sub-pads owned by this one.
     void ClearPad(TVirtualPad* pad);
 
     /// Set cavases to update every on a regular basis.
@@ -38,25 +37,19 @@ namespace rb
     TThread thCanvas("thCanvas", rb::canvas::TimedUpdate);
 
     /// Mutex for locking threded canvas operations.
-    //! Recursive = kTRUE
-    TMutex gMutex (kTRUE);
-
-    /// Mutex locking function
-    void Lock() { rb::canvas::gMutex.Lock(); }
-
-    /// Mutex un-locking function
-    void Unlock() { rb::canvas::gMutex.UnLock(); }
+    //! \note Not recursive.
+    TMutex gMutex (kFALSE);
   }
 }
 
 
 void rb::canvas::UpdateCurrent() {
-  rb::canvas::Lock();
+  rb::canvas::gMutex.Lock();
   if(gPad) {
     gPad->Modified();
     gPad->Update();
   }
-  rb::canvas::Unlock();
+  rb::canvas::gMutex.UnLock();
 }
 
 void rb::canvas::UpdatePad(TVirtualPad* pad) {
@@ -64,20 +57,20 @@ void rb::canvas::UpdatePad(TVirtualPad* pad) {
   pad = dynamic_cast<TPad*>(pad);
   if(!pad) Error("rb::canvas::UpdatePad", "Passed an invalid type, %s.", type.c_str());
 
-  rb::canvas::Lock();
+  rb::canvas::gMutex.Lock();
   pad->cd();
   TList* primitives = pad->GetListOfPrimitives();
-  rb::canvas::Unlock();
+  rb::canvas::gMutex.UnLock();
 
   for(Int_t i=0; i< primitives->GetEntries(); ++i) {
     TVirtualPad* subpad = dynamic_cast<TVirtualPad*>(primitives->At(i));
     if(subpad) rb::canvas::UpdatePad(subpad);
   }
 
-  rb::canvas::Lock();
+  rb::canvas::gMutex.Lock();
   pad->Modified();
   pad->Update();
-  rb::canvas::Unlock();
+  rb::canvas::gMutex.UnLock();
 }
 
 void rb::canvas::UpdateAll() {
@@ -87,9 +80,9 @@ void rb::canvas::UpdateAll() {
     pad = dynamic_cast<TPad*>(gROOT->GetListOfCanvases()->At(i));
     if(pad) rb::canvas::UpdatePad(pad);
   }
-  rb::canvas::Lock();
+  rb::canvas::gMutex.Lock();
   if(pInitial) pInitial->cd();
-  rb::canvas::Unlock();
+  rb::canvas::gMutex.UnLock();
 }
 
 void* rb::canvas::TimedUpdate(void * rate) {
@@ -127,12 +120,12 @@ Int_t rb::canvas::StartUpdate(Int_t rate) {
   }
 }
 
-Int_t rb::canvas::GetUpdateRate() {
+Int_t rb::canvas::getUpdateRate() {
   return updateRate;
 }
 
 void rb::canvas::ClearCurrent() {
-  rb::canvas::Lock();
+  rb::canvas::gMutex.Lock();
   if(gPad) {
     for(Int_t i = 0; i < gPad->GetListOfPrimitives()->GetEntries(); ++i) {
       TH1* hst = dynamic_cast<TH1*> (gPad->GetListOfPrimitives()->At(i));
@@ -144,7 +137,7 @@ void rb::canvas::ClearCurrent() {
       gPad->Update();
     }
   }
-  rb::canvas::Unlock();
+  rb::canvas::gMutex.UnLock();
 }
 
 void rb::canvas::ClearPad(TVirtualPad* pad) {
@@ -152,10 +145,10 @@ void rb::canvas::ClearPad(TVirtualPad* pad) {
   pad = dynamic_cast<TPad*>(pad);
   if(!pad) Error("rb::canvas::UpdatePad", "Passed an invalid type, %s.", type.c_str());
 
-  rb::canvas::Lock();
+  rb::canvas::gMutex.Lock();
   pad->cd();
   TList* primitives = pad->GetListOfPrimitives();
-  rb::canvas::Unlock();
+  rb::canvas::gMutex.UnLock();
 
   for(Int_t i=0; i< primitives->GetEntries(); ++i) {
     TVirtualPad* subpad = dynamic_cast<TVirtualPad*>(primitives->At(i));
@@ -171,7 +164,7 @@ void rb::canvas::ClearAll() {
     pad = dynamic_cast<TPad*>(gROOT->GetListOfCanvases()->At(i));
     if(pad) rb::canvas::ClearPad(pad);
   }
-  rb::canvas::Lock();
+  rb::canvas::gMutex.Lock();
   if(pInitial) pInitial->cd();
-  rb::canvas::Unlock();
+  rb::canvas::gMutex.UnLock();
 }

@@ -117,9 +117,10 @@ Int_t main(Int_t argc, Char_t** argv)
   though the TThread library we use is supposed to be platform-indpendent).  In any case, the present
   instructions all assume a *NIX system.
 
-  You need to have ROOT installed on your system and have access to the standard class headers an libraries.
+  You need to have ROOT installed on your system and have access to the standard class headers and libraries.
   Instructions on installing ROOT can be found at http://root.cern.ch/drupal/content/downloading-root  You will
-  also need a C++ compiler installed, for example <a href="http://gcc.gnu.org">g++</a>. Otherwise, you should be
+  also need a C++ compiler installed, for example <a href="http://gcc.gnu.org">g++</a>, and some flavor of
+  <a href = "http://www.gnu.org/s/make/">make</a>.  Otherwise, you should be
   good to go as ROOTBEER doesn't make use of any external libraries other than the ROOT ones.
   
 

@@ -24,16 +24,16 @@
  */
 #include <assert.h>
 #define ADD_CLASS_INSTANCE(NAME, CLASS_NAME, CREATE_POINTER)		\
-  rb::Data* NAME##_Data = rb::Data::Create<CLASS_NAME>(#NAME, #CLASS_NAME, CREATE_POINTER);
+  rb::Data* NAME##_Data = rb::Data::New<CLASS_NAME>(#NAME, #CLASS_NAME, CREATE_POINTER);
 
 /// Macro to add a class instance to ROOTBEER
 /*! In case you need to use a non-default constructor for your class. */
 #define ADD_CLASS_INSTANCE_ARGS(NAME, CLASS_NAME, ARGS, CREATE_POINTER)	\
-  rb::Data* NAME##_Data = rb::Data::Create<CLASS_NAME>(#NAME, #CLASS_NAME, CREATE_POINTER, ARGS);
+  rb::Data* NAME##_Data = rb::Data::New<CLASS_NAME>(#NAME, #CLASS_NAME, CREATE_POINTER, ARGS);
 
 
 #define GET_LOCKING_POINTER(SYMBOL, NAME, CLASS)		\
-  LockingPointer<CLASS> SYMBOL (NAME##_Data->GetDataPointer<CLASS>(), *NAME##_Data->GetMutex());
+  LockingPointer<CLASS> SYMBOL (NAME##_Data->GetDataPointer<CLASS>(), NAME##_Data->fMutex);
 
 
 

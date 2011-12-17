@@ -21,7 +21,7 @@
 //!    LockingPointer<MyClass> p (myclass, mtx); // Get access to 'myclass', locked by 'mtx'.
 //!    p->SomeMemberFunctionOfMyClass();
 //!    ...
-//!    } // 'p' goes out of scope, release the lock.
+//!    } // 'p' goes out of scope, releases the lock.
 //! \endcode
 //! Note that if we had tried to get access to \c myclass directly,
 //! \code
@@ -31,7 +31,9 @@
 //! This is a good thing sice direct access to \c myclass is not thread safe. So by declaring
 //! critical objects \c volatile and accessing via LockingPointer, we let the compiler prevent
 //! us from screwing up. For more information: http://drdobbs.com/cpp/184403766
-
+//!
+//! Similar functionality (casting away volatile) but without the mutex locking can be had using 
+//! LockFreePointer (but use with care...). 
 template <typename T>
 class LockingPointer
 {
