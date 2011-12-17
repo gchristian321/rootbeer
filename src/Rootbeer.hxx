@@ -20,6 +20,7 @@
 namespace rb
 {
   /// Attach to an online data sorce. Implemented in Unpack.cxx
+  //! \todo Implement for real data.
   extern void AttachOnline();
 
   /// Attach to an offline data source. Implemented in Unpack.cxx

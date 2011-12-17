@@ -148,9 +148,9 @@ Int_t main(Int_t argc, Char_t** argv)
   there, and ROOTBEER simply adds a few functions specific to the analysis of incoming data. This page outlines some
   of the more common user actions:
 
-  - \link attach Attaching to Data \endlink
-  - \link hist Working with Histograms \endlink
-  - \link update Canvases \endlink
+  - <a href=#attach><b>Attaching to Data</b></a>
+  - <a href=#hist><b>Working with Histograms</b></a>
+  - <a href=#canvas><b>Canvases</b></a>
 
 
   For a complete list of all of the user commands and their documentation, visit the Rootbeer.hxx Doxygen page.
@@ -186,22 +186,20 @@ Int_t main(Int_t argc, Char_t** argv)
   will first Unattach() from the old one before connecting to the new one.
 
 
-  
   \n \section hist Working with Histograms
 
   This section describes some of the user interface to ROOTBEER histograms.
   For more information and a complete list of member functions, see the Doxygen page Hist.hxx
 
-  To arrange streaming data into histograms, ROOTBEER contains 1D, 2D, and 3D histogram types that inherit from
-  the respective \c TH*D classes in ROOT (for non C++ experts, this means that they keep all of the functionality
-  of ROOT histograms, plus add a bit more). The main addition to normal ROOT histograms is the ability of the histogram
+  To arrange streaming data into histograms, ROOTBEER defines it own histogram type that wraps the stock
+  ROOT ones.  The main addition to normal ROOT histograms is the ability of a ROOTBEER histogram
   to fill itself, i.e. each histogram is associated with an experiment parameter(s) (or some formula depending on an
-  experiment parameter(s)) and fills itself with the new parameter value every time an event come in.  The same thing
-  is true for gating conditions: the histogram has a gating condition associated with it and only fills for events
-  where it's true.
+  experiment parameter(s)) and fills the wrapped stock histogram  with the new parameter value every time an event
+  comes in.  The same thing is true for gating conditions: the histogram has a gating condition associated with it
+  and only fills for events where it's true.
 
-  To allow for safe creation and use of histograms, CINT users can only create them via the \c rb::AddHist() functions
-  (the constructors are hidden from CINT). The reason for doing this is CINT's feature of implicitly
+  To allow for safe creation and use of histograms, CINT users can only create them via the \c rb::Hist::New() functions
+  (the constructors are private). The reason for doing this is CINT's feature of implicitly
   allowing duplicate variable names, i.e. one can create two \c TH1D objects referenced by the same variable:
   \code
   TH1D someHist("myHist", "My Histogram", 100, -100, 100);
@@ -214,30 +212,41 @@ Int_t main(Int_t argc, Char_t** argv)
   thanks to CINT's helpful feature of automatically creating pointers that mirror object names, we have direct
   access to it.
 
-  The \c rb::AddHist() functions used in ROOTBEER to create histograms look very much like the normal constructors
+  The \c rb::Hist::New() functions used in ROOTBEER to create histograms look very much like the normal constructors
   for \c TH*D objects.
   The only real difference is the addition of arguments that specify the parameter with which the histogram is filled
   and it's gating condition.  For example, to create a 1D histogram displaying parameter <tt>a</tt> in 100 bins from
   -100 to 100, type:
   \code
-  rb::AddHist("myHistName", "My histogram title", 100, -100, 100, "a", "");
+  rb::Hist::New("myHistName", "My histogram title", 100, -100, 100, "a", "");
   \endcode
 
-  We have now added a histogram to the ROOTBEER environment. The user has access via the \c myHistName pointer
-  and and use it to access all of the normal histogram functionality in ROOT,  i.e. one can do
+  We have now added a histogram to the ROOTBEER environment, and the user has access via the \c myHistName pointer.
+  Because of issues with thread safety, most of the stock histogram functions are not transferred to the ROOTBEER
+  histograms. Instead, the user can obtain a copy of the internal histogram using the GetHist() function:
+  \code
+  TH1D* myHistInternal = myHistName->GetHist();
+  myHistInternal->Fit();
+  myHistInternal->Draw();
+  ...
+  \endcode
+
+  Note that since GetHist() returns a copy of the internal histogram, it will not continue to update as new data
+  comes in. Since you will probably want to watch the histogram update as data comes in, it is possible to
+  Draw() a ROOTBEER histgram directly:
   \code
   myHistName->Draw();
-  myHistName->Fit("gaus");
   \endcode
-  or whatever. Experienced ROOT users will notice that the first five arguments are exactly the same as those of
-  a \c TH1D constructor. The 6th argument specifies that the histogram should fill itself with parameter <tt>a</tt>,
-  and the 7th specifies that there is no gate condition applied.  Two and three-dimensional histograms are created
-  similarly, with the parameter specifier still being a single string with parameters separated by colons,
+  which will display the most up-to-date version of the histogram in the canvas. There are a few other functions
+  available that will be explained later.
+
+  Two and three-dimensional histograms are created
+  similarly to 1D ones, with the parameter specifier still being a single string with parameters separated by colons,
   as in \c <a href = "http://root.cern.ch/root/html/TTree.html#TTree:Draw%1">TTree::Draw</a>. For example, to plot
   parameter \c b (y-axis, 200 bins from -200 to 200) vs. \c a (x-axis, 100 bins from -100 to 100),
   with the condition that <tt>b != -1</tt>:
   \code
-   rb::AddHist("histab", "B vs A", 100, -100, 100, 200, -200, 200, "b:a", "b != -1");
+   rb::Hist::New("histab", "B vs A", 100, -100, 100, 200, -200, 200, "b:a", "b != -1");
   \endcode
 
   The gate argument is the same as that of \c <a href = "http://root.cern.ch/root/html/TTree.html#TTree:Draw%1">
@@ -245,7 +254,7 @@ Int_t main(Int_t argc, Char_t** argv)
   gate fields can also be compound variables, calculated from one or more static parameters. For example to plot
   <tt>sqrt(a) / 2</tt>:
   \code
-  rb::AddHist("sqrta2", "Root of a divided by 2", 100, -100, 100, "sqrt(a)/2", "");
+  rb::Hist::New("sqrta2", "Root of a divided by 2", 100, -100, 100, "sqrt(a)/2", "");
   \endcode
 
   In the case that an invalid parameter or gate argument is entered, the user will get an error message, and no
@@ -253,7 +262,7 @@ Int_t main(Int_t argc, Char_t** argv)
   histogram and specifies a name that is already in use (for any type of object),
   ROOTBEER appends _1, _2, etc. until the name is unique.
 
-  Histograms can also be re-gated, using the Regate() member function. The argument is simply the new
+  Histograms can be re-gated, using the Regate() member function. The argument is simply the new
   gate condition:
   \code
   myHist->Regate("a > 5");
@@ -265,27 +274,15 @@ Int_t main(Int_t argc, Char_t** argv)
   for compound histogram parameters via the static \c rb::Hist::SetAlias() function:
   \code
   rb::Hist::SetAlias("a_times_b", "a * b");
-  rb::AddHist("hst_ab", "a times b", 100, -100, 100, "a_times_b");
+  rb::Hist::New("hst_ab", "a times b", 100, -100, 100, "a_times_b");
   \endcode
 
   It is also possible to zero histograms while data is coming in. For this, use the \c Clear() function:
   \code
   myHist->Clear();
   \endcode
-
-  Filling of histograms is done behind the scenes if we're attached to a data source. However it is also
-  possible to manually fill the higtogram with the current value of it's internal parameter (and subject
-  to it's internal gate condition)
-  \code
-  myHist->Fill();
-  \endcode
-
-  Note that you can also use the normal \c <a href="http://root.cern.ch/root/html/TH1.html">TH*D::Fill</a>
-  methods to fill with specific values not related to the internal histogram parameters, and without regard
-  for the gate condition. For example, to fill \c myHist with 19.3
-  \code
-  myHist->Fill(19.3);
-  \endcode
+  Note that the zeroing of histograms can also be performed via the <a href=#canvas><b>Canvas</b></a>
+  on which is resides.
 
 
   \n \section canvas Canvases
