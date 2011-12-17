@@ -54,7 +54,7 @@ namespace rb
   extern Int_t WriteCanvases(const char* filename, Bool_t prompt = kTRUE);
 
   /// Contains user functions relevant to updating canvases and other graphics.
-  namespace canvas
+  namespace Canvas
   {
     /// Update every open canvas. Implemented in Canvas.cxx
     extern void UpdateAll();

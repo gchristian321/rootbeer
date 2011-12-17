@@ -296,25 +296,25 @@ Int_t main(Int_t argc, Char_t** argv)
   To Start/Stop auto-updating use the StartUpdate() or StopUpdate() functions:
 
   \code
-  rb::canvas::StartUpdate(5); // All canvases will now refresh every five seconds.
+  rb::Canvas::StartUpdate(5); // All canvases will now refresh every five seconds.
 
-  rb::canvas::StopUpdate(); // Canvases will no longer auto-refresh
+  rb::Canvas::StopUpdate(); // Canvases will no longer auto-refresh
   \endcode
 
 
   You can also update canvases manually, either individual or all at once
   \code
-  rb::canvas::UpdateAll(); // Update all canvases
+  rb::Canvas::UpdateAll(); // Update all canvases
 
-  rb::canvas::UpdateCurrent(); // Update just the currently selected canvas
+  rb::Canvas::UpdateCurrent(); // Update just the currently selected canvas
   \endcode
 
   as well as clear them
 
   \code
-  rb::canvas::ClearAll(); // Clear all canvases
+  rb::Canvas::ClearAll(); // Clear all canvases
 
-  rb::canvas::UpdateCurrent(); // Clear just the currently selected canvas
+  rb::Canvas::UpdateCurrent(); // Clear just the currently selected canvas
   \endcode
 
 
