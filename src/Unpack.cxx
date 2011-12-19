@@ -67,12 +67,15 @@ namespace rb
     /// 
     void* AttachOnline_(void* arg);
     void* AttachFile_(void* arg);
+    void* AttachList_(void* arg);
 
     Bool_t kAttachedOnline = kFALSE;
-    Bool_t kAttachedFile = kFALSE;
+    Bool_t kAttachedFile   = kFALSE;
+    Bool_t kAttachedList   = kFALSE;
 
     TThread attachOnlineThread("attachOnline", AttachOnline_);
     TThread attachOfflineThread("attachFile", AttachFile_);
+    TThread attachListThread("attachList", AttachList_);
 
     void UnpackBuffer();
 
@@ -125,15 +128,55 @@ namespace rb
       ifs.close();
 
       if(kAttachedFile) {
-	Info("AttachFile", "Done reading %s", fileName.c_str());
-	Unattach();
+	if(!kAttachedList) {
+	  Info("AttachFile", "Done reading %s", fileName.c_str());
+	  Unattach();
+	}
       }
       else Info("AttachFile", "Connection aborted by user.");
 
       return arg;
     }
-  }
-}
+
+    void* AttachList_(void * arg) {
+      using namespace unpack;
+      Unattach();
+      kAttachedList = kTRUE;
+
+      char* filename = (char*)arg;
+      ifstream ifs(filename);
+      if(!ifs.good()) {
+	Error("AttachList", "%s not found.", filename);
+	return 0;
+      }
+      string line;
+      while(1) {
+	getline(ifs, line);
+	if(!ifs.good()) break;
+
+	line = line.substr(0, line.find("#"));
+	string* str = new string("1");
+	for(UInt_t i=0; i< line.size(); ++i) {
+	  if(line[i] != ' ') str->push_back(line[i]);
+	}
+	if(str->size() == 1) continue;
+	ifstream ifstest(str->substr(1).c_str());
+	if(!ifstest.good()) {
+	  Info("AttachList", "The file %s wasn't found. Moving on to the next one.", str->c_str());
+	  continue;
+	}
+	ifstest.close();
+	void * filearg = (void*)str;
+	AttachFile_(filearg);
+	//	gSystem->Sleep(2e3);
+      }
+      ifs.close();
+      kAttachedFile = kFALSE;
+      Unattach();
+      return arg;
+    }
+  } // namespace unpack
+} // namespace rb
 
 
 void rb::AttachOnline() {
@@ -154,6 +197,9 @@ void rb::AttachFile(const char* filename, Bool_t stop_at_end) {
   attachOfflineThread.Run(varg);
 }
 
+void rb::AttachList(const char* filename) {
+  unpack::attachListThread.Run((void*)filename);
+}
 
 void rb::Unattach() {
   using namespace unpack;
@@ -164,6 +210,10 @@ void rb::Unattach() {
   if(kAttachedFile) {
     kAttachedFile = kFALSE;
     attachOfflineThread.Join();
+  }
+  if(kAttachedList) {
+    kAttachedList = kFALSE;
+    attachListThread.Join();
   }
 }
 

@@ -26,6 +26,11 @@ namespace rb
   /// Attach to an offline data source. Implemented in Unpack.cxx
   extern void AttachFile(const char* filename, Bool_t stop_at_end = kTRUE);
 
+  /// Attach to a series of offline data sources. Implemented in Unpack.cxx
+  //! The argument is a text file listing the files you want to attach to, one per line.
+  //! Blank lines and whitespace are ignored, as are lines beginning with <tt>#</tt>.
+  extern void AttachList(const char* filename);
+
   /// Disconnect from a data source. Implemented in Unpack.cxx
   extern void Unattach();
 
