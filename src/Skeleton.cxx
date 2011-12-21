@@ -1,6 +1,5 @@
-/*! \file Skeleton.hh
- *  \brief Lays out a code skeleton that users can fill in with their analysis codes.
- */
+//! \file Skeleton.hh
+//!  \brief Lays out a code skeleton that users can fill in with their analysis codes.
 
 
 /// Macro to add a class instance to ROOTBEER
