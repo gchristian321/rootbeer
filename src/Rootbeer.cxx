@@ -51,3 +51,4 @@ void rb::Rint::Terminate(Int_t status) {
   rb::Data::DeleteAll();
   TRint::Terminate(status);
 }
+

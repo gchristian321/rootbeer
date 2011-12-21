@@ -3,6 +3,7 @@
  */
 #include <algorithm>
 #include <iostream>
+#include <fstream>
 #include "Hist.hxx"
 using namespace std;
 
@@ -83,7 +84,7 @@ volatile TTree  rb::Hist::fgTree;
 // Constructor                                           //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 rb::Hist::Hist(const char* name, const char* title, const char* param, const char* gate, UInt_t npar) :
-  kConstructorSuccess(kTRUE), kDimensions(npar), fHistogramClone(0) {
+  kConstructorSuccess(kTRUE), kDimensions(npar), fHistogramClone(0)  {
   LockFreePointer<CriticalElements>  critical(fCritical);
   critical->fHistogram = 0;
 
@@ -311,7 +312,6 @@ TH1* rb::Hist::GetHist() {
      break;
    }
  }
-   
 
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
@@ -337,7 +337,6 @@ void rb::Hist::DeleteAll() {
      delete *hlist->begin();
    }
 }
-
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // rb::Hist::Fill()                                      //

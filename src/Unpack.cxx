@@ -43,28 +43,23 @@ void FakeEvent(Short_t* buf, Int_t dataRate = 0) {
 }
 
 
-void FakeBuffer(Short_t* buf, Int_t dataRate = 0) {
+void FakeBuffer(iostream& ifs,  Int_t dataRate = 0) {
 
   Int_t posn = 1, nEvts = 0;
+  Short_t buf[4096];
 
   while(posn< 4080) {
     FakeEvent(&buf[posn], dataRate); nEvts++; posn += buf[posn];
   }
   buf[0] = nEvts;
+  ifs.write((Char_t*)&buf[0], posn * sizeof(Short_t) / sizeof(Char_t));
 }
 
-/// Buffer size
-/// \todo Make this easier to set for users.
-static const Int_t BUFFER_SIZE = 4096;
 
 namespace rb
 {
   namespace unpack
   {
-    /// The data buffer
-    Short_t fBuffer[BUFFER_SIZE];
-
-    /// 
     void* AttachOnline_(void* arg);
     void* AttachFile_(void* arg);
     void* AttachList_(void* arg);
@@ -77,14 +72,18 @@ namespace rb
     TThread attachOfflineThread("attachFile", AttachFile_);
     TThread attachListThread("attachList", AttachList_);
 
+    void ReadBuffer(istream& ifs);
     void UnpackBuffer();
 
     void* AttachOnline_(void* arg) {
       kAttachedOnline = kTRUE;
 
       /// For now just generate fake data buffers.
+      stringstream ifs;
       while(kAttachedOnline) {
-	FakeBuffer(&(fBuffer[0]));
+	ifs.str("");
+	FakeBuffer(ifs);
+	ReadBuffer(ifs);
 	UnpackBuffer();
       }
       return arg;
@@ -113,7 +112,7 @@ namespace rb
       }
 
       while(kAttachedFile) {
-	ifs.read((Char_t*)(&fBuffer[0]), BUFFER_SIZE * (sizeof(Short_t)/sizeof(Char_t)));
+	ReadBuffer(ifs);
 	if(!ifs.good()) { // At end of file
 	  if(stopAtEnd) // We're done.
 	    break;
@@ -168,7 +167,6 @@ namespace rb
 	ifstest.close();
 	void * filearg = (void*)str;
 	AttachFile_(filearg);
-	//	gSystem->Sleep(2e3);
       }
       ifs.close();
       kAttachedFile = kFALSE;

@@ -8,11 +8,12 @@
 #include <sstream>
 #include <vector>
 #include <list>
-#include "TH1D.h"
-#include "TH2D.h"
-#include "TH3D.h"
-#include "TTree.h"
-#include "TTreeFormula.h"
+#include <TH1D.h>
+#include <TH2D.h>
+#include <TH3D.h>
+#include <TFile.h>
+#include <TTree.h>
+#include <TTreeFormula.h>
 #include <TROOT.h>
 #include <TError.h>
 #include <TObjArray.h>
@@ -204,7 +205,7 @@ namespace rb
     //! \note Since this uses TTree::Clone(), it dynamically allocetes memory that
     //! should be deleted by the user.
     static TTree* GetTreeClone() {
-      return static_cast<TTree*> (LockingPointer<TTree>(fgTree, fgMutex)->Clone());
+      return LockingPointer<TTree>(fgTree, fgMutex)->CloneTree(0);
     }
 
     /// Function to add branches to fgTree.

@@ -4,24 +4,7 @@
 
 
 /// Macro to add a class instance to ROOTBEER
-/*! NAME should be the variable name that you want to refer to the instance by.
- *  CLASS_NAME is the name of the class.
- *  CREATE_POINTER is a boolean telling whether or not you want CINT to automatically create
- *  a pointer to your data object that you can then use in an interactive session to
- *  access it.
- *  \note If you do create a pointer, calling the rb::WriteConfig() function will write the
- *  name and value of your data object and everything nested within it to a file. If you read in
- *  the config file, those values will override whatever is currently stored internally. This is the
- *  sort of thing you probably want for variables, but likely not for experimental parameters which
- *  change event-by-event.  If you do desire access to parameters from CINT, it is better to
- *  create a pointer explicitly in the CINT session, i.e.
- *  \code
- *  rb::Data<myDataType>* myData = rb::Data<myDataType>::Get("myDataTypeInstanceName");
- *  myData->DoSomething();
- *  \endcode
- *  If you do it this way instead of automatically here, then whatever is in \c myDataTypeInstanceName
- *  won't get written to configuration files.
- */
+
 #include <assert.h>
 #define ADD_CLASS_INSTANCE(NAME, CLASS_NAME, CREATE_POINTER)		\
   rb::Data* NAME##_Data = rb::Data::New<CLASS_NAME>(#NAME, #CLASS_NAME, CREATE_POINTER);
@@ -32,7 +15,7 @@
   rb::Data* NAME##_Data = rb::Data::New<CLASS_NAME>(#NAME, #CLASS_NAME, CREATE_POINTER, ARGS);
 
 
-#define GET_LOCKING_POINTER(SYMBOL, NAME, CLASS)		\
+#define GET_LOCKING_POINTER(SYMBOL, NAME, CLASS)			\
   LockingPointer<CLASS> SYMBOL (NAME##_Data->GetDataPointer<CLASS>(), NAME##_Data->fMutex);
 
 
@@ -80,66 +63,86 @@ ADD_CLASS_INSTANCE(mvar, var::mona, kTRUE);
 //\\ by implementing the UnpackBuffer() function.            //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 
+namespace rb {
+  namespace unpack {
+    const Int_t BUF_SIZE = 4096;
+    typedef Short_t DataType;
+    vector<DataType> gBuffer(BUF_SIZE);
+  }
+}
+
+
 #define EVENT_BUFFER 1
 #define BUF_HEADER_LENGTH 16
 
+
+void rb::unpack::ReadBuffer(istream& ifs) {
+  if(gBuffer.size() != BUF_SIZE) gBuffer.resize(BUF_SIZE);
+
+  Char_t* firstWord = reinterpret_cast<Char_t*>(&gBuffer[0]);
+  Int_t bufferSize = BUF_SIZE * (sizeof(DataType) / sizeof(Char_t));
+
+  ifs.read(firstWord, bufferSize);
+}
+
 void rb::unpack::UnpackBuffer() {
 
-  static unsigned short* pEvt, nEvts, evtLength;
-  static int nBuffers = 0;
-  static raw::unpacker unpack;
+  // #if 0
+  //   static unsigned short* pEvt, nEvts, evtLength;
+  //   static int nBuffers = 0;
+  //   static raw::unpacker unpack;
 
-  unpack.read_online_buffer((UShort_t*)&fBuffer[0]);
-      if(unpack.get_buffer_type() == EVENT_BUFFER)
-	{
-	  ++nBuffers;
-	  if(1)
-	    {
-	      if(nBuffers/100 > (nBuffers-1)/100)
-		{
-		  for(int i=nBuffers; i>0; i/=10)
-		    cout<<"\b";
-		  cout  <<nBuffers; flush(cout);
-		}
-	    }
+  //   unpack.read_online_buffer((UShort_t*)&gBuffer[0]);
+  //   if(unpack.get_buffer_type() == EVENT_BUFFER)
+  //     {
+  //       ++nBuffers;
+  //       if(1)
+  // 	{
+  // 	  if(nBuffers/100 > (nBuffers-1)/100)
+  // 	    {
+  // 	      for(int i=nBuffers; i>0; i/=10)
+  // 		cout<<"\b";
+  // 	      cout  <<nBuffers; flush(cout);
+  // 	    }
+  // 	}
 
-	  int runnum = unpack.get_run_number();
-	  nEvts = unpack.get_n_evts();
-	  pEvt  = unpack.get_buffer();
-	  pEvt += BUF_HEADER_LENGTH;
+  //       int runnum = unpack.get_run_number();
+  //       nEvts = unpack.get_n_evts();
+  //       pEvt  = unpack.get_buffer();
+  //       pEvt += BUF_HEADER_LENGTH;
 
-	  vector<unsigned short> monalisa_packets;
-	  monalisa_packets.push_back(MONA_PACKET);
-	  monalisa_packets.push_back(LISA_PACKET);
+  //       vector<unsigned short> monalisa_packets;
+  //       monalisa_packets.push_back(MONA_PACKET);
+  //       monalisa_packets.push_back(LISA_PACKET);
 
-	  GET_LOCKING_POINTER(p_mraw, mraw, raw::mona);
-	  for(unsigned short i=0; i< nEvts; ++i) //\loop events
-	    {
-	      evtLength = *pEvt;
-	      unpack.unpack_detector(p_mraw.Get(), monalisa_packets, pEvt);
+  //       GET_LOCKING_POINTER(p_mraw, mraw, raw::mona);
+  //       for(unsigned short i=0; i< nEvts; ++i) //\loop events
+  // 	{
+  // 	  evtLength = *pEvt;
+  // 	  unpack.unpack_detector(p_mraw.Get(), monalisa_packets, pEvt);
 
-       rb::Hist::FillAll();//
-	      // Move on to the next event
-	      pEvt += evtLength;
+  // 	  rb::Hist::FillAll();//
+  // 	  // Move on to the next event
+  // 	  pEvt += evtLength;
 
-	    }
+  // 	}
 
 	
+  // #else
 
 
 
-
-  // Short_t* p = &fBuffer[0]; // Point to the beginning of the buffer
-  // Int_t nEvts = *p++;   // Figure out the number of events
-  //   GET_LOCKING_POINTER(pData, myData, ExampleData);
-  //   GET_LOCKING_POINTER(pVars, myVars, ExampleVariables);
-
-
-  // for (Int_t event = 0; event < nEvts; ++event) { // Loop over all events
+  Short_t* p = &gBuffer[0]; // Point to the beginning of the buffer
+  Int_t nEvts = *p++;   // Figure out the number of events
+  GET_LOCKING_POINTER(pData, myData, ExampleData);
+  GET_LOCKING_POINTER(pVars, myVars, ExampleVariables);
 
 
-  //   p += pData->process_event(p);   // Process each event using external user code
-  //   pData->calibrate(*pVars);   // Calibrate everything for this event
+  for (Int_t event = 0; event < nEvts; ++event) { // Loop over all events
+
+
+    p += pData->process_event(p);   // Process each event using external user code
+    pData->calibrate(*pVars);   // Calibrate everything for this event
 
 
 
@@ -150,14 +153,12 @@ void rb::unpack::UnpackBuffer() {
     // of your event loop if you want to be able to see histogrammed data.    //
     //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
     //\\\\\\\\\\\\\\\\\\\\\//
-      //       rb::Hist::FillAll();//
+    rb::Hist::FillAll();//
     //\\\\\\\\\\\\\\\\\\\\\//
 
   } // End event loop
 
 } // End function
-
-
 
 
 #undef ADD_CLASS_INSTANCE
