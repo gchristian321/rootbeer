@@ -72,8 +72,8 @@ namespace rb
     TThread attachOfflineThread("attachFile", AttachFile_);
     TThread attachListThread("attachList", AttachList_);
 
-    void ReadBuffer(istream& ifs);
-    void UnpackBuffer();
+    extern void ReadBuffer(istream& ifs);
+    extern void UnpackBuffer();
 
     void* AttachOnline_(void* arg) {
       kAttachedOnline = kTRUE;
@@ -217,6 +217,6 @@ void rb::Unattach() {
 
 
 ///// User Defined Unpack() Routine //////
-#include "Skeleton.hh"
+////// #include "Skeleton.hh"
 
 
