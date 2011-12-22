@@ -267,11 +267,17 @@ Bool_t rb::Data::MapData(const char* name, TStreamerElement* element, volatile v
     fgObjectMap.insert(std::make_pair(name, std::make_pair(address, typeName)));
   }
   else {
-    Int_t size = element->GetSize() / arrLen;
-    ArrayConverter arrayConvert(element);
-    for(Int_t i=0; i< arrLen; ++i) {
-      void_pointer_add(address, size*(i>0));
-      fgObjectMap.insert(std::make_pair(arrayConvert.GetFullName(name, i), std::make_pair(address, typeName)));
+    if(element->GetArrayDim() > 4) {
+      Warning("MapData", "No support for arrays > 4 dimensions. The array %s is %d and will not be mapped!",
+	      name, element->GetArrayDim());
+    }
+    else {
+      Int_t size = element->GetSize() / arrLen;
+      ArrayConverter arrayConvert(element);
+      for(Int_t i=0; i< arrLen; ++i) {
+	void_pointer_add(address, size*(i>0));
+	fgObjectMap.insert(std::make_pair(arrayConvert.GetFullName(name, i), std::make_pair(address, typeName)));
+      }
     }
   }
   return kTRUE;
