@@ -1,5 +1,5 @@
 //! \file Data.cxx
-//!  \brief Implements Data.hxx
+//! \brief Implements Data.hxx
 #include <TROOT.h>
 #include <TClass.h>
 #include <TStreamerInfo.h>
@@ -34,6 +34,60 @@ void remove_duplicate_spaces(string& str) {
       str.erase(i,1);
   }
 }
+
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// Helper Classes                                        //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// This is just a quick and dirty class to reconstruct the original indecex
+// of a multi-dimensional array that has been flattened by TStreamerElemens.
+// All we really need out is just strings with the original indices in brackets.
+class ArrayConverter
+{
+private:
+  TStreamerElement* fElement;
+  vector<string> fIndices;
+
+public:
+  ArrayConverter(TStreamerElement* element) :
+    fElement(element) {
+    stringstream sstr;
+    Int_t ndim = fElement->GetArrayDim();
+    vector<UInt_t> index(4, 0);
+
+    // Lazy way of "flattening" the array, just use nested for loops.  TStreamerElement
+    // only supports up to 4-dimensional arrays anyway so there's no loss. Though really this
+    // should be done recursively withouth the for loops (or some other clever way).
+    for(index[0] = 0; index[0] < fElement->GetMaxIndex(0); ++index[0]) {
+      for(index[1] = 0; index[1] < (ndim > 1 ? fElement->GetMaxIndex(1) : 1) ; ++index[1]) {
+	for(index[2] = 0; index[2] < (ndim > 2 ? fElement->GetMaxIndex(2) : 1) ; ++index[2]) {
+	  for(index[3] = 0; index[3] < (ndim > 3 ? fElement->GetMaxIndex(3) : 1) ; ++index[3]) {
+	    sstr.str("");
+	    for(Int_t i=0; i< ndim; ++i) {
+	      sstr << "[" << index[i] << "]";
+	    }
+	    fIndices.push_back(sstr.str());
+	  }
+	}
+      }
+    }
+  }
+  // Return the original indices.
+  string GetFullName(const char* baseName, UInt_t index) {
+    if(index < fIndices.size()) {
+      string out = baseName;
+      out += fIndices[index];
+      return out;
+    }
+    else {
+      fprintf(stderr, "Invalid index %d\n", index);
+      return "";
+    }
+  }
+};
+
+
+    
+  
 
 
 
@@ -214,11 +268,10 @@ Bool_t rb::Data::MapData(const char* name, TStreamerElement* element, volatile v
   }
   else {
     Int_t size = element->GetSize() / arrLen;
+    ArrayConverter arrayConvert(element);
     for(Int_t i=0; i< arrLen; ++i) {
-      stringstream fullName;
-      fullName << name << "[" << i << "]";
       void_pointer_add(address, size*(i>0));
-      fgObjectMap.insert(std::make_pair(fullName.str(), std::make_pair(address, typeName)));
+      fgObjectMap.insert(std::make_pair(arrayConvert.GetFullName(name, i), std::make_pair(address, typeName)));
     }
   }
   return kTRUE;
