@@ -7,12 +7,20 @@ DYLIB=-dynamiclib -single_module -undefined dynamic_lookup
 
 ### In case your ROOT headers aren't searched for automatically, add
 # -I/where/your/root/headers/are to the next line.
-INCFLAGS=-I$(SRC) -I$(CINT) -I/user/gchristian/soft/n2analysis/src/ -I/user/gchristian/soft/n2analysis/include/
+INCFLAGS=-I$(SRC) -I$(CINT) $(USER_INCLUDES)
 CXXFLAGS=$(INCFLAGS) -L$(PWD)/lib
 ####CXXFLAGS=-ggdb -O0
 
+###### USER HEADERS AND SOURCES GO HERE #######
+USER_INCLUDES=-I/user/gchristian/soft/n2analysis/src/ -I/user/gchristian/soft/n2analysis/include/
+
 USER_HEADERS=$(SRC)/ExampleData.hh /user/gchristian/soft/n2analysis/src/mona.hh /user/gchristian/soft/n2analysis/src/detector.hh /user/gchristian/soft/n2analysis/src/unpacker.hh
+
 USER_SOURCES=/user/gchristian/soft/n2analysis/src/mona.cc /user/gchristian/soft/n2analysis/src/unpacker.cc
+
+##############################################
+
+
 
 #### MAIN PROGRAM ####
 all: rootbeer

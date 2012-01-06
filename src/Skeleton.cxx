@@ -16,7 +16,7 @@
 
 /// Macro to add a class instance to ROOTBEER
 /*! In case you need to use a non-default constructor for your class. */
-#define ADD_CLASS_INSTANCE_ARGS(NAME, CLASS_NAME, ARGS, CREATE_POINTER)	\
+#define ADD_CLASS_INSTANCE_ARGS(NAME, CLASS_NAME, CREATE_POINTER, ARGS)	\
   rb::Data* NAME##_Data = rb::Data::New<CLASS_NAME>(#NAME, #CLASS_NAME, CREATE_POINTER, ARGS);
 
 
@@ -56,30 +56,41 @@ ADD_CLASS_INSTANCE(myData, ExampleData, kFALSE)
 
 // Here we add an instance of sVariables, calles myVars and do allow viewing in CINT.
 //ADD_CLASS_INSTANCE(myVars, ExampleVariables, kTRUE)
-ADD_CLASS_INSTANCE_ARGS(myVars, ExampleVariables, "32", kTRUE)
+ADD_CLASS_INSTANCE_ARGS(myVars, ExampleVariables,  kTRUE, "32")
 
 ADD_CLASS_INSTANCE(mcal, cal::mona, kFALSE);
 ADD_CLASS_INSTANCE(mraw, raw::mona, kFALSE);
 ADD_CLASS_INSTANCE(mvar, var::mona, kTRUE);
 
 
-//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-//\\ Here you should define how to process your data buffers //
-//\\ by implementing the UnpackBuffer() function.            //
-//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 
 namespace rb {
   namespace unpack {
-    const Int_t BUF_SIZE = 4096;
-    typedef Short_t DataType;
-    std::vector<DataType> gBuffer(BUF_SIZE);
-  }
-}
 
 
-namespace rb {
-  namespace unpack {
+
+    //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+    //\\ Here you can define what your data buffers look like.          \\//
+    //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+    typedef Short_t DataType;  // The type of data stored
+    const Int_t BUF_SIZE = 4096;  // The size of each buffer
+
+
+    //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+    //// Actual buffer declaration, shouldn't change \\//
+    //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+    std::vector<DataType> gBuffer(BUF_SIZE); //\\\\\\\\//
+    //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+
+
+
+
+    //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+    //\\ Here you should define how to process your data buffers        \\//
+    //\\ by implementing the ReadBuffer() and UnpackBuffer() functions. \\//
+    //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
     
+
     void ReadBuffer(istream& ifs) {
       if(gBuffer.size() != BUF_SIZE) gBuffer.resize(BUF_SIZE);
 
@@ -100,16 +111,6 @@ namespace rb {
       if(unpack.get_buffer_type() == EVENT_BUFFER)
 	{
 	  ++nBuffers;
-	  if(1)
-	    {
-	      // if(nBuffers/100 > (nBuffers-1)/100)
-	      //   {
-	      //     for(int i=nBuffers; i>0; i/=10)
-	      // 	    std::cout<< "\b";
-	      // 	  std::cout  << nBuffers;
-	      // 	  std::flush(std::cout);
-	      //   }
-	    }
 
 	  int runnum = unpack.get_run_number();
 	  nEvts = unpack.get_n_evts();

@@ -19,9 +19,6 @@
 #pragma link C++ namespace var;
 #pragma link C++ defined_in /user/gchristian/soft/n2analysis/src/mona.hh;
 
-/* #pragma link C++ class cal::mona+; */
-/* #pragma link C++ class raw::mona+; */
-/* #pragma link C++ class var::mona+; */
 #pragma link C++ class raw::detector+;
 
 // User templates
