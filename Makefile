@@ -1,4 +1,3 @@
-
 VPATH = $(PWD)/cint:$(PWD)/src:$(PWD)/lib:$(PWD)/rbgui
 SRC=$(PWD)/src
 CINT=$(PWD)/cint
