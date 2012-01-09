@@ -12,11 +12,16 @@ CXXFLAGS=$(INCFLAGS) -L$(PWD)/lib
 ####CXXFLAGS=-ggdb -O0
 
 ###### USER HEADERS AND SOURCES GO HERE #######
-USER_INCLUDES=-I/user/gchristian/soft/n2analysis/src/ -I/user/gchristian/soft/n2analysis/include/
+DRAGON_SRC=/user/gchristian/soft/develop/dragon/analyzer/src
 
-USER_HEADERS=$(SRC)/ExampleData.hh /user/gchristian/soft/n2analysis/src/mona.hh /user/gchristian/soft/n2analysis/src/detector.hh /user/gchristian/soft/n2analysis/src/unpacker.hh
+USER_INCLUDES=-I/user/gchristian/soft/n2analysis/src/ -I/user/gchristian/soft/n2analysis/include/ \
+-I$(DRAGON_SRC)
 
-USER_SOURCES=/user/gchristian/soft/n2analysis/src/mona.cc /user/gchristian/soft/n2analysis/src/unpacker.cc
+USER_HEADERS=$(SRC)/ExampleData.hh /user/gchristian/soft/n2analysis/src/mona.hh /user/gchristian/soft/n2analysis/src/detector.hh /user/gchristian/soft/n2analysis/src/unpacker.hh \
+$(DRAGON_SRC)/rbMidasEvent.h
+
+USER_SOURCES=/user/gchristian/soft/n2analysis/src/mona.cc /user/gchristian/soft/n2analysis/src/unpacker.cc \
+$(DRAGON_SRC)/rbMidasEvent.cxx
 
 ##############################################
 

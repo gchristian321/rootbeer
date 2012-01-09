@@ -44,6 +44,8 @@
 #include "mona.hh"
 #include "unpacker.hh"
 #include "mona_definitions.hh"
+#include <TTimeStamp.h>
+#include "rbMidasEvent.h"
 
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
@@ -62,8 +64,9 @@ ADD_CLASS_INSTANCE(mcal, cal::mona, kFALSE);
 ADD_CLASS_INSTANCE(mraw, raw::mona, kFALSE);
 ADD_CLASS_INSTANCE(mvar, var::mona, kTRUE);
 
+ADD_CLASS_INSTANCE(ts, TimeStamp, kFALSE);
 
-
+#define MIDAS_TEST
 namespace rb {
   namespace unpack {
 
@@ -72,14 +75,16 @@ namespace rb {
     //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
     //\\ Here you can define what your data buffers look like.          \\//
     //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+#ifndef MIDAS_TEST
     typedef Short_t DataType;  // The type of data stored
-    const Int_t BUF_SIZE = 4096;  // The size of each buffer
-
+#else
+    typedef Int_t DataType;    // The type of data stored
+#endif    
 
     //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
     //// Actual buffer declaration, shouldn't change \\//
     //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-    std::vector<DataType> gBuffer(BUF_SIZE); //\\\\\\\\//
+    std::vector<DataType> gBuffer; //\\\\\\\\\\\\\\\\\\//
     //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 
 
@@ -89,18 +94,46 @@ namespace rb {
     //\\ Here you should define how to process your data buffers        \\//
     //\\ by implementing the ReadBuffer() and UnpackBuffer() functions. \\//
     //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-    
+
+#ifdef MIDAS_TEST
+    rb::MidasEvent midasEvent;
+#endif
 
     void ReadBuffer(istream& ifs) {
+#ifdef MIDAS_TEST //// TRIUMF ////
+
+      Bool_t readSuccess = midasEvent.ReadEvent(&ifs);
+      if(!readSuccess) return;
+      Int_t nWords = midasEvent.GetDataSize() / sizeof(DataType);
+      gBuffer.resize(nWords);
+      memcpy(reinterpret_cast<void*>(&gBuffer[0]),
+	     reinterpret_cast<void*>(midasEvent.GetData()),
+	     midasEvent.GetDataSize());
+
+#else  //// NSCL ////
+
+      const Int_t BUF_SIZE = 4096;
       if(gBuffer.size() != BUF_SIZE) gBuffer.resize(BUF_SIZE);
 
       Char_t* firstWord = reinterpret_cast<Char_t*>(&gBuffer[0]);
-      Int_t bufferSize = BUF_SIZE * (sizeof(DataType) / sizeof(Char_t));
+      Int_t bufferSize = BUF_SIZE * sizeof(DataType);
 
       ifs.read(firstWord, bufferSize);
+
+#endif
     }
 
+
     void UnpackBuffer() {
+#ifdef MIDAS_TEST
+      TTimeStamp ts(midasEvent.GetTimeStamp());		    
+      //      std::cout << ts.AsString() << std::endl;
+      GET_LOCKING_POINTER(pTS, ts, TimeStamp);
+      pTS->time = midasEvent.GetTimeStamp();
+      //      std::cout << pTS->time << std::endl;
+
+      rb::Hist::FillAll();
+#else
       static const UInt_t EVENT_BUFFER = 1;
       static const UInt_t BUF_HEADER_LENGTH = 16;
       static unsigned short* pEvt, nEvts, evtLength;
@@ -166,6 +199,7 @@ namespace rb {
 
       } // End event loop
 
+#endif
     } // End function
 
   } // namespace unpack

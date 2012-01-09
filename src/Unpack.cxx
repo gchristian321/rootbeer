@@ -90,7 +90,7 @@ namespace rb
     }
 
     void* AttachFile_(void* arg) {
-      /// \note 'arg' Was casted from a \c new string before passing it here.
+      /// \note 'arg' was casted from a \c new string before passing it here.
       /// We neeed to free the memory allocated to it with <tt>delete</tt>.
 
       kAttachedFile = kTRUE;

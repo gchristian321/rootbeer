@@ -128,5 +128,8 @@ public:
   ~ExampleData() { }
 };
 
+struct TimeStamp {
+  Int_t time;
+};
 
 #endif
