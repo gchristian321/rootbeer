@@ -16,7 +16,9 @@
 
 namespace rb
 {
-  namespace unpack { extern void UnpackBuffer(); };
+  // Forward declaration of rb::Unpack::UnpackBuffer();
+  // Implementation in in Skeleton.cxx
+  namespace unpack { extern void UnpackBuffer(); }
   class Rint;
 
   /// Class wrapping pointers to user data objects.

@@ -27,7 +27,7 @@ USER_INCLUDES=-I$(N2DIR)/src -I$(N2DIR)/include -I$(DRAGON_SRC)
 
 USER_HEADERS=$(USER)/ExampleData.hh \
 $(N2DIR)/src/mona.hh $(N2DIR)/src/detector.hh $(N2DIR)/src/unpacker.hh \
-$(DRAGON_SRC)/rbMidasEvent.h $(DRAGON_SRC)/Dragon.hxx
+$(DRAGON_SRC)/Dragon.hxx
 
 ############################
 ### Use the USER_SOURCES variable to tell the compiler where all of your source (compile) files are located.
@@ -35,6 +35,6 @@ $(DRAGON_SRC)/rbMidasEvent.h $(DRAGON_SRC)/Dragon.hxx
 ### USER_HEADERS=/path/to/sources/source1.cxx /path/to/sources/source2.cxx
 USER_SOURCES= \
 $(N2DIR)/src/mona.cc $(N2DIR)/src/unpacker.cc \
-$(DRAGON_SRC)/TMidasEvent.cxx $(DRAGON_SRC)/rbMidasEvent.cxx $(DRAGON_SRC)/VariableDefaults.cxx $(DRAGON_SRC)/Dragon.cxx
+$(DRAGON_SRC)/VariableDefaults.cxx $(DRAGON_SRC)/Dragon.cxx
 
 ##############################################

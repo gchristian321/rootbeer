@@ -23,8 +23,9 @@ rootbeer: libHist.so libRootbeer.so $(SRC)/main.cc
 
 #### ROOTBEER LIBRARY ####
 SOURCES=$(SRC)/Rootbeer.cxx $(SRC)/Data.cxx $(PWD)/user/Skeleton.cxx $(SRC)/Unpack.cxx $(SRC)/Canvas.cxx $(SRC)/WriteConfig.cxx \
-	$(USER_SOURCES)
-HEADERS=$(SRC)/Rootbeer.hxx $(SRC)/Data.hxx $(USER_HEADERS)
+$(SRC)/midas/TMidasEvent.cxx $(SRC)/midas/rbMidasEvent.cxx $(USER_SOURCES)
+
+HEADERS=$(SRC)/Rootbeer.hxx $(SRC)/Data.hxx $(SRC)/midas/rbMidasEvent.h $(USER_HEADERS)
 
 libRootbeer.so: libHist.so cint/RBDictionary.cxx $(SOURCES)
 	g++ $(CXXFLAGS) -lHist -o $(PWD)/lib/$@ $(ROOTFLAGS) -lThread $(DYLIB) -p cint/RBDictionary.cxx $(SOURCES)

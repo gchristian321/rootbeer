@@ -1,9 +1,5 @@
-//! \file Skeleton.hh
-//!  \brief Lays out a code skeleton that users can fill in with their analysis codes.
-
-
-/// Macro to add a class instance to ROOTBEER
-
+//! \file Skeleton.cxx
+//! \brief This is where users plug their analysis codes into ROOTBEER.
 #include <assert.h>
 #include <vector>
 #include <iostream>
@@ -11,19 +7,17 @@
 #include "Rootbeer.hxx"
 
 
+/// Macro to add a class instance to ROOTBEER
 #define ADD_CLASS_INSTANCE(NAME, CLASS_NAME, CREATE_POINTER)		\
   rb::Data* NAME##_Data = rb::Data::New<CLASS_NAME>(#NAME, #CLASS_NAME, CREATE_POINTER);
 
-/// Macro to add a class instance to ROOTBEER
-/*! In case you need to use a non-default constructor for your class. */
+/// Same as ADD_CLASS_INSTANCE, but for non-default constructors
 #define ADD_CLASS_INSTANCE_ARGS(NAME, CLASS_NAME, CREATE_POINTER, ARGS)	\
   rb::Data* NAME##_Data = rb::Data::New<CLASS_NAME>(#NAME, #CLASS_NAME, CREATE_POINTER, ARGS);
 
-
+/// Macro to get a mutex-ocking pointer to data objects.
 #define GET_LOCKING_POINTER(SYMBOL, NAME, CLASS)			\
   LockingPointer<CLASS> SYMBOL (NAME##_Data->GetDataPointer<CLASS>(), NAME##_Data->fMutex);
-
-
 
 
 
@@ -44,24 +38,26 @@
 #include "mona.hh"
 #include "unpacker.hh"
 #include "mona_definitions.hh"
+
+#define MIDAS_TEST
 #include <TTimeStamp.h>
 #include "rbMidasEvent.h"
 #include "Dragon.hxx"
+
+
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 //\\ Define instances of your class here    \\//
 //\\ (using the ADD_CLASS_INSTANCE macros). \\//
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 
-
-#define MIDAS_TEST
-
 // Here we add an instance of ExampleData, called myData and do not allow viewing in CINT.
 ADD_CLASS_INSTANCE(myData, ExampleData, kFALSE)
 
 // Here we add an instance of sVariables, calles myVars and do allow viewing in CINT.
-//ADD_CLASS_INSTANCE(myVars, ExampleVariables, kTRUE)
+// Also, we use a non-default constructor, with the argument 32.
 ADD_CLASS_INSTANCE_ARGS(myVars, ExampleVariables,  kTRUE, "32")
+
 
 ADD_CLASS_INSTANCE(mcal, cal::mona, kFALSE);
 ADD_CLASS_INSTANCE(mraw, raw::mona, kFALSE);
@@ -73,26 +69,23 @@ ADD_CLASS_INSTANCE(dragon, data::Dragon, kFALSE);
 ADD_CLASS_INSTANCE(vdragon, variables::Dragon, kTRUE);
 #endif
 
+
 namespace rb {
   namespace unpack {
 
 
+    //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+    //\\ Define the type of data stored in your buffers here.           \\//
+    //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+    typedef Short_t DataType; // Example: the buffers store 16-bit words.
 
-    //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-    //\\ Here you can define what your data buffers look like.          \\//
-    //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-#ifndef MIDAS_TEST
-    typedef Short_t DataType;  // The type of data stored
-#else
-    typedef Int_t DataType;    // The type of data stored
-#endif    
 
     //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-    //// Actual buffer declaration, shouldn't change \\//
+    //\\ Actual buffer declaration.                  \\//
+    //\\ Likely you won't want to touch this.        \\//
     //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
     std::vector<DataType> gBuffer; //\\\\\\\\\\\\\\\\\\//
     //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-
 
 
 
@@ -101,20 +94,23 @@ namespace rb {
     //\\ by implementing the ReadBuffer() and UnpackBuffer() functions. \\//
     //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 
-#ifdef MIDAS_TEST
-    rb::MidasEvent midasEvent;
+#define _MIDAS_ // Uncomment to use pre-defined MIDAS buffer extraction routines.
+// #define _NSCL_  // Uncomment to use pre-defined NSCL buffer extraction routines.
+
+#ifdef _MIDAS_ // Define a global midas event
+    rb::MidasEvent gMidasEvent;
 #endif
 
     void ReadBuffer(istream& ifs) {
 #ifdef MIDAS_TEST //// TRIUMF ////
 
-      Bool_t readSuccess = midasEvent.ReadEvent(&ifs);
+      Bool_t readSuccess = gMidasEvent.ReadEvent(&ifs);
       if(!readSuccess) return;
-      Int_t nWords = midasEvent.GetDataSize() / sizeof(DataType);
+      Int_t nWords = gMidasEvent.GetDataSize() / sizeof(DataType);
       gBuffer.resize(nWords);
       memcpy(reinterpret_cast<void*>(&gBuffer[0]),
-	     reinterpret_cast<void*>(midasEvent.GetData()),
-	     midasEvent.GetDataSize());
+	     reinterpret_cast<void*>(gMidasEvent.GetData()),
+	     gMidasEvent.GetDataSize());
 
 #else  //// NSCL ////
 
@@ -129,22 +125,21 @@ namespace rb {
 #endif
     }
 
-
     void UnpackBuffer() {
 #ifdef MIDAS_TEST
       GET_LOCKING_POINTER(pTS, ts, TimeStamp);
-      pTS->time = midasEvent.GetTimeStamp();
+      pTS->time = gMidasEvent.GetTimeStamp();
 
       GET_LOCKING_POINTER(pDragon, dragon, data::Dragon);
       GET_LOCKING_POINTER(pDragonVars, vdragon, variables::Dragon);
 
-      int16_t eventId = midasEvent.GetEventId();
+      int16_t eventId = gMidasEvent.GetEventId();
       bool unpackResult;
       switch(eventId) {
       case EV_DRAGON_G:
       case EV_DRAGON_H:
 	pDragon->Reset();
-	unpackResult = pDragon->Unpack(midasEvent, *pDragonVars);
+	unpackResult = pDragon->Unpack(gMidasEvent, *pDragonVars);
 	rb::Hist::FillAll();
 	break;
       default:
@@ -188,7 +183,7 @@ namespace rb {
 
 	    }
 
-	
+
 
 
       // Short_t* p = &gBuffer[0]; // Point to the beginning of the buffer

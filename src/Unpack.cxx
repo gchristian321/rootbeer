@@ -1,6 +1,5 @@
-/*! \file Unpack.cxx
- *  \brief Implements data attaching/unpacking rotines.
- */
+//! \file Unpack.cxx
+//!  \brief Implements data attaching/unpacking rotines.
 #include <iostream>
 #include <fstream>
 #include <vector>
@@ -33,7 +32,7 @@ void FakeEvent(Short_t* buf, Int_t dataRate = 0) {
   Double_t rabc = gRandom->Uniform(0,1);
 
   a = Short_t(gRandom->Gaus(20, 10));
-  b = Short_t(gRandom->Gaus(30, 5)); 
+  b = Short_t(gRandom->Gaus(30, 5));
   c = Short_t(gRandom->Gaus(50, 20));
 
   if(a > 0)             { *(p+1) = 1; *(p+2) = a; nWords += 2; }
@@ -58,21 +57,42 @@ void FakeBuffer(iostream& ifs,  Int_t dataRate = 0) {
 
 namespace rb
 {
+  /// Contains functions defining how to attach to and unpack data.
   namespace unpack
   {
+    //! Attaches to an online data source, in the format expected by TThread.
     void* AttachOnline_(void* arg);
+    //! Attaches to an offline data source (file), in the format expected by TThread.
     void* AttachFile_(void* arg);
+    //! Attaches to a list of offline files, in the format expected by TThread.
     void* AttachList_(void* arg);
 
+    //! Tells whether we're attached to an online source or not.
     Bool_t kAttachedOnline = kFALSE;
+    //! Tells whether we're attached to an offline file or not.
     Bool_t kAttachedFile   = kFALSE;
+    //! Tells whether we're attached to a list of files or not.
     Bool_t kAttachedList   = kFALSE;
 
+    //! Thread for attaching to online data.
     TThread attachOnlineThread("attachOnline", AttachOnline_);
+    //! Thread for attaching to offline data.
     TThread attachOfflineThread("attachFile", AttachFile_);
+    //! Thread for attaching to a list of offline files.
     TThread attachListThread("attachList", AttachList_);
 
+    //! Defines how a single data buffer is extracted from a data stream.
+    //! \details In principle, this needs to be filled by the end user in Skeleton.cxx.  However,
+    //! appropriate implementations for the <a href = http://docs.nscl.msu.edu/daq/bluebook/html/> NSCL </a>
+    //! and <a href = https://daq-plone.triumf.ca/SR/MIDAS/> MIDAS </a> sysems are already written.  These
+    //! can be utilized by commenting the appropriate \c #define derectives as noted in the sources.
     extern void ReadBuffer(istream& ifs);
+
+    //! Defines how raw data buffers are unpacked.
+    //! \details The code of this function is filled in by users in Skeleton.cxx
+    //! It shold define how to handle the raw data buffers, i.e. how to take the
+    //! packed data and disseminate it into the classes the users have written to
+    //! store their data.
     extern void UnpackBuffer();
 
     void* AttachOnline_(void* arg) {
@@ -117,7 +137,7 @@ namespace rb
 	  if(stopAtEnd) // We're done.
 	    break;
 	  else { // Wait 10 seconds for more data to come in.
-	    ifs.clear(); 
+	    ifs.clear();
 	    gSystem->Sleep(10e3);
 	    continue;
 	  }
