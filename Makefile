@@ -1,29 +1,15 @@
 VPATH = $(PWD)/cint:$(PWD)/src:$(PWD)/lib:$(PWD)/rbgui
 SRC=$(PWD)/src
 CINT=$(PWD)/cint
+USER=$(PWD)/user
 ROOTFLAGS=`root-config --cflags --libs`
 DYLIB=-dynamiclib -single_module -undefined dynamic_lookup 
-
-
-### In case your ROOT headers aren't searched for automatically, add
-# -I/where/your/root/headers/are to the next line.
-INCFLAGS=-I$(SRC) -I$(CINT) $(USER_INCLUDES)
+INCFLAGS=-I$(SRC) -I$(CINT) -I$(USER) $(USER_INCLUDES)
 CXXFLAGS=$(INCFLAGS) -L$(PWD)/lib
-####CXXFLAGS=-ggdb -O0
 
-###### USER HEADERS AND SOURCES GO HERE #######
-DRAGON_SRC=/user/gchristian/soft/develop/dragon/analyzer/src
+### Include the user-defined portion of the makefile
+include $(PWD)/user/Makefile.user
 
-USER_INCLUDES=-I/user/gchristian/soft/n2analysis/src/ -I/user/gchristian/soft/n2analysis/include/ \
--I$(DRAGON_SRC)
-
-USER_HEADERS=$(SRC)/ExampleData.hh /user/gchristian/soft/n2analysis/src/mona.hh /user/gchristian/soft/n2analysis/src/detector.hh /user/gchristian/soft/n2analysis/src/unpacker.hh \
-$(DRAGON_SRC)/rbMidasEvent.h
-
-USER_SOURCES=/user/gchristian/soft/n2analysis/src/mona.cc /user/gchristian/soft/n2analysis/src/unpacker.cc \
-$(DRAGON_SRC)/rbMidasEvent.cxx
-
-##############################################
 
 
 
@@ -36,7 +22,7 @@ rootbeer: libHist.so libRootbeer.so $(SRC)/main.cc
 
 
 #### ROOTBEER LIBRARY ####
-SOURCES=$(SRC)/Rootbeer.cxx $(SRC)/Data.cxx $(SRC)/Skeleton.cxx $(SRC)/Unpack.cxx $(SRC)/Canvas.cxx $(SRC)/WriteConfig.cxx \
+SOURCES=$(SRC)/Rootbeer.cxx $(SRC)/Data.cxx $(PWD)/user/Skeleton.cxx $(SRC)/Unpack.cxx $(SRC)/Canvas.cxx $(SRC)/WriteConfig.cxx \
 	$(USER_SOURCES)
 HEADERS=$(SRC)/Rootbeer.hxx $(SRC)/Data.hxx $(USER_HEADERS)
 

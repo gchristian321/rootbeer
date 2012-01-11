@@ -1,0 +1,40 @@
+
+
+############################
+### Define any variables you might want to use later here, like the directory
+### paths of your sources. Example:
+### MYSOURCES=/path/to/my/sources/
+### Note that the present directory (where this makefile segment is located)
+### has already been defined as USER
+
+N2DIR=/user/gchristian/soft/n2analysis
+DRAGON_SRC=/user/gchristian/soft/develop/dragon/analyzer/src
+
+
+############################
+### Use the USER_INCLUDES variable to tell the compiler where to look
+### for your sources.  Example:
+### USER_INCLUDES=-I/path/to/some/sources/ -I/path/to/some/other/sources/
+### Note that the present directory $(USER) has already been taken care of elsewhere.
+
+USER_INCLUDES=-I$(N2DIR)/src -I$(N2DIR)/include -I$(DRAGON_SRC)
+
+
+############################
+### Use the USER_HEADERS variable to tell the compiler where all of your header files are located.
+### Specify the full path for each header. Example:
+### USER_HEADERS=/path/to/headers/header1.hxx /path/to/headers/header2.hxx
+
+USER_HEADERS=$(USER)/ExampleData.hh \
+$(N2DIR)/src/mona.hh $(N2DIR)/src/detector.hh $(N2DIR)/src/unpacker.hh \
+$(DRAGON_SRC)/rbMidasEvent.h $(DRAGON_SRC)/Dragon.hxx
+
+############################
+### Use the USER_SOURCES variable to tell the compiler where all of your source (compile) files are located.
+### Specify the full path for each file. Example:
+### USER_HEADERS=/path/to/sources/source1.cxx /path/to/sources/source2.cxx
+USER_SOURCES= \
+$(N2DIR)/src/mona.cc $(N2DIR)/src/unpacker.cc \
+$(DRAGON_SRC)/TMidasEvent.cxx $(DRAGON_SRC)/rbMidasEvent.cxx $(DRAGON_SRC)/VariableDefaults.cxx $(DRAGON_SRC)/Dragon.cxx
+
+##############################################
