@@ -39,9 +39,8 @@
 #include "unpacker.hh"
 #include "mona_definitions.hh"
 
-#define MIDAS_TEST
 #include <TTimeStamp.h>
-#include "rbMidasEvent.h"
+#include "midas/rbMidasEvent.h"
 #include "Dragon.hxx"
 
 
@@ -58,16 +57,13 @@ ADD_CLASS_INSTANCE(myData, ExampleData, kFALSE)
 // Also, we use a non-default constructor, with the argument 32.
 ADD_CLASS_INSTANCE_ARGS(myVars, ExampleVariables,  kTRUE, "32")
 
-
 ADD_CLASS_INSTANCE(mcal, cal::mona, kFALSE);
 ADD_CLASS_INSTANCE(mraw, raw::mona, kFALSE);
 ADD_CLASS_INSTANCE(mvar, var::mona, kTRUE);
 
-#ifdef MIDAS_TEST
 ADD_CLASS_INSTANCE(ts, TimeStamp, kFALSE);
 ADD_CLASS_INSTANCE(dragon, data::Dragon, kFALSE);
 ADD_CLASS_INSTANCE(vdragon, variables::Dragon, kTRUE);
-#endif
 
 
 namespace rb {
@@ -77,7 +73,7 @@ namespace rb {
     //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
     //\\ Define the type of data stored in your buffers here.           \\//
     //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-    typedef Short_t DataType; // Example: the buffers store 16-bit words.
+    typedef UShort_t DataType; // Example: the buffers store 16-bit words.
 
 
     //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
@@ -93,53 +89,85 @@ namespace rb {
     //\\ Here you should define how to process your data buffers        \\//
     //\\ by implementing the ReadBuffer() and UnpackBuffer() functions. \\//
     //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+    void ReadBuffer(istream& ifs) {
 
 #define _MIDAS_ // Uncomment to use pre-defined MIDAS buffer extraction routines.
 // #define _NSCL_  // Uncomment to use pre-defined NSCL buffer extraction routines.
 
-#ifdef _MIDAS_ // Define a global midas event
-    rb::MidasEvent gMidasEvent;
-#endif
 
-    void ReadBuffer(istream& ifs) {
-#ifdef MIDAS_TEST //// TRIUMF ////
+#ifdef _MIDAS_
+      // Stock MIDAS buffer extraction.
+      // Midas buffers are not a fixed size, so we must first check the header to
+      // get the appropriate length.
+      // Midas headers are structured as follows:
+      // fEventId      [16-bit]
+      // fTriggerMask  [16-bit]
+      // fSerialNumber [32-bit]
+      // fTimeStamp    [32-bit]
+      // fDataSize     [32-bit]
+      // All we care about here is fDataSize, so we'll just read into an
+      // array of four 32-bit words.
+      const Int_t headerSize = 2*sizeof(Short_t) + 3*sizeof(Int_t);
+      const Int_t headerLength32 = headerSize / sizeof(Int_t);
+      const Int_t dataPosn = 3;
+      Int_t eventHeader[headerLength32];
+      ifs.read(reinterpret_cast<Char_t*>(eventHeader), headerLength32 * sizeof(Int_t));
+      if(!ifs.good()) return; // EOF
 
-      Bool_t readSuccess = gMidasEvent.ReadEvent(&ifs);
-      if(!readSuccess) return;
-      Int_t nWords = gMidasEvent.GetDataSize() / sizeof(DataType);
-      gBuffer.resize(nWords);
-      memcpy(reinterpret_cast<void*>(&gBuffer[0]),
-	     reinterpret_cast<void*>(gMidasEvent.GetData()),
-	     gMidasEvent.GetDataSize());
+      // Resize gBuffer appropriately.
+      Int_t dataSize = eventHeader[dataPosn]; /// \todo Do we need to byte-swap???
+      Int_t totalWords = (headerSize + dataSize) / sizeof(DataType);
+      gBuffer.resize(totalWords);
 
-#else  //// NSCL ////
+      // Read header into gBuffer
+      memcpy(reinterpret_cast<void*>(&gBuffer[0]), reinterpret_cast<void*>(eventHeader), headerSize);
 
-      const Int_t BUF_SIZE = 4096;
-      if(gBuffer.size() != BUF_SIZE) gBuffer.resize(BUF_SIZE);
+      // Read data into gBuffer
+      const Int_t firstDataWord = headerSize / sizeof(DataType);
+      ifs.read(reinterpret_cast<Char_t*>(&gBuffer[firstDataWord]), dataSize);
 
+      // Bool_t readSuccess = gMidasEvent.ReadEvent(&ifs);
+      // if(!readSuccess) return;
+      // Int_t nWords = gMidasEvent.GetDataSize() / sizeof(DataType);
+      // gBuffer.resize(nWords);
+      // memcpy(reinterpret_cast<void*>(&gBuffer[0]),
+      // 	     reinterpret_cast<void*>(gMidasEvent.GetData()),
+      // 	     gMidasEvent.GetDataSize());
+
+#elif defined _NSCL_
+      // Stock NSCL buffer extraction
+      // Each buffer is jst a fixed size, 4096 16-bit words.
+      const Int_t bufferSize = 4096;
+      if(gBuffer.size() != bufferSize) gBuffer.resize(bufferSize);
       Char_t* firstWord = reinterpret_cast<Char_t*>(&gBuffer[0]);
-      Int_t bufferSize = BUF_SIZE * sizeof(DataType);
-
+      Int_t bufferSize = bufferSize * sizeof(DataType);
       ifs.read(firstWord, bufferSize);
 
+#else
+      std::cerr << "ERROR: rb::Unpack::ReadBuffer not defined.\n";
+      exit(1);
 #endif
     }
 
     void UnpackBuffer() {
-#ifdef MIDAS_TEST
+
+#ifdef _MIDAS_
+      rb::MidasEvent midasEvent;
+      if ( ! midasEvent.ReadEvent(gBuffer) ) return;
+
       GET_LOCKING_POINTER(pTS, ts, TimeStamp);
-      pTS->time = gMidasEvent.GetTimeStamp();
+      pTS->time = midasEvent.GetTimeStamp();
 
       GET_LOCKING_POINTER(pDragon, dragon, data::Dragon);
       GET_LOCKING_POINTER(pDragonVars, vdragon, variables::Dragon);
 
-      int16_t eventId = gMidasEvent.GetEventId();
+      int16_t eventId = midasEvent.GetEventId();
       bool unpackResult;
       switch(eventId) {
       case EV_DRAGON_G:
       case EV_DRAGON_H:
 	pDragon->Reset();
-	unpackResult = pDragon->Unpack(gMidasEvent, *pDragonVars);
+	unpackResult = pDragon->Unpack(midasEvent, *pDragonVars);
 	rb::Hist::FillAll();
 	break;
       default:
