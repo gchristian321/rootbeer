@@ -37,7 +37,7 @@ namespace rb
     //! can be utilized by commenting the appropriate \c #define derectives as noted in the sources.
     //! \param[in] ifs stream from which the data is read.
     //! \param[out] buf buffer (std::vector<DATA_TYPE>) into which we copy the data.
-    extern void ReadBuffer(std::istream& ifs, Buffer& buf);
+    extern void ReadBuffer(std::istream& ifs, rb::Buffer& buf);
 
     //! Defines how raw data buffers are unpacked.
     //! \details The code of this function is filled in by users in Skeleton.cxx
@@ -45,7 +45,7 @@ namespace rb
     //! packed data and disseminate it into the classes the users have written to
     //! store their data.
     //! \param[in] buf The data buffer that we want to unpack into our user classes.
-    extern void UnpackBuffer(Buffer& buf);
+    extern void UnpackBuffer(rb::Buffer& buf);
   }
 
 
