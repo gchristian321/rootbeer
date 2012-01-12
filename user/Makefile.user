@@ -1,5 +1,4 @@
 
-
 ############################
 ### Define any variables you might want to use later here, like the directory
 ### paths of your sources. Example:
@@ -36,5 +35,12 @@ $(DRAGON_SRC)/Dragon.hxx
 USER_SOURCES= \
 $(N2DIR)/src/mona.cc $(N2DIR)/src/unpacker.cc \
 $(DRAGON_SRC)/VariableDefaults.cxx $(DRAGON_SRC)/Dragon.cxx
+
+
+############################
+### Specify the type of data packed into your event files by setting the DATATYPE variable.
+### (Note: NSCL and MIDAS are both 16-bit unsigned integers)
+DATATYPE=UShort_t
+
 
 ##############################################

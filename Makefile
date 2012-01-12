@@ -5,7 +5,7 @@ USER=$(PWD)/user
 ROOTFLAGS=`root-config --cflags --libs`
 DYLIB=-dynamiclib -single_module -undefined dynamic_lookup 
 INCFLAGS=-I$(SRC) -I$(CINT) -I$(USER) $(USER_INCLUDES)
-CXXFLAGS=$(INCFLAGS) -L$(PWD)/lib
+CXXFLAGS=$(INCFLAGS) -L$(PWD)/lib -DDATA_TYPE=$(DATATYPE)
 
 ### Include the user-defined portion of the makefile
 include $(PWD)/user/Makefile.user
@@ -22,7 +22,7 @@ rootbeer: libHist.so libRootbeer.so $(SRC)/main.cc
 
 
 #### ROOTBEER LIBRARY ####
-SOURCES=$(SRC)/Rootbeer.cxx $(SRC)/Data.cxx $(PWD)/user/Skeleton.cxx $(SRC)/Unpack.cxx $(SRC)/Canvas.cxx $(SRC)/WriteConfig.cxx \
+SOURCES=$(SRC)/Rootbeer.cxx $(SRC)/Data.cxx $(PWD)/user/Skeleton.cxx $(SRC)/Attach.cxx $(SRC)/Canvas.cxx $(SRC)/WriteConfig.cxx \
 $(SRC)/midas/TMidasEvent.cxx $(SRC)/midas/rbMidasEvent.cxx $(USER_SOURCES)
 
 HEADERS=$(SRC)/Rootbeer.hxx $(SRC)/Data.hxx $(SRC)/midas/rbMidasEvent.h $(USER_HEADERS)

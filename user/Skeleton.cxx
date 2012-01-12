@@ -66,136 +66,120 @@ ADD_CLASS_INSTANCE(dragon, data::Dragon, kFALSE);
 ADD_CLASS_INSTANCE(vdragon, variables::Dragon, kTRUE);
 
 
-namespace rb {
-  namespace unpack {
-
-
-    //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-    //\\ Define the type of data stored in your buffers here.           \\//
-    //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-    typedef UShort_t DataType; // Example: the buffers store 16-bit words.
-
-
-    //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-    //\\ Actual buffer declaration.                  \\//
-    //\\ Likely you won't want to touch this.        \\//
-    //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-    std::vector<DataType> gBuffer; //\\\\\\\\\\\\\\\\\\//
-    //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 
 
 
-    //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-    //\\ Here you should define how to process your data buffers        \\//
-    //\\ by implementing the ReadBuffer() and UnpackBuffer() functions. \\//
-    //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-    void ReadBuffer(istream& ifs) {
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+//\\ Here you should define how to process your data buffers        \\//
+//\\ by implementing the ReadBuffer() and UnpackBuffer() functions. \\//
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+void rb::unpack::ReadBuffer(istream& ifs, rb::Buffer& buffer) {
 
 #define _MIDAS_ // Uncomment to use pre-defined MIDAS buffer extraction routines.
-// #define _NSCL_  // Uncomment to use pre-defined NSCL buffer extraction routines.
+  // #define _NSCL_  // Uncomment to use pre-defined NSCL buffer extraction routines.
 
 
 #ifdef _MIDAS_
-      // Stock MIDAS buffer extraction.
-      // Midas buffers are not a fixed size, so we must first check the header to
-      // get the appropriate length.
-      rb::MidasEvent dummyMidasEvent; // dummy midas event to get header length
-      bool readHeaderResult = dummyMidasEvent.ReadHeader(&ifs);
-      if(!readHeaderResult) return; // EOF
+  // Stock MIDAS buffer extraction.
+  // Midas buffers are not a fixed size, so we must first check the header to
+  // get the appropriate length.
+  rb::MidasEvent dummyMidasEvent; // dummy midas event to get header length
+  bool readHeaderResult = dummyMidasEvent.ReadHeader(&ifs);
+  if(!readHeaderResult) return; // EOF
       
-      // Resize gBuffer appropriately.
-      const Int_t headerSize = 2*sizeof(Short_t) + 3*sizeof(Int_t);
-      const Int_t dataSize = dummyMidasEvent.GetDataSize();
-      const Int_t totalWords = (headerSize + dataSize) / sizeof(DataType);
-      gBuffer.resize(totalWords);
+  // Resize buffer appropriately.
+  const Int_t headerSize = 2*sizeof(Short_t) + 3*sizeof(Int_t);
+  const Int_t dataSize = dummyMidasEvent.GetDataSize();
+  const Int_t totalWords = (headerSize + dataSize) / sizeof(DATA_TYPE);
+  buffer.resize(totalWords);
 
-      // Read header into gBuffer
-      dummyMidasEvent.CopyHeader(reinterpret_cast<Char_t*>(&gBuffer[0]));
+  // Read header into buffer
+  dummyMidasEvent.CopyHeader(reinterpret_cast<Char_t*>(&buffer[0]));
 
-      // Read data into gBuffer
-      const Int_t firstDataWord = headerSize / sizeof(DataType);
-      ifs.read(reinterpret_cast<Char_t*>(&gBuffer[firstDataWord]), dataSize);
+  // Read data into buffer
+  const Int_t firstDataWord = headerSize / sizeof(DATA_TYPE);
+  ifs.read(reinterpret_cast<Char_t*>(&buffer[firstDataWord]), dataSize);
 
 #elif defined _NSCL_
-      // Stock NSCL buffer extraction
-      // Each buffer is just a fixed size, 4096 16-bit words.
-      const Int_t bufferSize = 4096;
-      if(gBuffer.size() != bufferSize) gBuffer.resize(bufferSize);
-      ifs.read(reinterpret_cast<Char_t*>(&gBuffer[0]), bufferSize * sizeof(DataType));
+  // Stock NSCL buffer extraction
+  // Each buffer is just a fixed size, 4096 16-bit words.
+  const Int_t bufferSize = 4096;
+  if(buffer.size() != bufferSize) buffer.resize(bufferSize);
+  ifs.read(reinterpret_cast<Char_t*>(&buffer[0]), bufferSize * sizeof(DATA_TYPE));
 
 #else
-      // Define your own buffer extraction method
-      std::cerr << "ERROR: rb::Unpack::ReadBuffer not defined.\n";
-      exit(1);
+  // Define your own buffer extraction method
+  std::cerr << "ERROR: rb::Unpack::ReadBuffer not defined.\n";
+  exit(1);
 #endif
-    }
+}
 
-    void UnpackBuffer() {
+void rb::unpack::UnpackBuffer(rb::Buffer& buffer) {
 
 #ifdef _MIDAS_
-      rb::MidasEvent midasEvent;
-      if ( ! midasEvent.ReadEvent(gBuffer) ) return;
+  rb::MidasEvent midasEvent;
+  if ( ! midasEvent.ReadEvent(buffer) ) return;
 
-      GET_LOCKING_POINTER(pTS, ts, TimeStamp);
-      pTS->time = midasEvent.GetTimeStamp();
+  GET_LOCKING_POINTER(pTS, ts, TimeStamp);
+  pTS->time = midasEvent.GetTimeStamp();
 
-      GET_LOCKING_POINTER(pDragon, dragon, data::Dragon);
-      GET_LOCKING_POINTER(pDragonVars, vdragon, variables::Dragon);
+  GET_LOCKING_POINTER(pDragon, dragon, data::Dragon);
+  GET_LOCKING_POINTER(pDragonVars, vdragon, variables::Dragon);
 
-      int16_t eventId = midasEvent.GetEventId();
-      bool unpackResult;
-      switch(eventId) {
-      case EV_DRAGON_G:
-      case EV_DRAGON_H:
-	pDragon->Reset();
-	unpackResult = pDragon->Unpack(midasEvent, *pDragonVars);
-	rb::Hist::FillAll();
-	break;
-      default:
-	break;
-      }
+  int16_t eventId = midasEvent.GetEventId();
+  bool unpackResult;
+  switch(eventId) {
+  case EV_DRAGON_G:
+  case EV_DRAGON_H:
+    pDragon->Reset();
+    unpackResult = pDragon->Unpack(midasEvent, *pDragonVars);
+    rb::Hist::FillAll();
+    break;
+  default:
+    break;
+  }
 
 #else
-      static const UInt_t EVENT_BUFFER = 1;
-      static const UInt_t BUF_HEADER_LENGTH = 16;
-      static unsigned short* pEvt, nEvts, evtLength;
-      static int nBuffers = 0;
-      static raw::unpacker unpack;
+  static const UInt_t EVENT_BUFFER = 1;
+  static const UInt_t BUF_HEADER_LENGTH = 16;
+  static unsigned short* pEvt, nEvts, evtLength;
+  static int nBuffers = 0;
+  static raw::unpacker unpack;
 
-      unpack.read_online_buffer((UShort_t*)&gBuffer[0]);
-      if(unpack.get_buffer_type() == EVENT_BUFFER)
+  unpack.read_online_buffer((UShort_t*)&buffer[0]);
+  if(unpack.get_buffer_type() == EVENT_BUFFER)
+    {
+      ++nBuffers;
+
+      int runnum = unpack.get_run_number();
+      nEvts = unpack.get_n_evts();
+      pEvt  = unpack.get_buffer();
+      pEvt += BUF_HEADER_LENGTH;
+
+      std::vector<unsigned short> monalisa_packets;
+      monalisa_packets.push_back(MONA_PACKET);
+      monalisa_packets.push_back(LISA_PACKET);
+
+      GET_LOCKING_POINTER(p_mraw, mraw, raw::mona);
+      GET_LOCKING_POINTER(p_mcal, mcal, cal::mona);
+      GET_LOCKING_POINTER(p_mvar, mvar, var::mona);
+
+      for(unsigned short i=0; i< nEvts; ++i) //\loop events
 	{
-	  ++nBuffers;
+	  evtLength = *pEvt;
+	  unpack.unpack_detector(p_mraw.Get(), monalisa_packets, pEvt);
+	  p_mcal->calibrate(p_mraw.Get(), *p_mvar);
 
-	  int runnum = unpack.get_run_number();
-	  nEvts = unpack.get_n_evts();
-	  pEvt  = unpack.get_buffer();
-	  pEvt += BUF_HEADER_LENGTH;
+	  rb::Hist::FillAll();//
+	  // Move on to the next event
+	  pEvt += evtLength;
 
-	  std::vector<unsigned short> monalisa_packets;
-	  monalisa_packets.push_back(MONA_PACKET);
-	  monalisa_packets.push_back(LISA_PACKET);
-
-	  GET_LOCKING_POINTER(p_mraw, mraw, raw::mona);
-	  GET_LOCKING_POINTER(p_mcal, mcal, cal::mona);
-	  GET_LOCKING_POINTER(p_mvar, mvar, var::mona);
-
-	  for(unsigned short i=0; i< nEvts; ++i) //\loop events
-	    {
-	      evtLength = *pEvt;
-	      unpack.unpack_detector(p_mraw.Get(), monalisa_packets, pEvt);
-	      p_mcal->calibrate(p_mraw.Get(), *p_mvar);
-
-	      rb::Hist::FillAll();//
-	      // Move on to the next event
-	      pEvt += evtLength;
-
-	    }
+	}
 
 
 
 
-      // Short_t* p = &gBuffer[0]; // Point to the beginning of the buffer
+      // Short_t* p = &buffer[0]; // Point to the beginning of the buffer
       // Int_t nEvts = *p++;   // Figure out the number of events
       // GET_LOCKING_POINTER(pData, myData, ExampleData);
       // GET_LOCKING_POINTER(pVars, myVars, ExampleVariables);
@@ -219,13 +203,11 @@ namespace rb {
       // 	rb::Hist::FillAll();//
       // 	//\\\\\\\\\\\\\\\\\\\\\//
 
-      } // End event loop
+    } // End event loop
 
 #endif
-    } // End function
+} // End function
 
-  } // namespace unpack
-} // namsepace rb
 
 #undef ADD_CLASS_INSTANCE
 #undef ADD_CLASS_INSTANCE_ARGS

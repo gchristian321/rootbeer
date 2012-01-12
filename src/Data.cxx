@@ -38,8 +38,8 @@ void remove_duplicate_spaces(string& str) {
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // Helper Classes                                        //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-// This is just a quick and dirty class to reconstruct the original indecex
-// of a multi-dimensional array that has been flattened by TStreamerElemens.
+// This is just a quick and dirty class to reconstruct the original indices
+// of a multi-dimensional array that has been flattened by TStreamerElements.
 // All we really need out is just strings with the original indices in brackets.
 class ArrayConverter
 {

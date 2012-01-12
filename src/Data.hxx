@@ -1,11 +1,14 @@
 //! \file Data.hxx
-//!  \brief Defines generic wrappers for user-defined data classes.
+//! \brief Classes and functions relevant to data unpacking.
+//! \details Defines the rb::Data class, a generic wrapper for user-defined
+//! data storage classes.
 #ifndef _DATA_HXX_
 #define _DATA_HXX_
 #include <assert.h>
 #include <string>
 #include <sstream>
 #include <iostream>
+#include <vector>
 #include <map>
 #include <TROOT.h>
 #include <TTree.h>
@@ -16,12 +19,37 @@
 
 namespace rb
 {
-  // Forward declaration of rb::Unpack::UnpackBuffer();
-  // Implementation in in Skeleton.cxx
-  namespace unpack { extern void UnpackBuffer(); }
-  class Rint;
+  class Rint; // forward declaration
 
-  /// Class wrapping pointers to user data objects.
+  //! Type of buffer into which we copy our data.
+  //! \note DATA_TYPE is \c #defined in user/Makefile.user It corresponds to the
+  //! type of data packed into the event stream.
+  typedef std::vector<DATA_TYPE> Buffer;
+
+  //! Encloses functions relevant to reading and unpacking buffers.
+  //! \details Functions are implemented in Skeleton.cxx
+  namespace unpack
+  {
+    //! Defines how a single data buffer is extracted from a data stream.
+    //! \details In principle, this needs to be filled by the end user in Skeleton.cxx.  However,
+    //! appropriate implementations for the <a href = http://docs.nscl.msu.edu/daq/bluebook/html/> NSCL </a>
+    //! and <a href = https://daq-plone.triumf.ca/SR/MIDAS/> MIDAS </a> sysems are already written.  These
+    //! can be utilized by commenting the appropriate \c #define derectives as noted in the sources.
+    //! \param[in] ifs stream from which the data is read.
+    //! \param[out] buf buffer (std::vector<DATA_TYPE> into which we copy the data.
+    extern void ReadBuffer(std::istream& ifs, Buffer& buf);
+
+    //! Defines how raw data buffers are unpacked.
+    //! \details The code of this function is filled in by users in Skeleton.cxx
+    //! It should define how to handle the raw data buffers, i.e. how to take the
+    //! packed data and disseminate it into the classes the users have written to
+    //! store their data.
+    //! \param[in] buf The data buffer that we want to unpack into our user classes.
+    extern void UnpackBuffer(Buffer& buf);
+  }
+
+
+  //! Class wrapping pointers to user data objects.
 
   //! The basic idea behind this class is to create a generic framework
   //! into which users can plug their own classes with minimal effort (or re-coding if their
@@ -250,7 +278,7 @@ namespace rb
     friend class rb::Rint;
 
     /// Accesses GetDataPointer() and fMutex
-    friend void rb::unpack::UnpackBuffer();
+    friend void rb::unpack::UnpackBuffer(rb::Buffer&);
   };
 
 }
