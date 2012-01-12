@@ -72,6 +72,7 @@ ADD_CLASS_INSTANCE(vdragon, variables::Dragon, kTRUE);
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 //\\ Here you should define how to process your data buffers        \\//
 //\\ by implementing the ReadBuffer() and UnpackBuffer() functions. \\//
+//\\ For more information, see the doxygen page on rb::unpack       \\//
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 void rb::unpack::ReadBuffer(istream& ifs, rb::Buffer& buffer) {
 
@@ -113,6 +114,7 @@ void rb::unpack::ReadBuffer(istream& ifs, rb::Buffer& buffer) {
   exit(1);
 #endif
 }
+
 
 void rb::unpack::UnpackBuffer(rb::Buffer& buffer) {
 

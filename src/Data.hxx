@@ -36,7 +36,7 @@ namespace rb
     //! and <a href = https://daq-plone.triumf.ca/SR/MIDAS/> MIDAS </a> sysems are already written.  These
     //! can be utilized by commenting the appropriate \c #define derectives as noted in the sources.
     //! \param[in] ifs stream from which the data is read.
-    //! \param[out] buf buffer (std::vector<DATA_TYPE> into which we copy the data.
+    //! \param[out] buf buffer (std::vector<DATA_TYPE>) into which we copy the data.
     extern void ReadBuffer(std::istream& ifs, Buffer& buf);
 
     //! Defines how raw data buffers are unpacked.
