@@ -5,6 +5,7 @@
 #include <iostream>
 #include "Data.hxx"
 #include "Rootbeer.hxx"
+#include "midas/rbMidasEvent.h"
 
 
 /// Macro to add a class instance to ROOTBEER
@@ -40,7 +41,6 @@
 #include "mona_definitions.hh"
 
 #include <TTimeStamp.h>
-#include "midas/rbMidasEvent.h"
 #include "Dragon.hxx"
 
 
@@ -99,51 +99,32 @@ namespace rb {
       // Stock MIDAS buffer extraction.
       // Midas buffers are not a fixed size, so we must first check the header to
       // get the appropriate length.
-      // Midas headers are structured as follows:
-      // fEventId      [16-bit]
-      // fTriggerMask  [16-bit]
-      // fSerialNumber [32-bit]
-      // fTimeStamp    [32-bit]
-      // fDataSize     [32-bit]
-      // All we care about here is fDataSize, so we'll just read into an
-      // array of four 32-bit words.
-      const Int_t headerSize = 2*sizeof(Short_t) + 3*sizeof(Int_t);
-      const Int_t headerLength32 = headerSize / sizeof(Int_t);
-      const Int_t dataPosn = 3;
-      Int_t eventHeader[headerLength32];
-      ifs.read(reinterpret_cast<Char_t*>(eventHeader), headerLength32 * sizeof(Int_t));
-      if(!ifs.good()) return; // EOF
-
+      rb::MidasEvent dummyMidasEvent; // dummy midas event to get header length
+      bool readHeaderResult = dummyMidasEvent.ReadHeader(&ifs);
+      if(!readHeaderResult) return; // EOF
+      
       // Resize gBuffer appropriately.
-      Int_t dataSize = eventHeader[dataPosn]; /// \todo Do we need to byte-swap???
-      Int_t totalWords = (headerSize + dataSize) / sizeof(DataType);
+      const Int_t headerSize = 2*sizeof(Short_t) + 3*sizeof(Int_t);
+      const Int_t dataSize = dummyMidasEvent.GetDataSize();
+      const Int_t totalWords = (headerSize + dataSize) / sizeof(DataType);
       gBuffer.resize(totalWords);
 
       // Read header into gBuffer
-      memcpy(reinterpret_cast<void*>(&gBuffer[0]), reinterpret_cast<void*>(eventHeader), headerSize);
+      dummyMidasEvent.CopyHeader(reinterpret_cast<Char_t*>(&gBuffer[0]));
 
       // Read data into gBuffer
       const Int_t firstDataWord = headerSize / sizeof(DataType);
       ifs.read(reinterpret_cast<Char_t*>(&gBuffer[firstDataWord]), dataSize);
 
-      // Bool_t readSuccess = gMidasEvent.ReadEvent(&ifs);
-      // if(!readSuccess) return;
-      // Int_t nWords = gMidasEvent.GetDataSize() / sizeof(DataType);
-      // gBuffer.resize(nWords);
-      // memcpy(reinterpret_cast<void*>(&gBuffer[0]),
-      // 	     reinterpret_cast<void*>(gMidasEvent.GetData()),
-      // 	     gMidasEvent.GetDataSize());
-
 #elif defined _NSCL_
       // Stock NSCL buffer extraction
-      // Each buffer is jst a fixed size, 4096 16-bit words.
+      // Each buffer is just a fixed size, 4096 16-bit words.
       const Int_t bufferSize = 4096;
       if(gBuffer.size() != bufferSize) gBuffer.resize(bufferSize);
-      Char_t* firstWord = reinterpret_cast<Char_t*>(&gBuffer[0]);
-      Int_t bufferSize = bufferSize * sizeof(DataType);
-      ifs.read(firstWord, bufferSize);
+      ifs.read(reinterpret_cast<Char_t*>(&gBuffer[0]), bufferSize * sizeof(DataType));
 
 #else
+      // Define your own buffer extraction method
       std::cerr << "ERROR: rb::Unpack::ReadBuffer not defined.\n";
       exit(1);
 #endif
