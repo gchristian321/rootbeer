@@ -7,10 +7,6 @@
 using namespace std;
 
 
-
-/// User functions
-
-
 void rb::Logo() {
     cout << "                                                                 \n"
 	 << "                            ___                                  \n"
