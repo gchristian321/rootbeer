@@ -488,7 +488,7 @@ Int_t main(Int_t argc, Char_t** argv)
     this function is suposed to do). The basic idea is that you want to tell ROOTBEER how to take the raw data from a
     <a href = http://www.cplusplus.com/reference/iostream/istream/>std::istream</a> and copy it over into an
     appropriately-sized <a href = http://www.cplusplus.com/reference/stl/vector/>std::vector</a>.  Routines to
-    do this are already written for NSCL and MIDAS data, so if applicable you can use these routines by uncomment the
+    do this are already written for NSCL and MIDAS data, so if applicable you can use these routines by uncommenting the
     appropriate \c #define macros.  Otherwise, you'll need to write your own (in the \c #else conditional compilation
     block).
 
@@ -544,51 +544,21 @@ Int_t main(Int_t argc, Char_t** argv)
 
    \section data_other Other
 
-   Once you've got your analysis codes written and Skeleton.cxx is filled in, you're not quote home free. There's
-   still a couple of things that need to be done so that the compiler and
-   <a href="http://root.cern.ch/drupal/content/interacting-shared-libraries-rootcint" target="_blank">rootcint</a>
-   can know about your classes and routines.  First you need to edit the \c Linkdef.h file, which is located in the
-   \c cint directory.  Somewhere between <tt>#ifdef __CINT__</tt> and the final <tt>#endif</tt>, you'll need to add
-   the lines
-   \code
-   #pragma link C++ defined_in /path/to/my/header/my_header.hxx
-   \endcode
-   for every header file that defines one of your user classes.  Doing this lets ROOT and CINT know about your classes
-   and their structure by creation of a class dictionary. This is necessary both for referencing class members with a
-   string, as done when creating a  <a href = "user.html#hist"><b>rootbeer histogram</b></a>, or setting/reading variables
-   with rb::Data::GetValue() and rb::Data::SetValue().
-
-   Finally, you'll need to edit the <tt>Makefile</tt>, which is located in the top-level \c rootbeer directory. In most
-   cases, all you need to do is fill in the lines following
-   \code
-   ###### USER HEADERS AND SOURCES GO HERE #######
-   \endcode
-
-   In the first line, you fill in the \c USER_INCLUDES variable, telling the compiler where to look for your own sources, e.g.
-   \code
-   USER_INCLUDES=-I/directory/where/some/headers/are/ -I/directory/where/some/more/headers/are/
-   \endcode
-
-   In the next line, you fill in the paths to your header files. Note that the full path is needed because of the way
-   the makefile is structured
-   \code
-   USER_HEADERS=/directory/where/some/headers/are/header1.hxx /directory/where/some/more/headers/are/header2.hxx
-   \endcode
-
-   The final line is essentially identical to the previous, except with source files.
-   the makefile is structured
-   \code
-   USER_HEADERS=/directory/where/some/sources/are/source1.cxx /directory/where/some/sources/are/source2.cxx
-   \endcode
-
-   Once you've done this, give compiling a shot
+   Once you've got your analysis codes written and Skeleton.cxx is filled in, you should be ready to try compiling
+   your customized version of ROOTBEER
    \code
    make clean
    make
    \endcode
 
-   Then go fix all your errors....
-   
+   Successful compilation will create the \c rootbeer executable, along with some shared libraries (in <tt>/lib</tt>).
+   Try running it by typing <tt>./rootbeer</tt>
+
+   If you notice any difficulties that you thing were the fault of the ROOTBEER design, feel free to contact
+   <a href = mailto:gchristian@triumf.ca>Greg</a> with comments, complaints, or suggestions.  As much as possible, we
+   hope that adapting ROOTBEER to work with your experiment will be a painless experience, and we take suggestions on how
+   to improve the ROOTBEER design and the interface at the user level very seriously.
+   Of course, we also reserve the right to ignore you if we don't like what you have to say....
 
   \page develop Developers
   Developers....
