@@ -1,7 +1,7 @@
-/// \file LockingPointer.hxx
-/// \brief Implements a RAII-style locking pointer.
-/// The basic idea behind these classes is nicely explained
-/// <a href = "http://drdobbs.com/cpp/184403766">here</a>.
+//! \file LockingPointer.hxx
+//! \brief defines a RAII-style locking pointer.
+//! \details The basic idea behind these classes is nicely explained
+//! <a href = "http://drdobbs.com/cpp/184403766">here</a>.
 #ifndef __LOCKING_POINTER__
 #define __LOCKING_POINTER__
 #include <TMutex.h>

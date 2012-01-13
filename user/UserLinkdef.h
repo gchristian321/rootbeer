@@ -21,7 +21,7 @@
 //! #pragma link C++ class MyClass+;
 //! // -- ETC -- //
 //! \endcode
-//! (note that the '+' at the end is required except in spacial cases).
+//! (note that the '+' at the end is required except in special cases).
 
 
 

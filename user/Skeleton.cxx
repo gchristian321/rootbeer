@@ -1,24 +1,7 @@
 //! \file Skeleton.cxx
 //! \brief This is where users plug their analysis codes into ROOTBEER.
-#include <assert.h>
-#include <vector>
-#include <iostream>
-#include "Data.hxx"
+#include "Skeleton.hxx"
 #include "Rootbeer.hxx"
-#include "midas/rbMidasEvent.h"
-
-
-/// Macro to add a class instance to ROOTBEER
-#define ADD_CLASS_INSTANCE(NAME, CLASS_NAME, CREATE_POINTER)		\
-  rb::Data* NAME##_Data = rb::Data::New<CLASS_NAME>(#NAME, #CLASS_NAME, CREATE_POINTER);
-
-/// Same as ADD_CLASS_INSTANCE, but for non-default constructors
-#define ADD_CLASS_INSTANCE_ARGS(NAME, CLASS_NAME, CREATE_POINTER, ARGS)	\
-  rb::Data* NAME##_Data = rb::Data::New<CLASS_NAME>(#NAME, #CLASS_NAME, CREATE_POINTER, ARGS);
-
-/// Macro to get a mutex-ocking pointer to data objects.
-#define GET_LOCKING_POINTER(SYMBOL, NAME, CLASS)			\
-  LockingPointer<CLASS> SYMBOL (NAME##_Data->GetDataPointer<CLASS>(), NAME##_Data->fMutex);
 
 
 
@@ -45,6 +28,7 @@
 
 
 
+
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 //\\ Define instances of your class here    \\//
 //\\ (using the ADD_CLASS_INSTANCE macros). \\//
@@ -53,7 +37,7 @@
 // Here we add an instance of ExampleData, called myData and do not allow viewing in CINT.
 ADD_CLASS_INSTANCE(myData, ExampleData, kFALSE)
 
-// Here we add an instance of sVariables, calles myVars and do allow viewing in CINT.
+// Here we add an instance of sVariables, called myVars and do allow viewing in CINT.
 // Also, we use a non-default constructor, with the argument 32.
 ADD_CLASS_INSTANCE_ARGS(myVars, ExampleVariables,  kTRUE, "32")
 
@@ -69,6 +53,7 @@ ADD_CLASS_INSTANCE(vdragon, variables::Dragon, kTRUE);
 
 
 
+
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 //\\ Here you should define how to process your data buffers        \\//
 //\\ by implementing the ReadBuffer() and UnpackBuffer() functions. \\//
@@ -79,39 +64,12 @@ void rb::unpack::ReadBuffer(istream& ifs, rb::Buffer& buffer) {
 #define _MIDAS_ // Uncomment to use pre-defined MIDAS buffer extraction routines.
   // #define _NSCL_  // Uncomment to use pre-defined NSCL buffer extraction routines.
 
-
 #ifdef _MIDAS_
-  // Stock MIDAS buffer extraction.
-  // Midas buffers are not a fixed size, so we must first check the header to
-  // get the appropriate length.
-  rb::MidasEvent dummyMidasEvent; // dummy midas event to get header length
-  bool readHeaderResult = dummyMidasEvent.ReadHeader(&ifs);
-  if(!readHeaderResult) return; // EOF
-      
-  // Resize buffer appropriately.
-  const Int_t headerSize = 2*sizeof(Short_t) + 3*sizeof(Int_t);
-  const Int_t dataSize = dummyMidasEvent.GetDataSize();
-  const Int_t totalWords = (headerSize + dataSize) / sizeof(DATA_TYPE);
-  buffer.resize(totalWords);
-
-  // Read header into buffer
-  dummyMidasEvent.CopyHeader(reinterpret_cast<Char_t*>(&buffer[0]));
-
-  // Read data into buffer
-  const Int_t firstDataWord = headerSize / sizeof(DATA_TYPE);
-  ifs.read(reinterpret_cast<Char_t*>(&buffer[firstDataWord]), dataSize);
-
+  ExtractMidasBuffer(ifs, buffer); // defined in Skeleton.hxx
 #elif defined _NSCL_
-  // Stock NSCL buffer extraction
-  // Each buffer is just a fixed size, 4096 16-bit words.
-  const Int_t bufferSize = 4096;
-  if(buffer.size() != bufferSize) buffer.resize(bufferSize);
-  ifs.read(reinterpret_cast<Char_t*>(&buffer[0]), bufferSize * sizeof(DATA_TYPE));
-
+  ExtractNsclBuffer(ifs, buffer); // defined in Skeleton.hxx
 #else
   // Define your own buffer extraction method
-  std::cerr << "ERROR: rb::Unpack::ReadBuffer not defined.\n";
-  exit(1);
 #endif
 }
 
@@ -209,8 +167,3 @@ void rb::unpack::UnpackBuffer(rb::Buffer& buffer) {
 
 #endif
 } // End function
-
-
-#undef ADD_CLASS_INSTANCE
-#undef ADD_CLASS_INSTANCE_ARGS
-#undef GET_LOCKING_POINTER

@@ -349,7 +349,7 @@ Int_t main(Int_t argc, Char_t** argv)
   \endcode
   or
   \code
-  typedef struct my_data {
+  typedef struct {
      Double_t a, b, c;
      ...
   } MyData;
@@ -396,27 +396,67 @@ Int_t main(Int_t argc, Char_t** argv)
    \endcode
    will likely cause you some hassles.
 
+   Note that the whole reason behind organizing your data into classes is to take advantage of the fact that ROOT
+   is able to automatically parse nested classes into a tree structure. Something like
+   \code
+   class Sub {
+     double a;
+     double b;
+   };
+
+   class Top {
+     sub sub;
+     double c;
+   };
+
+   Top top;
+   \endcode
+
+   Gets converted to the following tree structure:
+
+   \code
+               top
+              /   \
+             /     \
+            |       |
+           sub      c
+           / \
+          /   \
+         |     |
+         a     b
+
+  \endcode
+
 
    \section data_skel Skeleton
 
    Once you've got a compatible set of analysis codes written, then there's a few things you need to do
-   to make it work with ROOTBEER.  Most of the changes are done by editing the \c Skeleton.cxx file which is
-   included in the \c src directory.  Stock ROOTBEER ships with this file filled in to analyze a very simple
-   example user class. You'll of course want to replace that with your own stuff.
+   to make it work with ROOTBEER. All of the files that you'll need to edit are located in the \c user directory.
+   This directory is also the place where you can locate the source code files for your unpacking routines, if you
+   want (you can also have them located anywhere on you system, as exaplained below). The files you'll definitely
+   need to edit are <tt>Makefile.user</tt>, <tt>UserLinkdef.h</tt>, and <tt>Skeleton.cxx</tt>.
+  
+   The first thing you need to do is to tell the compiler and CINT about your source files and their locations.
+   First, open the \c Makefile.user file, and fill in the blanks to define the directory in which your header
+   files are located (if it's not <tt>rootbeer/user</tt>), and the paths to each of your source and header files.
+   The comments in \c Makefile.user explain how to do each of these things.  Somewhat unrelated, you'll also need
+   to specify the type of data that is present in your packed event files (i.e., short int, int, long int, etc.),
+   by filling in the appropriate value of the <tt>DATATYPE</tt> variable at the bottom of the file.
 
-   Open up <tt>Skeleton.cxx</tt>, and the first thing you'll probably notice are some macros <tt>#define</tt>d at
-   the top. These are for you to use in telling ROOTBEER about your data classes, and all they do is simplify
-   some otherwise long and repetitive commands. As for the rest of the file, the blocked-off comments more or less
-   tell you what to do, but I'll go through it here in a bit more detail.
+   After editing <tt>Makefile.user<\tt>, open up <tt>UserLinkdef.h</tt>. Again, the comments will tell you what
+   to do (or for a more readable version, see the linked doxygen page).  The basic idea is that you're telling
+   CINT, ROOT's C++ interpreter to generate a dictionary for your classes, so that you can work with them interactively
+   in the interpreter.
 
-   The first thing you need to do is let the compiler know about the classes you've written.  So find the section blocked
-   off with
+   The last file you need to edit is <tt>Skeleton.cxx</tt>. Again, most everything is explained in the comments, but
+   we'll go through it here too. The first thing you need to do is to \c #include the header files for any of the code
+   you've written.  Do this under the section denoted with
    \code
    //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
    //\\ Add the header includes for your classes here. //
    //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
    \endcode
-   and below that \c #include all of the headers you'll need.
+   Below that \c #include all of the headers you'll need.
    \code
    #include "MyFirstHeader.hxx"
    #include "MyNextHeader.hxx"
@@ -431,57 +471,29 @@ Int_t main(Int_t argc, Char_t** argv)
    //\\ (using the ADD_CLASS_INSTANCE macros). \\//
    //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
    \endcode
-   using the \c ADD_CLASS_INSTANCE macros. If your class has a default constuctor (and that's what you want to
-   use in constructing an instance), then use the \c ADD_CLASS_INSTANCE macro.  This macro takes three arguments
-   which are:
-   -# The "name" or variable identifier with which you want to refer to your class instance.
-   -# The name of the class itself.
-   -# A boolean stating whether or not you want ROOTBEER to parse your class and make it's data available in the
-   interactive session.  Setting this as \c true means you can access any basic data type contained in your class
-   from CINT.  It also means that whenever you create a configuration file using rb::Data::WriteConfig(), every
-   data member of your class, along with it's current value will be written to the configuration file. Typically you
-   want to set this flag to \c true for variables and \c false for parameters.
+   using the \c ADD_CLASS_INSTANCE macros. For more information on using these macros, see the docuentation page
+   on Skeleton.hxx
 
-   As an example, lets say I had a paramater class called \c MyParams and a variable class called <tt>MyVars</tt>, and
-   I wanted to refer to an instance of the former as \c par and an instance of the latter as <tt>var</tt>. In this case
-   I would use
-   \code
-   ADD_CLASS_INSTANCE(par, MyParams, false);
-   ADD_CLASS_INSTANCE(var, MyVars, true);
-   \endcode
-   
-   If you need or want to create an instance of your class using a non-default constructor, use the \c ADD_CLASS_INSTANCE_ARGS
-   macro. It's first three arguments are identical to <tt>ADD_CLASS_INSTANCE</tt>. The fourth and final
-   argument is the only thing that's new, and this a specification of the constructor arguements as a string
-   (without parenthesis).
-   Say I have a class whose constructor is
-   \code
-   MyClass::MyClass(Int_t i, Double_t d, const char* name);
-   \endcode
-   Then I could create an instance using this constructor as such:
-   \code
-   ADD_CLASS_INSTANCE_ARGS(myclass, MyClass, false, "27, 32.1, \"myclass_name\"");
-   \endcode
-   
-
-   The next thing to do is to define what your buffers look like. This means setting the data type (i.e.
-   short, int, or whatever, and the buffer length. This is done in the lines after 
-   \code
+    Finally, you need to implement the routines to do the actual buffer extraction and processing.
+    This is done by filling in the blanks below
+    \code
     //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-    //\\ Here you can define what your data buffers look like.          \\//
+    //\\ Here you should define how to process your data buffers        \\//
+    //\\ by implementing the ReadBuffer() and UnpackBuffer() functions. \\//
+    //\\ For more information, see the doxygen page on rb::unpack       \\//
     //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
     \endcode
 
-    by changing the arguments of the \c typedef or the BUF_SIZE integer.
+    The first function you'll need to fill in is ReadBuffer() (see the linked dxygen page for more info on what
+    this function is suposed to do). The basic idea is that you want to tell ROOTBEER how to take the raw data from a
+    <a href = http://www.cplusplus.com/reference/iostream/istream/>std::istream</a> and copy it over into an
+    appropriately-sized <a href = http://www.cplusplus.com/reference/stl/vector/>std::vector</a>.  Routines to
+    do this are already written for NSCL and MIDAS data, so if applicable you can use these routines by uncomment the
+    appropriate \c #define macros.  Otherwise, you'll need to write your own (in the \c #else conditional compilation
+    block).
 
-    Finally, you need to implement the routines to do the actual buffer extraction and processing. The extraction
-    part is done by filling in the ReadBuffer() function.  This function takes a \c std::istream as its argument.
-    The sample code simply reads the next 4096 sequential shorts out of the stream and places them into the buffer
-    (gBuffer).  It's likely your implementation can be very similar or identical, but this depends on the structure
-    of your data, of course.
-
-    The buffer processing part is usually where the most work is necessary.  This is where you tell ROOTBEER how to process
-    the data in each buffer. Usually, you'll delegate the bulk of this to routines in your user code, but unless
+    The next function to fill in is UnpackBuffer() (again, follow the link for more info).  This function tells ROOTBEER
+    how to process the data in each buffer. Usually, you'll delegate the bulk of this to routines in your user code, but unless
     we start making assumptions about how your data is strucured, this function will probably need to include
     a bit of data crunching directly.  Really, it's hard to say much more about what to do with this function without
     knowing what your data looks like, so the rest is up to the user. Do keep in mind that, as noted with a comment block,
