@@ -183,6 +183,9 @@ Int_t main(Int_t argc, Char_t** argv)
   that tells whether to Unattach() at the end of the file (argument <tt>true</tt>, the default) or to stay attached
   and wait for more data to come in (argument <tt>false</tt>).
 
+  It's also possible to string multiple offline files together, using the \c AttachList() command. The argument
+  is a string specifying the name of a file that lists the paths of the files you want to read in order.
+
   Note that if the user calls any of the \c Attach commands while already conneted to a data source, ROOTBEER
   will first Unattach() from the old one before connecting to the new one.
 
