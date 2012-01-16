@@ -1,7 +1,5 @@
-/*! \file Hist.hxx
- *  \brief Defines the histogram class.
- *  used in <tt>ROOTBEER</tt>.
- */
+//! \file Hist.hxx
+//!  \brief Defines the histogram class used in <tt>ROOTBEER</tt>.
 #ifndef __HIST__
 #define __HIST__
 #include <string>
