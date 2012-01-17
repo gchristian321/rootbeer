@@ -40,7 +40,7 @@ namespace rb
     /// Typedef for a std::list of rb::Hist pointers.
     typedef std::list<rb::Hist*> List_t;
 
-  private:
+  protected:
     /// Constructor error code: true = success, false = failure.
     Bool_t kConstructorSuccess;
 
@@ -256,7 +256,36 @@ namespace rb
 
     ClassDef(Hist, 0);
   };
+  
+  class SummaryHist : public Hist
+  {
+  protected:
+    //! Axis orientation
+    //! 0 = vertical, 1 = horizontal
+    Int_t kOrient;
+    //! Number of parameters
+    Int_t nPar;
+    SummaryHist(const char* name, const char* title, const char* param, const char* gate, const char* orient);
 
+  public:
+    static void New(const char* name, const char* title,
+		    Int_t nbins, Double_t low, Double_t high,
+		    const char* paramList,  const char* gate = "",
+		    const char* orientation = "v");
+
+    Int_t Fill();    
+
+    Int_t GetOrientation() {
+      return kOrient;
+    }
+
+    Int_t GetNPar() {
+      return nPar;
+    }
+
+    ClassDef(SummaryHist, 0);
+  };
+  
 }
 
 

@@ -97,12 +97,12 @@ public:
   }
 
   /// Function which processes a raw event from a data file.
-  Int_t process_event(Short_t* pEvt) {
+  Int_t process_event(UShort_t* pEvt) {
     reset();
-    Short_t* p0 = pEvt, * p = pEvt;
+    UShort_t* p0 = pEvt, * p = pEvt;
     Int_t size = *p++;
     while(p< p0 + size + 1) {
-      Short_t code = *p++;
+      UShort_t code = *p++;
       switch(code) {
       case 1: a = *p++; break;
       case 2: b = *p++; break;

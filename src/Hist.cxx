@@ -1,6 +1,5 @@
-/*! \file Hist.cxx
- *  \brief Implements the histogram class member functions.
- */
+//! \file Hist.cxx
+//! \brief Implements the histogram class member functions.
 #include <algorithm>
 #include <iostream>
 #include <fstream>
@@ -290,7 +289,7 @@ TH1* rb::Hist::GetHist() {
   return fHistogramClone;
 }
 
- Int_t fill(UInt_t ndimensions, TH1* hst, TTreeFormula* gate, vector<TTreeFormula*> params) {
+ Int_t fill(UInt_t ndimensions, TH1* hst, TTreeFormula* gate, vector<TTreeFormula*>& params) {
    if(!gate->EvalInstance()) return 0;
 
    switch(ndimensions) {
@@ -302,7 +301,7 @@ TH1* rb::Hist::GetHist() {
 					  params[1]->EvalInstance());
      break;
    case 3:
-     return static_cast<TH2D*>(hst)->Fill(params[0]->EvalInstance(),
+     return static_cast<TH3D*>(hst)->Fill(params[0]->EvalInstance(),
 					  params[1]->EvalInstance(),
 					  params[2]->EvalInstance());
      break;
@@ -313,6 +312,19 @@ TH1* rb::Hist::GetHist() {
    }
  }
 
+Int_t summary_fill(Int_t nPar, Int_t kOrient, TH1* hst, TTreeFormula* gate, vector<TTreeFormula*>& params)
+{
+  if(!gate->EvalInstance()) return 0;
+  TH2D* h2d = static_cast<TH2D*>(hst);
+  for(Int_t i = 0; i< nPar; ++i) {
+    Double_t parVal = params[i]->EvalInstance();
+    kOrient ?
+      h2d->Fill(parVal, i):
+      h2d->Fill(i, parVal);
+  }
+  return 0;
+}
+
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // static rb::Hist::FillAll                              //
@@ -322,7 +334,12 @@ void rb::Hist::FillAll() {
   List_t::iterator it;
   for(it = hlist->begin(); it != hlist->end(); ++it) {
     LockFreePointer<CriticalElements> critical((*it)->fCritical);
-    fill((*it)->kDimensions, critical->fHistogram, critical->fGate, critical->fParams);
+
+    if(!strcmp((*it)->ClassName(), "rb::SummaryHist"))
+      summary_fill(static_cast<rb::SummaryHist*>(*it)->GetNPar(), static_cast<rb::SummaryHist*>(*it)->GetOrientation(),
+		   critical->fHistogram, critical->fGate, critical->fParams);
+    else
+      fill((*it)->kDimensions, critical->fHistogram, critical->fGate, critical->fParams);
   }
 }
 
@@ -344,4 +361,101 @@ void rb::Hist::DeleteAll() {
 Int_t rb::Hist::Fill() {
   LockingPointer<CriticalElements> critical(fCritical, fgMutex);
   return fill(kDimensions, critical->fHistogram, critical->fGate, critical->fParams);
+}
+
+
+rb::SummaryHist::SummaryHist(const char* name, const char* title, const char* param, const char* gate, const char* orient)
+{
+  kConstructorSuccess = kTRUE; kDimensions = 2; fHistogramClone = 0;
+  TString sOrient(orient);
+  sOrient.ToLower();
+  kOrient = 0; // vertical
+  if (!sOrient.CompareTo("h")) kOrient = 1;
+  else if (sOrient.CompareTo("v"))
+    Warning("SummaryHist", "Orientation option %s ws not recognzed. Defaulting to vertical", orient);
+  else ;
+
+  LockFreePointer<CriticalElements>  critical(fCritical);
+  critical->fHistogram = 0;
+
+  // Initialize gate
+  fCritical.fGate = new TTreeFormula("fGate", check_gate(gate).c_str(), critical->GetTree());
+  if(!fCritical.fGate->GetNdim()) {
+    kConstructorSuccess = kFALSE;
+    return;
+  }
+
+  // Initialize parameters
+  vector<string> vPar = tokenize(param, ";");
+  nPar = vPar.size();
+  for(Int_t i = nPar-1; i >= 0; --i) {
+    stringstream parname; parname << "param" << i-vPar.size();
+    critical->fParams.push_back(new TTreeFormula(parname.str().c_str(), vPar[i].c_str(), critical->GetTree()));
+
+    if(!critical->fParams[critical->fParams.size()-1]->GetNdim())
+      kConstructorSuccess = kFALSE;
+  }
+
+  // Set name & title
+  fName  = check_name(name).c_str();
+
+  stringstream sstr;
+  sstr << param << " {" << fCritical.fGate->GetExpFormula().Data() << "}";
+  kDefaultTitle = sstr.str();
+  if(string(title).empty())
+    fTitle = kDefaultTitle.c_str();
+  else
+    fTitle = title;
+  kInitialTitle = fTitle;
+}
+
+void rb::SummaryHist::New(const char* name, const char* title,
+		    Int_t nbins, Double_t low, Double_t high,
+		    const char* paramList,  const char* gate,
+		    const char* orientation)
+{
+  // Create rb::Hist instance
+  rb::SummaryHist* _this = new rb::SummaryHist(name, title, paramList, gate, orientation);
+  if(!_this->kConstructorSuccess) return;
+
+  // Set internal histogram
+  //! \note The histogram isn't accessable to any other threads until we add it to
+  //! fgList, so it's safe to access the critical elements via a non-locking pointer.
+  LockFreePointer<CriticalElements> unlocked_critical(_this->fCritical);
+
+  Bool_t successfulHistCreation = kTRUE;
+  TH1::AddDirectory(kFALSE);
+
+  Int_t npar = unlocked_critical->fParams.size();
+
+  if(!_this->kOrient) { // vertical
+    unlocked_critical->fHistogram =
+      new TH2D(_this->fName, _this->fTitle, npar, 0, npar, nbins, low, high);
+    unlocked_critical->fHistogram->GetXaxis()->SetTitle(paramList);
+    unlocked_critical->fHistogram->GetYaxis()->SetTitle("");
+  }
+  else { // horizontal
+    unlocked_critical->fHistogram =
+      new TH2D(_this->fName, _this->fTitle, nbins, low, high, npar, 0, npar);
+    unlocked_critical->fHistogram->GetXaxis()->SetTitle("");
+    unlocked_critical->fHistogram->GetYaxis()->SetTitle(paramList);
+  }
+  TH1::AddDirectory(kTRUE);
+
+  // Add to collections
+  LockingPointer<List_t> hlist(fgList, fgMutex);
+  if(successfulHistCreation) {
+    hlist->push_back(_this);
+
+    if(gDirectory) {
+      _this->fDirectory = gDirectory;
+      _this->fDirectory->Append(_this, kTRUE);
+    }
+  }
+}
+
+Int_t rb::SummaryHist::Fill()
+{
+  LockingPointer<CriticalElements> critical(fCritical, fgMutex);
+  summary_fill(GetNPar(), GetOrientation(), critical->fHistogram, critical->fGate, critical->fParams);
 }

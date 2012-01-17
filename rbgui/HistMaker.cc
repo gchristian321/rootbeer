@@ -25,7 +25,17 @@ std::string string_cast (const basic& data) {
 typedef Double_t (*Atof)(const std::string&);
 typedef Int_t    (*Atoi)(const std::string&);
 
-
+/// Return appropriate axis from a number
+TAxis* get_axis(TH1* hst, int n) {
+  TAxis* out = 0;
+  switch(n) {
+  case 0: out = hst->GetXaxis(); break;
+  case 1: out = hst->GetYaxis(); break;
+  case 2: out = hst->GetZaxis(); break;
+  default: break;
+  }
+  return out;
+}
 
 TGLVEntry_mod
 ::TGLVEntry_mod(const TGLVContainer* p, const TString& name, const TString& cname, TGString** subnames, UInt_t options, Pixel_t back):TGLVEntry(p,name,cname,subnames,options,back)
@@ -53,8 +63,9 @@ void TGLVEntry_mod::SetSubnames(rb::Hist* hst) {
   }
 
   // Get axis-specific info
+  TH1* histo = hst->GetHist();
   for(Int_t i=0; i< naxes; ++i) {
-    TAxis* axis = hst->GetAxis(i);
+    TAxis* axis = get_axis(histo, i);
     if(!axis) break;
     arg[1 + (i*4)] = hst->GetParam(i);
     arg[2 + (i*4)] = string_cast<Int_t>(axis->GetNbins());
@@ -432,27 +443,32 @@ HistMaker::MakeHistFromGui()
 
   static Atoi a2i = basic_cast<Int_t>;
   static Atof a2d = basic_cast<Double_t>;
-  TH1* hst = 0;
+  rb::Hist* hst = 0;
 
   switch(nAxes) {
+    
+  case 1:
+    rb::Hist::New (fInfo[NAME].c_str(), "",
+		   a2i(fInfo[BINS_X]), a2d(fInfo[LOW_X]), a2d(fInfo[HIGH_X]),
+		   par.c_str(), fInfo[GATE].c_str());    break;
 
-  case 1: hst = new rb::H1D (fInfo[NAME].c_str(), "",
-			     a2i(fInfo[BINS_X]), a2d(fInfo[LOW_X]), a2d(fInfo[HIGH_X]),
-			     par.c_str(), fInfo[GATE].c_str());     break;
+  case 2:
+    rb::Hist::New (fInfo[NAME].c_str(), "",
+		   a2i(fInfo[BINS_X]), a2d(fInfo[LOW_X]), a2d(fInfo[HIGH_X]),
+		   a2i(fInfo[BINS_Y]), a2d(fInfo[LOW_Y]), a2d(fInfo[HIGH_Y]),
+		   par.c_str(), fInfo[GATE].c_str());    break;
 
-  case 2: hst = new rb::H2D (fInfo[NAME].c_str(), "",
-			     a2i(fInfo[BINS_X]), a2d(fInfo[LOW_X]), a2d(fInfo[HIGH_X]),
-			     a2i(fInfo[BINS_Y]), a2d(fInfo[LOW_Y]), a2d(fInfo[HIGH_Y]),
-			     par.c_str(), fInfo[GATE].c_str());     break;
-
-  case 3: hst = new rb::H3D (fInfo[NAME].c_str(), "",
-			     a2i(fInfo[BINS_X]), a2d(fInfo[LOW_X]), a2d(fInfo[HIGH_X]),
-			     a2i(fInfo[BINS_Y]), a2d(fInfo[LOW_Y]), a2d(fInfo[HIGH_Y]),
-			     a2i(fInfo[BINS_Z]), a2d(fInfo[LOW_Z]), a2d(fInfo[HIGH_Z]),
-			     par.c_str(), fInfo[GATE].c_str());     break;
+  case 3:
+    rb::Hist::New (fInfo[NAME].c_str(), "",
+		   a2i(fInfo[BINS_X]), a2d(fInfo[LOW_X]), a2d(fInfo[HIGH_X]),
+		   a2i(fInfo[BINS_Y]), a2d(fInfo[LOW_Y]), a2d(fInfo[HIGH_Y]),
+		   a2i(fInfo[BINS_Z]), a2d(fInfo[LOW_Z]), a2d(fInfo[HIGH_Z]),
+		   par.c_str(), fInfo[GATE].c_str());    break;
 
   default: Error("MakeHistFromGui", "nAxes %d isn't valid", nAxes); break;
   }
+  hst = rb::Hist::Find(fInfo[NAME].c_str());
+  if(!hst) return;
   string hname = hst->GetName();
   rb::Hist* rbhist = dynamic_cast<rb::Hist*>(hst);
   if(!rbhist) { Error("MakeHistFromGui", "Invalid dynamic_cast to rb::Hist*"); return; }
