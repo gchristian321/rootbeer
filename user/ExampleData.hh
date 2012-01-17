@@ -76,6 +76,9 @@ public:
   /// Some other calibrated parameter
   Double_t cal2;
 
+  /// calibrated array
+  Double_t calArray[10];
+
   /// Reset everything to the NO_DATA value
   void reset() {
     a = NO_DATA;
@@ -93,6 +96,10 @@ public:
     }
     if(c > 0) {
       cal2 = c * v.var2;
+    }
+    if(cal1 != -1) {
+      for(Int_t i=0; i< 10; ++i)
+	calArray[i] = cal1 + i*1.;
     }
   }
 

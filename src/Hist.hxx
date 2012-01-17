@@ -116,6 +116,7 @@ namespace rb
     //! Protects all rb::Hist objects.
     static TMutex fgMutex;
 
+
     /// Function to initialize a histogram.
     //! Basically this is just a helper function that is called by the various
     //! 1d, 2d, 3d flavors of rb::Hist::New().  It handles the following:
@@ -129,6 +130,11 @@ namespace rb
 			     Int_t nbinsx, Double_t xlow, Double_t xhigh,
 			     Int_t nbinsy, Double_t ylow, Double_t yhigh,
 			     Int_t nbinsz, Double_t zlow, Double_t zhigh);
+
+    /// Internal function to fill the histogram.
+    //! Called from the public Fill() and FillAll(), does not do any mutex locking,
+    //! instead relies on being passed already locked components.
+    virtual Int_t DoFill(TH1* hst, TTreeFormula* gate, std::vector<TTreeFormula*>& params);
 
     /// Constructor
     //! Set the internal \c TTree and \c fGate fields.
@@ -257,32 +263,62 @@ namespace rb
     ClassDef(Hist, 0);
   };
   
+
+  /// Summary histogram class.
+
+  //! A "summary" histogram is a type of 2d histogram in which each bin along one of the axes ("parameter axis") corresponds
+  //! to a specific parameter. The other axis ("summary axis") corresponds to the parameter values, and the z axis corresponds
+  //! to counts. In other wirds, the 1d projection of each bin along the first axis would be identical to
+  //! a 1d histogram for the corresponding parameter.  Orientation can either be hirozontal or vertical. Horizontal
+  //! means that the parameter axis is the y axis (so the parameter values extend horizontally), vertical means it's
+  //! the x axis (parameter values extend vertically).
+  //!
+  //! This class inherits from rb::Hist and overrides the virtual Fill() and DoFill() methods.
   class SummaryHist : public Hist
   {
   protected:
-    //! Axis orientation
+    //! Histogram orientation.
     //! 0 = vertical, 1 = horizontal
     Int_t kOrient;
-    //! Number of parameters
+
+    //! Number of parameters summarized.
     Int_t nPar;
+
+    //! Constructor
     SummaryHist(const char* name, const char* title, const char* param, const char* gate, const char* orient);
 
+    //! Internal filling function.
+    //! Same idea as for rb::Hist, but implemented as needed for a summary histogram.
+    virtual Int_t DoFill(TH1* hst, TTreeFormula* gate, std::vector<TTreeFormula*>& params);
+
   public:
+    //! Public creation function.
+    //! \param nbins Number of bins along the summary axis
+    //! \param low Low bin along the summary axis
+    //! \param high High bin along the summary axis
+    //! \param paramList List of all the parameters to be displayed separated by semicolons.
+    //!        Arrays can also be specified as (e.g. from index 0 to index 15 inclusive) \c someArray[0-15] 
+    //! \param orientation "v" = vertical "h" = horizontal, not case sensitive.
     static void New(const char* name, const char* title,
 		    Int_t nbins, Double_t low, Double_t high,
 		    const char* paramList,  const char* gate = "",
 		    const char* orientation = "v");
 
+    //! Fill function.
+    //! Overrides the virtual method defined for rb::Hist
     Int_t Fill();    
 
+    //! Return the orientation.
     Int_t GetOrientation() {
       return kOrient;
     }
 
+    //! Return the number of parameters.
     Int_t GetNPar() {
       return nPar;
     }
 
+    //! CINT ClassDef macro.
     ClassDef(SummaryHist, 0);
   };
   

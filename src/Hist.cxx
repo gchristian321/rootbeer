@@ -289,10 +289,14 @@ TH1* rb::Hist::GetHist() {
   return fHistogramClone;
 }
 
- Int_t fill(UInt_t ndimensions, TH1* hst, TTreeFormula* gate, vector<TTreeFormula*>& params) {
+
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// rb::Hist::DoFill()                                    //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+Int_t rb::Hist::DoFill(TH1* hst, TTreeFormula* gate, vector<TTreeFormula*>& params) {
    if(!gate->EvalInstance()) return 0;
 
-   switch(ndimensions) {
+   switch(kDimensions) {
    case 1:
      return static_cast<TH1D*>(hst)->Fill(params[0]->EvalInstance());
      break;
@@ -306,24 +310,11 @@ TH1* rb::Hist::GetHist() {
 					  params[2]->EvalInstance());
      break;
    default:
-     Error("Fill", "Invalid ndimensions %d", ndimensions);
+     Error("Fill", "Invalid kDimensions %d", kDimensions);
      return -1;
      break;
    }
  }
-
-Int_t summary_fill(Int_t nPar, Int_t kOrient, TH1* hst, TTreeFormula* gate, vector<TTreeFormula*>& params)
-{
-  if(!gate->EvalInstance()) return 0;
-  TH2D* h2d = static_cast<TH2D*>(hst);
-  for(Int_t i = 0; i< nPar; ++i) {
-    Double_t parVal = params[i]->EvalInstance();
-    kOrient ?
-      h2d->Fill(parVal, i):
-      h2d->Fill(i, parVal);
-  }
-  return 0;
-}
 
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
@@ -333,13 +324,9 @@ void rb::Hist::FillAll() {
   LockingPointer<List_t> hlist(fgList, fgMutex); // makes it safe to not lock the others
   List_t::iterator it;
   for(it = hlist->begin(); it != hlist->end(); ++it) {
-    LockFreePointer<CriticalElements> critical((*it)->fCritical);
-
-    if(!strcmp((*it)->ClassName(), "rb::SummaryHist"))
-      summary_fill(static_cast<rb::SummaryHist*>(*it)->GetNPar(), static_cast<rb::SummaryHist*>(*it)->GetOrientation(),
-		   critical->fHistogram, critical->fGate, critical->fParams);
-    else
-      fill((*it)->kDimensions, critical->fHistogram, critical->fGate, critical->fParams);
+    rb::Hist* pHst = *it;
+    LockFreePointer<CriticalElements> critical(pHst->fCritical);
+    pHst->DoFill(critical->fHistogram, critical->fGate, critical->fParams);
   }
 }
 
@@ -360,12 +347,20 @@ void rb::Hist::DeleteAll() {
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 Int_t rb::Hist::Fill() {
   LockingPointer<CriticalElements> critical(fCritical, fgMutex);
-  return fill(kDimensions, critical->fHistogram, critical->fGate, critical->fParams);
+  return DoFill(critical->fHistogram, critical->fGate, critical->fParams);
 }
 
 
-rb::SummaryHist::SummaryHist(const char* name, const char* title, const char* param, const char* gate, const char* orient)
-{
+
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// Class                                                 //
+// rb::SummaryHist                                       //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// rb::SummaryHist::SummaryHist                          //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+rb::SummaryHist::SummaryHist(const char* name, const char* title, const char* param, const char* gate, const char* orient) {
   kConstructorSuccess = kTRUE; kDimensions = 2; fHistogramClone = 0;
   TString sOrient(orient);
   sOrient.ToLower();
@@ -387,13 +382,35 @@ rb::SummaryHist::SummaryHist(const char* name, const char* title, const char* pa
 
   // Initialize parameters
   vector<string> vPar = tokenize(param, ";");
-  nPar = vPar.size();
-  for(Int_t i = nPar-1; i >= 0; --i) {
+  for(Int_t i = vPar.size()-1; i >= 0; --i) {
     stringstream parname; parname << "param" << i-vPar.size();
-    critical->fParams.push_back(new TTreeFormula(parname.str().c_str(), vPar[i].c_str(), critical->GetTree()));
 
-    if(!critical->fParams[critical->fParams.size()-1]->GetNdim())
-      kConstructorSuccess = kFALSE;
+    string param = vPar[i];
+    ULong_t brktPos = param.find("["), dashPos = param.find("-"), brktPosLast = param.find("]");
+    if(brktPos > param.size() || dashPos > param.size()) {
+      critical->fParams.push_back(new TTreeFormula(parname.str().c_str(), param.c_str(), critical->GetTree()));
+      if(!critical->fParams[critical->fParams.size()-1]->GetNdim()) {
+	kConstructorSuccess = kFALSE;
+	return;
+      }
+    }
+    else {
+      string sFirst = param.substr(brktPos + 1, dashPos - brktPos - 1);
+      string sLast  = param.substr(dashPos + 1, brktPosLast - dashPos - 1);
+      string sBase  = param.substr(0, brktPos);
+      UInt_t first = atoi(sFirst.c_str()), last = atoi(sLast.c_str());
+      for(UInt_t indx = first; indx <= last; ++indx) {
+	stringstream sstrParam;
+	sstrParam << sBase << "[" << indx << "]";
+	parname << "_" << indx;
+	critical->fParams.push_back(new TTreeFormula(parname.str().c_str(), sstrParam.str().c_str(), critical->GetTree()));
+	if(!critical->fParams[critical->fParams.size()-1]->GetNdim()) {
+	  kConstructorSuccess = kFALSE;
+	  return;
+	}
+      }
+    }
+    nPar = critical->fParams.size();
   }
 
   // Set name & title
@@ -409,11 +426,13 @@ rb::SummaryHist::SummaryHist(const char* name, const char* title, const char* pa
   kInitialTitle = fTitle;
 }
 
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// rb::SummaryHist::New()                                //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 void rb::SummaryHist::New(const char* name, const char* title,
 		    Int_t nbins, Double_t low, Double_t high,
 		    const char* paramList,  const char* gate,
-		    const char* orientation)
-{
+		    const char* orientation) {
   // Create rb::Hist instance
   rb::SummaryHist* _this = new rb::SummaryHist(name, title, paramList, gate, orientation);
   if(!_this->kConstructorSuccess) return;
@@ -454,8 +473,23 @@ void rb::SummaryHist::New(const char* name, const char* title,
   }
 }
 
-Int_t rb::SummaryHist::Fill()
-{
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// rb::Hist::DoFill()                                    //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+Int_t rb::SummaryHist::DoFill(TH1* hst, TTreeFormula* gate, vector<TTreeFormula*>& params) {
+  if(!gate->EvalInstance()) return 0;
+  TH2D* h2d = static_cast<TH2D*>(hst);
+  for(Int_t i = 0; i< GetNPar(); ++i) {
+    Double_t parVal = params[i]->EvalInstance();
+    kOrient ?  h2d->Fill(parVal, i): h2d->Fill(i, parVal);
+  }
+  return 0;
+}
+
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// rb::Hist::Fill()                                      //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+Int_t rb::SummaryHist::Fill() {
   LockingPointer<CriticalElements> critical(fCritical, fgMutex);
-  summary_fill(GetNPar(), GetOrientation(), critical->fHistogram, critical->fGate, critical->fParams);
+  DoFill(critical->fHistogram, critical->fGate, critical->fParams);
 }
