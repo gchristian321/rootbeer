@@ -116,7 +116,6 @@ namespace rb
     //! Protects all rb::Hist objects.
     static TMutex fgMutex;
 
-
     /// Function to initialize a histogram.
     //! Basically this is just a helper function that is called by the various
     //! 1d, 2d, 3d flavors of rb::Hist::New().  It handles the following:
@@ -196,6 +195,16 @@ namespace rb
 
     /// Return the parameter name associated with the specified axis.
     std::string GetParam(UInt_t axis);
+
+    /// Set line color.
+    void SetLineColor(Color_t lcolor) {
+      LockingPointer<CriticalElements>(fCritical, fgMutex)->fHistogram->SetLineColor(lcolor);
+    }
+
+    /// Set marker color.
+    void SetMarkerColor(Color_t mcolor) {
+      LockingPointer<CriticalElements>(fCritical, fgMutex)->fHistogram->SetMarkerColor(mcolor);
+    }
 
     /// Return a reference to the global histogram mutex.
     static TMutex& GetMutex() {
@@ -328,30 +337,42 @@ namespace rb
   //! 1d or 2d histogram, but the number of counts increments for each count of any of the specified parameters.
 
   //! This class inherits from rb::Hist and overrides the virtual Fill() and DoFill() methods.
-  class GammaHist : public Hist
+  class GHist : public Hist
   {
   protected:
     //! Number of parameters.
     Int_t nPar;
 
     //! Constructor
-    GammaHist(const char* name, const char* title, const char* params, const char* gate);
+    GHist(const char* name, const char* title, const char* params, const char* gate, Int_t ndimensions);
+
+    //! Initialize function
+    //! Helper function called by New().
+    static Bool_t GInitialize(const char* name, const char* title,
+			      const char* param, const char* gate, UInt_t ndim,
+			      Int_t nbinsx, Double_t xlow, Double_t xhigh,
+			      Int_t nbinsy = 0, Double_t ylow = 0, Double_t yhigh = 0,
+			      Int_t nbinsz = 0, Double_t zlow = 0, Double_t zhigh = 0);
 
     //! Internal filling function.
     //! Same idea as for rb::Hist, but implemented as needed for a gamma histogram.
     virtual Int_t DoFill(TH1* hst, TTreeFormula* gate, std::vector<TTreeFormula*>& params);
 
   public:
-    //! Public creation function.
-    //! Looks like the normal 1d (2d) creation function, but the multiple parameters are
-    //! delimited with a semicolon.  The standard prescription applies for dividing x and y axes: Y:X.
+    //! Public creation function for 1d.
+    //! Looks like the normal 1d creation function, but the multiple parameters are
+    //! delimited with a semicolon.
     static void New(const char* name, const char* title,
 		    Int_t nbinsx, Double_t xlow, Double_t xhigh,
 		    const char* params,  const char* gate = "");
 
-    //! Fill function.
-    //! Overrides the virtual method defined for rb::Hist
-    /////    Int_t Fill();    
+    //! Public creation function for 2d.
+    //! Looks like the normal 2d creation function, but the multiple parameters are
+    //! delimited with a semicolon.  The standard prescription applies for dividing x and y axes: Y:X.
+    static void New(const char* name, const char* title,
+		    Int_t nbinsx, Double_t xlow, Double_t xhigh,
+		    Int_t nbinsy, Double_t ylow, Double_t yhigh,
+		    const char* params,  const char* gate = "");
 
     //! Return the number of parameters.
     Int_t GetNPar() {
@@ -359,7 +380,7 @@ namespace rb
     }
 
     //! CINT ClassDef macro.
-    ClassDef(GammaHist, 0);
+    ClassDef(GHist, 0);
   };
   
 }

@@ -497,14 +497,14 @@ Int_t rb::SummaryHist::DoFill(TH1* hst, TTreeFormula* gate, vector<TTreeFormula*
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // Class                                                 //
-// rb::GammaHist                                         //
+// rb::GHist                                              //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-// rb::GammaHist::GammaHist                              //
+// rb::GHist::GHist                                      //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-rb::GammaHist::GammaHist(const char* name, const char* title, const char* param, const char* gate) {
-  kConstructorSuccess = kTRUE; fHistogramClone = 0;
+rb::GHist::GHist(const char* name, const char* title, const char* param, const char* gate, Int_t dimensions) {
+  kConstructorSuccess = kTRUE; fHistogramClone = 0; kDimensions = dimensions;
 
   LockFreePointer<CriticalElements>  critical(fCritical);
   critical->fHistogram = 0;
@@ -518,9 +518,12 @@ rb::GammaHist::GammaHist(const char* name, const char* title, const char* param,
 
   // Initialize parameters
   vector<string> vPar1 = tokenize(param, ":");
-  kDimensions = vPar1.size();
+  if(kDimensions != vPar1.size()) {
+    Error("GHist", "Invalid parameter argument for a %d-dimensional hist (%s)", dimensions, param);
+    kConstructorSuccess = kFALSE;
+    return;
+  }
   vector<Int_t> nParams;
-
   for(UInt_t j=0; j< vPar1.size(); ++j) {
     vector<string> vPar = tokenize(vPar1[j].c_str(), ";");
     nParams.push_back(vPar.size());
@@ -557,7 +560,7 @@ rb::GammaHist::GammaHist(const char* name, const char* title, const char* param,
   }
 
   if(nParams.size() == 0) {
-    Error("GammaHist", "Invalid parameter argument %s", param);
+    Error("GHist", "Invalid parameter argument %s", param);
     kConstructorSuccess = kFALSE;
     return;
   }
@@ -565,7 +568,7 @@ rb::GammaHist::GammaHist(const char* name, const char* title, const char* param,
     Int_t nParams0 = nParams[0];
     for(UInt_t k=1; k< nParams.size(); ++k) {
       if(nParams[k] != nParams0) {
-	Error("GammaHist", "Invalid parameter argument %s", param);
+	Error("GHist", "Invalid parameter argument %s", param);
 	kConstructorSuccess = kFALSE;
 	return;
       }
@@ -586,16 +589,19 @@ rb::GammaHist::GammaHist(const char* name, const char* title, const char* param,
   kInitialTitle = fTitle;
 }
 
+
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-// rb::GammaHist::New()                                  //
+// static rb::GHist::Initialize                          //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-void rb::GammaHist::New(const char* name, const char* title,
-			Int_t nbins, Double_t low, Double_t high,
-			const char* paramList,  const char* gate) {
+Bool_t rb::GHist::GInitialize(const char* name, const char* title,
+			      const char* paramList, const char* gate, UInt_t ndim,
+			      Int_t nbinsx, Double_t xlow, Double_t xhigh,
+			      Int_t nbinsy, Double_t ylow, Double_t yhigh,
+			      Int_t nbinsz, Double_t zlow, Double_t zhigh) {
 
   // Create rb::Hist instance
-  rb::GammaHist* _this = new rb::GammaHist(name, title, paramList, gate);
-  if(!_this->kConstructorSuccess) return;
+  rb::GHist* _this = new rb::GHist(name, title, paramList, gate, ndim);
+  if(!_this->kConstructorSuccess) return kFALSE;
 
   // Set internal histogram
   //! \note The histogram isn't accessable to any other threads until we add it to
@@ -607,10 +613,28 @@ void rb::GammaHist::New(const char* name, const char* title,
 
   Int_t npar = unlocked_critical->fParams.size();
 
-  unlocked_critical->fHistogram =
-    new TH1D(_this->fName, _this->fTitle, nbins, low, high);
-  unlocked_critical->fHistogram->GetXaxis()->SetTitle(paramList);
-  unlocked_critical->fHistogram->GetYaxis()->SetTitle("");
+  switch(_this->kDimensions) {
+  case 1: {
+    unlocked_critical->fHistogram =
+      new TH1D(_this->fName, _this->fTitle, nbinsx, xlow, xhigh);
+    unlocked_critical->fHistogram->GetXaxis()->SetTitle(paramList);
+    unlocked_critical->fHistogram->GetYaxis()->SetTitle("");
+    break;
+  }
+  case 2: {
+    unlocked_critical->fHistogram =
+      new TH2D(_this->fName, _this->fTitle, nbinsx, xlow, xhigh, nbinsy, ylow, yhigh);
+    vector<string> pars = tokenize(paramList, ":");
+    unlocked_critical->fHistogram->GetXaxis()->SetTitle(pars[1].c_str());
+    unlocked_critical->fHistogram->GetYaxis()->SetTitle(pars[0].c_str());
+    break;
+  }
+  default:
+    fprintf(stderr, "Error in <GInitialize>: %d-dimensional Gamma Histograms are not yet supported", _this->kDimensions);
+    TH1::AddDirectory(kTRUE);
+    return kFALSE;
+    break;
+  }
 
   TH1::AddDirectory(kTRUE);
 
@@ -624,12 +648,13 @@ void rb::GammaHist::New(const char* name, const char* title,
       _this->fDirectory->Append(_this, kTRUE);
     }
   }
+  return kTRUE;
 }
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-// rb::GammaHist::DoFill()                               //
+// rb::GHist::DoFill()                                   //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-Int_t rb::GammaHist::DoFill(TH1* hst, TTreeFormula* gate, vector<TTreeFormula*>& params) {
+Int_t rb::GHist::DoFill(TH1* hst, TTreeFormula* gate, vector<TTreeFormula*>& params) {
   if(!gate->EvalInstance()) return 0;
 
   Int_t ret = -1;
@@ -652,11 +677,21 @@ Int_t rb::GammaHist::DoFill(TH1* hst, TTreeFormula* gate, vector<TTreeFormula*>&
   return ret;
 }
 
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// static rb::GHist::New (One-dimensional)               //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+void rb::GHist::New(const char* name, const char* title,
+		    Int_t nbinsx, Double_t xlow, Double_t xhigh,
+		    const char* param, const char* gate) {
+  rb::GHist::GInitialize(name, title, param, gate, 1, nbinsx, xlow, xhigh);
+}
 
-// // // //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-// // // // rb::GammaHist::Fill()                                 //
-// // // //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-// // // Int_t rb::GammaHist::Fill() {
-// // //   LockingPointer<CriticalElements> critical(fCritical, fgMutex);
-// // //   DoFill(critical->fHistogram, critical->fGate, critical->fParams);
-// // // }
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// static rb::GHist::New (Two-dimensional)               //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+void rb::GHist::New(const char* name, const char* title,
+		    Int_t nbinsx, Double_t xlow, Double_t xhigh,
+		    Int_t nbinsy, Double_t ylow, Double_t yhigh,
+		    const char* param, const char* gate) {
+  rb::GHist::GInitialize(name, title, param, gate, 2, nbinsx, xlow, xhigh, nbinsy, ylow, yhigh);
+}
