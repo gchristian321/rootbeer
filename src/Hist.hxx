@@ -285,7 +285,7 @@ namespace rb
     Int_t nPar;
 
     //! Constructor
-    SummaryHist(const char* name, const char* title, const char* param, const char* gate, const char* orient);
+    SummaryHist(const char* name, const char* title, const char* params, const char* gate, const char* orient);
 
     //! Internal filling function.
     //! Same idea as for rb::Hist, but implemented as needed for a summary histogram.
@@ -306,7 +306,7 @@ namespace rb
 
     //! Fill function.
     //! Overrides the virtual method defined for rb::Hist
-    Int_t Fill();    
+    /////    Int_t Fill();    
 
     //! Return the orientation.
     Int_t GetOrientation() {
@@ -320,6 +320,46 @@ namespace rb
 
     //! CINT ClassDef macro.
     ClassDef(SummaryHist, 0);
+  };
+
+  /// Gamma histogram class.
+
+  //! A "gamma" histogram is a type of histogram displaying multiple parameters at once. It appears as a normal
+  //! 1d or 2d histogram, but the number of counts increments for each count of any of the specified parameters.
+
+  //! This class inherits from rb::Hist and overrides the virtual Fill() and DoFill() methods.
+  class GammaHist : public Hist
+  {
+  protected:
+    //! Number of parameters.
+    Int_t nPar;
+
+    //! Constructor
+    GammaHist(const char* name, const char* title, const char* params, const char* gate);
+
+    //! Internal filling function.
+    //! Same idea as for rb::Hist, but implemented as needed for a gamma histogram.
+    virtual Int_t DoFill(TH1* hst, TTreeFormula* gate, std::vector<TTreeFormula*>& params);
+
+  public:
+    //! Public creation function.
+    //! Looks like the normal 1d (2d) creation function, but the multiple parameters are
+    //! delimited with a semicolon.  The standard prescription applies for dividing x and y axes: Y:X.
+    static void New(const char* name, const char* title,
+		    Int_t nbinsx, Double_t xlow, Double_t xhigh,
+		    const char* params,  const char* gate = "");
+
+    //! Fill function.
+    //! Overrides the virtual method defined for rb::Hist
+    /////    Int_t Fill();    
+
+    //! Return the number of parameters.
+    Int_t GetNPar() {
+      return nPar;
+    }
+
+    //! CINT ClassDef macro.
+    ClassDef(GammaHist, 0);
   };
   
 }

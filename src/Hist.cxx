@@ -486,10 +486,177 @@ Int_t rb::SummaryHist::DoFill(TH1* hst, TTreeFormula* gate, vector<TTreeFormula*
   return 0;
 }
 
+// // //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// // // rb::Hist::Fill()                                      //
+// // //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// // Int_t rb::SummaryHist::Fill() {
+// //   LockingPointer<CriticalElements> critical(fCritical, fgMutex);
+// //   DoFill(critical->fHistogram, critical->fGate, critical->fParams);
+// // }
+
+
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-// rb::Hist::Fill()                                      //
+// Class                                                 //
+// rb::GammaHist                                         //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-Int_t rb::SummaryHist::Fill() {
-  LockingPointer<CriticalElements> critical(fCritical, fgMutex);
-  DoFill(critical->fHistogram, critical->fGate, critical->fParams);
+
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// rb::GammaHist::GammaHist                              //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+rb::GammaHist::GammaHist(const char* name, const char* title, const char* param, const char* gate) {
+  kConstructorSuccess = kTRUE; fHistogramClone = 0;
+
+  LockFreePointer<CriticalElements>  critical(fCritical);
+  critical->fHistogram = 0;
+
+  // Initialize gate
+  fCritical.fGate = new TTreeFormula("fGate", check_gate(gate).c_str(), critical->GetTree());
+  if(!fCritical.fGate->GetNdim()) {
+    kConstructorSuccess = kFALSE;
+    return;
+  }
+
+  // Initialize parameters
+  vector<string> vPar1 = tokenize(param, ":");
+  kDimensions = vPar1.size();
+  vector<Int_t> nParams;
+
+  for(UInt_t j=0; j< vPar1.size(); ++j) {
+    vector<string> vPar = tokenize(vPar1[j].c_str(), ";");
+    nParams.push_back(vPar.size());
+
+    for(Int_t i = vPar.size()-1; i >= 0; --i) {
+      stringstream parname; parname << "param" << j << "_" << i-vPar.size();
+      string param = vPar[i];
+      ULong_t brktPos = param.find("["), dashPos = param.find("-"), brktPosLast = param.find("]");
+      if(brktPos > param.size() || dashPos > param.size()) {
+	critical->fParams.push_back(new TTreeFormula(parname.str().c_str(), param.c_str(), critical->GetTree()));
+	if(!critical->fParams[critical->fParams.size()-1]->GetNdim()) {
+	  kConstructorSuccess = kFALSE;
+	  return;
+	}
+      }
+      else {
+	string sFirst = param.substr(brktPos + 1, dashPos - brktPos - 1);
+	string sLast  = param.substr(dashPos + 1, brktPosLast - dashPos - 1);
+	string sBase  = param.substr(0, brktPos);
+	UInt_t first = atoi(sFirst.c_str()), last = atoi(sLast.c_str());
+	for(UInt_t indx = first; indx <= last; ++indx) {
+	  stringstream sstrParam;
+	  sstrParam << sBase << "[" << indx << "]";
+	  parname << "_" << indx;
+	  critical->fParams.push_back(new TTreeFormula(parname.str().c_str(), sstrParam.str().c_str(), critical->GetTree()));
+	  if(!critical->fParams[critical->fParams.size()-1]->GetNdim()) {
+	    kConstructorSuccess = kFALSE;
+	    return;
+	  }
+	}
+      }
+      nPar = critical->fParams.size();
+    }
+  }
+
+  if(nParams.size() == 0) {
+    Error("GammaHist", "Invalid parameter argument %s", param);
+    kConstructorSuccess = kFALSE;
+    return;
+  }
+  else if (nParams.size() > 1) {
+    Int_t nParams0 = nParams[0];
+    for(UInt_t k=1; k< nParams.size(); ++k) {
+      if(nParams[k] != nParams0) {
+	Error("GammaHist", "Invalid parameter argument %s", param);
+	kConstructorSuccess = kFALSE;
+	return;
+      }
+    }
+  }
+  else ;	
+
+  // Set name & title
+  fName  = check_name(name).c_str();
+
+  stringstream sstr;
+  sstr << param << " {" << fCritical.fGate->GetExpFormula().Data() << "}";
+  kDefaultTitle = sstr.str();
+  if(string(title).empty())
+    fTitle = kDefaultTitle.c_str();
+  else
+    fTitle = title;
+  kInitialTitle = fTitle;
 }
+
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// rb::GammaHist::New()                                  //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+void rb::GammaHist::New(const char* name, const char* title,
+			Int_t nbins, Double_t low, Double_t high,
+			const char* paramList,  const char* gate) {
+
+  // Create rb::Hist instance
+  rb::GammaHist* _this = new rb::GammaHist(name, title, paramList, gate);
+  if(!_this->kConstructorSuccess) return;
+
+  // Set internal histogram
+  //! \note The histogram isn't accessable to any other threads until we add it to
+  //! fgList, so it's safe to access the critical elements via a non-locking pointer.
+  LockFreePointer<CriticalElements> unlocked_critical(_this->fCritical);
+
+  Bool_t successfulHistCreation = kTRUE;
+  TH1::AddDirectory(kFALSE);
+
+  Int_t npar = unlocked_critical->fParams.size();
+
+  unlocked_critical->fHistogram =
+    new TH1D(_this->fName, _this->fTitle, nbins, low, high);
+  unlocked_critical->fHistogram->GetXaxis()->SetTitle(paramList);
+  unlocked_critical->fHistogram->GetYaxis()->SetTitle("");
+
+  TH1::AddDirectory(kTRUE);
+
+  // Add to collections
+  LockingPointer<List_t> hlist(fgList, fgMutex);
+  if(successfulHistCreation) {
+    hlist->push_back(_this);
+
+    if(gDirectory) {
+      _this->fDirectory = gDirectory;
+      _this->fDirectory->Append(_this, kTRUE);
+    }
+  }
+}
+
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// rb::GammaHist::DoFill()                               //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+Int_t rb::GammaHist::DoFill(TH1* hst, TTreeFormula* gate, vector<TTreeFormula*>& params) {
+  if(!gate->EvalInstance()) return 0;
+
+  Int_t ret = -1;
+  switch(kDimensions) {
+  case 1:
+    for(Int_t i=0; i< params.size(); ++i)
+      static_cast<TH1D*>(hst)->Fill(params[i]->EvalInstance());
+    ret = 1;
+    break;
+  case 2:
+    for(Int_t i=0; i< params.size() / 2; ++i)
+      static_cast<TH2D*>(hst)->Fill(params[i]->EvalInstance(), params[i+params.size()/2]->EvalInstance());
+    ret = 1;
+    break;
+  default:
+    Error("DoFill", "Invalid kDimensions %d", kDimensions);
+    ret = -1;
+    break;
+  }
+  return ret;
+}
+
+
+// // // //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// // // // rb::GammaHist::Fill()                                 //
+// // // //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// // // Int_t rb::GammaHist::Fill() {
+// // //   LockingPointer<CriticalElements> critical(fCritical, fgMutex);
+// // //   DoFill(critical->fHistogram, critical->fGate, critical->fParams);
+// // // }
