@@ -201,7 +201,7 @@ void rb::AttachFile(const char* filename, Bool_t stop_at_end) {
   rb::Unattach();
   int stop = int(stop_at_end);
   stringstream arg;
-  arg << stop << filename;
+  arg << stop << gSystem->ExpandPathName(filename);
   string* sarg = new string(arg.str()); // delted in ::AttachFile
   void * varg = (void*)(sarg);
   ::attachOfflineThread.Run(varg);
@@ -211,7 +211,7 @@ void rb::AttachFile(const char* filename, Bool_t stop_at_end) {
 // void rb::AttachList                                   //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 void rb::AttachList(const char* filename) {
-  ::attachListThread.Run((void*)filename);
+  ::attachListThread.Run((void*)gSystem->ExpandPathName(filename));
 }
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//

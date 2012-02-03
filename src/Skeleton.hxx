@@ -84,7 +84,7 @@ namespace
 
   //! \brief Stock code to perform NSCL buffer extraction.
   //! \details NSCL buffers are just a fixed size of 4096 16-bit words. All we need to do
-  //! is copy exactly this ammount into the buffer.
+  //! is copy exactly this amount into the buffer.
   inline void ExtractNsclBuffer(std::istream& ifs, rb::Buffer& buffer)
   {
     const Int_t bufferSize = 4096;

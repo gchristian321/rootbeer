@@ -5,7 +5,6 @@
 
 
 
-
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 //                                   //
 // ROOTBEER USER DATA CODE SKELETON  //
@@ -24,7 +23,7 @@
 #include "mona_definitions.hh"
 
 #include <TTimeStamp.h>
-#include "Dragon.hxx"
+#include "vme/vme.hxx"
 
 
 
@@ -41,17 +40,13 @@ ADD_CLASS_INSTANCE(myData, ExampleData, kFALSE)
 // Also, we use a non-default constructor, with the argument 32.
 ADD_CLASS_INSTANCE_ARGS(myVars, ExampleVariables,  kTRUE, "32")
 
+#ifdef _NSCL_
 ADD_CLASS_INSTANCE(mcal, cal::mona, kFALSE);
 ADD_CLASS_INSTANCE(mraw, raw::mona, kFALSE);
 ADD_CLASS_INSTANCE(mvar, var::mona, kTRUE);
+#endif
 
-ADD_CLASS_INSTANCE(ts, TimeStamp, kFALSE);
-ADD_CLASS_INSTANCE(dragon, data::Dragon, kFALSE);
-ADD_CLASS_INSTANCE(vdragon, variables::Dragon, kTRUE);
-
-
-
-
+ADD_CLASS_INSTANCE(bgo, Bgo, kFALSE);
 
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
@@ -61,8 +56,8 @@ ADD_CLASS_INSTANCE(vdragon, variables::Dragon, kTRUE);
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 void rb::unpack::ReadBuffer(istream& ifs, rb::Buffer& buffer) {
 
-  // #define _MIDAS_ // Uncomment to use pre-defined MIDAS buffer extraction routines.
-   #define _NSCL_  // Uncomment to use pre-defined NSCL buffer extraction routines.
+   #define _MIDAS_ // Uncomment to use pre-defined MIDAS buffer extraction routines.
+  // #define _NSCL_  // Uncomment to use pre-defined NSCL buffer extraction routines.
 
 #ifdef _MIDAS_
   ExtractMidasBuffer(ifs, buffer); // defined in Skeleton.hxx
@@ -80,24 +75,19 @@ void rb::unpack::UnpackBuffer(rb::Buffer& buffer) {
   rb::MidasEvent midasEvent;
   if ( ! midasEvent.ReadEvent(buffer) ) return;
 
-  GET_LOCKING_POINTER(pTS, ts, TimeStamp);
-  pTS->time = midasEvent.GetTimeStamp();
-
-  GET_LOCKING_POINTER(pDragon, dragon, data::Dragon);
-  GET_LOCKING_POINTER(pDragonVars, vdragon, variables::Dragon);
-
+  GET_LOCKING_POINTER(pBgo, bgo, Bgo);
   int16_t eventId = midasEvent.GetEventId();
   bool unpackResult;
   switch(eventId) {
-  case EV_DRAGON_G:
-  case EV_DRAGON_H:
-    pDragon->Reset();
-    unpackResult = pDragon->Unpack(midasEvent, *pDragonVars);
-    rb::Hist::FillAll();
+  case 1: 
+    vme::Module::reset_all();
+    vme::Module::unpack_all(midasEvent);
+    pBgo->get_data();
     break;
   default:
     break;
   }
+  rb::Hist::FillAll();
 
 #else
 
