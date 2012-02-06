@@ -37,10 +37,24 @@ $(N2DIR)/src/mona.cc $(N2DIR)/src/unpacker.cc \
 $(DRAGON_SRC)/VariableDefaults.cxx $(DRAGON_SRC)/vme/vme.cxx
 
 
+
 ############################
 ### Specify the type of data packed into your event files by setting the DATATYPE variable.
 ### (Note: NSCL and MIDAS are both 16-bit unsigned integers)
-DATATYPE=UShort_t
+
+### If you want to use the stock routines for extracting MIDAS data buffers, uncomment the following
+### two lines and make sure all others are commented.
+STOCK_BUFFERS=-D_MIDAS_
+USER_BUFFER_TYPE=rb::MidasEvent
+
+### If you want to use the stock routines for extracting NSCL data buffers, uncomment the following
+### two lines and make sure all others are commented.
+#STOCK_BUFFERS=-D_NSCL_
+#USER_BUFFER_TYPE=std::vector<uint16_t>
+
+### If you want (or need) to define your own routines to extract data buffers, define the buffer type
+### below.
+#USER_BUFFER_TYPE=
 
 
 ##############################################

@@ -68,18 +68,18 @@ namespace
   Bool_t kAttachedList   = kFALSE;
 
 
-  //! Attaches to an online data source (file), in the format expected by TThread.
+  //! Attaches to an online data source, in the format expected by TThread.
   void* AttachOnline(void* arg) {
     kAttachedOnline = kTRUE;
 
     /// For now just generate fake data buffers.
     stringstream ifs;
-    rb::Buffer buf;
+    BUFFER_TYPE buf;
     while(kAttachedOnline) {
       ifs.str("");
       FakeBuffer(ifs);
-      rb::unpack::ReadBuffer(ifs, buf);
-      rb::unpack::UnpackBuffer(buf);
+      if(rb::unpack::ReadBuffer(ifs, buf))
+	rb::unpack::UnpackBuffer(buf);
     }
     return arg;
   }
@@ -107,10 +107,10 @@ namespace
       return 0;
     }
 
-    rb::Buffer buf;
+    BUFFER_TYPE buf;
     while(kAttachedFile) {
-      rb::unpack::ReadBuffer(ifs, buf);
-      if(!ifs.good()) { // At end of file
+      bool read_success = rb::unpack::ReadBuffer(ifs, buf);
+      if(!read_success) { // At end of file
 	if(stopAtEnd) // We're done.
 	  break;
 	else { // Wait 10 seconds for more data to come in.

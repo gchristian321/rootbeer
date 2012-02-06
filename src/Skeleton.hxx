@@ -1,7 +1,5 @@
 //! \file Skeleton.hxx
-//! \brief Defines some macros and functions used in Skeleton.cxx
-#include "Data.hxx"
-#include "midas/rbMidasEvent.h"
+//! \brief Defines some macros used in Skeleton.cxx
 
 //! \brief Adds user-defined classes to ROOTBEER.
 //! \details This macro creates a \c new instance of rb::Data, wrapping a user-defined class.
@@ -55,40 +53,3 @@
 //! \endcode
 #define GET_LOCKING_POINTER(SYMBOL, NAME, CLASS)                        \
   LockingPointer<CLASS> SYMBOL (NAME##_Data->GetDataPointer<CLASS>(), NAME##_Data->fMutex);
-
-
-namespace
-{
-  //! \brief Stock code to perform MIDAS buffer extraction.
-  //! \details Midas buffers are not a fixed size, so we must first check the header to
-  //! get the appropriate length, then copy the appropriate amount of data to the buffer.
-  inline void ExtractMidasBuffer(std::istream& ifs, rb::Buffer& buffer)
-  {
-    rb::MidasEvent dummyMidasEvent; // dummy midas event to get header length
-    bool readHeaderResult = dummyMidasEvent.ReadHeader(&ifs);
-    if(!readHeaderResult) return; // EOF
-      
-    // Resize buffer appropriately.
-    const Int_t headerSize = 2*sizeof(Short_t) + 3*sizeof(Int_t);
-    const Int_t dataSize = dummyMidasEvent.GetDataSize();
-    const Int_t totalWords = (headerSize + dataSize) / sizeof(DATA_TYPE);
-    buffer.resize(totalWords);
-
-    // Read header into buffer
-    dummyMidasEvent.CopyHeader(reinterpret_cast<Char_t*>(&buffer[0]));
-
-    // Read data into buffer
-    const Int_t firstDataWord = headerSize / sizeof(DATA_TYPE);
-    ifs.read(reinterpret_cast<Char_t*>(&buffer[firstDataWord]), dataSize);
-  }
-
-  //! \brief Stock code to perform NSCL buffer extraction.
-  //! \details NSCL buffers are just a fixed size of 4096 16-bit words. All we need to do
-  //! is copy exactly this amount into the buffer.
-  inline void ExtractNsclBuffer(std::istream& ifs, rb::Buffer& buffer)
-  {
-    const Int_t bufferSize = 4096;
-    if(buffer.size() != bufferSize) buffer.resize(bufferSize);
-    ifs.read(reinterpret_cast<Char_t*>(&buffer[0]), bufferSize * sizeof(DATA_TYPE));
-  }
-}

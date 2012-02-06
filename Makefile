@@ -5,7 +5,7 @@ USER=$(PWD)/user
 ROOTFLAGS=`root-config --cflags --libs`
 DYLIB=-dynamiclib -single_module -undefined dynamic_lookup 
 INCFLAGS=-I$(SRC) -I$(CINT) -I$(USER) $(USER_INCLUDES)
-CXXFLAGS=$(INCFLAGS) -L$(PWD)/lib -DDATA_TYPE=$(DATATYPE)
+CXXFLAGS=$(INCFLAGS) -L$(PWD)/lib $(STOCK_BUFFERS) -DBUFFER_TYPE=$(USER_BUFFER_TYPE)
 
 ### Include the user-defined portion of the makefile
 include $(PWD)/user/Makefile.user

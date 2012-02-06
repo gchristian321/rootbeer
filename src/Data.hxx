@@ -15,7 +15,7 @@
 #include <TBranchElement.h>
 #include <TError.h>
 #include "Hist.hxx"
-
+#include "midas/rbMidasEvent.h"
 
 namespace rb
 {
@@ -24,7 +24,8 @@ namespace rb
   //! Type of buffer into which we copy our data.
   //! \note DATA_TYPE is \c #defined in user/Makefile.user It corresponds to the
   //! type of data packed into the event stream.
-  typedef std::vector<DATA_TYPE> Buffer;
+  typedef /*std::vector<DATA_TYPE>*/ rb::MidasEvent Buffer;
+
 
   //! Encloses functions relevant to reading and unpacking buffers.
   //! \details Functions are implemented in Skeleton.cxx
@@ -37,7 +38,7 @@ namespace rb
     //! can be utilized by commenting the appropriate \c #define derectives as noted in the sources.
     //! \param[in] ifs stream from which the data is read.
     //! \param[out] buf buffer (std::vector<DATA_TYPE>) into which we copy the data.
-    extern void ReadBuffer(std::istream& ifs, rb::Buffer& buf);
+    extern bool ReadBuffer(std::istream& ifs, BUFFER_TYPE& buf);
 
     //! Defines how raw data buffers are unpacked.
     //! \details The code of this function is filled in by users in Skeleton.cxx
@@ -45,7 +46,7 @@ namespace rb
     //! packed data and disseminate it into the classes the users have written to
     //! store their data.
     //! \param[in] buf The data buffer that we want to unpack into our user classes.
-    extern void UnpackBuffer(rb::Buffer& buf);
+    extern void UnpackBuffer(BUFFER_TYPE& buf);
   }
 
 
@@ -278,7 +279,7 @@ namespace rb
     friend class rb::Rint;
 
     /// Accesses GetDataPointer() and fMutex
-    friend void rb::unpack::UnpackBuffer(rb::Buffer&);
+    friend void rb::unpack::UnpackBuffer(BUFFER_TYPE&);
   };
 
 }
