@@ -84,7 +84,7 @@ void rb::unpack::UnpackBuffer(BUFFER_TYPE& buffer) {
 
 #ifdef _MIDAS_
 
-  GET_LOCKING_POINTER(pBgo, bgo, Bgo);
+  //  GET_LOCKING_POINTER(pBgo, bgo, Bgo);
   int16_t eventId = buffer.GetEventId();
   bool unpackResult;
   vme::Module::reset_all();
@@ -96,7 +96,6 @@ void rb::unpack::UnpackBuffer(BUFFER_TYPE& buffer) {
     //    Info("UnpackBuffer", "Event Id: %d", eventId);
     break;
   }
-  pBgo->get_data();
   rb::Hist::FillAll();
 
 #elif defined _NSCL_

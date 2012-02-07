@@ -12,6 +12,7 @@
 
 #include "Data.hxx"
 #include "Rootbeer.hxx"
+#include "midas/TMidasOnline.h"
 using namespace std;
 
 
@@ -69,7 +70,64 @@ namespace
 
 
   //! Attaches to an online data source, in the format expected by TThread.
+#ifdef _MIDAS_ONLINE_
+ struct MidasOnline {
+  string host;
+  string expt;
+};
+#endif
+
   void* AttachOnline(void* arg) {
+#ifdef _MIDAS_ONLINE_
+
+ MidasOnline* midasArgs = reinterpret_cast<MidasOnline*>(arg);
+ string hostname = midasArgs->host, exptname = midasArgs->expt;
+ delete midasArgs;
+
+ TMidasOnline *midas = TMidasOnline::instance();
+
+ int err = midas->connect(hostname.c_str(), exptname.c_str(), "rootbeer");
+ if (err != 0)
+   {
+     fprintf(stderr,"Cannot connect to MIDAS, error %d\n", err);
+     return 0;
+   }
+
+ // gOdb = midas;
+
+ // midas->setTransitionHandlers(startRun,endRun,NULL,NULL);
+ // midas->registerTransitions();
+
+ /* reqister event requests */
+
+ // midas->setEventHandler(eventHandler);
+ midas->eventRequest("SYSTEM",-1,-1,(1<<1));
+
+ /* fill present run parameters */
+
+ // gRunNumber = gOdb->odbReadInt("/runinfo/Run number");
+
+ // if ((gOdb->odbReadInt("/runinfo/State") == 3))
+ //   startRun(0,gRunNumber,0);
+
+ // printf("Startup: run %d, is running: %d, is pedestals run: %d\n",gRunNumber,gIsRunning,gIsPedestalsRun);
+
+ // MyPeriodic tm(100,MidasPollHandler);
+ //MyPeriodic th(1000,SISperiodic);
+ //MyPeriodic tn(1000,StepThroughSISBuffer);
+ //MyPeriodic to(1000,Scalerperiodic);
+
+ /*---- start main loop ----*/
+
+ // loop_online();
+ // app->Run(kTRUE);
+
+ /* disconnect from experiment */
+ //  midas->disconnect();
+
+ return arg;
+
+#else
     kAttachedOnline = kTRUE;
 
     /// For now just generate fake data buffers.
@@ -82,6 +140,7 @@ namespace
 	rb::unpack::UnpackBuffer(buf);
     }
     return arg;
+#endif
   }
 
   //! Attaches to an offline data source (file), in the format expected by TThread.
@@ -180,7 +239,6 @@ namespace
   //! Thread for attaching to a list of offline files.
   TThread attachListThread("attachList", ::AttachList);
 }
-// namespace //
 
 
 
@@ -190,8 +248,15 @@ namespace
 // void rb::AttachOnline                                 //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 void rb::AttachOnline() {
+#ifdef _MIDAS_ONLINE_
+  MidasOnline* arg = new MidasOnline();
+  arg->host = "ladd06.triumf.ca";
+  arg->expt = "dragon";
+  ::attachOnlineThread.Run(reinterpret_cast<void*>(arg));
+#else
   rb::Unattach();
   ::attachOnlineThread.Run();
+#endif
 }
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//

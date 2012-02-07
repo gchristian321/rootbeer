@@ -5,7 +5,9 @@ USER=$(PWD)/user
 ROOTFLAGS=`root-config --cflags --libs`
 DYLIB=-dynamiclib -single_module -undefined dynamic_lookup 
 INCFLAGS=-I$(SRC) -I$(CINT) -I$(USER) $(USER_INCLUDES)
-CXXFLAGS=$(INCFLAGS) -L$(PWD)/lib $(STOCK_BUFFERS) -DBUFFER_TYPE=$(USER_BUFFER_TYPE)
+CXXFLAGS=$(INCFLAGS) -L$(PWD)/lib $(STOCK_BUFFERS) -DBUFFER_TYPE=$(USER_BUFFER_TYPE) \
+-D_MIDAS_ONLINE_ -L$(MIDAS_ONLINE)/darwin/lib -I$(MIDAS_ONLINE)/include -DOS_UNIX
+
 
 ### Include the user-defined portion of the makefile
 include $(PWD)/user/Makefile.user
@@ -28,7 +30,7 @@ $(SRC)/midas/TMidasEvent.cxx $(SRC)/midas/rbMidasEvent.cxx
 HEADERS=$(SRC)/Rootbeer.hxx $(SRC)/Data.hxx $(SRC)/midas/rbMidasEvent.h $(USER_HEADERS)
 
 libRootbeer.so: libHist.so cint/RBDictionary.cxx $(SOURCES)
-	g++ $(CXXFLAGS) -lHist -o $(PWD)/lib/$@ $(ROOTFLAGS) -lThread $(DYLIB) -p cint/RBDictionary.cxx $(SOURCES)
+	g++ $(CXXFLAGS) -lHist -o $(PWD)/lib/$@ $(ROOTFLAGS) -lThread -lmidas $(DYLIB) -p cint/RBDictionary.cxx $(SOURCES)
 
 
 cint/RBDictionary.cxx: $(HEADERS) Linkdef.h
