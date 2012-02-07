@@ -19,13 +19,16 @@
 
 #include "ExampleData.hh"
 
+#ifdef _NSCL_
 #include "mona.hh"
 #include "unpacker.hh"
 #include "mona_definitions.hh"
+#endif
 
+#ifdef _MIDAS_
 #include <TTimeStamp.h>
 #include "vme/vme.hxx"
-
+#endif
 
 
 

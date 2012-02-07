@@ -6,8 +6,7 @@
 ### Note that the present directory (where this makefile segment is located)
 ### has already been defined as USER
 
-N2DIR=/user/gchristian/soft/n2analysis
-DRAGON_SRC=/user/gchristian/soft/develop/dragon/analyzer/src
+DRAGON_SRC=$(HOME)/gc/dragon/analyzer/src
 
 
 ############################
@@ -16,7 +15,7 @@ DRAGON_SRC=/user/gchristian/soft/develop/dragon/analyzer/src
 ### USER_INCLUDES=-I/path/to/some/sources/ -I/path/to/some/other/sources/
 ### Note that the present directory $(USER) has already been taken care of elsewhere.
 
-USER_INCLUDES=-I$(N2DIR)/src -I$(N2DIR)/include -I$(DRAGON_SRC)
+USER_INCLUDES=-I$(DRAGON_SRC)
 
 
 ############################
@@ -25,18 +24,15 @@ USER_INCLUDES=-I$(N2DIR)/src -I$(N2DIR)/include -I$(DRAGON_SRC)
 ### USER_HEADERS=/path/to/headers/header1.hxx /path/to/headers/header2.hxx
 
 USER_HEADERS=$(USER)/ExampleData.hh \
-$(N2DIR)/src/mona.hh $(N2DIR)/src/detector.hh $(N2DIR)/src/unpacker.hh \
-$(DRAGON_SRC)/vme/vme.hxx \
-$(SRC)/midas/TMidasOnline.h  $(SRC)/midas/VirtualOdb.h 
+$(DRAGON_SRC)/vme/vme.hxx 
 
 ############################
 ### Use the USER_SOURCES variable to tell the compiler where all of your source (compile) files are located.
 ### Specify the full path for each file. Example:
 ### USER_HEADERS=/path/to/sources/source1.cxx /path/to/sources/source2.cxx
 USER_SOURCES= \
-$(N2DIR)/src/mona.cc $(N2DIR)/src/unpacker.cc \
 $(DRAGON_SRC)/VariableDefaults.cxx $(DRAGON_SRC)/vme/vme.cxx \
-$(SRC)/midas/TMidasOnline.cxx
+
 
 ##### TODO:::: Move midas stuff to permanent makefile!!!
 
@@ -59,10 +55,3 @@ USER_BUFFER_TYPE=rb::MidasEvent
 ### If you want (or need) to define your own routines to extract data buffers, define the buffer type
 ### below.
 #USER_BUFFER_TYPE=
-
-
-##############################################
-
-
-##-D_MIDAS_ONLINE_
-MIDAS_ONLINE="/Users/gchristian/packages/midas"
