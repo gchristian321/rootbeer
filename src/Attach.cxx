@@ -12,7 +12,9 @@
 
 #include "Data.hxx"
 #include "Rootbeer.hxx"
+#ifdef HAVE_MIDAS
 #include "midas/TMidasOnline.h"
+#endif
 using namespace std;
 
 

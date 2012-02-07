@@ -26,8 +26,8 @@ USER_INCLUDES=-I$(N2DIR)/src -I$(N2DIR)/include -I$(DRAGON_SRC)
 
 USER_HEADERS=$(USER)/ExampleData.hh \
 $(N2DIR)/src/mona.hh $(N2DIR)/src/detector.hh $(N2DIR)/src/unpacker.hh \
-$(DRAGON_SRC)/vme/vme.hxx \
-$(SRC)/midas/TMidasOnline.h  $(SRC)/midas/VirtualOdb.h 
+$(DRAGON_SRC)/vme/vme.hxx 
+
 
 ############################
 ### Use the USER_SOURCES variable to tell the compiler where all of your source (compile) files are located.
@@ -35,11 +35,7 @@ $(SRC)/midas/TMidasOnline.h  $(SRC)/midas/VirtualOdb.h
 ### USER_HEADERS=/path/to/sources/source1.cxx /path/to/sources/source2.cxx
 USER_SOURCES= \
 $(N2DIR)/src/mona.cc $(N2DIR)/src/unpacker.cc \
-$(DRAGON_SRC)/VariableDefaults.cxx $(DRAGON_SRC)/vme/vme.cxx \
-$(SRC)/midas/TMidasOnline.cxx
-
-##### TODO:::: Move midas stuff to permanent makefile!!!
-
+$(DRAGON_SRC)/VariableDefaults.cxx $(DRAGON_SRC)/vme/vme.cxx
 
 
 ############################
