@@ -7,6 +7,8 @@
 #ifndef __ROOTBEER__
 #define __ROOTBEER__
 #include <stdlib.h>
+#include <vector>
+#include <string>
 #include <TCutG.h>
 #include <TRint.h>
 #include "Hist.hxx"
@@ -18,8 +20,8 @@ namespace rb
 {
   /// \brief Attach to an online data sorce.
   //! \details
-  //! \todo Implement for real data.
-  extern void AttachOnline();
+  //! \todo Implement for NSCL data.
+  extern void AttachOnline(const char* host, const char* expt = "", const std::vector<std::string>* others = NULL);
 
   /// \brief Attach to an offline data source.
   //! \param filename Path of the file to which you want to attach.
