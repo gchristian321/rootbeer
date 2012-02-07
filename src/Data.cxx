@@ -97,16 +97,6 @@ public:
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-// Static data member initialization                     //
-//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-// rb::Data::Map_t       rb::Data::fgMap;
-// rb::Data::SetMap_t    rb::Data::fgSetFunctionMap;
-// rb::Data::GetMap_t    rb::Data::fgGetFunctionMap;
-// rb::Data::ObjectMap_t rb::Data::fgObjectMap;
-// rb::Data::DeleteMap_t rb::Data::fgDeleteMap;
-
-
-//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // Constructor                                           //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 rb::Data::Data(const char* name, const char* class_name, volatile void* data, Bool_t createPointer):
