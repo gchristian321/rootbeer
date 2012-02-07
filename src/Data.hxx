@@ -17,15 +17,10 @@
 #include "Hist.hxx"
 #include "midas/rbMidasEvent.h"
 
+
 namespace rb
 {
   class Rint; // forward declaration
-
-  //! Type of buffer into which we copy our data.
-  //! \note DATA_TYPE is \c #defined in user/Makefile.user It corresponds to the
-  //! type of data packed into the event stream.
-  typedef /*std::vector<DATA_TYPE>*/ rb::MidasEvent Buffer;
-
 
   //! Encloses functions relevant to reading and unpacking buffers.
   //! \details Functions are implemented in Skeleton.cxx
@@ -95,11 +90,9 @@ namespace rb
 #ifndef __CINT__ // CINT doesn't like volatile void* apparently.
     typedef void (*void_cast)(volatile void*, Double_t);
     typedef std::map<std::string, std::pair<volatile void*, std::string> > ObjectMap_t;
-    typedef std::map<std::string, std::pair<volatile void*, std::string> >::iterator ObjectMapIterator_t;
 #else
     typedef void (*void_cast)(void*, Double_t);
     typedef std::map<std::string, std::pair<void*, std::string> > ObjectMap_t;
-    typedef std::map<std::string, std::pair<void*, std::string> >::iterator ObjectMapIterator_t;
 #endif
 
     // Function pointers
@@ -111,13 +104,6 @@ namespace rb
     typedef std::map<std::string, void_cast>       SetMap_t;
     typedef std::map<std::string, void_get>        GetMap_t;
     typedef std::map<std::string, delete_function> DeleteMap_t;
-
-    // Iterators
-    typedef std::map<std::string, Data*>::iterator           MapIterator_t;
-    typedef std::map<std::string, void_cast>::iterator       SetMapIterator_t;
-    typedef std::map<std::string, void_get>::iterator        GetMapIterator_t;
-    typedef std::map<std::string, delete_function>::iterator DeleteMapIterator_t;
-
 
   private:
     /// Tells whether we should map the map a user class instance's data members or not.
@@ -135,20 +121,29 @@ namespace rb
     /// Mutex to protect access to the data.
     TMutex fMutex;
 
+    /// Alternative to static data members.
+    //! Creates a local heap-allocated static instance of class T and returns
+    //! a reference.  This is preferable to using static data members directly because
+    //! of the <a href="http://www.parashift.com/c++-faq-lite/ctors.html#faq-10.14">
+    //! Static Initialization Order Fiasco</a>.
+#define SIOF(T) static T * m = new T (); return *m
+
     /// Maps \c kName to the base class address.
-    static Map_t fgMap;
+    static Map_t& fgMap() { SIOF(Map_t); }
 
     /// Maps the full name of a data member of a user class to it's <address, class name>.
-    static ObjectMap_t fgObjectMap;
+    static ObjectMap_t& fgObjectMap() { SIOF(ObjectMap_t); }
 
     /// Maps type names to SetDataValue<T> function pointers.
-    static SetMap_t fgSetFunctionMap;
+    static SetMap_t& fgSetFunctionMap() { SIOF(SetMap_t); }
 
     /// Maps type names to GetDataValue<T> function pointers.
-    static GetMap_t fgGetFunctionMap;
+    static GetMap_t& fgGetFunctionMap() { SIOF(GetMap_t); }
 
     /// Maps the class name to the appropraite delete method.
-    static DeleteMap_t fgDeleteMap;
+    static DeleteMap_t& fgDeleteMap() { SIOF(DeleteMap_t); }
+
+#undef SIOF
 
     /// Recurse through a class and add each of it's basic data objects to fgObjectMap.
     static void MapClass(const char* name, const char* classname, volatile void* address);
@@ -171,8 +166,8 @@ namespace rb
     //! Converts the data to \c Double_t before returning.
     template<typename T>
     static Double_t GetDataValue(const char* name) {
-      ObjectMapIterator_t it = fgObjectMap.find(name);
-      if(it == fgObjectMap.end()) {
+      ObjectMap_t::iterator it = fgObjectMap().find(name);
+      if(it == fgObjectMap().end()) {
 	Error("GetDataValue", "%s not found.", name);
 	return -1.;
       }
@@ -204,8 +199,8 @@ namespace rb
 
     /// \c delete all instances of rb::Data.
     static void DeleteAll() {
-      while(fgMap.size() != 0) {
-	delete fgMap.begin()->second;
+      while(fgMap().size() != 0) {
+	delete fgMap().begin()->second;
       }
     }
 
@@ -213,14 +208,14 @@ namespace rb
     /// Destructor
     //! Remove from fgMap, and call the appropriate destructor for fData.
     virtual ~Data() {
-      DeleteMapIterator_t itDelete = fgDeleteMap.find(kClassName);
-      assert(itDelete != fgDeleteMap.end());
+      DeleteMap_t::iterator itDelete = fgDeleteMap().find(kClassName);
+      assert(itDelete != fgDeleteMap().end());
       itDelete->second(this);
       fData = 0;
 
-      MapIterator_t it = fgMap.find(kName);
-      if(it != fgMap.end()) {
-	fgMap.erase(it);
+      Map_t::iterator it = fgMap().find(kName);
+      if(it != fgMap().end()) {
+	fgMap().erase(it);
       }
     }
 
@@ -245,7 +240,7 @@ namespace rb
     //! for parameters (data updated event-by-event) and \c true for variables (values used in calculating parameters.
     template <class T>
     static Data* New(const char* name, const char* class_name, Bool_t makeVisible = kFALSE, const char* args = "") {
-      fgDeleteMap[class_name] = &FreeMemory<T>;
+      fgDeleteMap()[class_name] = &FreeMemory<T>;
       T* data = 0;
       if(!strcmp(args, ""))  data = new T();
       else {
@@ -281,7 +276,6 @@ namespace rb
     /// Accesses GetDataPointer() and fMutex
     friend void rb::unpack::UnpackBuffer(BUFFER_TYPE&);
   };
-
 }
 
 #endif

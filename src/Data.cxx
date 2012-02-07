@@ -99,11 +99,11 @@ public:
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // Static data member initialization                     //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-rb::Data::Map_t       rb::Data::fgMap;
-rb::Data::SetMap_t    rb::Data::fgSetFunctionMap;
-rb::Data::GetMap_t    rb::Data::fgGetFunctionMap;
-rb::Data::ObjectMap_t rb::Data::fgObjectMap;
-rb::Data::DeleteMap_t rb::Data::fgDeleteMap;
+// rb::Data::Map_t       rb::Data::fgMap;
+// rb::Data::SetMap_t    rb::Data::fgSetFunctionMap;
+// rb::Data::GetMap_t    rb::Data::fgGetFunctionMap;
+// rb::Data::ObjectMap_t rb::Data::fgObjectMap;
+// rb::Data::DeleteMap_t rb::Data::fgDeleteMap;
 
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
@@ -112,14 +112,14 @@ rb::Data::DeleteMap_t rb::Data::fgDeleteMap;
 rb::Data::Data(const char* name, const char* class_name, volatile void* data, Bool_t createPointer):
   kName(name), kClassName(class_name), kMapClass(createPointer) {
       fData = data;
-      fgMap[kName] = this;
+      fgMap()[kName] = this;
 
 
 #define FMAP_INSERT(KEY)						\
-      fgSetFunctionMap.insert(std::make_pair(#KEY , &SetDataValue<KEY>)); \
-      fgGetFunctionMap.insert(std::make_pair(#KEY , &GetDataValue<KEY>));
+      fgSetFunctionMap().insert(std::make_pair(#KEY , &SetDataValue<KEY>)); \
+      fgGetFunctionMap().insert(std::make_pair(#KEY , &GetDataValue<KEY>));
 
-      if(fgSetFunctionMap.empty()) {
+      if(fgSetFunctionMap().empty()) {
 	FMAP_INSERT(Double_t);
 	FMAP_INSERT(Float_t);
 	FMAP_INSERT(Long64_t);
@@ -154,15 +154,15 @@ rb::Data::Data(const char* name, const char* class_name, volatile void* data, Bo
 // rb::Data::Getvalue                                    //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 Double_t rb::Data::GetValue(const char* name) {
-  ObjectMapIterator_t it = fgObjectMap.find(name);
-  if(it == fgObjectMap.end()) {
+  ObjectMap_t::iterator it = fgObjectMap().find(name);
+  if(it == fgObjectMap().end()) {
     Error("GetValue", "%s not found.", name);
     return -1.;
   }
   string typeName = it->second.second;
 
-  GetMapIterator_t itGet = fgGetFunctionMap.find(typeName);
-  if(itGet == fgGetFunctionMap.end()) {
+  GetMap_t::iterator itGet = fgGetFunctionMap().find(typeName);
+  if(itGet == fgGetFunctionMap().end()) {
     Error("GetValue", "Invalid type %s", typeName.c_str());
     return -1.;
   }
@@ -174,16 +174,16 @@ Double_t rb::Data::GetValue(const char* name) {
 // static rb::Data::SetValue                             //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 void rb::Data::SetValue(const char* name, Double_t newvalue) {
-  ObjectMapIterator_t itObject = fgObjectMap.find(name);
-  if(itObject == fgObjectMap.end()) {
+  ObjectMap_t::iterator itObject = fgObjectMap().find(name);
+  if(itObject == fgObjectMap().end()) {
     Error("SetData", "Data object: %s not found.", name);
     return;
   }
 
   volatile void* objectAddress = itObject->second.first;
   string type = itObject->second.second;
-  SetMapIterator_t itCast = fgSetFunctionMap.find(type);
-  if(itCast == fgSetFunctionMap.end()) {
+  SetMap_t::iterator itCast = fgSetFunctionMap().find(type);
+  if(itCast == fgSetFunctionMap().end()) {
     Error("SetData", "Invalid type: %s", type.c_str());
     return;
   }
@@ -197,8 +197,8 @@ void rb::Data::SetValue(const char* name, Double_t newvalue) {
 // static branch adding function                         //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 void rb::Data::AddBranches() {
-  MapIterator_t it = fgMap.begin();
-  while(it != rb::Data::fgMap.end()) {
+  Map_t::iterator it = fgMap().begin();
+  while(it != fgMap().end()) {
     rb::Data* data = (*it++).second;
     std::string brName = data->kName; brName += ".";
     LockingPointer<char> pData (reinterpret_cast<volatile char*>(data->fData), data->fMutex);
@@ -217,7 +217,7 @@ void rb::Data::MapClasses() {
   vPrint.push_back("      ----\t\t----------\n");
   Int_t printMinSize = vPrint.size();
 
-  for(MapIterator_t it = fgMap.begin(); it != fgMap.end(); ++it) {
+  for(Map_t::iterator it = fgMap().begin(); it != fgMap().end(); ++it) {
     if(it->second->kMapClass) {
       string name = it->first;
       string className = it->second->kClassName;
@@ -242,8 +242,8 @@ void rb::Data::MapClasses() {
 // static rb::Data::SavePrimitive                        //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 void rb::Data::SavePrimitive(ostream& strm) {
-  ObjectMapIterator_t it;
-  for(it = fgObjectMap.begin(); it != fgObjectMap.end(); ++it) {
+  ObjectMap_t::iterator it;
+  for(it = fgObjectMap().begin(); it != fgObjectMap().end(); ++it) {
     strm << "  rb::Data::SetValue(\"" << it->first << "\", " << GetValue(it->first.c_str()) << ");\n";
   }
 }
@@ -256,15 +256,15 @@ Bool_t rb::Data::MapData(const char* name, TStreamerElement* element, volatile v
   string typeName = element->GetTypeName();
   remove_duplicate_spaces(typeName); // in case someone did 'unsigned    short' or whatever
 
-  SetMapIterator_t it = fgSetFunctionMap.find(typeName);
-  if(it == fgSetFunctionMap.end()) return kFALSE;
+  SetMap_t::iterator it = fgSetFunctionMap().find(typeName);
+  if(it == fgSetFunctionMap().end()) return kFALSE;
 
   volatile void* address = base_address;
   void_pointer_add(address, element->GetOffset());
   Int_t arrLen = element->GetArrayLength();
 
   if(!arrLen) {
-    fgObjectMap.insert(std::make_pair(name, std::make_pair(address, typeName)));
+    fgObjectMap().insert(std::make_pair(name, std::make_pair(address, typeName)));
   }
   else {
     if(element->GetArrayDim() > 4) {
@@ -276,7 +276,7 @@ Bool_t rb::Data::MapData(const char* name, TStreamerElement* element, volatile v
       ArrayConverter arrayConvert(element);
       for(Int_t i=0; i< arrLen; ++i) {
 	void_pointer_add(address, size*(i>0));
-	fgObjectMap.insert(std::make_pair(arrayConvert.GetFullName(name, i), std::make_pair(address, typeName)));
+	fgObjectMap().insert(std::make_pair(arrayConvert.GetFullName(name, i), std::make_pair(address, typeName)));
       }
     }
   }
@@ -311,8 +311,8 @@ void rb::Data::MapClass(const char* name, const char* classname, volatile void* 
 // static rb::Data::PrintAll                             //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 void rb::Data::PrintAll() {
-  ObjectMapIterator_t it = fgObjectMap.begin();
-  while(it != fgObjectMap.end()) {
+  ObjectMap_t::iterator it = fgObjectMap().begin();
+  while(it != fgObjectMap().end()) {
     string name = (*it++).first;
     cout << name << " = " << GetValue(name.c_str()) << endl;
   }
