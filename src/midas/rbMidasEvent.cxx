@@ -1,5 +1,6 @@
 //! \file rbMidasEvent.cxx
 //! \brief Implements rbMidasEvent.h
+#include <string.h>
 #include <iostream>
 #include "rbMidasEvent.h"
 

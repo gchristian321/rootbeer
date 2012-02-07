@@ -6,7 +6,7 @@
 //! of the available user functions and their descriptions can be found in this Doxygen file.
 #ifndef __ROOTBEER__
 #define __ROOTBEER__
-
+#include <stdlib.h>
 #include <TCutG.h>
 #include <TRint.h>
 #include "Hist.hxx"
