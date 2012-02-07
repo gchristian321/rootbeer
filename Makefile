@@ -1,16 +1,40 @@
 VPATH = $(PWD)/cint:$(PWD)/src:$(PWD)/lib:$(PWD)/rbgui
-SRC=$(PWD)/src
-CINT=$(PWD)/cint
-USER=$(PWD)/user
-ROOTFLAGS=`root-config --cflags --libs`
-DYLIB=-dynamiclib -single_module -undefined dynamic_lookup 
-INCFLAGS=-I$(SRC) -I$(CINT) -I$(USER) $(USER_INCLUDES)
-CXXFLAGS=$(INCFLAGS) -L$(PWD)/lib $(STOCK_BUFFERS) -DBUFFER_TYPE=$(USER_BUFFER_TYPE) \
--D_MIDAS_ONLINE_ -L$(MIDAS_ONLINE)/darwin/lib -I$(MIDAS_ONLINE)/include -DOS_UNIX
-
 
 ### Include the user-defined portion of the makefile
 include $(PWD)/user/Makefile.user
+
+### Variable definitions
+SRC=$(PWD)/src
+CINT=$(PWD)/cint
+USER=$(PWD)/user
+ROOTGLIBS = $(shell root-config --glibs) -lXMLParser -lThread -lTreePlayer
+RPATH    += -Wl,-rpath,$(ROOTSYS)/lib -Wl,-rpath,$(PWD)/lib
+DYLIB=-shared -fPIC
+INCFLAGS=-I$(SRC) -I$(CINT) -I$(USER) $(USER_INCLUDES)
+CXXFLAGS=$(INCFLAGS) -L$(PWD)/lib $(STOCK_BUFFERS) -DBUFFER_TYPE=$(USER_BUFFER_TYPE)
+
+
+ifdef ROOTSYS
+ROOTGLIBS = -L$(ROOTSYS)/lib $(shell $(ROOTSYS)/bin/root-config --glibs) -lXMLParser -lThread -lTreePlayer
+CXXFLAGS += -L$(ROOTSYS)/lib $(shell $(ROOTSYS)/bin/root-config --cflags) -I$(ROOTSYS)/include
+endif
+
+# optional MIDAS libraries
+ifdef MIDASSYS
+MIDASLIBS = $(MIDASSYS)/linux/lib/libmidas.a -lutil -lrt
+CXXFLAGS += -DHAVE_MIDAS -DOS_LINUX -Dextname -I$(MIDASSYS)/include
+MIDASONLINE=$(SRC)/midas/TMidasOnline.cxx
+endif
+
+UNAME=$(shell uname)
+ifeq ($(UNAME),Darwin)
+CXXFLAGS += -DOS_LINUX -DOS_DARWIN
+ifdef MIDASSYS
+MIDASLIBS = $(MIDASSYS)/darwin/lib/libmidas.a
+endif
+DYLIB=-dynamiclib -single_module -undefined dynamic_lookup 
+RPATH=
+endif
 
 
 
@@ -18,34 +42,33 @@ include $(PWD)/user/Makefile.user
 #### MAIN PROGRAM ####
 all: rootbeer
 
-
-rootbeer: libHist.so libRootbeer.so $(SRC)/main.cc 
-	g++ $(CXXFLAGS) -lRootbeer $(SRC)/main.cc -o rootbeer $(ROOTFLAGS)
+rootbeer: libRBHist.so libRootbeer.so $(SRC)/main.cc 
+	g++ $(CXXFLAGS) $(INCFLAGS) -lRootbeer $(SRC)/main.cc -o rootbeer $(MIDASLIBS) $(ROOTGLIBS) -lm -lz -lpthread $(RPATH) -I$(ROOTSYS)/include ; echo ""
 
 
 #### ROOTBEER LIBRARY ####
-SOURCES= $(USER_SOURCES) $(SRC)/Rootbeer.cxx $(SRC)/Data.cxx $(PWD)/user/Skeleton.cxx $(SRC)/Attach.cxx $(SRC)/Canvas.cxx $(SRC)/WriteConfig.cxx \
+SOURCES= $(USER_SOURCES) $(MIDASONLINE) $(SRC)/Data.cxx $(SRC)/Rootbeer.cxx $(PWD)/user/Skeleton.cxx $(SRC)/Attach.cxx $(SRC)/Canvas.cxx $(SRC)/WriteConfig.cxx \
 $(SRC)/midas/TMidasEvent.cxx $(SRC)/midas/rbMidasEvent.cxx
 
 HEADERS=$(SRC)/Rootbeer.hxx $(SRC)/Data.hxx $(SRC)/midas/rbMidasEvent.h $(USER_HEADERS)
 
-libRootbeer.so: libHist.so cint/RBDictionary.cxx $(SOURCES)
-	g++ $(CXXFLAGS) -lHist -o $(PWD)/lib/$@ $(ROOTFLAGS) -lThread -lmidas $(DYLIB) -p cint/RBDictionary.cxx $(SOURCES)
+libRootbeer.so: libRBHist.so cint/RBDictionary.cxx $(SOURCES)
+	g++ $(DYLIB) -o $(PWD)/lib/$@ -lRBHist $(CXXFLAGS) $(MIDASLIBS) $(ROOTGLIBS) $(RPATH)  -p cint/RBDictionary.cxx $(SOURCES)  ; echo ""
 
 
 cint/RBDictionary.cxx: $(HEADERS) Linkdef.h
-	rootcint -f $@ -c $(CXXFLAGS)  -p $^
+	rootcint -f $@ -c $(CXXFLAGS)  -p $^ ; echo ""
 
 
 
 #### COMPILE HISTOGRAM LIBRARY ####
 
-libHist.so: Hist.cxx cint/HistDictionary.cxx
-	g++ -o $(PWD)/lib/$@ $(CXXFLAGS) $(ROOTFLAGS) -lTreePlayer $(DYLIB) -p $^
+libRBHist.so: Hist.cxx cint/HistDictionary.cxx
+	g++ $(DYLIB) -o $(PWD)/lib/$@ $(CXXFLAGS) -lTreePlayer  -p $^   $(ROOTGLIBS) $(RPATH) ; echo ""
 
 
 cint/HistDictionary.cxx: Hist.hxx LockingPointer.hxx HistLinkdef.h
-	rootcint -f $@ -c $(CXXFLAGS) -p $^
+	rootcint -f $@ -c $(CXXFLAGS) -p $^ ; echo ""
 
 
 
@@ -81,8 +104,8 @@ GUICXXFLAGS=-fPIC
 
 gui: librbgui.so
 
-librbgui.so: libHist.so HistDict.cxx $(GUISOURCES)
-	g++ -L$(PWD)/lib -lHist -shared -o $(PWD)/lib/$@ $(GUICXXFLAGS) -I/opt/local/include/root $(GUI)/HistDict.cxx $(GUISOURCES) $(GUIROOTFLAGS) -I$(PWD)/src
+librbgui.so: libRBHist.so HistDict.cxx $(GUISOURCES)
+	g++ -L$(PWD)/lib -lRBHist -shared -o $(PWD)/lib/$@ $(GUICXXFLAGS) -I/opt/local/include/root $(GUI)/HistDict.cxx $(GUISOURCES) $(GUIROOTFLAGS) -I$(PWD)/src
 
 HistDict.cxx: $(GUIHEADERS) rbgui/Linkdef.h
 	rootcint -f rbgui/$@ -c -Isrc $(GUICXXFLAGS) -p $^
