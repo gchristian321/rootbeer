@@ -70,7 +70,7 @@ namespace
 
 
   //! Attaches to an online data source, in the format expected by TThread.
-#ifdef _MIDAS_ONLINE_
+#ifdef HAVE_MIDAS
  struct MidasOnline {
   string host;
   string expt;
@@ -78,7 +78,7 @@ namespace
 #endif
 
   void* AttachOnline(void* arg) {
-#ifdef _MIDAS_ONLINE_
+#ifdef HAVE_MIDAS
 
  MidasOnline* midasArgs = reinterpret_cast<MidasOnline*>(arg);
  string hostname = midasArgs->host, exptname = midasArgs->expt;
@@ -247,16 +247,35 @@ namespace
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // void rb::AttachOnline                                 //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-void rb::AttachOnline() {
-#ifdef _MIDAS_ONLINE_
+void rb::AttachOnline(const char* host, const char* expt, const vector<string>* others) {
+#ifdef _MIDAS_
+
+#ifdef HAVE_MIDAS // Attach to online midas files
+  if(others) Warning("AttachOnline", "Argument: const vector<string>* others unused");
   MidasOnline* arg = new MidasOnline();
-  arg->host = "ladd06.triumf.ca";
-  arg->expt = "dragon";
+  arg->host = host;
+  arg->expt = expt;
   ::attachOnlineThread.Run(reinterpret_cast<void*>(arg));
 #else
-  rb::Unattach();
-  ::attachOnlineThread.Run();
+  Info("AttachOnline",
+       "MIDAS was not found on your system; cannot attach to online MIDAS data.\n"
+       "Instructions for installing MIDAS can be found online at:\n"
+       "      http://daq-plone.triumf.ca/SM/docs/local/installmidas.html\n\n"
+       "Please note that you will need to have the MIDASSYS environment variable\n"
+       "defined in order to attach to online data with rootbeer.\n");
 #endif
+
+#elif defined _NSCL_
+  Info("AttachOnline",
+       "Online attachment to NSCL data is not yet implemented.");
+#else
+  Info("AttachOnline",
+       "Attaching to online buffers other than MIDAS and NSCL is not yet part of\n"
+       "stock ROOTBEER. You'll have to define it yourself. Once you've done this,\n"
+       "pleae contact the developers (Greg Christian, gchristian@triumf.ca) about\n"
+       "adding it to the source code.\n");
+#endif
+
 }
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
