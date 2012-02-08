@@ -11,7 +11,9 @@ ROOTGLIBS = $(shell root-config --glibs) -lXMLParser -lThread -lTreePlayer
 RPATH    += -Wl,-rpath,$(ROOTSYS)/lib -Wl,-rpath,$(PWD)/lib
 DYLIB=-shared -fPIC
 INCFLAGS=-I$(SRC) -I$(CINT) -I$(USER) $(USER_INCLUDES)
-CXXFLAGS=$(INCFLAGS) -L$(PWD)/lib $(STOCK_BUFFERS) -DBUFFER_TYPE=$(USER_BUFFER_TYPE)
+DEBUG=
+#-ggdb -O0
+CXXFLAGS=$(INCFLAGS) -L$(PWD)/lib $(STOCK_BUFFERS) -DBUFFER_TYPE=$(USER_BUFFER_TYPE) $(DEBUG)
 
 
 ifdef ROOTSYS

@@ -71,6 +71,8 @@ namespace
     }
 
     //! Listens for online buffers and calls unpacking routines.
+    //! \bug Assertion on line 1494 of odb.c failed while attached online.
+    //! Assertion has to do with checking the number of thread locks.
     int attach_online(const string& hostname, const string& exptname) {
       TMidasOnline* onlineMidas = TMidasOnline::instance();
       int err = onlineMidas->connect(hostname.c_str(), exptname.c_str(), "rootbeer");
