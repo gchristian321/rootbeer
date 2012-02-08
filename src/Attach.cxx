@@ -4,12 +4,11 @@
 #include <fstream>
 #include <vector>
 #include <string>
-#include "TError.h"
-#include "TSystem.h"
-#include "TTree.h"
-#include "TThread.h"
-#include "TRandom3.h"
-
+#include <TError.h>
+#include <TSystem.h>
+#include <TTree.h>
+#include <TThread.h>
+#include <TRandom3.h>
 #include "Data.hxx"
 #include "Rootbeer.hxx"
 #ifdef HAVE_MIDAS
@@ -18,49 +17,16 @@
 using namespace std;
 
 
-void FakeEvent(Short_t* buf, Int_t dataRate = 0) {
-  static Bool_t grInit(0);
-  if(!grInit) {
-    gRandom = new TRandom3(0);
-    grInit = 1;
-  }
-
-  Double_t sleepTime = dataRate ? (1./dataRate)*1e3 : 0;
-
-  Int_t nWords = 0;
-  Short_t *p = buf, a, b, c;
-
-  gSystem->Sleep(sleepTime);
-
-  Double_t rabc = gRandom->Uniform(0,1);
-
-  a = Short_t(gRandom->Gaus(20, 10));
-  b = Short_t(gRandom->Gaus(30, 5));
-  c = Short_t(gRandom->Gaus(50, 20));
-
-  if(a > 0)             { *(p+1) = 1; *(p+2) = a; nWords += 2; }
-  if(rabc< .9 && b > 0) { *(p+3) = 2; *(p+4) = b; nWords += 2; }
-  if(rabc< .4 && c > 0) { *(p+5) = 3; *(p+6) = c; nWords += 2; }
-  *p = nWords + 1;
-}
-
-
-void FakeBuffer(iostream& ifs,  Int_t dataRate = 0) {
-
-  Int_t posn = 1, nEvts = 0;
-  Short_t buf[4096];
-
-  while(posn< 4080) {
-    FakeEvent(&buf[posn], dataRate); nEvts++; posn += buf[posn];
-  }
-  buf[0] = nEvts;
-  ifs.write((Char_t*)&buf[0], posn * sizeof(Short_t) / sizeof(Char_t));
-}
 
 
 //! Anonomyous namespace enclosing local (file-scope) functions and variables.
 namespace
 {
+
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// Local constants                                       //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+
   //! Tells whether we're attached to an online source or not.
   Bool_t kAttachedOnline = kFALSE;
 
@@ -71,76 +37,95 @@ namespace
   Bool_t kAttachedList   = kFALSE;
 
 
-  //! Attaches to an online data source, in the format expected by TThread.
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// Online MIDAS Routines                                 //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 #ifdef HAVE_MIDAS
- struct MidasOnline {
-  string host;
-  string expt;
-};
-#endif
+  //! Encloses internal functions used to attach to online MIDAS data.
+  namespace midas
+  {
+    //! Wrapper for online arguments, because we need to cast from void*
+    struct OnlineArgs {
+      string host;
+      string expt;
+    };
 
+    //! Called when a new run starts
+    void run_start(int transition, int run_number, int trans_time) {
+      cout << "Beginning MIDAS run number " << run_number << ".\n";
+    }
+
+    //! Called when a run stops
+    void run_stop(int transition, int run_number, int trans_time) {
+      cout << "Ending MIDAS run number " << run_number << ".\n";
+    }
+
+    //! Called when we pause a run
+    void run_pause(int transition, int run_number, int trans_time) {
+      cout << "Pausing run number " << run_number << ".\n";
+    }
+
+    //! Called when we resume a run
+    void run_resume(int transition, int run_number, int trans_time) {
+      cout << "Resuming run number " << run_number << ".\n";
+    }
+
+    //! Listens for online buffers and calls unpacking routines.
+    int attach_online(const string& hostname, const string& exptname) {
+      TMidasOnline* onlineMidas = TMidasOnline::instance();
+      int err = onlineMidas->connect(hostname.c_str(), exptname.c_str(), "rootbeer");
+      if (err) {
+	Error("AttachOnline", "Cannot connect to MIDAS, error %d", err);
+	return -1;
+      }
+      onlineMidas->setTransitionHandlers(midas::run_start, midas::run_stop, midas::run_pause, midas::run_resume);
+      onlineMidas->registerTransitions();
+      int req = onlineMidas->eventRequest("SYSTEM",-1,-1,(1<<1));
+
+      stringstream ifs;
+      BUFFER_TYPE buf;
+      while(kAttachedOnline) {
+	char pevent[100*1024];
+	int size = onlineMidas->receiveEvent(req, pevent, sizeof(pevent), true);
+	if (size > 0) { // Got a valid event, unpack it.
+	  ifs.str("");
+	  buf.Clear();
+	  ifs.read((char*)pevent, size);
+	  rb::unpack::ReadBuffer(ifs, buf);
+	  rb::unpack::UnpackBuffer(buf);
+	}
+	else if (size == 0) { // Waiting for an event
+	  if (!onlineMidas->poll(1000)) break; // Polling failed, exit (error thrown in TMidasOnline)
+	  else continue;
+	}
+	else { // (size < 0)
+	  Error("AttachOnline", "onlineMidas->receiveEvent return val < 0.\n");
+	  break;
+	}
+      }
+
+      onlineMidas->disconnect();
+      return 0;
+    }
+  }
+#endif // #ifdef HAVE_MIDAS
+
+
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// TThread functions for attaching to data               //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+
+  //! Attaches to an online data source, in the format expected by TThread.
   void* AttachOnline(void* arg) {
 #ifdef HAVE_MIDAS
-
- MidasOnline* midasArgs = reinterpret_cast<MidasOnline*>(arg);
- string hostname = midasArgs->host, exptname = midasArgs->expt;
- delete midasArgs;
-
- TMidasOnline *midas = TMidasOnline::instance();
-
- int err = midas->connect(hostname.c_str(), exptname.c_str(), "rootbeer");
- if (err != 0)
-   {
-     fprintf(stderr,"Cannot connect to MIDAS, error %d\n", err);
-     return 0;
-   }
-
- // gOdb = midas;
-
- // midas->setTransitionHandlers(startRun,endRun,NULL,NULL);
- // midas->registerTransitions();
-
- /* reqister event requests */
-
- // midas->setEventHandler(eventHandler);
- midas->eventRequest("SYSTEM",-1,-1,(1<<1));
-
- /* fill present run parameters */
-
- // gRunNumber = gOdb->odbReadInt("/runinfo/Run number");
-
- // if ((gOdb->odbReadInt("/runinfo/State") == 3))
- //   startRun(0,gRunNumber,0);
-
- // printf("Startup: run %d, is running: %d, is pedestals run: %d\n",gRunNumber,gIsRunning,gIsPedestalsRun);
-
- // MyPeriodic tm(100,MidasPollHandler);
- //MyPeriodic th(1000,SISperiodic);
- //MyPeriodic tn(1000,StepThroughSISBuffer);
- //MyPeriodic to(1000,Scalerperiodic);
-
- /*---- start main loop ----*/
-
- // loop_online();
- // app->Run(kTRUE);
-
- /* disconnect from experiment */
- //  midas->disconnect();
-
- return arg;
-
+    midas::OnlineArgs* midasArgs = reinterpret_cast<midas::OnlineArgs*>(arg);
+    string hostname = midasArgs->host, exptname = midasArgs->expt;
+    delete midasArgs;
+    kAttachedOnline = kTRUE;
+    int mAttach = midas::attach_online(hostname, exptname);
+    return (!mAttach) ? arg : 0; 
 #else
     kAttachedOnline = kTRUE;
-
-    /// For now just generate fake data buffers.
-    stringstream ifs;
-    BUFFER_TYPE buf;
-    while(kAttachedOnline) {
-      ifs.str("");
-      FakeBuffer(ifs);
-      if(rb::unpack::ReadBuffer(ifs, buf))
-	rb::unpack::UnpackBuffer(buf);
-    }
     return arg;
 #endif
   }
@@ -148,7 +133,7 @@ namespace
   //! Attaches to an offline data source (file), in the format expected by TThread.
   //! \note 'arg' was casted from a \c new string before passing it here.
   //! We neeed to free the memory allocated to it with <tt>delete</tt>.
- void* AttachFile(void* arg) {
+  void* AttachFile(void* arg) {
 
     kAttachedFile = kTRUE;
     string* sarg = static_cast<std::string*>(arg);
@@ -232,6 +217,11 @@ namespace
     return arg;
   }
 
+
+  //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+  // Local TThread definitions                             //
+  //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+
   //! Thread for attaching to online data.
   TThread attachOnlineThread("attachOnline", ::AttachOnline);
 
@@ -243,8 +233,9 @@ namespace
 }
 
 
-
-
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// Public interface (Rootbeer.hxx) implementations       //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // void rb::AttachOnline                                 //
@@ -253,8 +244,8 @@ void rb::AttachOnline(const char* host, const char* expt, const vector<string>* 
 #ifdef _MIDAS_
 
 #ifdef HAVE_MIDAS // Attach to online midas files
-  if(others) Warning("AttachOnline", "Argument: const vector<string>* others unused");
-  MidasOnline* arg = new MidasOnline();
+  if(others) Warning("AttachOnline", "Argument: const vector<string>* others unused.");
+  midas::OnlineArgs* arg = new midas::OnlineArgs(); // deleted in ::AttachOnline
   arg->host = host;
   arg->expt = expt;
   ::attachOnlineThread.Run(reinterpret_cast<void*>(arg));
@@ -289,8 +280,7 @@ void rb::AttachFile(const char* filename, Bool_t stop_at_end) {
   stringstream arg;
   arg << stop << gSystem->ExpandPathName(filename);
   string* sarg = new string(arg.str()); // delted in ::AttachFile
-  void * varg = (void*)(sarg);
-  ::attachOfflineThread.Run(varg);
+  ::attachOfflineThread.Run(reinterpret_cast<void*>(sarg));
 }
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//

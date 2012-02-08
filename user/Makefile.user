@@ -6,7 +6,11 @@
 ### Note that the present directory (where this makefile segment is located)
 ### has already been defined as USER
 
+<<<<<<< HEAD
 DRAGON_SRC=$(HOME)/soft/develop/dragon/analyzer/src
+=======
+DRAGON_SRC=$(HOME)/gc/dragon/analyzer/src
+>>>>>>> cb47c9010ce624285663fd9d704b137db730c8b3
 
 
 ############################
