@@ -71,8 +71,6 @@ namespace
     }
 
     //! Listens for online buffers and calls unpacking routines.
-    //! \bug Assertion on line 1494 of odb.c failed while attached online.
-    //! Assertion has to do with checking the number of thread locks.
     int attach_online(const string& hostname, const string& exptname) {
       TMidasOnline* onlineMidas = TMidasOnline::instance();
       int err = onlineMidas->connect(hostname.c_str(), exptname.c_str(), "rootbeer");
@@ -117,8 +115,10 @@ namespace
 // TThread functions for attaching to data               //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 
-  //! Attaches to an online data source, in the format expected by TThread.
-  void* AttachOnline(void* arg) {
+  //! \brief Attaches to an online data source, in the format expected by TThread.
+  /// \details \bug (Midas online) assertion on line 1494 of odb.c failed while attached online.
+  /// Assertion has to do with checking the number of thread locks.
+   void* AttachOnline(void* arg) {
 #ifdef HAVE_MIDAS
     midas::OnlineArgs* midasArgs = reinterpret_cast<midas::OnlineArgs*>(arg);
     string hostname = midasArgs->host, exptname = midasArgs->expt;
@@ -132,9 +132,9 @@ namespace
 #endif
   }
 
-  //! Attaches to an offline data source (file), in the format expected by TThread.
-  //! \note 'arg' was casted from a \c new string before passing it here.
-  //! We neeed to free the memory allocated to it with <tt>delete</tt>.
+  //! \brief Attaches to an offline data source (file), in the format expected by TThread.
+  /// \details \note 'arg' was casted from a \c new string before passing it here.
+  /// We neeed to free the memory allocated to it with <tt>delete</tt>.
   void* AttachFile(void* arg) {
 
     kAttachedFile = kTRUE;
