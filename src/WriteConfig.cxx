@@ -102,13 +102,14 @@ void write_cut(TObject* obj, ostream& ofs)
   const char* vary  = cut->GetVarY();
   const Width_t www = cut->GetLineWidth();
   const Color_t ccc = cut->GetLineColor();
+  Int_t np = cut->GetN();
 
   Double_t xx, yy;
   stringstream sX, sY;
   sX << "     Double_t px[] = { " ;
   sY << "     Double_t py[] = { " ;
   for(Int_t i=0; i< np; ++i) {
-    cutg->GetPoint(i, xx, yy);
+    cut->GetPoint(i, xx, yy);
     if(i < np-1) {
       sX << xx << ", ";
       sY << yy << ", ";

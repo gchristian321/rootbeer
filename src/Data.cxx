@@ -86,7 +86,73 @@ public:
 };
 
 
-    
+
+class MBasicData
+{
+protected:
+  volatile void* fAddress;
+  MBasicData(volatile void* addr) :
+    fAddress(addr) { }
+public:
+  virtual Double_t GetValue() = 0;
+  virtual void SetValue(Double_t newval) = 0;
+  virtual ~MBasicData() { }
+  static MBasicData* New(volatile void* addr, const char* basic_type_name);
+  static MBasicData* New(volatile void* addr, const std::string& basic_type_name) {
+    return MBasicData::New(addr, basic_type_name.c_str());
+  }
+};
+
+template <class T>
+class BasicData : public MBasicData
+{
+public:
+  BasicData(volatile void* addr) :
+    MBasicData(addr) { }
+  Double_t GetValue() {
+    LockingPointer<T> pAddress(reinterpret_cast<volatile T*> (fAddress), rb::Hist::GetMutex());
+    return *pAddress;
+  }
+  virtual void SetValue(Double_t newval) {
+    LockingPointer<T> pAddress(reinterpret_cast<volatile T*> (fAddress), rb::Hist::GetMutex());
+    *pAddress = T(newval);
+  }
+  virtual ~BasicData() { }
+};
+
+#define CHECK_TYPE(type)		    \
+  else if (!strcmp(basic_type_name, #type)) \
+    return new BasicData<type> (addr)
+MBasicData* MBasicData::New(volatile void* addr, const char* basic_type_name) {
+  if(0);
+  CHECK_TYPE(Double_t);
+  CHECK_TYPE(Float_t);
+  CHECK_TYPE(Long64_t);
+  CHECK_TYPE(Long_t);
+  CHECK_TYPE(Int_t);
+  CHECK_TYPE(Short_t);
+  CHECK_TYPE(Char_t);
+  CHECK_TYPE(Bool_t);
+  CHECK_TYPE(ULong64_t);
+  CHECK_TYPE(ULong_t);
+  CHECK_TYPE(UInt_t);
+  CHECK_TYPE(UShort_t);
+  CHECK_TYPE(double);
+  CHECK_TYPE(float);
+  CHECK_TYPE(long long);
+  CHECK_TYPE(long);
+  CHECK_TYPE(int);
+  CHECK_TYPE(short);
+  CHECK_TYPE(char);
+  CHECK_TYPE(bool);
+  CHECK_TYPE(unsigned long long);
+  CHECK_TYPE(unsigned long);
+  CHECK_TYPE(unsigned int);
+  CHECK_TYPE(unsigned);
+  CHECK_TYPE(unsigned short);
+  else return 0;
+}
+#undef CHECK_TYPE
   
 
 
@@ -104,7 +170,7 @@ rb::Data::Data(const char* name, const char* class_name, volatile void* data, Bo
       fData = data;
       fgMap()[kName] = this;
 
-
+#ifdef OLD
 #define FMAP_INSERT(KEY)						\
       fgSetFunctionMap().insert(std::make_pair(#KEY , &SetDataValue<KEY>)); \
       fgGetFunctionMap().insert(std::make_pair(#KEY , &GetDataValue<KEY>));
@@ -137,6 +203,7 @@ rb::Data::Data(const char* name, const char* class_name, volatile void* data, Bo
 	FMAP_INSERT(unsigned short);
       }
 #undef FMAP_INSERT
+#endif
 }
 
 
@@ -144,6 +211,15 @@ rb::Data::Data(const char* name, const char* class_name, volatile void* data, Bo
 // rb::Data::Getvalue                                    //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 Double_t rb::Data::GetValue(const char* name) {
+  BasicDataMap_t::iterator it = fgBasicDataMap().find(name);
+  if(it == fgBasicDataMap().end()) {
+    Error("GetValue", "%s not found.", name);
+    return -1.;
+  }
+  MBasicData* b = it->second;
+  return (Double_t)b->GetValue();
+
+#ifdef OLD
   ObjectMap_t::iterator it = fgObjectMap().find(name);
   if(it == fgObjectMap().end()) {
     Error("GetValue", "%s not found.", name);
@@ -157,6 +233,7 @@ Double_t rb::Data::GetValue(const char* name) {
     return -1.;
   }
   return Double_t(itGet->second(name));
+#endif
 }
 
 
@@ -164,6 +241,15 @@ Double_t rb::Data::GetValue(const char* name) {
 // static rb::Data::SetValue                             //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 void rb::Data::SetValue(const char* name, Double_t newvalue) {
+  BasicDataMap_t::iterator it = fgBasicDataMap().find(name);
+  if(it == fgBasicDataMap().end()) {
+    Error("SetData", "Data object: %s not found.", name);
+    return;
+  }
+  MBasicData* b = it->second;
+  b->SetValue(newvalue);
+
+#ifdef OLD
   ObjectMap_t::iterator itObject = fgObjectMap().find(name);
   if(itObject == fgObjectMap().end()) {
     Error("SetData", "Data object: %s not found.", name);
@@ -180,6 +266,7 @@ void rb::Data::SetValue(const char* name, Double_t newvalue) {
 
   void_cast castFunction = itCast->second;
   castFunction(objectAddress, newvalue);
+#endif
 }
 
 
@@ -232,10 +319,17 @@ void rb::Data::MapClasses() {
 // static rb::Data::SavePrimitive                        //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 void rb::Data::SavePrimitive(ostream& strm) {
+  BasicDataMap_t::iterator it;
+  for(it = fgBasicDataMap().begin(); it != fgBasicDataMap().end(); ++it) {
+    strm << "  rb::Data::SetValue(\"" << it->first << "\", " << GetValue(it->first.c_str()) << ");\n";
+  }
+
+#ifdef OLD
   ObjectMap_t::iterator it;
   for(it = fgObjectMap().begin(); it != fgObjectMap().end(); ++it) {
     strm << "  rb::Data::SetValue(\"" << it->first << "\", " << GetValue(it->first.c_str()) << ");\n";
   }
+#endif
 }
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
@@ -246,15 +340,26 @@ Bool_t rb::Data::MapData(const char* name, TStreamerElement* element, volatile v
   string typeName = element->GetTypeName();
   remove_duplicate_spaces(typeName); // in case someone did 'unsigned    short' or whatever
 
+#ifdef OLD
   SetMap_t::iterator it = fgSetFunctionMap().find(typeName);
   if(it == fgSetFunctionMap().end()) return kFALSE;
+#endif
 
   volatile void* address = base_address;
   void_pointer_add(address, element->GetOffset());
+  ////////////////
+  MBasicData* basicData = MBasicData::New(address, typeName);
+  if(!basicData) return kFALSE;
+  ////////////////
   Int_t arrLen = element->GetArrayLength();
 
   if(!arrLen) {
+#ifdef OLD
     fgObjectMap().insert(std::make_pair(name, std::make_pair(address, typeName)));
+#endif
+  ////////////////
+    fgBasicDataMap().insert(std::make_pair(name, basicData));
+  ////////////////
   }
   else {
     if(element->GetArrayDim() > 4) {
@@ -266,7 +371,12 @@ Bool_t rb::Data::MapData(const char* name, TStreamerElement* element, volatile v
       ArrayConverter arrayConvert(element);
       for(Int_t i=0; i< arrLen; ++i) {
 	void_pointer_add(address, size*(i>0));
+#ifdef OLD
 	fgObjectMap().insert(std::make_pair(arrayConvert.GetFullName(name, i), std::make_pair(address, typeName)));
+#endif
+  ////////////////
+	fgBasicDataMap().insert(std::make_pair(arrayConvert.GetFullName(name, i), MBasicData::New(address, typeName)));
+  ////////////////
       }
     }
   }
@@ -301,9 +411,17 @@ void rb::Data::MapClass(const char* name, const char* classname, volatile void* 
 // static rb::Data::PrintAll                             //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 void rb::Data::PrintAll() {
+  BasicDataMap_t::iterator it = fgBasicDataMap().begin();
+  while(it != fgBasicDataMap().end()) {
+    string name = (*it++).first;
+    cout << name << " = " << GetValue(name.c_str()) << endl;
+  }
+
+#ifdef OLD
   ObjectMap_t::iterator it = fgObjectMap().begin();
   while(it != fgObjectMap().end()) {
     string name = (*it++).first;
     cout << name << " = " << GetValue(name.c_str()) << endl;
   }
+#endif
 }
