@@ -142,6 +142,7 @@ namespace rb
 {
   class Rint; // forward declaration
 
+#if 0
   //! Encloses functions relevant to reading and unpacking buffers.
   //! \details Functions are implemented in Skeleton.cxx
   namespace unpack
@@ -164,7 +165,7 @@ namespace rb
     //! \param[in] buf The data buffer that we want to unpack into our user classes.
     extern void UnpackBuffer(BUFFER_TYPE& buf);
   }
-
+#endif
 
   //! Class wrapping pointers to user data objects.
 
@@ -395,7 +396,20 @@ namespace rb
     friend class rb::Rint;
 
     /// Accesses GetDataPointer() and fMutex
-    friend void rb::unpack::UnpackBuffer(BUFFER_TYPE&);
+    //    friend void rb::unpack::UnpackBuffer(BUFFER_TYPE&);
+    // friend class Midas; //BufferSource;
+    // friend class BufferSource;
+
+    /*   CAN"T ACCESS POINTERS WITHOUT FRIENDSHIP!!!!!!!! <<<<<<<<<
+#define GET_LOCKING_POINTER(SYMBOL, NAME, CLASS)                        \
+  LockingPointer<CLASS> SYMBOL (NAME##_Data->GetDataPointer<CLASS>(), NAME##_Data->fMutex);
+
+    template <class T>
+    LockingPointer<T>& GetLockingPointer<T> () {
+      LockingPointer<T> out = 
+      return GetDataPointer<T
+    */
+
   };
 }
 

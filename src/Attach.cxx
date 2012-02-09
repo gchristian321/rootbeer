@@ -11,85 +11,7 @@
 #include <TRandom3.h>
 #include "Data.hxx"
 #include "Rootbeer.hxx"
-#include "midas/TMidasFile.h"
-#ifdef HAVE_MIDAS
-#include "midas/TMidasOnline.h"
-#endif
 using namespace std;
-
-
-
-Bool_t Midas::OpenFile(const char* file_name, char** other, int nother) {
-  return fFile.Open(file_name);
-}
-
-Bool_t Midas::ReadBufferOffline() {
-  fBuffer.Clear();
-  return fFile.Read(&fBuffer);
-}
-
-Bool_t Midas::ConnectOnline(const char* host, const char* experiment, char** unused, int unused2) {
-  TMidasOnline* onlineMidas = TMidasOnline::instance();
-  Int_t err = onlineMidas->connect(host, experiment, "rootbeer");
-  if (err) return kFALSE; // Message from TOnlineMidas::connect
-
-  onlineMidas->setTransitionHandlers(RunStart, RunStop, RunPause, RunResume);
-  onlineMidas->registerTransitions();
-  fRequestId = onlineMidas->eventRequest("SYSTEM", -1, -1, (1<<1));
-  return kTRUE;
-}
-
-Bool_t Midas::ReadBufferOnline() {
-  Bool_t ret = kTRUE;
-  TMidasOnline* onlineMidas = TMidasOnline::instance();
-  char pEvent[100*1024];
- request_start:
-  Int_t size = onlineMidas->receiveEvent(fRequestId, pEvent, sizeof(pEvent), kTRUE);
-  if(size > 0) { // Got data, copy into midas event  
-    //! \todo: byte ordering??, correct pointer location??
-    memcpy(fBuffer.GetEventHeader(), pEvent, sizeof(EventHeader_t));
-    fBuffer.SetData(size, pEvent+sizeof(EventHeader_t));
-    ret = kTRUE;
-  }    
-  else if (size < 0) { // Error reading event
-    Error("ReadBufferOnline",  "onlineMidas->receiveEvent return val < 0.");
-    ret = kFALSE;
-  }
-  else /* size == 0 */ { // Waiting for an event
-    if (IsAttached(ONLINE_) && onlineMidas->poll(1000))
-      goto request_start;
-    else
-      ret =kFALSE;
-  }
-  return ret;
-}
-
-Bool_t Midas::UnpackBuffer() {
-  rb::unpack::UnpackBuffer(fBuffer);
-}
-
-Midas::~Midas() {
-  if(fRequestId != -1)
-    TMidasOnline::instance()->deleteEventRequest(fRequestId);
-  TMidasOnline::instance()->disconnect();
-}
-
-void Midas::RunStart(int transition, int run_number, int trans_time) {
-  cout << "Beginning MIDAS run number " << run_number << ".\n";
-}
-
-void Midas::RunStop(int transition, int run_number, int trans_time) {
-  cout << "Ending MIDAS run number " << run_number << ".\n";
-}
-
-void Midas::RunPause(int transition, int run_number, int trans_time) {
-  cout << "Pausing run number " << run_number << ".\n";
-}
-
-void Midas::RunResume(int transition, int run_number, int trans_time) {
-  cout << "Resuming run number " << run_number << ".\n";
-}
-
 
 
 //! Anonomyous namespace enclosing local (file-scope) functions and variables.
@@ -101,7 +23,6 @@ namespace
 
   //! Attaches to an online data source, in the format expected by TThread.
   void* AttachOnline(void* arg) {
-#ifdef HAVE_MIDAS
     BufferSource* pOnline = reinterpret_cast<BufferSource*> (arg);
     BufferSource::SetAttached(ONLINE_);
 
@@ -122,9 +43,6 @@ namespace
     }
     delete pOnline;
     return 0;
-#else
-    return arg;
-#endif
   }
 
   //! Attaches to an offline data source (file), in the format expected by TThread.
@@ -222,8 +140,8 @@ namespace
 void rb::AttachOnline(const char* host, const char* other, char** others, int nothers) {
   rb::Unattach();
 
-#ifdef _MIDAS_
-#ifdef HAVE_MIDAS // Attach to online midas files
+#ifdef MIDAS_BUFFERS
+#ifdef MIDAS_ONLINE // Attach to online midas files
   if(others || nothers) Warning("AttachOnline", "Arguments \'others\' and \'n_others\' are unused");
   BufferSource* online = new USER_BUFFER_SOURCE(); // delete in ::AttachOnline
   online->OnlineArgs().Set(host, other, others, nothers);
