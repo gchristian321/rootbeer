@@ -1,12 +1,11 @@
-/*! \file WriteConfig.cxx
- *  \brief Implements methods related to saving configuration files.
- *  Put in a separate file because they're verbose and we want to avoid cluttering
- *  Rootbeer.cxx
- */
+//! \file WriteConfig.cxx
+//! \brief Implements methods related to saving configuration files.
+//!  \details Put in a separate file because they're verbose and we want to avoid cluttering
+//!  Rootbeer.cxx
 #include <iostream>
 #include <fstream>
-#include "TTimeStamp.h"
-#include "TCutG.h"
+#include <TTimeStamp.h>
+#include <TCutG.h>
 #include "Rootbeer.hxx"
 #include "Data.hxx"
 using namespace std;
@@ -104,17 +103,28 @@ void write_cut(TObject* obj, ostream& ofs)
   const Width_t www = cut->GetLineWidth();
   const Color_t ccc = cut->GetLineColor();
 
-  int np = cut->GetN();
-  ofs << "     vector<double> vx(" << np << "), vy(" << np << ");\n";
-  for(int i(0); i<np; ++i) {
-    double xx, yy;
-    cut->GetPoint(i, xx, yy);
-    ofs << "     vx[" << i << "] = " << xx << ";\tvy[" << i << "] = " << yy << ";\n";
+  Double_t xx, yy;
+  stringstream sX, sY;
+  sX << "     Double_t px[] = { " ;
+  sY << "     Double_t py[] = { " ;
+  for(Int_t i=0; i< np; ++i) {
+    cutg->GetPoint(i, xx, yy);
+    if(i < np-1) {
+      sX << xx << ", ";
+      sY << yy << ", ";
+    } else {
+      sX << xx << " };\n";
+      sY << yy << " };\n";
+    }
   }
-
-  ofs << "     TCutG* " << nme << " = rb::CutG::New(\"" << nme << "\", \"" << ttl << "\", \""
-      << varx << "\", \"" << vary << "\", " << "vx, vy, kWhite, " << ccc << ", " << www << ", kFALSE);\n";
+  ofs << sX.str() << sY.str();
+  ofs << "     TCutG* " << nme << " = new TCutG(\"" << nme << "\", " << np << ", px, py);\n";
+  ofs << nme << "->SetVarX(\"" << varx << "\");\n";
+  ofs << nme << "->SetVarY(\"" << vary << "\");\n";
+  ofs << nme << "->SetLineWidth(" << www <<");\n";
+  ofs << nme << "->SetLineColor(" << ccc <<");\n";
 }
+
 
 /// Ask user to overwrite a file or not.
 Bool_t overwrite(const char* fname) {
@@ -206,38 +216,6 @@ Int_t rb::WriteVariables(const char* fname, Bool_t prompt) {
 }
 
 
-TCutG* rb::CutG::New(const char* name, const char* title, const char* varx, const char* vary,
-		     const std::vector<Double_t>& xpoints, const std::vector<Double_t>& ypoints,
-		     Color_t fillColor, Color_t lineColor, Int_t lineWidth, Bool_t overwrite) {
-
-  string setName(name);
-  TObject* oldObject = gROOT->GetListOfSpecials()->FindObject(name);
-  if(oldObject) {
-    if(overwrite) {
-      TCutG* old = dynamic_cast<TCutG*>(oldObject);
-      if(old) delete old;
-    }
-    else {
-      Int_t n = 1;
-      while(1) {
-	std::stringstream sstr;
-	sstr << name << "_" << n++;
-	setName = sstr.str();
-	if(!dynamic_cast<TCutG*>(gROOT->GetListOfSpecials()->FindObject(setName.c_str()))) break;
-      }
-    }
-  }
-
-  TCutG* ret = new TCutG(setName.c_str(), xpoints.size(), &xpoints[0], &ypoints[0]);
-  ret->SetTitle(title);
-  ret->SetVarX(varx);
-  ret->SetVarY(vary);
-  ret->SetFillColor(fillColor);
-  ret->SetLineColor(lineColor);
-  ret->SetLineWidth(lineWidth);
-  return ret;
-}
-
 void rb::ReadConfig(const char* filename, Option_t* option) {
   ifstream ifs(filename);
   if(ifs.fail()) {
@@ -261,7 +239,7 @@ void rb::ReadConfig(const char* filename, Option_t* option) {
     while(1) {
       getline(ifs, line);
       if(!ifs.good()) break;
-      int pos = line.find("rb::CutG::New"); 
+      int pos = line.find("TCutG*");
       if(pos < line.size()) {
 	line = line.substr(pos);
 	line = line.substr(1+line.find("("));

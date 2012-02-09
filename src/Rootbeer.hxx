@@ -109,16 +109,6 @@ namespace rb
 
   }
 
-  /// Wraps a custom constructor-like function for TCutG.
-  namespace CutG {
-
-    /// \brief Custom constructor-like function for TCutG.
-    //! \details Allows construction of a TCutG using std::vectors instead of plain arrays.
-    extern TCutG* New(const char* name, const char* title, const char* varx, const char* vary,
-		      const std::vector<Double_t>& xpoints, const std::vector<Double_t>& ypoints,
-		      Color_t fillColor = kWhite, Color_t LineColor = kBlack,
-		      Int_t lineWidth = 2, Bool_t overwrite = kFALSE);
-  }
     
   /// \brief Class that runs the interactive ROOT application.
   //! \details We can essentially use the normal <tt>TRint</tt>, except
