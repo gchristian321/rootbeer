@@ -21,7 +21,7 @@ namespace rb
   /// \brief Attach to an online data sorce.
   //! \details
   //! \todo Implement for NSCL data.
-  extern void AttachOnline(const char* host, const char* expt = "", const std::vector<std::string>* others = NULL);
+  extern void AttachOnline(const char* host, const char* other_arg = "", char** others = 0, int n_others = 0);
 
   /// \brief Attach to an offline data source.
   //! \param filename Path of the file to which you want to attach.

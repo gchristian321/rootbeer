@@ -16,6 +16,126 @@
 #include <TError.h>
 #include "Hist.hxx"
 #include "midas/rbMidasEvent.h"
+#include "midas/TMidasFile.h"
+
+
+static const Int_t N_SOURCES = 3;
+enum DataSources { ONLINE_, FILE_, LIST_ };
+class BufferSource
+{
+private:
+  //! Arguments for AttachFile()
+  struct FileArguments {
+    std::string fileName;
+    Bool_t stopEnd;
+    void Set(const char* fname, Bool_t stop) {
+      fileName = fname;
+      stopEnd = stop;
+    }
+  } fFileArgs;
+
+  //! Arguments for AttachOnline()
+  struct OnlineArguments {
+    std::string source;
+    std::string other;
+    char** others;
+    int nothers;
+    void Set(const char* source_, const char* other_,
+	     char** others_, int nothers_) {
+      source = source_;
+      other = other_;
+      others = others_;
+      nothers = nothers_;
+    }
+  } fOnlineArgs;
+
+  //! Tells whether the source is attached to a data source.
+  static Bool_t* Attached_() {
+    static Bool_t firstTime = kTRUE;
+    static Bool_t* isAttached = new Bool_t[N_SOURCES];
+    if (firstTime) {
+      firstTime = kFALSE;
+      for(Int_t i=0; i< N_SOURCES; ++i)
+	isAttached[i] = kFALSE;
+    }
+    return isAttached;
+  }
+
+public:
+  //! Constructor
+  BufferSource() {
+    fFileArgs.Set("", kTRUE);
+    fOnlineArgs.Set("", "", 0, 0);
+  }
+
+  //! Destructor
+  virtual ~BufferSource() {};
+
+  //! Tells whether or not it's attached to a data source.
+  //! \details Use the DataSources enum to denote the types.
+  static Bool_t IsAttached(Int_t source) { return Attached_()[source]; }
+
+  //! Sets appropriate Attached_ flag to true.
+  static void SetAttached(Int_t source) { Attached_()[source] = kTRUE; }
+
+  //! Sets appropriate Attached_ flag to false.
+  static void SetNotAttached(Int_t source) { Attached_()[source] = kFALSE; }
+
+  //! Return reference to file arguments
+  FileArguments& FileArgs() { return fFileArgs; }
+
+  //! Return reference to online arguments
+  OnlineArguments& OnlineArgs() { return fOnlineArgs; }
+
+  //! Open a data file
+  //! \param [in] file_name Name (path) of the file to open.
+  //! \param [in] other_args Any other arguments that might be needed.
+  //! \param [in] n_others Number of other (tertiary) arguments.
+  //! \returns true if file successfully opened, false otherwise.
+  virtual Bool_t OpenFile(const char* file_name, char** other = 0, int nother = 0) = 0;
+
+  //! Connect to an online data source.
+  //! \param [in] host Name of the host from which the data are received.
+  //! \param [in] other_arg Secondary argument specifying where the data come from (e.g. experiment for MIDAS).
+  //! \param [in] other_args Any other arguments that might be needed.
+  //! \param [in] n_others Number of other (tertiary) arguments.
+  //! \returns true if connection is successfully made, false otherwise.
+  virtual Bool_t ConnectOnline(const char* host, const char* other_arg = "", char** other_args = 0, int n_others = 0) = 0;
+
+  //! Read an abstract buffer from an offline data source.
+  //! \returns true if buffer is successfully read, false otherwise.
+  virtual Bool_t ReadBufferOffline() = 0;
+
+  //! Read an abstract buffer from an online data source.
+  //! \returns true if buffer is successfully read, false otherwise.
+  virtual Bool_t ReadBufferOnline() = 0;
+
+  //! Unpack an abstract buffer into rb::Data classes.
+  //! \returns Error code
+  virtual Bool_t UnpackBuffer() = 0;
+};
+
+class Midas : public BufferSource
+{
+protected:
+  Int_t fRequestId; //< Return code for online event requests.
+  TMidasFile fFile; //< Offline MIDAS file.
+  TMidasEvent fBuffer; //< Midas event buffer.
+public:
+  Midas() : fRequestId(-1) {};
+  virtual ~Midas();
+  virtual Bool_t OpenFile(const char* file_name, char** other = 0, int nother = 0);
+  virtual Bool_t ConnectOnline(const char* host, const char* other_arg = "", char** other_args = 0, int n_others = 0);
+  virtual Bool_t ReadBufferOffline();
+  virtual Bool_t ReadBufferOnline();
+  virtual Bool_t UnpackBuffer();
+protected:
+  static void RunStop(int transition, int run_number, int trans_time);
+  static void RunStart(int transition, int run_number, int trans_time);
+  static void RunPause(int transition, int run_number, int trans_time);
+  static void RunResume(int transition, int run_number, int trans_time);
+};
+typedef Midas USER_BUFFER_SOURCE;
 
 
 namespace rb
@@ -33,7 +153,8 @@ namespace rb
     //! can be utilized by commenting the appropriate \c #define derectives as noted in the sources.
     //! \param[in] ifs stream from which the data is read.
     //! \param[out] buf buffer (std::vector<DATA_TYPE>) into which we copy the data.
-    extern bool ReadBuffer(std::istream& ifs, BUFFER_TYPE& buf);
+    //! \returns true if successful read of buffer, false otherwise
+    //    extern bool ReadBuffer(int size, void* source, BUFFER_TYPE& destination);
 
     //! Defines how raw data buffers are unpacked.
     //! \details The code of this function is filled in by users in Skeleton.cxx
