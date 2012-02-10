@@ -24,8 +24,7 @@
 class MBasicData;
 namespace rb
 {
-  class Rint; // forward declaration
-  //! Class wrapping pointers to user data objects.
+  //! Base class wrapping pointers to user data objects.
 
   //! The basic idea behind this class is to create a generic framework
   //! into which users can plug their own classes with minimal effort (or re-coding if their
@@ -60,7 +59,7 @@ namespace rb
   //! The user can read the values of basic data types as follows:
   //! \code
   //! rb::Data::GetValue("top.a");  // returns the value of UserClass::a for the instance 'top'.
-  //! rb::Data::GetValue("top.sub.b");  // returns the value of UserClass::sub::b for the instance 'top'.
+  //! rbS::Data::GetValue("top.sub.b");  // returns the value of UserClass::sub::b for the instance 'top'.
   //! \endcode
   //! 
   class Data
@@ -73,7 +72,8 @@ namespace rb
     const std::string kName;
 
     /// Void pointer to the user data class.
-    volatile void* fData;
+    //! \note Volatile so that we have to use a LockingPointer to get access, ensuring thread safety.
+    //////////    volatile void* fData;
 
     /// Mutex to protect access to fData.
     TMutex fMutex;
@@ -88,44 +88,11 @@ namespace rb
     static BasicDataMap_t& fgBasicDataMap() { static BasicDataMap_t* m = new BasicDataMap_t(); return *m; }
 
   public:
-    /// Constructor, set kName
+    /// Sets kName.
     Data(const char* name) : kName(name) {};
 
-    /// Destructor, empty
+    /// Nothing to do.
     virtual ~Data() {}
-
-    /// Create a new rb::Data instance.
-    //! Since this is a template function, we can create a \c new instance of the wrapped data
-    //! directly inside instead of passing one to it. If the class T has a non-default constructor,
-    //! it can be passed to rb::Data via the 'args' argument of this function, for example:
-    //! \code
-    //! rb::Data* newData = rb::Data::New("newData", "myClass", kTRUE, "ArgumentToMyClass, anotherArgumentToMyClass");
-    //! \endcode
-    //! The above will create a \c new instance of <tt>myClass</tt>, constructed as
-    //! \code
-    //! new myClass(ArgumentToMyClass, anotherArgumentToMyClass);
-    //! \endcode
-    //! (this is done using <tt>ROOT->ProcessLineFast()</tt>). Leaving the \c args arguemnt as default creates
-    //! a \c new instance of the class, calling the default constructor.
-    //! \code
-    //! new myClass(); // note: done without using gROOT->ProcessLineFast();
-    //! \endcode
-    //! The \c makeVisible argument decides whether or not the user can access the wrapped class in CINT, using
-    //! rb::Data::GetValue() and rb::Data::SetValue() functions. Typically, \c makeVisible should be \c false
-    //! for parameters (data updated event-by-event) and \c true for variables (values used in calculating parameters.
-
-    /// Return a scoped and locked pointer to the data.
-    //! Returns a std::auto_ptr to a LockedPointer wrapping the data.
-    //! This allows thread safe access to the data in the scope that it's
-    //! needed while also ensuring that dynamic resources are freed properly.
-    //! \note Since the return is a "pointer like object" pointing to a "pointer like object",
-    //! the samantics for use are a little strange, e.g.
-    //! \code
-    //! std::auto_ptr<LockingPointer<myClass> > p = someData.GetLockedData();
-    //! *p->SomeMemberFunction();
-    //! \endcode
-    //! As a result, there is the option to use the GET_LOCKING_POINTER macro,
-    //! which copies \c *p into a LockingPointer reference.
 
     /// Write the fData data members and their current values to a stream.
     static void SavePrimitive(std::ostream& ofs);
@@ -143,96 +110,89 @@ namespace rb
     /// Recurse through a class and add each of it's basic data objects to fgBasicDataMap
     virtual void MapClass(const char* name, const char* classname, volatile void* address);
 
-    /// Adds a specific element to fgObjectMap.
-    //! For a specific element of a class, check if it's a basic data type. If so, add it to
-    //! fgBasicDataMap. If not, return \c false.
+    /// \brief Adds a specific element to fgObjectMap.
+    //! \details For a specific element of a class, check if it's a basic data type. If so, add it to
+    //! fgBasicDataMap. If not, return false.
     //! \note Called by MapClass()
     virtual Bool_t MapData(const char* name, TStreamerElement* element, volatile void* base_address);
   };
+
 
   template <class T>
   class TData : public Data
   {
   private:
+    volatile T* fData;
+
+  private:
     /// String specifying the class type.
     std::string fClassName;
 
-    /// Return a volatile pointer to the wrapped data.
+    /// Allows access to the user data class.
+    //! \returns a volatile pointer to the wrapped data.
+    //! \note Since the return is volatile, we still are required to use a LockingPointer to
+    //! access the data.
+    //! \todo Maybe get rid of this??
     volatile T* GetDataPointer() {
-      return reinterpret_cast<volatile T*> (fData);
+      //////////      return reinterpret_cast<volatile T*> (fData);
+      return fData;
     }
 
-    void Init(Bool_t makeVisible, const char* args = "") {
-      TClass* cl = TClass::GetClass(typeid(T));
-      if(!cl) {
-       Error("TData::Init",
-	    "CINT Does not know about a class you asked it to create "
-	    "(typeid.name(): %s, constructor arguments: %s). "
-	    "Check UserLinkdef.h to make sure a dictionary is properly generated.",
-	    typeid(T).name(), args);
-       return;
-      }
-      fClassName = cl->GetName();
-
-      T* data = 0;
-      if(!strcmp(args, ""))  data = new T();
-      else {
-	std::stringstream cmd;
-	cmd << "new " << fClassName << "(" << args  << ");";
-	data = reinterpret_cast<T*> (gROOT->ProcessLineFast(cmd.str().c_str()));
-      }
-      if (!data) {
-	Error("TData::Init",
-	      "Couldn't create a new instance of the template class "
-	      "(typeid.name(): %s, constructor arguments: %s).",
-	      typeid(T).name(), args);
-	return;
-      }
-
-      fData = data;
-      fgMap().insert(std::make_pair<std::string, Data*>(kName, this));
-
-      if (makeVisible) {
-	if(PrintHeader()) {
-	  std::cout << "\nMapping the address of user data objects:\n"
-		    << "      Name\t\t\tClass Name\n"
-		    << "      ----\t\t\t----------\n";
-	  PrintHeader() = kFALSE;
-	}
-	std::cout << "      " << kName << "\t\t\t" << fClassName << "\n";
-
-	MapClass(kName.c_str(), fClassName.c_str(), fData);
-
-	LockingPointer<char> pData (reinterpret_cast<volatile char*>(fData), fMutex);
-	void* v = reinterpret_cast<void*>(pData.Get());
-	std::string brName = kName; brName += ".";
-	rb::Hist::AddBranch(kName.c_str(), fClassName.c_str(), &v);
-      }
-    }
+    /// Does most of the work for the constructor.
+    void Init(Bool_t makeVisible, const char* args = "");
 
   public:
-    TData(const char* name, Bool_t makeVisible = kFALSE, const char* args = "") :
-      Data(name) {  Init(makeVisible, args);  }
+    /// \brief Creates a new instance of rb::TData<T> and allocates memory to the user data class.
+    //!
+    //! \param [in] name Name of the user data class. This is how you will refer to it in the
+    //! interactive CINT session, i.e. <tt>t->Draw("name.whatever");</tt>.
+    //!
+    //! \param [in] makeVisible Specifies whether or not you want to make the class visible
+    //! in CINT.  If this is selected true, then you will be able to change or read the values of
+    //! basic data types in your user data class using SetData() and GetData().  If selected false,
+    //! you won't have direct access to the data (in CINT) and will only be able to view it in histograms.
+    //! Generally, one wants to specify true for variables and false for parameters.
+    //!
+    //! \param [in] args Optional arguments to pass to the user data class's constructor. They should
+    //! be in the literal format that would appear if writing the constructor directly in code. For
+    //! example, consider that class
+    //! \code
+    //! struct MyClass {
+    //!   MyClass(const char* str, int val);
+    //!   // ... //
+    //! };
+    //! \endcode
+    //! To call the constructor with str == "mine" and val == 37:
+    //! \code
+    //! rb::Data<MyClass>("myClassName", kFALSE /*(not visible)*/, "\"mine\", 37");
+    //! \endcode
+    //! If this argument is left as the default (empty string), the user class is constructed
+    //! without and arguments, i.e. <tt>new MyClass()</tt>.
+    TData(const char* name, Bool_t makeVisible = kFALSE, const char* args = "");
 
-    virtual ~TData() {
-      LockingPointer<T> pData(reinterpret_cast<volatile T*> (fData), fMutex);
-      delete pData.Get();
-      fData = 0;
+    //! \details Frees memory allocated to the user class and removes \c this from fgMap.
+    virtual ~TData();
 
-      Map_t::iterator it = fgMap().find(kName);
-      if(it != fgMap().end()) {
-	fgMap().erase(it);
-      }
-    }
-
-    std::auto_ptr<LockingPointer<T> > GetLockedData() {
-	std::auto_ptr<LockingPointer<T> >
-	  out (new LockingPointer<T> (GetDataPointer(), fMutex));
-      return out;
-    }
+    /// \brief Return a scoped and locked pointer to the user class.
+    //! \details Returns a std::auto_ptr to a LockedPointer wrapping the user class.
+    //! This allows thread safe access to the data in the scope that it's
+    //! needed while also ensuring that dynamic resources are freed properly.
+    //! \note Since the return is a "pointer like object" pointing to a "pointer like object",
+    //! the samantics for use are a little strange, e.g.
+    //! \code
+    //! std::auto_ptr<LockingPointer<myClass> > p = someData.GetLockedData();
+    //! *p->SomeMemberFunction();
+    //! \endcode
+    //! As a result, there is the option to use the GET_LOCKING_POINTER macro,
+    //! which copies \c *p into a LockingPointer reference.
+    inline std::auto_ptr<LockingPointer<T> > GetLockedData();
   };
-
 } // namespace rb
+
+// Implementation of TData functions
+#define IMPLEMENT_DATA_TEMPLATES
+#include "Data.cxx"
+#undef  IMPLEMENT_DATA_TEMPLATES
 
 
 

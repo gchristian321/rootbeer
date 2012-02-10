@@ -1,5 +1,6 @@
 //! \file Data.cxx
 //! \brief Implements Data.hxx
+#ifndef IMPLEMENT_DATA_TEMPLATES
 #include <algorithm>
 #include <TROOT.h>
 #include <TClass.h>
@@ -315,3 +316,85 @@ void rb::Data::PrintAll() {
       printf("%-*s\t %s [%s]\n", maxName, names.at(i).c_str(), values.at(i).c_str(), classes.at(i).c_str());
   } printf("\n");
 }
+
+
+
+
+#else // Template class member function implementations
+
+template <class T>
+void rb::TData<T>::Init(Bool_t makeVisible, const char* args) {
+  TClass* cl = TClass::GetClass(typeid(T));
+  if(!cl) {
+    Error("TData::Init",
+	  "CINT Does not know about a class you asked it to create "
+	  "(typeid.name(): %s, constructor arguments: %s). "
+	  "Check UserLinkdef.h to make sure a dictionary is properly generated.",
+	  typeid(T).name(), args);
+    return;
+  }
+  fClassName = cl->GetName();
+
+  T* data = 0;
+  if(!strcmp(args, ""))  data = new T();
+  else {
+    std::stringstream cmd;
+    cmd << "new " << fClassName << "(" << args  << ");";
+    data = reinterpret_cast<T*> (gROOT->ProcessLineFast(cmd.str().c_str()));
+  }
+  if (!data) {
+    Error("TData::Init",
+	  "Couldn't create a new instance of the template class "
+	  "(typeid.name(): %s, constructor arguments: %s).",
+	  typeid(T).name(), args);
+    return;
+  }
+
+  fData = data;
+  fgMap().insert(std::make_pair<std::string, Data*>(kName, this));
+
+  if (makeVisible) {
+    if(PrintHeader()) {
+      std::cout << "\nMapping the address of user data objects:\n"
+		<< "      Name\t\t\tClass Name\n"
+		<< "      ----\t\t\t----------\n";
+      PrintHeader() = kFALSE;
+    }
+    std::cout << "      " << kName << "\t\t\t" << fClassName << "\n";
+
+    MapClass(kName.c_str(), fClassName.c_str(), (void*)fData);
+
+    //////////    LockingPointer<char> pData (reinterpret_cast<volatile char*>(fData), fMutex);
+    LockingPointer<T> pData (fData, fMutex);
+    void* v = reinterpret_cast<void*>(pData.Get());
+    std::string brName = kName; brName += ".";
+    rb::Hist::AddBranch(kName.c_str(), fClassName.c_str(), &v);
+  }
+}
+
+template <class T>
+rb::TData<T>::TData(const char* name, Bool_t makeVisible, const char* args) :
+  Data(name) {
+  Init(makeVisible, args);
+}
+
+template <class T>
+rb::TData<T>::~TData() {
+  //////////  LockingPointer<T> pData(reinterpret_cast<volatile T*> (fData), fMutex);
+  LockingPointer<T> pData(fData, fMutex);
+  delete pData.Get();
+  fData = 0;
+
+  Map_t::iterator it = fgMap().find(kName);
+  if(it != fgMap().end()) {
+    fgMap().erase(it);
+  }
+}
+
+template <class T>
+std::auto_ptr<LockingPointer<T> > rb::TData<T>::GetLockedData() {  
+  std::auto_ptr<LockingPointer<T> > out (new LockingPointer<T> (GetDataPointer(), fMutex));
+  return out;
+}
+
+#endif
