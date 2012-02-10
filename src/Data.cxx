@@ -86,11 +86,19 @@ public:
 };
 
 
-
+// Helper class for performing set and get operations on the
+// basic data elements (e.g. ints, doubles, etc.) that are wrapped
+// by the class pointed to by the fData pointer of rb::Data
+// The basic idea is that rb::Data has a static map keyed by the complete
+// string names of all basic data types (e.g. "top.sub.end"), and indexing
+// a pointer to the appropriate derived (template) class of MBasicData.
+// For example, if "top.sub.end" is a double, then the key "top.sub.end"
+// would index a pointer to a BasicData<double>, which is derived from
+// MBasic data.
 class MBasicData
 {
 protected:
-  volatile void* fAddress;
+  volatile void* fAddress; // copy of the rb::Data fData pointer
   MBasicData(volatile void* addr) :
     fAddress(addr) { }
 public:
@@ -165,10 +173,16 @@ MBasicData* MBasicData::New(volatile void* addr, const char* basic_type_name) {
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // Constructor                                           //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-rb::Data::Data(const char* name, const char* class_name, volatile void* data, Bool_t createPointer):
-  kName(name), kClassName(class_name), kMapClass(createPointer) {
+#ifdef OLD
+rb::Data::Data(const char* name, const char* class_name, volatile void* data, Bool_t makeVisible) :
+#else
+rb::Data::Data(const char* name, const char* class_name, Bool_t makeVisible) :
+#endif
+  kName(name), kClassName(class_name), kMapClass(makeVisible) {
+#ifdef OLD
       fData = data;
       fgMap().insert(make_pair<string, Data*>(kName, this));
+#endif
 }
 
 

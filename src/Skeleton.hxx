@@ -19,8 +19,8 @@
 //!   ADD_CLASS_INSTANCE(my_class_instance, MyClass, false);
 //! \endcode
 //!  See the documentation on rb::Data for more information.
-#define ADD_CLASS_INSTANCE(NAME, CLASS_NAME, CINT_ACCESS)            \
-  rb::Data* NAME##_Data = rb::Data::New<CLASS_NAME>(#NAME, #CLASS_NAME, CINT_ACCESS);
+#define ADD_CLASS_INSTANCE(NAME, CLASS_NAME, CINT_ACCESS)	\
+  rb::Data* Name##_Data = new rb::TData<CLASS_NAME>(#NAME, #CLASS_NAME, CINT_ACCESS);
 
 //! \brief Same as ADD_CLASS_INSTANCE, but for non-default constructors
 //! \param ARGS Arguments to the user class's constructor, specified as a string.
@@ -36,7 +36,7 @@
 //!   ADD_CLASS_INSTANCE_ARGS(my_class_instance, MyClass, true, "12, 31.4, \"my_class_name\"");
 //! \endcode
 #define ADD_CLASS_INSTANCE_ARGS(NAME, CLASS_NAME, CINT_ACCESS, ARGS) \
-  rb::Data* NAME##_Data = rb::Data::New<CLASS_NAME>(#NAME, #CLASS_NAME, CINT_ACCESS, ARGS);
+  rb::Data* NAME##_Data = new rb::TData<CLASS_NAME>(#NAME, #CLASS_NAME, CINT_ACCESS, ARGS);
 
 
 //! \brief Creates an instance of LockingPointer with which you can safely access your data.
@@ -52,6 +52,5 @@
 //! pMine->MemberFunction();
 //! \endcode
 #define GET_LOCKING_POINTER(SYMBOL, NAME, CLASS)			\
-  auto_ptr<LockingPointer<CLASS> > temp = NAME##_Data->GetLockedData<CLASS> (); \
-  LockingPointer<CLASS>& SYMBOL = *temp;
-  //  LockingPointer<CLASS> SYMBOL (NAME##_Data->GetDataPointer<CLASS>(), NAME##_Data->fMutex);
+  auto_ptr<LockingPointer<CLASS> > temp_12312312312 = ((rb::TData<CLASS>*)NAME##_Data)->GetLockedData(); \
+  LockingPointer<CLASS>& SYMBOL = *temp_12312312312;

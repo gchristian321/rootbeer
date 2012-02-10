@@ -10,6 +10,7 @@
 #include <sstream>
 #include <iostream>
 #include <vector>
+#include <typeinfo>
 #include <map>
 #include <TROOT.h>
 #include <TTree.h>
@@ -20,7 +21,16 @@
 #include "midas/TMidasFile.h"
 
 
-
+namespace
+{
+  template <class T>
+  std::string find_class_name () {
+    TClass* cl = TClass::GetClass(typeid(T));
+    std::string out = cl->GetName();
+    delete cl;
+    return out;
+  }
+}
 
 class MBasicData;
 namespace rb
@@ -109,27 +119,35 @@ namespace rb
     //! fgObjectMap. If not, return \c false.
     static Bool_t MapData(const char* name, TStreamerElement* element, volatile void* base_address);
 
+#ifdef OLD
     /// Returns a T* pointer to the fData object.
     template<typename T>
     volatile T* GetDataPointer() {
       return reinterpret_cast<volatile T*>(fData);
     }
+#endif
 
     /// Constructor.
     //! Sets data fields and fills internal std::maps.
     //! Private, users should call rb::Data::New<T>().
-    Data(const char* name, const char* class_name, volatile void* data, Bool_t createPointer = kFALSE);
+#ifdef OLD
+    Data(const char* name, const char* class_name, volatile void* data, Bool_t makeVisible = kFALSE);
+#else
+    Data(const char* name, const char* class_name, Bool_t makeVisible = kFALSE);
+#endif
 
     /// Free memory allocated to fData.
     //! The template argument determines how the memory is freed, by casting the \c void
     //! fData pointer to the template argument type, then calling <tt>delete</tt>.  Pointers
     //! to the various flavors of this function are stored in \c fgDeleteMap, with the key
     //! being the corresponding class name (as a string).
+#ifdef OLD
     template <class T>
     static void FreeMemory(Data* _this) {
       LockingPointer<T> pData(reinterpret_cast<volatile T*> (_this->fData), _this->fMutex);
       delete pData.Get();
     }
+#endif
 
     /// \c delete all instances of rb::Data.
     static void DeleteAll() {
@@ -142,6 +160,7 @@ namespace rb
     /// Destructor
     //! Remove from fgMap, and call the appropriate destructor for fData.
     virtual ~Data() {
+#ifdef OLD
       DeleteMap_t::iterator itDelete = fgDeleteMap().find(kClassName);
       assert(itDelete != fgDeleteMap().end());
       itDelete->second(this);
@@ -151,6 +170,7 @@ namespace rb
       if(it != fgMap().end()) {
 	fgMap().erase(it);
       }
+#endif
     }
 
     /// Create a new rb::Data instance.
@@ -172,6 +192,7 @@ namespace rb
     //! The \c makeVisible argument decides whether or not the user can access the wrapped class in CINT, using
     //! rb::Data::GetValue() and rb::Data::SetValue() functions. Typically, \c makeVisible should be \c false
     //! for parameters (data updated event-by-event) and \c true for variables (values used in calculating parameters.
+#ifdef OLD
     template <class T>
     static Data* New(const char* name, const char* class_name, Bool_t makeVisible = kFALSE, const char* args = "") {
       fgDeleteMap()[class_name] = &FreeMemory<T>;
@@ -185,6 +206,7 @@ namespace rb
       Data* _this = new Data(name, class_name, data, makeVisible);
       return _this;
     }
+#endif
 
     /// Return a scoped and locked pointer to the data.
     //! Returns a std::auto_ptr to a LockedPointer wrapping the data.
@@ -198,12 +220,14 @@ namespace rb
     //! \endcode
     //! As a result, there is the option to use the GET_LOCKING_POINTER macro,
     //! which copies \c *p into a LockingPointer reference.
+#ifdef OLD
     template<typename T>
     std::auto_ptr<LockingPointer<T> > GetLockedData() {
       LockingPointer<T>* lockedData = new LockingPointer<T> (GetDataPointer<T>(), fMutex);
       std::auto_ptr<LockingPointer<T> > out (lockedData);
       return out;
     }
+#endif
 
     /// Write the fData data members and their current values to a stream.
     static void SavePrimitive(std::ostream& ofs);
@@ -226,26 +250,52 @@ namespace rb
     /// Accesses DeleteAll()
     friend class rb::Rint;
 
-    /// Accesses GetDataPointer() and fMutex
-    //    friend void rb::unpack::UnpackBuffer(BUFFER_TYPE&);
-    // friend class Midas; //BufferSource;
-    // friend class BufferSource;
+    Data() {};
+  };
 
-    /*   CAN"T ACCESS POINTERS WITHOUT FRIENDSHIP!!!!!!!! <<<<<<<<<
-#define GET_LOCKING_POINTER(SYMBOL, NAME, CLASS)                        \
-  LockingPointer<CLASS> SYMBOL (NAME##_Data->GetDataPointer<CLASS>(), NAME##_Data->fMutex);
 
-    template <class T>
-    LockingPointer<T>& GetLockingPointer<T> () {
-      LockingPointer<T> out = 
-      return GetDataPointer<T
-    */
+  template <class T>
+  class TData : public Data
+  {
+  private:
+    volatile T* GetDataPointer() {
+      return reinterpret_cast<volatile T*> (fData);
+    }
 
+  public:
+    TData(const char* name, const char* class_name, Bool_t makeVisible = kFALSE, const char* args = "") :
+      Data(name, find_class_name<T>().c_str(), makeVisible) {
+      T* data = 0;
+      if(!strcmp(args, ""))  data = new T();
+      else {
+	std::stringstream cmd;
+	cmd << "new " << class_name << "(" << args  << ");";
+	data = reinterpret_cast<T*> (gROOT->ProcessLineFast(cmd.str().c_str()));
+      }
+      //      if (!data) ; // EXCEPTION??
+      fData = data;
+      fgMap().insert(std::make_pair<std::string, Data*>(kName, this));
+    }
+
+    virtual ~TData() {
+      LockingPointer<T> pData(reinterpret_cast<volatile T*> (fData), fMutex);
+      delete pData.Get();
+      fData = 0;
+
+      Map_t::iterator it = fgMap().find(kName);
+      if(it != fgMap().end()) {
+	fgMap().erase(it);
+      }
+    }
+
+    std::auto_ptr<LockingPointer<T> > GetLockedData() {
+	std::auto_ptr<LockingPointer<T> >
+	  out (new LockingPointer<T> (GetDataPointer(), fMutex));
+      return out;
+    }
   };
 
 }
-
-
 
 
 

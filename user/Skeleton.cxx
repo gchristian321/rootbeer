@@ -141,7 +141,11 @@ void Midas::RunResume(int transition, int run_number, int trans_time) {
 Bool_t Midas::UnpackBuffer() {
 #ifdef MIDAS_BUFFERS
   // (DRAGON test setup)
-  GET_LOCKING_POINTER(pBgo, bgo, Bgo);
+  //  GET_LOCKING_POINTER(pBgo, bgo, Bgo);
+
+  //  auto_ptr<LockingPointer<Bgo> > p = ((rb::TData<Bgo>*)bgo_Data)->GetLockedData();
+  //  LockingPointer<CLASS>& SYMBOL = *temp_12312312312;
+
   Short_t eventId = fBuffer.GetEventId();
   vme::Module::reset_all();
   switch(eventId) {
@@ -163,8 +167,8 @@ Bool_t Midas::UnpackBuffer() {
 
 
 void Midas::AddData() {
-  rb::Data* d = rb::Data::New<ExampleVariables> ("myVars", "ExampleVariables", kTRUE, "32");
-  fUserData.push_back(d);
+  ADD_CLASS_INSTANCE_ARGS(myVars, ExampleVariables, kTRUE, "32");
+  fUserData.push_back(myVars_Data);
 }
 
 
