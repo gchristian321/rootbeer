@@ -1,14 +1,12 @@
-/*! \file Canvas.cxx
- * \brief Implements canvas updating functions.
- * 
- * Also defines a number of internal functions to be called by the
- * user ones.
- */
+//! \file Canvas.cxx
+//! \brief Implements canvas updating functions.
+//! \details Also defines a number of internal functions to be called by the
+//! user ones.
 #include <TCanvas.h>
 #include <TThread.h>
-#include "Timer.hxx"
 #include "Rootbeer.hxx"
-#include "LockingPointer.hxx"
+#include "utils/Timer.hxx"
+#include "utils/LockingPointer.hxx"
 using namespace std;
 
 namespace rb

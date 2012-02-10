@@ -16,7 +16,7 @@
 #include <TError.h>
 #include <TObjArray.h>
 #include <TMutex.h>
-#include "LockingPointer.hxx"
+#include "utils/LockingPointer.hxx"
 
 
 namespace rb

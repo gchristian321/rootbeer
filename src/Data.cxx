@@ -362,9 +362,8 @@ void rb::TData<T>::Init(Bool_t makeVisible, const char* args) {
     }
     std::cout << "      " << kName << "\t\t\t" << fClassName << "\n";
 
-    MapClass(kName.c_str(), fClassName.c_str(), (void*)fData);
+    MapClass(kName.c_str(), fClassName.c_str(), reinterpret_cast<volatile void*>(fData));
 
-    //////////    LockingPointer<char> pData (reinterpret_cast<volatile char*>(fData), fMutex);
     LockingPointer<T> pData (fData, fMutex);
     void* v = reinterpret_cast<void*>(pData.Get());
     std::string brName = kName; brName += ".";
@@ -380,7 +379,6 @@ rb::TData<T>::TData(const char* name, Bool_t makeVisible, const char* args) :
 
 template <class T>
 rb::TData<T>::~TData() {
-  //////////  LockingPointer<T> pData(reinterpret_cast<volatile T*> (fData), fMutex);
   LockingPointer<T> pData(fData, fMutex);
   delete pData.Get();
   fData = 0;
@@ -393,7 +391,7 @@ rb::TData<T>::~TData() {
 
 template <class T>
 std::auto_ptr<LockingPointer<T> > rb::TData<T>::GetLockedData() {  
-  std::auto_ptr<LockingPointer<T> > out (new LockingPointer<T> (GetDataPointer(), fMutex));
+  std::auto_ptr<LockingPointer<T> > out (new LockingPointer<T> (fData, fMutex));
   return out;
 }
 

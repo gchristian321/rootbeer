@@ -71,13 +71,6 @@ namespace rb
     /// Name of the class instance.
     const std::string kName;
 
-    /// Void pointer to the user data class.
-    //! \note Volatile so that we have to use a LockingPointer to get access, ensuring thread safety.
-    //////////    volatile void* fData;
-
-    /// Mutex to protect access to fData.
-    TMutex fMutex;
-
     /// For keeping track of whether or not MapData() needs to print the header lines.
     static Bool_t& PrintHeader() { static Bool_t* b = new Bool_t(kTRUE); return *b; }
 
@@ -94,7 +87,7 @@ namespace rb
     /// Nothing to do.
     virtual ~Data() {}
 
-    /// Write the fData data members and their current values to a stream.
+    /// Write the user class basic data members and their current values to a stream.
     static void SavePrimitive(std::ostream& ofs);
 
     /// Return the value of a user class data member.
@@ -122,27 +115,21 @@ namespace rb
   class TData : public Data
   {
   private:
-    volatile T* fData;
-
-  private:
-    /// String specifying the class type.
+    /// String specifying the type of the user data class.
     std::string fClassName;
 
-    /// Allows access to the user data class.
-    //! \returns a volatile pointer to the wrapped data.
-    //! \note Since the return is volatile, we still are required to use a LockingPointer to
-    //! access the data.
-    //! \todo Maybe get rid of this??
-    volatile T* GetDataPointer() {
-      //////////      return reinterpret_cast<volatile T*> (fData);
-      return fData;
-    }
+    /// Pointer to the user data class.
+    //! \note Volatile so that we have to use a LockingPointer to get access, ensuring thread safety.
+    volatile T* fData;
+
+    /// Mutex to protect access to fData.
+    TMutex fMutex;
 
     /// Does most of the work for the constructor.
     void Init(Bool_t makeVisible, const char* args = "");
 
   public:
-    /// \brief Creates a new instance of rb::TData<T> and allocates memory to the user data class.
+    /// \details Allocates memory to the user data class and sets internal variables.
     //!
     //! \param [in] name Name of the user data class. This is how you will refer to it in the
     //! interactive CINT session, i.e. <tt>t->Draw("name.whatever");</tt>.
