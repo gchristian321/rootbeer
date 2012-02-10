@@ -6,11 +6,11 @@
 #define DATA_HXX
 #include <assert.h>
 #include <memory>
+#include <typeinfo>
 #include <string>
 #include <sstream>
 #include <iostream>
 #include <vector>
-#include <typeinfo>
 #include <map>
 #include <TROOT.h>
 #include <TTree.h>
@@ -20,17 +20,6 @@
 #include "midas/rbMidasEvent.h"
 #include "midas/TMidasFile.h"
 
-
-namespace
-{
-  template <class T>
-  std::string find_class_name () {
-    TClass* cl = TClass::GetClass(typeid(T));
-    std::string out = cl->GetName();
-    delete cl;
-    return out;
-  }
-}
 
 class MBasicData;
 namespace rb
@@ -84,11 +73,16 @@ namespace rb
     // Maps
     typedef std::map<std::string, Data*>           Map_t;
     typedef std::map<std::string, MBasicData*>     BasicDataMap_t;
+#ifdef OLD
     typedef std::map<std::string, delete_function> DeleteMap_t;
+#endif
 
-  protected: //private:
+  protected:
+#if OLD
     /// Tells whether we should map the map a user class instance's data members or not.
     Bool_t kMapClass;
+#endif
+    static Bool_t& PrintHeader() { static Bool_t* b = new Bool_t(kTRUE); return *b; }
 
     /// Name of the class instance. Equivalent to the variable defined in Skeleton.hh
     std::string kName;
@@ -105,19 +99,25 @@ namespace rb
     /// Maps \c kName to the base class address.
     static Map_t& fgMap() { static Map_t* m = new Map_t(); return *m; }
 
+#ifdef OLD
     /// Maps the class name to the appropraite delete method.
     static DeleteMap_t& fgDeleteMap() { static DeleteMap_t* m = new DeleteMap_t(); return *m; }
+#endif
 
     /// Maps the full name of a basic data type to an MBasicDataType pointer wrapping it.
     static BasicDataMap_t& fgBasicDataMap() { static BasicDataMap_t* m = new BasicDataMap_t(); return *m; }
 
     /// Recurse through a class and add each of it's basic data objects to fgObjectMap.
+#ifdef OLD
     static void MapClass(const char* name, const char* classname, volatile void* address);
+#else
+    void MapClass(const char* name, const char* classname, volatile void* address);
+#endif
 
     /// Adds a specific element to fgObjectMap.
     //! For a specific element of a class, check if it's a basic data type. If so, add it to
     //! fgObjectMap. If not, return \c false.
-    static Bool_t MapData(const char* name, TStreamerElement* element, volatile void* base_address);
+    Bool_t MapData(const char* name, TStreamerElement* element, volatile void* base_address);
 
 #ifdef OLD
     /// Returns a T* pointer to the fData object.
@@ -133,7 +133,7 @@ namespace rb
 #ifdef OLD
     Data(const char* name, const char* class_name, volatile void* data, Bool_t makeVisible = kFALSE);
 #else
-    Data(const char* name, const char* class_name, Bool_t makeVisible = kFALSE);
+    Data(const char* name, Bool_t makeVisible = kFALSE);
 #endif
 
     /// Free memory allocated to fData.
@@ -232,11 +232,13 @@ namespace rb
     /// Write the fData data members and their current values to a stream.
     static void SavePrimitive(std::ostream& ofs);
 
+#ifdef OLD
     /// Call AddBranch() on everything in rb::Data::fgMap
     static void AddBranches();
 
     /// Call MapClass on all instances that ask for it (i.e. have set kMapClass true).
     static void MapClasses();
+#endif
 
     /// Return the value of a user class data member.
     static Double_t GetValue(const char* name);
@@ -253,7 +255,6 @@ namespace rb
     Data() {};
   };
 
-
   template <class T>
   class TData : public Data
   {
@@ -263,18 +264,38 @@ namespace rb
     }
 
   public:
-    TData(const char* name, const char* class_name, Bool_t makeVisible = kFALSE, const char* args = "") :
-      Data(name, find_class_name<T>().c_str(), makeVisible) {
+    TData(const char* name, Bool_t makeVisible = kFALSE, const char* args = "") :
+      Data(name, makeVisible) {
+      TClass* cl = TClass::GetClass(typeid(T));
+      kClassName = cl->GetName();
+
       T* data = 0;
       if(!strcmp(args, ""))  data = new T();
       else {
 	std::stringstream cmd;
-	cmd << "new " << class_name << "(" << args  << ");";
+	cmd << "new " << kClassName << "(" << args  << ");";
 	data = reinterpret_cast<T*> (gROOT->ProcessLineFast(cmd.str().c_str()));
       }
-      //      if (!data) ; // EXCEPTION??
+      //      if (!data) ; //\ todo EXCEPTION??
       fData = data;
       fgMap().insert(std::make_pair<std::string, Data*>(kName, this));
+
+      if (makeVisible) {
+	if(PrintHeader()) {
+	  std::cout << "\nMapping the address of user data objects:\n"
+		    << "      Name\t\t\tClass Name\n"
+		    << "      ----\t\t\t----------\n";
+	  PrintHeader() = kFALSE;
+	}
+	std::cout << "      " << kName << "\t\t\t" << kClassName << "\n";
+
+	MapClass(kName.c_str(), kClassName.c_str(), fData);
+
+	LockingPointer<char> pData (reinterpret_cast<volatile char*>(fData), fMutex);
+	void* v = reinterpret_cast<void*>(pData.Get());
+	std::string brName = kName; brName += ".";
+	rb::Hist::AddBranch(kName.c_str(), kClassName.c_str(), &v);
+      }
     }
 
     virtual ~TData() {

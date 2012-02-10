@@ -11,10 +11,8 @@
 Int_t main(Int_t argc, Char_t** argv)
 {
   //  rb::Logo();
-  //  rb::Data::AddBranches();
   rb::Rint rbApp("RootBeer", &argc, argv, 0, 0, kTRUE);
   Midas m;
-  rb::Data::MapClasses();
   gROOT->ProcessLine("gStyle->SetOptTitle(kTRUE)");
   rbApp.Run();
   return 0;

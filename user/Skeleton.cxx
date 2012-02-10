@@ -60,7 +60,7 @@ ADD_CLASS_INSTANCE(mvar, var::mona, kTRUE);
 #endif
 
 #ifdef MIDAS_BUFFERS
-ADD_CLASS_INSTANCE(bgo, Bgo, kFALSE);
+//ADD_CLASS_INSTANCE(bgo, Bgo, kFALSE);
 #endif
 
 
@@ -168,7 +168,9 @@ Bool_t Midas::UnpackBuffer() {
 
 void Midas::AddData() {
   ADD_CLASS_INSTANCE_ARGS(myVars, ExampleVariables, kTRUE, "32");
+  ADD_CLASS_INSTANCE(myData, ExampleData, kTRUE);
   fUserData.push_back(myVars_Data);
+  fUserData.push_back(myData_Data);
 }
 
 

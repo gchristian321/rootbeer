@@ -1,5 +1,6 @@
 //! \file Data.cxx
 //! \brief Implements Data.hxx
+#include <algorithm>
 #include <TROOT.h>
 #include <TClass.h>
 #include <TStreamerInfo.h>
@@ -17,7 +18,7 @@ using namespace std;
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // void_pointer_add                                      //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-/// Add an offset to a void* pointer
+// Add an offset to a void* pointer
 void void_pointer_add(volatile void*& initial, Int_t offset) {
   volatile char* temp =  reinterpret_cast<volatile char*>(initial);
   temp += offset;
@@ -27,12 +28,30 @@ void void_pointer_add(volatile void*& initial, Int_t offset) {
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // remove_duplicate_spaces                               //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-/// Remove adjacent whitespace from a \c std::string
+// Remove adjacent whitespace from a \c std::string
 void remove_duplicate_spaces(string& str) {
   for(int i=str.size()-1; i > 0; --i) {
     if(str[i] == ' ' && str[i-1] == ' ')
       str.erase(i,1);
   }
+}
+
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// double2str                                            //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// Convert a double to a std::string
+inline string double2str(Double_t d) {
+  stringstream sstr;
+  sstr << d;
+  return sstr.str();
+}
+
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// string_len_compare                                    //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// Tell is a string is longer than the other
+bool string_len_compare (const string& lhs, const string& rhs) {
+  return rhs.size() > lhs.size();
 }
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
@@ -99,9 +118,8 @@ class MBasicData
 {
 protected:
   volatile void* fAddress; // copy of the rb::Data fData pointer
-  MBasicData(volatile void* addr) :
-    fAddress(addr) { }
 public:
+  const std::string kBasicClassName;
   virtual Double_t GetValue() = 0;
   virtual void SetValue(Double_t newval) = 0;
   virtual ~MBasicData() { }
@@ -109,14 +127,17 @@ public:
   static MBasicData* New(volatile void* addr, const std::string& basic_type_name) {
     return MBasicData::New(addr, basic_type_name.c_str());
   }
+protected:
+  MBasicData(volatile void* addr, const char* basic_class_name) :
+    fAddress(addr), kBasicClassName(basic_class_name) { }
 };
 
 template <class T>
 class BasicData : public MBasicData
 {
 public:
-  BasicData(volatile void* addr) :
-    MBasicData(addr) { }
+  BasicData(volatile void* addr, const char* basic_type) :
+    MBasicData(addr, basic_type) { }
   Double_t GetValue() {
     LockingPointer<T> pAddress(reinterpret_cast<volatile T*> (fAddress), rb::Hist::GetMutex());
     return *pAddress;
@@ -130,7 +151,7 @@ public:
 
 #define CHECK_TYPE(type)		    \
   else if (!strcmp(basic_type_name, #type)) \
-    return new BasicData<type> (addr)
+    return new BasicData<type> (addr, basic_type_name)
 MBasicData* MBasicData::New(volatile void* addr, const char* basic_type_name) {
   if(0);
   CHECK_TYPE(Double_t);
@@ -176,9 +197,9 @@ MBasicData* MBasicData::New(volatile void* addr, const char* basic_type_name) {
 #ifdef OLD
 rb::Data::Data(const char* name, const char* class_name, volatile void* data, Bool_t makeVisible) :
 #else
-rb::Data::Data(const char* name, const char* class_name, Bool_t makeVisible) :
+rb::Data::Data(const char* name,  Bool_t makeVisible) :
 #endif
-  kName(name), kClassName(class_name), kMapClass(makeVisible) {
+kName(name) { // #ifdef OLD , kMapClass(makeVisible) {
 #ifdef OLD
       fData = data;
       fgMap().insert(make_pair<string, Data*>(kName, this));
@@ -214,6 +235,7 @@ void rb::Data::SetValue(const char* name, Double_t newvalue) {
 }
 
 
+#ifdef OLD
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // static branch adding function                         //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
@@ -260,6 +282,7 @@ void rb::Data::MapClasses() {
     cout << "\n\n";
   }
 }
+#endif
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // static rb::Data::SavePrimitive                        //
@@ -310,8 +333,9 @@ Bool_t rb::Data::MapData(const char* name, TStreamerElement* element, volatile v
 }
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-// static rb::Data::MapClass                             //
+// rb::Data::MapClass                                    //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+#ifdef OLD
 void rb::Data::MapClass(const char* name, const char* classname, volatile void* address) {
 
   TClass* cl = TClass::GetClass(classname);
@@ -332,15 +356,52 @@ void rb::Data::MapClass(const char* name, const char* classname, volatile void* 
     }
   }
 }
+#else 
+void rb::Data::MapClass(const char* name, const char* classname, volatile void* address) {
+
+  TClass* cl = TClass::GetClass(classname);
+  if(!cl) return;
+
+  TStreamerInfo* sinfo = static_cast<TStreamerInfo*>(cl->GetStreamerInfo());
+  TObjArray* elems = sinfo->GetElements();
+
+  for( Int_t i=0; i< elems->GetEntries(); ++i) {
+    TStreamerElement* element =
+      reinterpret_cast <TStreamerElement*>(elems->At(i));
+    stringstream ssName;
+    ssName << name << "." << element->GetName();
+    Bool_t basic = MapData(ssName.str().c_str(), element, address);
+    if(!basic) {
+      void_pointer_add(address, element->GetOffset());
+      MapClass(ssName.str().c_str(),  element->GetTypeName(), address);
+    }
+  }
+}
+#endif
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // static rb::Data::PrintAll                             //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 void rb::Data::PrintAll() {
   if(fgBasicDataMap().empty()) return;
+  vector<string> names, values, classes;
+
   BasicDataMap_t::iterator it = fgBasicDataMap().begin();
   while(it != fgBasicDataMap().end()) {
-    string name = (*it++).first;
-    cout << name << " = " << GetValue(name.c_str()) << endl;
+    names.push_back(it->first);
+    values.push_back(double2str(GetValue(it->first.c_str())));
+    classes.push_back(it->second->kBasicClassName);
+    ++it;
   }
+  Int_t maxName  = max_element(names.begin(), names.end(), string_len_compare)->size();
+  maxName = maxName > 4 ? maxName : 4;
+
+  printf("\n%-*s\t%s\n", maxName, "Name", "Value [class]");
+  printf("%-*s\t%s\n", maxName, "----", "-------------");
+  for(Int_t i=0; i< names.size(); ++i) {
+    if(atoi(values.at(i).c_str()) < 0)
+      printf("%-*s\t%s [%s]\n", maxName, names.at(i).c_str(), values.at(i).c_str(), classes.at(i).c_str());
+    else
+      printf("%-*s\t %s [%s]\n", maxName, names.at(i).c_str(), values.at(i).c_str(), classes.at(i).c_str());
+  } printf("\n");
 }
