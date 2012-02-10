@@ -19,8 +19,9 @@
 //!   ADD_CLASS_INSTANCE(my_class_instance, MyClass, false);
 //! \endcode
 //!  See the documentation on rb::Data for more information.
-#define ADD_CLASS_INSTANCE(NAME, CLASS_NAME, CINT_ACCESS)	\
-  rb::Data* NAME##_Data = new rb::TData<CLASS_NAME>(#NAME, CINT_ACCESS);
+#define ADD_CLASS_INSTANCE(NAME, CLASS_NAME, CINT_ACCESS)		\
+  static rb::TData<CLASS_NAME>   NAME##_DataF (#NAME, CINT_ACCESS);	\
+  rb::Data* NAME##_Data = &NAME##_DataF;
 
 //! \brief Same as ADD_CLASS_INSTANCE, but for non-default constructors
 //! \param ARGS Arguments to the user class's constructor, specified as a string.
@@ -35,8 +36,9 @@
 //!
 //!   ADD_CLASS_INSTANCE_ARGS(my_class_instance, MyClass, true, "12, 31.4, \"my_class_name\"");
 //! \endcode
-#define ADD_CLASS_INSTANCE_ARGS(NAME, CLASS_NAME, CINT_ACCESS, ARGS) \
-  rb::Data* NAME##_Data = new rb::TData<CLASS_NAME>(#NAME, CINT_ACCESS, ARGS);
+#define ADD_CLASS_INSTANCE_ARGS(NAME, CLASS_NAME, CINT_ACCESS, ARGS)	\
+  static rb::TData<CLASS_NAME>   NAME##_DataF (#NAME, CINT_ACCESS, ARGS); \
+  rb::Data* NAME##_Data = &NAME##_DataF;
 
 
 //! \brief Creates an instance of LockingPointer with which you can safely access your data.

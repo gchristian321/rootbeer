@@ -65,113 +65,34 @@ namespace rb
   //! 
   class Data
   {
-  public:
-    // Typedefs
-    // Function pointers
-    typedef void (*delete_function)(Data*);
-
-    // Maps
-    typedef std::map<std::string, Data*>           Map_t;
-    typedef std::map<std::string, MBasicData*>     BasicDataMap_t;
-#ifdef OLD
-    typedef std::map<std::string, delete_function> DeleteMap_t;
-#endif
-
   protected:
-#if OLD
-    /// Tells whether we should map the map a user class instance's data members or not.
-    Bool_t kMapClass;
-#endif
-    static Bool_t& PrintHeader() { static Bool_t* b = new Bool_t(kTRUE); return *b; }
+    typedef std::map<std::string, Data*> Map_t;
+    typedef std::map<std::string, MBasicData*> BasicDataMap_t;
 
-    /// Name of the class instance. Equivalent to the variable defined in Skeleton.hh
-    std::string kName;
+    /// Name of the class instance.
+    const std::string kName;
 
-    /// String specifying the class type.
-    std::string kClassName;
-
-    /// <tt>void</tt> pointer to the user data class.
+    /// Void pointer to the user data class.
     volatile void* fData;
 
-    /// Mutex to protect access to the data.
+    /// Mutex to protect access to fData.
     TMutex fMutex;
 
-    /// Maps \c kName to the base class address.
-    static Map_t& fgMap() { static Map_t* m = new Map_t(); return *m; }
+    /// For keeping track of whether or not MapData() needs to print the header lines.
+    static Bool_t& PrintHeader() { static Bool_t* b = new Bool_t(kTRUE); return *b; }
 
-#ifdef OLD
-    /// Maps the class name to the appropraite delete method.
-    static DeleteMap_t& fgDeleteMap() { static DeleteMap_t* m = new DeleteMap_t(); return *m; }
-#endif
+    /// Maps kName to the base class address.
+    static Map_t& fgMap() { static Map_t* m = new Map_t(); return *m; }
 
     /// Maps the full name of a basic data type to an MBasicDataType pointer wrapping it.
     static BasicDataMap_t& fgBasicDataMap() { static BasicDataMap_t* m = new BasicDataMap_t(); return *m; }
 
-    /// Recurse through a class and add each of it's basic data objects to fgObjectMap.
-#ifdef OLD
-    static void MapClass(const char* name, const char* classname, volatile void* address);
-#else
-    void MapClass(const char* name, const char* classname, volatile void* address);
-#endif
-
-    /// Adds a specific element to fgObjectMap.
-    //! For a specific element of a class, check if it's a basic data type. If so, add it to
-    //! fgObjectMap. If not, return \c false.
-    Bool_t MapData(const char* name, TStreamerElement* element, volatile void* base_address);
-
-#ifdef OLD
-    /// Returns a T* pointer to the fData object.
-    template<typename T>
-    volatile T* GetDataPointer() {
-      return reinterpret_cast<volatile T*>(fData);
-    }
-#endif
-
-    /// Constructor.
-    //! Sets data fields and fills internal std::maps.
-    //! Private, users should call rb::Data::New<T>().
-#ifdef OLD
-    Data(const char* name, const char* class_name, volatile void* data, Bool_t makeVisible = kFALSE);
-#else
-    Data(const char* name, Bool_t makeVisible = kFALSE);
-#endif
-
-    /// Free memory allocated to fData.
-    //! The template argument determines how the memory is freed, by casting the \c void
-    //! fData pointer to the template argument type, then calling <tt>delete</tt>.  Pointers
-    //! to the various flavors of this function are stored in \c fgDeleteMap, with the key
-    //! being the corresponding class name (as a string).
-#ifdef OLD
-    template <class T>
-    static void FreeMemory(Data* _this) {
-      LockingPointer<T> pData(reinterpret_cast<volatile T*> (_this->fData), _this->fMutex);
-      delete pData.Get();
-    }
-#endif
-
-    /// \c delete all instances of rb::Data.
-    static void DeleteAll() {
-      while(fgMap().size() != 0) {
-	delete fgMap().begin()->second;
-      }
-    }
-
   public:
-    /// Destructor
-    //! Remove from fgMap, and call the appropriate destructor for fData.
-    virtual ~Data() {
-#ifdef OLD
-      DeleteMap_t::iterator itDelete = fgDeleteMap().find(kClassName);
-      assert(itDelete != fgDeleteMap().end());
-      itDelete->second(this);
-      fData = 0;
+    /// Constructor, set kName
+    Data(const char* name) : kName(name) {};
 
-      Map_t::iterator it = fgMap().find(kName);
-      if(it != fgMap().end()) {
-	fgMap().erase(it);
-      }
-#endif
-    }
+    /// Destructor, empty
+    virtual ~Data() {}
 
     /// Create a new rb::Data instance.
     //! Since this is a template function, we can create a \c new instance of the wrapped data
@@ -192,21 +113,6 @@ namespace rb
     //! The \c makeVisible argument decides whether or not the user can access the wrapped class in CINT, using
     //! rb::Data::GetValue() and rb::Data::SetValue() functions. Typically, \c makeVisible should be \c false
     //! for parameters (data updated event-by-event) and \c true for variables (values used in calculating parameters.
-#ifdef OLD
-    template <class T>
-    static Data* New(const char* name, const char* class_name, Bool_t makeVisible = kFALSE, const char* args = "") {
-      fgDeleteMap()[class_name] = &FreeMemory<T>;
-      T* data = 0;
-      if(!strcmp(args, ""))  data = new T();
-      else {
-	std::stringstream cmd;
-	cmd << "new " << class_name << "(" << args  << ");";
-	data = reinterpret_cast<T*> (gROOT->ProcessLineFast(cmd.str().c_str()));
-      }
-      Data* _this = new Data(name, class_name, data, makeVisible);
-      return _this;
-    }
-#endif
 
     /// Return a scoped and locked pointer to the data.
     //! Returns a std::auto_ptr to a LockedPointer wrapping the data.
@@ -220,25 +126,9 @@ namespace rb
     //! \endcode
     //! As a result, there is the option to use the GET_LOCKING_POINTER macro,
     //! which copies \c *p into a LockingPointer reference.
-#ifdef OLD
-    template<typename T>
-    std::auto_ptr<LockingPointer<T> > GetLockedData() {
-      LockingPointer<T>* lockedData = new LockingPointer<T> (GetDataPointer<T>(), fMutex);
-      std::auto_ptr<LockingPointer<T> > out (lockedData);
-      return out;
-    }
-#endif
 
     /// Write the fData data members and their current values to a stream.
     static void SavePrimitive(std::ostream& ofs);
-
-#ifdef OLD
-    /// Call AddBranch() on everything in rb::Data::fgMap
-    static void AddBranches();
-
-    /// Call MapClass on all instances that ask for it (i.e. have set kMapClass true).
-    static void MapClasses();
-#endif
 
     /// Return the value of a user class data member.
     static Double_t GetValue(const char* name);
@@ -249,34 +139,56 @@ namespace rb
     /// Print the fill name and current value of every data member in every listed class.
     static void PrintAll();
 
-    /// Accesses DeleteAll()
-    friend class rb::Rint;
+  protected:
+    /// Recurse through a class and add each of it's basic data objects to fgBasicDataMap
+    virtual void MapClass(const char* name, const char* classname, volatile void* address);
 
-    Data() {};
+    /// Adds a specific element to fgObjectMap.
+    //! For a specific element of a class, check if it's a basic data type. If so, add it to
+    //! fgBasicDataMap. If not, return \c false.
+    //! \note Called by MapClass()
+    virtual Bool_t MapData(const char* name, TStreamerElement* element, volatile void* base_address);
   };
 
   template <class T>
   class TData : public Data
   {
   private:
+    /// String specifying the class type.
+    std::string fClassName;
+
+    /// Return a volatile pointer to the wrapped data.
     volatile T* GetDataPointer() {
       return reinterpret_cast<volatile T*> (fData);
     }
 
-  public:
-    TData(const char* name, Bool_t makeVisible = kFALSE, const char* args = "") :
-      Data(name, makeVisible) {
+    void Init(Bool_t makeVisible, const char* args = "") {
       TClass* cl = TClass::GetClass(typeid(T));
-      kClassName = cl->GetName();
+      if(!cl) {
+       Error("TData::Init",
+	    "CINT Does not know about a class you asked it to create "
+	    "(typeid.name(): %s, constructor arguments: %s). "
+	    "Check UserLinkdef.h to make sure a dictionary is properly generated.",
+	    typeid(T).name(), args);
+       return;
+      }
+      fClassName = cl->GetName();
 
       T* data = 0;
       if(!strcmp(args, ""))  data = new T();
       else {
 	std::stringstream cmd;
-	cmd << "new " << kClassName << "(" << args  << ");";
+	cmd << "new " << fClassName << "(" << args  << ");";
 	data = reinterpret_cast<T*> (gROOT->ProcessLineFast(cmd.str().c_str()));
       }
-      //      if (!data) ; //\ todo EXCEPTION??
+      if (!data) {
+	Error("TData::Init",
+	      "Couldn't create a new instance of the template class "
+	      "(typeid.name(): %s, constructor arguments: %s).",
+	      typeid(T).name(), args);
+	return;
+      }
+
       fData = data;
       fgMap().insert(std::make_pair<std::string, Data*>(kName, this));
 
@@ -287,16 +199,20 @@ namespace rb
 		    << "      ----\t\t\t----------\n";
 	  PrintHeader() = kFALSE;
 	}
-	std::cout << "      " << kName << "\t\t\t" << kClassName << "\n";
+	std::cout << "      " << kName << "\t\t\t" << fClassName << "\n";
 
-	MapClass(kName.c_str(), kClassName.c_str(), fData);
+	MapClass(kName.c_str(), fClassName.c_str(), fData);
 
 	LockingPointer<char> pData (reinterpret_cast<volatile char*>(fData), fMutex);
 	void* v = reinterpret_cast<void*>(pData.Get());
 	std::string brName = kName; brName += ".";
-	rb::Hist::AddBranch(kName.c_str(), kClassName.c_str(), &v);
+	rb::Hist::AddBranch(kName.c_str(), fClassName.c_str(), &v);
       }
     }
+
+  public:
+    TData(const char* name, Bool_t makeVisible = kFALSE, const char* args = "") :
+      Data(name) {  Init(makeVisible, args);  }
 
     virtual ~TData() {
       LockingPointer<T> pData(reinterpret_cast<volatile T*> (fData), fMutex);
@@ -316,7 +232,7 @@ namespace rb
     }
   };
 
-}
+} // namespace rb
 
 
 

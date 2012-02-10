@@ -192,22 +192,6 @@ MBasicData* MBasicData::New(volatile void* addr, const char* basic_type_name) {
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-// Constructor                                           //
-//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-#ifdef OLD
-rb::Data::Data(const char* name, const char* class_name, volatile void* data, Bool_t makeVisible) :
-#else
-rb::Data::Data(const char* name,  Bool_t makeVisible) :
-#endif
-kName(name) { // #ifdef OLD , kMapClass(makeVisible) {
-#ifdef OLD
-      fData = data;
-      fgMap().insert(make_pair<string, Data*>(kName, this));
-#endif
-}
-
-
-//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // rb::Data::Getvalue                                    //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 Double_t rb::Data::GetValue(const char* name) {
@@ -219,7 +203,6 @@ Double_t rb::Data::GetValue(const char* name) {
   MBasicData* b = it->second;
   return (Double_t)b->GetValue();
 }
-
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // static rb::Data::SetValue                             //
@@ -233,56 +216,6 @@ void rb::Data::SetValue(const char* name, Double_t newvalue) {
   MBasicData* b = it->second;
   b->SetValue(newvalue);
 }
-
-
-#ifdef OLD
-//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-// static branch adding function                         //
-//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-void rb::Data::AddBranches() {
-  if(fgMap().empty()) return;
-  Map_t::iterator it = fgMap().begin();
-  while(it != fgMap().end()) {
-    rb::Data* data = (*it++).second;
-    std::string brName = data->kName; brName += ".";
-    LockingPointer<char> pData (reinterpret_cast<volatile char*>(data->fData), data->fMutex);
-    void* v = reinterpret_cast<void*>(pData.Get());
-    rb::Hist::AddBranch(brName.c_str(), data->kClassName.c_str(), &v);
-  }
-}
-
-//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-// static class mapping function                         //
-//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-void rb::Data::MapClasses() {
-  vector<string> vPrint; /// For message printing
-  vPrint.push_back("\nMapping the address of user data objects:\n");
-  vPrint.push_back("      Name\t\tClass Name\n");
-  vPrint.push_back("      ----\t\t----------\n");
-  Int_t printMinSize = vPrint.size();
-
-  if(fgMap().empty()) return;
-  for(Map_t::iterator it = fgMap().begin(); it != fgMap().end(); ++it) {
-    if(it->second->kMapClass) {
-      string name = it->first;
-      string className = it->second->kClassName;
-
-      stringstream sPrint;
-      sPrint << "      " << name << "\t\t" << className << endl;
-      vPrint.push_back(sPrint.str());
-
-      MapClass(name.c_str(), className.c_str(), it->second->fData);
-    }
-  }
-
-  if(vPrint.size() > printMinSize) {
-    for(UInt_t u=0; u< vPrint.size(); ++u) {
-      cout << vPrint[u];
-    }
-    cout << "\n\n";
-  }
-}
-#endif
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // static rb::Data::SavePrimitive                        //
@@ -335,28 +268,6 @@ Bool_t rb::Data::MapData(const char* name, TStreamerElement* element, volatile v
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // rb::Data::MapClass                                    //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-#ifdef OLD
-void rb::Data::MapClass(const char* name, const char* classname, volatile void* address) {
-
-  TClass* cl = TClass::GetClass(classname);
-  if(!cl) return;
-
-  TStreamerInfo* sinfo = static_cast<TStreamerInfo*>(cl->GetStreamerInfo());
-  TObjArray* elems = sinfo->GetElements();
-
-  for( Int_t i=0; i< elems->GetEntries(); ++i) {
-    TStreamerElement* element =
-      reinterpret_cast <TStreamerElement*>(elems->At(i));
-    stringstream ssName;
-    ssName << name << "." << element->GetName();
-    Bool_t basic = MapData(ssName.str().c_str(), element, address);
-    if(!basic) {
-      void_pointer_add(address, element->GetOffset());
-      MapClass(ssName.str().c_str(), element->GetTypeName(), address);
-    }
-  }
-}
-#else 
 void rb::Data::MapClass(const char* name, const char* classname, volatile void* address) {
 
   TClass* cl = TClass::GetClass(classname);
@@ -377,7 +288,6 @@ void rb::Data::MapClass(const char* name, const char* classname, volatile void* 
     }
   }
 }
-#endif
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // static rb::Data::PrintAll                             //

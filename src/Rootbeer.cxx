@@ -44,7 +44,6 @@ void rb::Rint::Terminate(Int_t status) {
   rb::Unattach();
   gSystem->Sleep(0.5e3);
   rb::Hist::DeleteAll();
-  rb::Data::DeleteAll();
   TRint::Terminate(status);
 }
 
