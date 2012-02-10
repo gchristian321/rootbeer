@@ -1,5 +1,5 @@
 //! \file main.cc
-//!  \brief Implements the \c main program and Doxygen documentation.
+//! \brief Implements the \c main program and Doxygen documentation.
 #include "TRint.h"
 #include "Rootbeer.hxx"
 #include "Hist.hxx"
@@ -11,7 +11,7 @@
 Int_t main(Int_t argc, Char_t** argv)
 {
   //  rb::Logo();
-  rb::Data::AddBranches();
+  //  rb::Data::AddBranches();
   rb::Rint rbApp("RootBeer", &argc, argv, 0, 0, kTRUE);
   Midas m;
   rb::Data::MapClasses();

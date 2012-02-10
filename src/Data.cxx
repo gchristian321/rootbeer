@@ -168,42 +168,7 @@ MBasicData* MBasicData::New(volatile void* addr, const char* basic_type_name) {
 rb::Data::Data(const char* name, const char* class_name, volatile void* data, Bool_t createPointer):
   kName(name), kClassName(class_name), kMapClass(createPointer) {
       fData = data;
-      fgMap()[kName] = this;
-
-#ifdef OLD
-#define FMAP_INSERT(KEY)						\
-      fgSetFunctionMap().insert(std::make_pair(#KEY , &SetDataValue<KEY>)); \
-      fgGetFunctionMap().insert(std::make_pair(#KEY , &GetDataValue<KEY>));
-
-      if(fgSetFunctionMap().empty()) {
-	FMAP_INSERT(Double_t);
-	FMAP_INSERT(Float_t);
-	FMAP_INSERT(Long64_t);
-	FMAP_INSERT(Long_t);
-	FMAP_INSERT(Int_t);
-	FMAP_INSERT(Short_t);
-	FMAP_INSERT(Char_t);
-	FMAP_INSERT(Bool_t);
-	FMAP_INSERT(ULong64_t);
-	FMAP_INSERT(ULong_t);
-	FMAP_INSERT(UInt_t);
-	FMAP_INSERT(UShort_t);
-	FMAP_INSERT(double);
-	FMAP_INSERT(float);
-	FMAP_INSERT(long long);
-	FMAP_INSERT(long);
-	FMAP_INSERT(int);
-	FMAP_INSERT(short);
-	FMAP_INSERT(char);
-	FMAP_INSERT(bool);
-	FMAP_INSERT(unsigned long long);
-	FMAP_INSERT(unsigned long);
-	FMAP_INSERT(unsigned int);
-	FMAP_INSERT(unsigned);
-	FMAP_INSERT(unsigned short);
-      }
-#undef FMAP_INSERT
-#endif
+      fgMap().insert(make_pair<string, Data*>(kName, this));
 }
 
 
@@ -218,22 +183,6 @@ Double_t rb::Data::GetValue(const char* name) {
   }
   MBasicData* b = it->second;
   return (Double_t)b->GetValue();
-
-#ifdef OLD
-  ObjectMap_t::iterator it = fgObjectMap().find(name);
-  if(it == fgObjectMap().end()) {
-    Error("GetValue", "%s not found.", name);
-    return -1.;
-  }
-  string typeName = it->second.second;
-
-  GetMap_t::iterator itGet = fgGetFunctionMap().find(typeName);
-  if(itGet == fgGetFunctionMap().end()) {
-    Error("GetValue", "Invalid type %s", typeName.c_str());
-    return -1.;
-  }
-  return Double_t(itGet->second(name));
-#endif
 }
 
 
@@ -248,25 +197,6 @@ void rb::Data::SetValue(const char* name, Double_t newvalue) {
   }
   MBasicData* b = it->second;
   b->SetValue(newvalue);
-
-#ifdef OLD
-  ObjectMap_t::iterator itObject = fgObjectMap().find(name);
-  if(itObject == fgObjectMap().end()) {
-    Error("SetData", "Data object: %s not found.", name);
-    return;
-  }
-
-  volatile void* objectAddress = itObject->second.first;
-  string type = itObject->second.second;
-  SetMap_t::iterator itCast = fgSetFunctionMap().find(type);
-  if(itCast == fgSetFunctionMap().end()) {
-    Error("SetData", "Invalid type: %s", type.c_str());
-    return;
-  }
-
-  void_cast castFunction = itCast->second;
-  castFunction(objectAddress, newvalue);
-#endif
 }
 
 
@@ -274,6 +204,7 @@ void rb::Data::SetValue(const char* name, Double_t newvalue) {
 // static branch adding function                         //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 void rb::Data::AddBranches() {
+  if(fgMap().empty()) return;
   Map_t::iterator it = fgMap().begin();
   while(it != fgMap().end()) {
     rb::Data* data = (*it++).second;
@@ -294,6 +225,7 @@ void rb::Data::MapClasses() {
   vPrint.push_back("      ----\t\t----------\n");
   Int_t printMinSize = vPrint.size();
 
+  if(fgMap().empty()) return;
   for(Map_t::iterator it = fgMap().begin(); it != fgMap().end(); ++it) {
     if(it->second->kMapClass) {
       string name = it->first;
@@ -319,68 +251,48 @@ void rb::Data::MapClasses() {
 // static rb::Data::SavePrimitive                        //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 void rb::Data::SavePrimitive(ostream& strm) {
+  if(fgBasicDataMap().empty()) return;
   BasicDataMap_t::iterator it;
   for(it = fgBasicDataMap().begin(); it != fgBasicDataMap().end(); ++it) {
     strm << "  rb::Data::SetValue(\"" << it->first << "\", " << GetValue(it->first.c_str()) << ");\n";
   }
-
-#ifdef OLD
-  ObjectMap_t::iterator it;
-  for(it = fgObjectMap().begin(); it != fgObjectMap().end(); ++it) {
-    strm << "  rb::Data::SetValue(\"" << it->first << "\", " << GetValue(it->first.c_str()) << ");\n";
-  }
-#endif
 }
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // static rb::Data::MapData                              //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 Bool_t rb::Data::MapData(const char* name, TStreamerElement* element, volatile void* base_address) {
+  Bool_t ret = kFALSE; // return value, default to false
 
-  string typeName = element->GetTypeName();
+  string typeName = element->GetTypeName(); // the type of this specific element
   remove_duplicate_spaces(typeName); // in case someone did 'unsigned    short' or whatever
 
-#ifdef OLD
-  SetMap_t::iterator it = fgSetFunctionMap().find(typeName);
-  if(it == fgSetFunctionMap().end()) return kFALSE;
-#endif
+  volatile void* address = base_address; // address of base pointer to the whole class containing this element
+  void_pointer_add(address, element->GetOffset()); // increment to address of this specific element
+  MBasicData* basicData = MBasicData::New(address, typeName); // try to create an MBasicData derived instance
 
-  volatile void* address = base_address;
-  void_pointer_add(address, element->GetOffset());
-  ////////////////
-  MBasicData* basicData = MBasicData::New(address, typeName);
-  if(!basicData) return kFALSE;
-  ////////////////
-  Int_t arrLen = element->GetArrayLength();
-
-  if(!arrLen) {
-#ifdef OLD
-    fgObjectMap().insert(std::make_pair(name, std::make_pair(address, typeName)));
-#endif
-  ////////////////
-    fgBasicDataMap().insert(std::make_pair(name, basicData));
-  ////////////////
-  }
-  else {
-    if(element->GetArrayDim() > 4) {
-      Warning("MapData", "No support for arrays > 4 dimensions. The array %s is %d and will not be mapped!",
-	      name, element->GetArrayDim());
+  if(basicData) { // this element is a basic data type, so process it
+    ret = kTRUE;
+    Int_t arrLen = element->GetArrayLength();
+    if(!arrLen) { // just a single element
+      fgBasicDataMap().insert(std::make_pair(name, basicData));
     }
-    else {
-      Int_t size = element->GetSize() / arrLen;
-      ArrayConverter arrayConvert(element);
-      for(Int_t i=0; i< arrLen; ++i) {
-	void_pointer_add(address, size*(i>0));
-#ifdef OLD
-	fgObjectMap().insert(std::make_pair(arrayConvert.GetFullName(name, i), std::make_pair(address, typeName)));
-#endif
-  ////////////////
-	fgBasicDataMap().insert(std::make_pair(arrayConvert.GetFullName(name, i), MBasicData::New(address, typeName)));
-  ////////////////
+    else { // an array
+      if(element->GetArrayDim() > 4) {
+	Warning("MapData", "No support for arrays > 4 dimensions. The array %s is %d and will not be mapped!",
+		name, element->GetArrayDim());
+      }
+      else {
+	Int_t size = element->GetSize() / arrLen;
+	ArrayConverter arrayConvert(element);
+	for(Int_t i=0; i< arrLen; ++i) {
+	  void_pointer_add(address, size*(i>0));
+	  fgBasicDataMap().insert(std::make_pair(arrayConvert.GetFullName(name, i), MBasicData::New(address, typeName)));
+	}
       }
     }
   }
-  return kTRUE;
+  return ret;
 }
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
@@ -411,17 +323,10 @@ void rb::Data::MapClass(const char* name, const char* classname, volatile void* 
 // static rb::Data::PrintAll                             //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 void rb::Data::PrintAll() {
+  if(fgBasicDataMap().empty()) return;
   BasicDataMap_t::iterator it = fgBasicDataMap().begin();
   while(it != fgBasicDataMap().end()) {
     string name = (*it++).first;
     cout << name << " = " << GetValue(name.c_str()) << endl;
   }
-
-#ifdef OLD
-  ObjectMap_t::iterator it = fgObjectMap().begin();
-  while(it != fgObjectMap().end()) {
-    string name = (*it++).first;
-    cout << name << " = " << GetValue(name.c_str()) << endl;
-  }
-#endif
 }

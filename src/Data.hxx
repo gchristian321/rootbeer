@@ -5,6 +5,7 @@
 #ifndef DATA_HXX
 #define DATA_HXX
 #include <assert.h>
+#include <memory>
 #include <string>
 #include <sstream>
 #include <iostream>
@@ -25,32 +26,6 @@ class MBasicData;
 namespace rb
 {
   class Rint; // forward declaration
-
-#if 0
-  //! Encloses functions relevant to reading and unpacking buffers.
-  //! \details Functions are implemented in Skeleton.cxx
-  namespace unpack
-  {
-    //! Defines how a single data buffer is extracted from a data stream.
-    //! \details In principle, this needs to be filled by the end user in Skeleton.cxx.  However,
-    //! appropriate implementations for the <a href = http://docs.nscl.msu.edu/daq/bluebook/html/> NSCL </a>
-    //! and <a href = https://daq-plone.triumf.ca/SR/MIDAS/> MIDAS </a> sysems are already written.  These
-    //! can be utilized by commenting the appropriate \c #define derectives as noted in the sources.
-    //! \param[in] ifs stream from which the data is read.
-    //! \param[out] buf buffer (std::vector<DATA_TYPE>) into which we copy the data.
-    //! \returns true if successful read of buffer, false otherwise
-    //    extern bool ReadBuffer(int size, void* source, BUFFER_TYPE& destination);
-
-    //! Defines how raw data buffers are unpacked.
-    //! \details The code of this function is filled in by users in Skeleton.cxx
-    //! It should define how to handle the raw data buffers, i.e. how to take the
-    //! packed data and disseminate it into the classes the users have written to
-    //! store their data.
-    //! \param[in] buf The data buffer that we want to unpack into our user classes.
-    extern void UnpackBuffer(BUFFER_TYPE& buf);
-  }
-#endif
-
   //! Class wrapping pointers to user data objects.
 
   //! The basic idea behind this class is to create a generic framework
@@ -93,22 +68,12 @@ namespace rb
   {
   public:
     // Typedefs
-#ifndef __CINT__ // CINT doesn't like volatile void* apparently.
-    typedef void (*void_cast)(volatile void*, Double_t);
-    typedef std::map<std::string, std::pair<volatile void*, std::string> > ObjectMap_t;
-#else
-    typedef void (*void_cast)(void*, Double_t);
-    typedef std::map<std::string, std::pair<void*, std::string> > ObjectMap_t;
-#endif
-
     // Function pointers
     typedef void (*delete_function)(Data*);
-    typedef Double_t (*void_get)(const char*);
 
     // Maps
     typedef std::map<std::string, Data*>           Map_t;
-    typedef std::map<std::string, void_cast>       SetMap_t;
-    typedef std::map<std::string, void_get>        GetMap_t;
+    typedef std::map<std::string, MBasicData*>     BasicDataMap_t;
     typedef std::map<std::string, delete_function> DeleteMap_t;
 
   protected: //private:
@@ -127,34 +92,14 @@ namespace rb
     /// Mutex to protect access to the data.
     TMutex fMutex;
 
-    /// Alternative to static data members.
-    //! Creates a local heap-allocated static instance of class T and returns
-    //! a reference.  This is preferable to using static data members directly because
-    //! of the <a href="http://www.parashift.com/c++-faq-lite/ctors.html#faq-10.14">
-    //! Static Initialization Order Fiasco</a>.
-#define SIOF(T) static T * m = new T (); return *m
-
     /// Maps \c kName to the base class address.
-    static Map_t& fgMap() { SIOF(Map_t); }
+    static Map_t& fgMap() { static Map_t* m = new Map_t(); return *m; }
 
-    /// Maps the full name of a data member of a user class to it's <address, class name>.
-#ifdef OLD
-    static ObjectMap_t& fgObjectMap() { SIOF(ObjectMap_t); }
-
-    /// Maps type names to SetDataValue<T> function pointers.
-    static SetMap_t& fgSetFunctionMap() { SIOF(SetMap_t); }
-
-    /// Maps type names to GetDataValue<T> function pointers.
-    static GetMap_t& fgGetFunctionMap() { SIOF(GetMap_t); }
-#endif
     /// Maps the class name to the appropraite delete method.
-    static DeleteMap_t& fgDeleteMap() { SIOF(DeleteMap_t); }
+    static DeleteMap_t& fgDeleteMap() { static DeleteMap_t* m = new DeleteMap_t(); return *m; }
 
-    typedef std::map<std::string, MBasicData*> BasicDataMap_t;
-    static BasicDataMap_t& fgBasicDataMap() { SIOF(BasicDataMap_t); }
-
-#undef SIOF
-
+    /// Maps the full name of a basic data type to an MBasicDataType pointer wrapping it.
+    static BasicDataMap_t& fgBasicDataMap() { static BasicDataMap_t* m = new BasicDataMap_t(); return *m; }
 
     /// Recurse through a class and add each of it's basic data objects to fgObjectMap.
     static void MapClass(const char* name, const char* classname, volatile void* address);
@@ -163,30 +108,6 @@ namespace rb
     //! For a specific element of a class, check if it's a basic data type. If so, add it to
     //! fgObjectMap. If not, return \c false.
     static Bool_t MapData(const char* name, TStreamerElement* element, volatile void* base_address);
-
-#ifdef OLD
-    /// Template function to set the value of data located at a generic address.
-    //! The template argument should always be the same as the type of data pointed to by address.
-    template<typename T>
-    static void SetDataValue(volatile void* address, Double_t newval) {
-      LockingPointer<T> pAddress(reinterpret_cast<volatile T*>(address), rb::Hist::GetMutex());
-      *pAddress = T(newval);
-    }
-
-    /// Template function to get the value of data at a generic address.
-    //! The template argument should always be the same as the type of data pointed to by address.
-    //! Converts the data to \c Double_t before returning.
-    template<typename T>
-    static Double_t GetDataValue(const char* name) {
-      ObjectMap_t::iterator it = fgObjectMap().find(name);
-      if(it == fgObjectMap().end()) {
-	Error("GetDataValue", "%s not found.", name);
-	return -1.;
-      }
-      LockingPointer<T> pAddress(reinterpret_cast<volatile T*>(it->second.first), rb::Hist::GetMutex());
-      return Double_t(*pAddress);
-    }
-#endif
 
     /// Returns a T* pointer to the fData object.
     template<typename T>
@@ -265,6 +186,25 @@ namespace rb
       return _this;
     }
 
+    /// Return a scoped and locked pointer to the data.
+    //! Returns a std::auto_ptr to a LockedPointer wrapping the data.
+    //! This allows thread safe access to the data in the scope that it's
+    //! needed while also ensuring that dynamic resources are freed properly.
+    //! \note Since the return is a "pointer like object" pointing to a "pointer like object",
+    //! the samantics for use are a little strange, e.g.
+    //! \code
+    //! std::auto_ptr<LockingPointer<myClass> > p = someData.GetLockedData();
+    //! *p->SomeMemberFunction();
+    //! \endcode
+    //! As a result, there is the option to use the GET_LOCKING_POINTER macro,
+    //! which copies \c *p into a LockingPointer reference.
+    template<typename T>
+    std::auto_ptr<LockingPointer<T> > GetLockedData() {
+      LockingPointer<T>* lockedData = new LockingPointer<T> (GetDataPointer<T>(), fMutex);
+      std::auto_ptr<LockingPointer<T> > out (lockedData);
+      return out;
+    }
+
     /// Write the fData data members and their current values to a stream.
     static void SavePrimitive(std::ostream& ofs);
 
@@ -303,69 +243,6 @@ namespace rb
 
   };
 
-#ifdef OLD
-  template <class T>
-  class TData : public Data
-  {
-  public:
-    TData(const char* name, const char* class_name, Bool_t makeVisible = kFALSE, const char* args = "") {
-      kName = name;
-      kClassName = class_name;
-      kMapClass = makeVisible;
-
-      fgDeleteMap()[class_name] = &FreeMemory<T>;
-      T* data = 0;
-      if(!strcmp(args, ""))  data = new T();
-      else {
-	std::stringstream cmd;
-	cmd << "new " << class_name << "(" << args  << ");";
-	data = reinterpret_cast<T*> (gROOT->ProcessLineFast(cmd.str().c_str()));
-      }
-
-
-      // Data* _this = new Data(name, class_name, data, makeVisible);
-      // return _this;
-
-
-      fData = data;
-      fgMap()[kName] = this;
-
-    }
-
-
-    /// Template function to set the value of data located at a generic address.
-    //! The template argument should always be the same as the type of data pointed to by address.
-    static void TSetDataValue(volatile void* address, Double_t newval) {
-      LockingPointer<T> pAddress(reinterpret_cast<volatile T*>(address), rb::Hist::GetMutex());
-      *pAddress = T(newval);
-    }
-
-    /// Template function to get the value of data at a generic address.
-    //! The template argument should always be the same as the type of data pointed to by address.
-    //! Converts the data to \c Double_t before returning.
-    static Double_t TGetDataValue(const char* name) {
-      ObjectMap_t::iterator it = fgObjectMap().find(name);
-      if(it == fgObjectMap().end()) {
-	Error("GetDataValue", "%s not found.", name);
-	return -1.;
-      }
-      LockingPointer<T> pAddress(reinterpret_cast<volatile T*>(it->second.first), rb::Hist::GetMutex());
-      return Double_t(*pAddress);
-    }
-
-    /// Returns a T* pointer to the fData object.
-    volatile T* TGetDataPointer() {
-      return reinterpret_cast<volatile T*> (fData);
-    }
-
-    static void TFreeMemory(Data* _this) {
-      LockingPointer<T> pData(reinterpret_cast<volatile T*> (_this->fData), _this->fMutex);
-      delete pData.Get();
-    }
-
-
-  };
-#endif
 }
 
 

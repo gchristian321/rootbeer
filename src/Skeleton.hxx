@@ -51,5 +51,7 @@
 //! GET_LOCKING_POINTER(pMine, my_class_instance, MyClass);
 //! pMine->MemberFunction();
 //! \endcode
-#define GET_LOCKING_POINTER(SYMBOL, NAME, CLASS)                        \
-  LockingPointer<CLASS> SYMBOL (NAME##_Data->GetDataPointer<CLASS>(), NAME##_Data->fMutex);
+#define GET_LOCKING_POINTER(SYMBOL, NAME, CLASS)			\
+  auto_ptr<LockingPointer<CLASS> > temp = NAME##_Data->GetLockedData<CLASS> (); \
+  LockingPointer<CLASS>& SYMBOL = *temp;
+  //  LockingPointer<CLASS> SYMBOL (NAME##_Data->GetDataPointer<CLASS>(), NAME##_Data->fMutex);

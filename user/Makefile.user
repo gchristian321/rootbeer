@@ -44,12 +44,12 @@ $(DRAGON_SRC)/VariableDefaults.cxx $(DRAGON_SRC)/vme/vme.cxx \
 
 ### If you want to use the stock routines for extracting MIDAS data buffers, uncomment the following
 ### two lines and make sure all others are commented.
-STOCK_BUFFERS=-D_MIDAS_
-USER_BUFFER_TYPE=rb::MidasEvent
+STOCK_BUFFERS=-DMIDAS_BUFFERS
+#USER_BUFFER_TYPE=TMidasEvent
 
 ### If you want to use the stock routines for extracting NSCL data buffers, uncomment the following
 ### two lines and make sure all others are commented.
-#STOCK_BUFFERS=-D_NSCL_
+#STOCK_BUFFERS=-DNSCL_BUFFERS
 #USER_BUFFER_TYPE=std::vector<uint16_t>
 
 ### If you want (or need) to define your own routines to extract data buffers, define the buffer type

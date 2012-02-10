@@ -3,6 +3,11 @@
 #include "Skeleton.hxx"
 #include "Data.hxx"
 #include "Rootbeer.hxx"
+#include "midas/TMidasFile.h"
+#ifdef MIDAS_ONLINE
+#include "midas/TMidasOnline.h"
+#endif
+using namespace std;
 
 
 
@@ -25,8 +30,7 @@
 #include "mona_definitions.hh"
 #endif
 
-#ifdef _MIDAS_
-#include <TTimeStamp.h>
+#ifdef MIDAS_BUFFERS
 #include "vme/vme.hxx"
 #endif
 
@@ -37,16 +41,17 @@
 //\\ (using the ADD_CLASS_INSTANCE macros). \\//
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 
-#if !defined _NSCL_
-#if !defined _MIDAS_
+// #if !defined _NSCL_
+// #if !defined MIDAS_BUFFERS
 // Here we add an instance of ExampleData, called myData and do not allow viewing in CINT.
-ADD_CLASS_INSTANCE(myData, ExampleData, kFALSE)
+// ADD_CLASS_INSTANCE(myData, ExampleData, kFALSE)
 
-// Here we add an instance of sVariables, called myVars and do allow viewing in CINT.
+// Here we add an instance of ExampleVariables, called myVars and do allow viewing in CINT.
 // Also, we use a non-default constructor, with the argument 32.
-ADD_CLASS_INSTANCE_ARGS(myVars, ExampleVariables,  kTRUE, "32")
-#endif
-#endif
+// ADD_CLASS_INSTANCE_ARGS(myVars, ExampleVariables,  kTRUE, "32")
+// ADD_CLASS_INSTANCE(myVars1, ExampleVariables,  kTRUE)
+// #endif
+// #endif
 
 #ifdef _NSCL_
 ADD_CLASS_INSTANCE(mcal, cal::mona, kFALSE);
@@ -54,21 +59,146 @@ ADD_CLASS_INSTANCE(mraw, raw::mona, kFALSE);
 ADD_CLASS_INSTANCE(mvar, var::mona, kTRUE);
 #endif
 
-#ifdef _MIDAS_
+#ifdef MIDAS_BUFFERS
 ADD_CLASS_INSTANCE(bgo, Bgo, kFALSE);
 #endif
 
 
+Bool_t Midas::OpenFile(const char* file_name, char** other, int nother) {
+  return fFile.Open(file_name);
+}
+
+Bool_t Midas::ReadBufferOffline() {
+  fBuffer.Clear();
+  return fFile.Read(&fBuffer);
+}
+
+Bool_t Midas::ConnectOnline(const char* host, const char* experiment, char** unused, int unused2) {
+#ifdef MIDAS_ONLINE
+  TMidasOnline* onlineMidas = TMidasOnline::instance();
+  Int_t err = onlineMidas->connect(host, experiment, "rootbeer");
+  if (err) return kFALSE; // Message from TOnlineMidas::connect
+
+  onlineMidas->setTransitionHandlers(RunStart, RunStop, RunPause, RunResume);
+  onlineMidas->registerTransitions();
+  fRequestId = onlineMidas->eventRequest("SYSTEM", -1, -1, (1<<1));
+  return kTRUE;
+#else
+  return kFALSE;
+#endif
+}
+
+Bool_t Midas::ReadBufferOnline() {
+#ifdef MIDAS_ONLINE
+  Bool_t ret = kFALSE;
+  TMidasOnline* onlineMidas = TMidasOnline::instance();
+  char pEvent[100*1024];
+  int size = 0;
+  do { // loop until we get an error or event, or quit polling, or unattach
+    size = onlineMidas->receiveEvent(fRequestId, pEvent, sizeof(pEvent), kTRUE);
+  } while (size == 0 && IsAttached(ONLINE_) && onlineMidas->poll(1000));
+
+  if(size == 0) // Unattached or stopped polling
+    ret = kFALSE;
+  else if(size > 0) { // Got data, copy into midas event  
+    //! \todo: byte ordering??
+    memcpy(fBuffer.GetEventHeader(), pEvent, sizeof(EventHeader_t));
+    fBuffer.SetData(size, pEvent+sizeof(EventHeader_t));
+    ret = kTRUE;
+  }    
+  else { // Error reading event
+    Error("ReadBufferOnline",  "onlineMidas->receiveEvent return val < 0.");
+    ret = kFALSE;
+  }
+  return ret;
+#else
+  return kFALSE;
+#endif
+}
+
+Midas::~Midas() {
+#ifdef MIDAS_ONLINE
+  TMidasOnline::instance()->disconnect();
+#endif
+}
+
+void Midas::RunStart(int transition, int run_number, int trans_time) {
+  cout << "Beginning MIDAS run number " << run_number << ".\n";
+}
+
+void Midas::RunStop(int transition, int run_number, int trans_time) {
+  cout << "Ending MIDAS run number " << run_number << ".\n";
+}
+
+void Midas::RunPause(int transition, int run_number, int trans_time) {
+  cout << "Pausing run number " << run_number << ".\n";
+}
+
+void Midas::RunResume(int transition, int run_number, int trans_time) {
+  cout << "Resuming run number " << run_number << ".\n";
+}
+
+Bool_t Midas::UnpackBuffer() {
+#ifdef MIDAS_BUFFERS
+  // (DRAGON test setup)
+  GET_LOCKING_POINTER(pBgo, bgo, Bgo);
+  Short_t eventId = fBuffer.GetEventId();
+  vme::Module::reset_all();
+  switch(eventId) {
+  case 1: // event
+    vme::Module::unpack_all(fBuffer);
+    break;
+  case 2: // scaler
+    break;
+  default:
+    Warning("UnpackBuffer", "Unrecognized Event Id: %d", eventId);
+    break;
+  }
+  rb::Hist::FillAll();
+  return kTRUE;
+#else
+  return kFALSE;
+#endif
+}
+
+
+void Midas::AddData() {
+  rb::Data* d = rb::Data::New<ExampleVariables> ("myVars", "ExampleVariables", kTRUE, "32");
+  fUserData.push_back(d);
+}
+
+
+
+
+
+
+
+
+/*
+#if 0
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 //\\ Here you should define how to process your data buffers        \\//
 //\\ by implementing the ReadBuffer() and UnpackBuffer() functions. \\//
 //\\ For more information, see the doxygen page on rb::unpack       \\//
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-bool rb::unpack::ReadBuffer(istream& ifs, BUFFER_TYPE& buffer) {
+bool rb::unpack::ReadBuffer(int size, void* from, BUFFER_TYPE& buffer) {
 
-#ifdef _MIDAS_
-  bool result = buffer.ReadEvent(&ifs);
-  return result;
+#ifdef MIDAS_BUFFERS
+  //! \todo: Memcpy OK? Byte swapping?
+  char* pdata = (char*)from;
+  UShort_t headerSize = sizeof(EventHeader_t);
+  if(size < headerSize) {
+    Warning("ReadBuffer", "buffer size (%d) < event header size (%d), skipping",
+	    size, headerSize);
+    return false;
+  }
+
+  memcpy(buffer.GetEventHeader(), pdata, headerSize);
+  buffer.SetData(size-headerSize, pdata+headerSize);
+
+  //  buffer.SetBankList();
+  //  bool result = buffer.ReadEvent(&ifs);
+  return true; //result;
 #elif defined _NSCL_
   const Int_t bufferSize = 4096;
   if(buffer.size() != bufferSize) buffer.resize(bufferSize);
@@ -81,11 +211,11 @@ bool rb::unpack::ReadBuffer(istream& ifs, BUFFER_TYPE& buffer) {
 
 #endif
 }
-
+#endif
 
 void rb::unpack::UnpackBuffer(BUFFER_TYPE& buffer) {
 
-#ifdef _MIDAS_
+#ifdef MIDAS_BUFFERS
 
   //  GET_LOCKING_POINTER(pBgo, bgo, Bgo);
   int16_t eventId = buffer.GetEventId();
@@ -171,3 +301,4 @@ void rb::unpack::UnpackBuffer(BUFFER_TYPE& buffer) {
 #endif
 
 } // End function
+*/
