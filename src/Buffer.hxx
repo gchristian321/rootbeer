@@ -6,127 +6,92 @@
 #include <Rtypes.h>
 
 
+
 static const Int_t N_SOURCES = 3;
 enum DataSources { ONLINE_, FILE_, LIST_ };
 namespace rb
 {
+  class BufferSource;
+  class Connector
+  {
+  private:
+    TThread* fThread;
+  protected:
+    BufferSource* fBuffer;
+    Bool_t fRun;
+  public:
+    Connector(BufferSource* buf);
+    virtual ~Connector();
+    virtual void Attach() = 0;
+    void Run() { fThread->Run((void*)this); }
+  private:
+    static void* RunThread(void* args)  {
+      reinterpret_cast<Connector*>(args)->Attach();
+    }
+    friend class BufferSource;
+  };
+
+  class File : public Connector
+  {
+  private:
+    const Bool_t kStopAtEnd;
+    const std::string kFileName;
+  public:
+    File(const char* filename, Bool_t stopAtEnd, BufferSource* buf);
+    virtual ~File() {};
+    void Attach();
+  };
+
+  class Online : public Connector
+  {
+  private:
+    const char* fSourceArg;
+    const char* fOtherArg;
+    char** fOtherArgs;
+    const int fNumOthers;
+  public:
+    Online (const char* source, const char* other, char** others, int nothers, BufferSource* buf);
+    virtual ~Online() {};
+    void Attach();
+  };
+
+
   class BufferSource
   {
   private:
-    //! Arguments for AttachFile()
-    struct FileArguments {
-      std::string fileName;
-      Bool_t stopEnd;
-      void Set(const char* fname, Bool_t stop) {
-	fileName = fname;
-	stopEnd = stop;
-      }
-    } fFileArgs;
+    //! Thread for attaching to buffer sources.
+    TThread fThread;
 
-    //! Arguments for AttachOnline()
-    struct OnlineArguments {
-      std::string source;
-      std::string other;
-      char** others;
-      int nothers;
-      void Set(const char* source_, const char* other_,
-	       char** others_, int nothers_) {
-	source = source_;
-	other = other_;
-	others = others_;
-	nothers = nothers_;
-      }
-    } fOnlineArgs;
-
-    //! Tells whether the source is attached to a data source.
-    static Bool_t* Attached_() {
-      static Bool_t firstTime = kTRUE;
-      static Bool_t* isAttached = new Bool_t[N_SOURCES];
-      if (firstTime) {
-	firstTime = kFALSE;
-	for(Int_t i=0; i< N_SOURCES; ++i)
-	  isAttached[i] = kFALSE;
-      }
-      return isAttached;
+    class PrivateConnector {
+    private:
+      Connector* fConnector_;
+    public:
+      PrivateConnector() : fConnector_(0) {}
+      void Start(Connector* new_) { fConnector_ = new_; }
+      void Stop() { if (fConnector_) { delete fConnector_; fConnector_ = 0; } }
+      Connector* operator() () { return fConnector_; }
+      ~PrivateConnector() { Stop(); }
     }
+      fConnector;
 
-    //! Attach to an online data source.
-    static void* AttachOnline_(void* arg);
-
-    //! Attach to an offline data source.
-    static void* AttachFile_(void* arg);
-
-    //! Attach to a list of offline data sources.
-    static void* AttachList_(void* arg);
-
-    //! Thread for attaching to online data.
-    TThread attachOnlineThread;
-
-    //! Thread for attaching to offline data.
-    TThread attachOfflineThread;
-
-    //! Thread for attaching to a list of offline files.
-    TThread attachListThread;
-
+    void StartConnection(Connector* new_);
   public:
-    void RunOnline() {
-      attachOnlineThread.Run(reinterpret_cast<void*>(this));
-    }
-    void RunFile() {
-      attachOfflineThread.Run(reinterpret_cast<void*>(this));
-    }
-    void RunList(const char* filename) {
-      attachListThread.Run((void*)gSystem->ExpandPathName(filename));
-    }
-
-    void Unattach() {
-      if(BufferSource::IsAttached(ONLINE_)) {
-	BufferSource::SetNotAttached(ONLINE_);
-	attachOnlineThread.Join();
-      }
-      if(BufferSource::IsAttached(FILE_)) {
-	BufferSource::SetNotAttached(FILE_);
-	attachOfflineThread.Join();
-      }
-      if(BufferSource::IsAttached(LIST_)) {
-	BufferSource::SetNotAttached(LIST_);
-	attachListThread.Join();
-      }
-    }
+    Bool_t IsConnected() { return fConnector()->fRun; }
+    void RunOnline(const char* host, const char*  other, char** others, Int_t nothers);
+    void RunFile(const char* filename, Bool_t stopAtEnd);
+    void RunList(const char* filename);
+    void Unattach();
 
 
   protected:
     //! Constructor
-    BufferSource() :
-      attachOnlineThread ("attachOnline", AttachOnline_),
-      attachOfflineThread ("attachFile", AttachFile_),
-      attachListThread  ("attachList", AttachList_)
-    {
-      fFileArgs.Set("", kTRUE);
-      fOnlineArgs.Set("", "", 0, 0);
-    }
+    BufferSource();
 
   public:
     static BufferSource* Instance();
 
     //! Destructor
     virtual ~BufferSource() {};
-
-    //! Tells whether or not it's attached to a data source.
-    //! \details Use the DataSources enum to denote the types.
-    static Bool_t IsAttached(Int_t source) { return Attached_()[source]; }
-
-    //! Sets appropriate Attached_ flag to true.
-    static void SetAttached(Int_t source) { Attached_()[source] = kTRUE; }
-
-    //! Sets appropriate Attached_ flag to false.
-    static void SetNotAttached(Int_t source) { Attached_()[source] = kFALSE; }
-
-    //! Return reference to file arguments
-    FileArguments& FileArgs() { return fFileArgs; }
-
-    //! Return reference to online arguments
-    OnlineArguments& OnlineArgs() { return fOnlineArgs; }
 
     //! Open a data file
     //! \param [in] file_name Name (path) of the file to open.
@@ -154,6 +119,8 @@ namespace rb
     //! Unpack an abstract buffer into rb::Data classes.
     //! \returns Error code
     virtual Bool_t UnpackBuffer() = 0;
+
+    friend class Connector;
   };
 }
 

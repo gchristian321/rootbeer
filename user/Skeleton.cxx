@@ -123,7 +123,7 @@ Bool_t Midas::ReadBufferOnline() {
   int size = 0;
   do { // loop until we get an error or event, or quit polling, or unattach
     size = onlineMidas->receiveEvent(fRequestId, pEvent, sizeof(pEvent), kTRUE);
-  } while (size == 0 && IsAttached(ONLINE_) && onlineMidas->poll(1000));
+  } while (size == 0 && IsConnected() && onlineMidas->poll(1000));
 
   if(size == 0) // Unattached or stopped polling
     ret = kFALSE;
