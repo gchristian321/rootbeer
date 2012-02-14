@@ -11,8 +11,7 @@ ROOTGLIBS = $(shell root-config --glibs) -lXMLParser -lThread -lTreePlayer
 RPATH    += -Wl,-rpath,$(ROOTSYS)/lib -Wl,-rpath,$(PWD)/lib
 DYLIB=-shared -fPIC
 INCFLAGS=-I$(SRC) -I$(CINT) -I$(USER) $(USER_INCLUDES)
-DEBUG=
-#-ggdb -O0
+DEBUG=-ggdb -O0
 CXXFLAGS=$(INCFLAGS) -L$(PWD)/lib $(STOCK_BUFFERS) -DBUFFER_TYPE=$(USER_BUFFER_TYPE) $(DEBUG)
 
 
@@ -24,8 +23,8 @@ endif
 # optional MIDAS libraries
 ifdef MIDASSYS
 MIDASLIBS = $(MIDASSYS)/linux/lib/libmidas.a -lutil -lrt
-CXXFLAGS += -DHAVE_MIDAS -DOS_LINUX -Dextname -I$(MIDASSYS)/include
-MIDASONLINE=$(SRC)/midas/TMidasOnline.cxx
+CXXFLAGS += -DMIDAS_ONLINE -DOS_LINUX -Dextname -I$(MIDASSYS)/include
+MIDASONLINE=$(SRC)/midas/TMidasOnline.cxx $(SRC)/midas/TMidasFile.cxx
 endif
 
 UNAME=$(shell uname)
@@ -45,32 +44,33 @@ endif
 all: rootbeer
 
 rootbeer: libRBHist.so libRootbeer.so $(SRC)/main.cc 
-	g++ $(CXXFLAGS) $(INCFLAGS) -lRootbeer $(SRC)/main.cc -o rootbeer $(MIDASLIBS) $(ROOTGLIBS) -lm -lz -lpthread $(RPATH) -I$(ROOTSYS)/include ; echo ""
+	g++ $(CXXFLAGS) $(INCFLAGS) -lRootbeer $(SRC)/main.cc -o rootbeer $(MIDASLIBS) $(ROOTGLIBS) -lm -lz -lpthread $(RPATH) -I$(ROOTSYS)/include
 
 
 #### ROOTBEER LIBRARY ####
-SOURCES= $(USER_SOURCES) $(MIDASONLINE) $(SRC)/Data.cxx $(SRC)/Rootbeer.cxx $(PWD)/user/Skeleton.cxx $(SRC)/Attach.cxx $(SRC)/Canvas.cxx $(SRC)/WriteConfig.cxx \
-$(SRC)/midas/TMidasEvent.cxx $(SRC)/midas/rbMidasEvent.cxx
+SOURCES= $(MIDASONLINE) $(SRC)/Rootbeer.cxx $(SRC)/Data.cxx $(SRC)/Buffer.cxx $(SRC)/Canvas.cxx $(SRC)/WriteConfig.cxx \
+$(SRC)/midas/TMidasEvent.cxx $(SRC)/midas/rbMidasEvent.cxx \
+$(USER_SOURCES) $(USER)/Skeleton.cxx
 
-HEADERS=$(SRC)/Rootbeer.hxx $(SRC)/Data.hxx $(SRC)/midas/rbMidasEvent.h $(USER_HEADERS)
+HEADERS=$(SRC)/Rootbeer.hxx $(SRC)/Data.hxx $(SRC)/Skeleton.hxx $(SRC)/Buffer.hxx $(SRC)/midas/rbMidasEvent.h $(SRC)/midas/TMidasFile.h $(USER_HEADERS)
 
 libRootbeer.so: libRBHist.so cint/RBDictionary.cxx $(SOURCES)
-	g++ $(DYLIB) -o $(PWD)/lib/$@ -lRBHist $(CXXFLAGS) $(MIDASLIBS) $(ROOTGLIBS) $(RPATH)  -p cint/RBDictionary.cxx $(SOURCES)  ; echo ""
+	g++ $(DYLIB) -o $(PWD)/lib/$@ -lRBHist $(CXXFLAGS) $(MIDASLIBS) $(ROOTGLIBS) $(RPATH)  -p cint/RBDictionary.cxx $(SOURCES) 
 
 
-cint/RBDictionary.cxx: $(HEADERS) Linkdef.h
-	rootcint -f $@ -c $(CXXFLAGS)  -p $^ ; echo ""
+cint/RBDictionary.cxx: $(HEADERS) $(CINT)/Linkdef.h
+	rootcint -f $@ -c $(CXXFLAGS)  -p $^
 
 
 
 #### COMPILE HISTOGRAM LIBRARY ####
 
 libRBHist.so: Hist.cxx cint/HistDictionary.cxx
-	g++ $(DYLIB) -o $(PWD)/lib/$@ $(CXXFLAGS) -lTreePlayer  -p $^   $(ROOTGLIBS) $(RPATH) ; echo ""
+	g++ $(DYLIB) -o $(PWD)/lib/$@ $(CXXFLAGS) -lTreePlayer  -p $^   $(ROOTGLIBS) $(RPATH)
 
 
-cint/HistDictionary.cxx: Hist.hxx LockingPointer.hxx HistLinkdef.h
-	rootcint -f $@ -c $(CXXFLAGS) -p $^ ; echo ""
+cint/HistDictionary.cxx: $(SRC)/Hist.hxx $(SRC)/utils/LockingPointer.hxx $(CINT)/HistLinkdef.h
+	rootcint -f $@ -c $(CXXFLAGS) -p $^
 
 
 

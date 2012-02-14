@@ -31,17 +31,13 @@ namespace
 			     pOnline->OnlineArgs().other.c_str(),
 			     pOnline->OnlineArgs().others,
 			     pOnline->OnlineArgs().nothers);
-    if (!connected) {
-      delete pOnline;
-      return 0;
-    }
+    if (!connected) return 0;
 
     while (BufferSource::IsAttached(ONLINE_)) {
       Bool_t readSuccess = pOnline->ReadBufferOnline();
       if(!readSuccess) break;
       pOnline->UnpackBuffer();
     }
-    delete pOnline;
     return 0;
   }
 
@@ -52,16 +48,9 @@ namespace
 
     while(BufferSource::IsAttached(FILE_)) {
       bool read_success = pFile->ReadBufferOffline();
-      if(!read_success) { // At end of file
-	if(pFile->FileArgs().stopEnd) // We're done.
-	  break;
-	else { // Wait 10 seconds for more data to come in.
-	  //! \todo WILL THIS WORK WITH MIDAS???
-	  gSystem->Sleep(10e3);
-	  continue;
-	}
-      }
-      pFile->UnpackBuffer();
+      if (read_success) pFile->UnpackBuffer(); // got an event
+      else if (pFile->FileArgs().stopEnd) break; // we're done
+      else gSystem->Sleep(10e3); // Wait 10 seconds for more data to come in 
     }
 
     if(BufferSource::IsAttached(FILE_)) {
@@ -71,8 +60,6 @@ namespace
       }
     }
     else Info("AttachFile", "Connection aborted by user.");
-
-    delete pFile;
     return arg;
   }
 
@@ -99,13 +86,13 @@ namespace
       if(str.size() == 0) continue; // empty line, skip
 
       /// opening current file ///
-      BufferSource* f = new USER_BUFFER_SOURCE(); // delete in ::AttachFile
+      BufferSource* f = BufferSource::Instance(); //new USER_BUFFER_SOURCE(); // delete in ::AttachFile
       f->FileArgs().stopEnd = kTRUE;
       f->FileArgs().fileName = str;
       Bool_t open = f->OpenFile(gSystem->ExpandPathName(filename));
       if(!open) {
 	Info("AttachList", "The file %s wasn't found. Moving on to the next one.", str.c_str());
-	delete f;
+	///	delete f;
 	continue;
       }
       ::AttachFile(reinterpret_cast<void*>(f));
@@ -143,7 +130,7 @@ void rb::AttachOnline(const char* host, const char* other, char** others, int no
 #ifdef MIDAS_BUFFERS
 #ifdef MIDAS_ONLINE // Attach to online midas files
   if(others || nothers) Warning("AttachOnline", "Arguments \'others\' and \'n_others\' are unused");
-  BufferSource* online = new USER_BUFFER_SOURCE(); // delete in ::AttachOnline
+  BufferSource* online = BufferSource::Instance(); // new USER_BUFFER_SOURCE(); // delete in ::AttachOnline
   online->OnlineArgs().Set(host, other, others, nothers);
   attachOnlineThread.Run(reinterpret_cast<void*>(online));
 #else
@@ -174,11 +161,12 @@ void rb::AttachOnline(const char* host, const char* other, char** others, int no
 
 void rb::AttachFile(const char* filename, Bool_t stop_at_end) {
   rb::Unattach();
-  BufferSource* file = new USER_BUFFER_SOURCE(); // delete in ::AttachFile
+  BufferSource* file = BufferSource::Instance(); //new USER_BUFFER_SOURCE(); // delete in ::AttachFile
   Bool_t open = file->OpenFile(gSystem->ExpandPathName(filename));
   if(!open) {
     Error("AtachFile", "File %s not readable.", filename);
-    delete file; return;
+    //// delete file;
+    return;
   }
   file->FileArgs().Set(filename, stop_at_end);
   attachOfflineThread.Run(reinterpret_cast<void*>(file));

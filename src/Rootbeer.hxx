@@ -12,7 +12,8 @@
 #include <TCutG.h>
 #include <TRint.h>
 #include "Hist.hxx"
-
+#include "Data.hxx"
+#include "Buffer.hxx"
 
 
 /// Namespace wrapping the \c ROOTBEER objects and user functions.
@@ -115,6 +116,8 @@ namespace rb
   //!  we need to override the Terminate()  method to stop threaded processes.
   class Rint : public TRint
   {
+  private:
+    BufferSource * fBuffers;
   public:
     /// \brief Constructor
     //! \details Just call the standard \c TRint constructor, plus set the prompt to be
@@ -125,6 +128,11 @@ namespace rb
 	 void* options = 0, int numOptions = 0, Bool_t noLogo = kFALSE) :
       TRint(appClassName, argc, argv, options, numOptions, noLogo) {
       SetPrompt("rootbeer [%d] ");
+      fBuffers = BufferSource::Instance();
+      if(!fBuffers) {
+	Error("Rint", "BufferSource::GetInstance has not been properly defined.");
+	Terminate(EXIT_FAILURE);
+      }
     }
 
     /// \brief Terminate the application.
@@ -137,6 +145,7 @@ namespace rb
     ~Rint() {
       Terminate(EXIT_FAILURE);
     }
+    ClassDef(rb::Rint, 0);
   };
 
 }

@@ -34,6 +34,3 @@
 #pragma link C++ class ExampleData+;
 #pragma link C++ class ExampleVariables+;
 #pragma link C++ class InnerVariables+;
-
-
-#pragma link C++ class Midas+;

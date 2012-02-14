@@ -117,43 +117,110 @@ public:
 // MBasic data.
 class MBasicData
 {
+public:
+  typedef std::map<std::string, MBasicData*> Map_t;
+
 protected:
-  volatile void* fAddress; // copy of the rb::Data fData pointer
+  static MBasicData::Map_t& fgAll() {
+    static MBasicData::Map_t* m = new MBasicData::Map_t();
+    return *m;
+  }
 public:
   const std::string kBasicClassName;
+  MBasicData(const char* basic_type_name) :
+    kBasicClassName(basic_type_name) { }
+  virtual ~MBasicData() { };
   virtual Double_t GetValue() = 0;
   virtual void SetValue(Double_t newval) = 0;
-  virtual ~MBasicData() { }
-  static MBasicData* New(volatile void* addr, const char* basic_type_name);
-  static MBasicData* New(volatile void* addr, const std::string& basic_type_name) {
-    return MBasicData::New(addr, basic_type_name.c_str());
+  static MBasicData* Find(const char* name) {
+    MBasicData::Map_t::iterator it = fgAll().find(string(name));
+    return it != fgAll().end() ? it->second : 0;
   }
-protected:
-  MBasicData(volatile void* addr, const char* basic_class_name) :
-    fAddress(addr), kBasicClassName(basic_class_name) { }
-};
+  static MBasicData* New(const char* name, volatile void* addr, const char* basic_type_name, TStreamerElement* element);
 
-template <class T>
+  static void SavePrimitive(std::ostream& strm) {
+    if(fgAll().empty()) return;
+    MBasicData::Map_t::iterator it;
+    for(it = fgAll().begin(); it != fgAll().end(); ++it) {
+      strm << "  rb::Data::SetValue(\"" << it->first << "\", " << it->second->GetValue() << ");\n";
+    }
+  }
+  
+  static void PrintAll() {
+    if(fgAll().empty()) return;
+    vector<string> names, values, classes;
+
+    MBasicData::Map_t::iterator it = fgAll().begin();
+    while(it != fgAll().end()) {
+      names.push_back(it->first);
+      values.push_back(double2str(it->second->GetValue()));
+      classes.push_back(it->second->kBasicClassName);
+      ++it;
+    }
+    Int_t maxName  = max_element(names.begin(), names.end(), string_len_compare)->size();
+    maxName = maxName > 4 ? maxName : 4;
+
+    printf("\n%-*s\t%s\n", maxName, "Name", "Value [class]");
+    printf("%-*s\t%s\n", maxName, "----", "-------------");
+    for(Int_t i=0; i< names.size(); ++i) {
+      if(atoi(values.at(i).c_str()) < 0)
+	printf("%-*s\t%s [%s]\n", maxName, names.at(i).c_str(), values.at(i).c_str(), classes.at(i).c_str());
+      else
+	printf("%-*s\t %s [%s]\n", maxName, names.at(i).c_str(), values.at(i).c_str(), classes.at(i).c_str());
+    } printf("\n");
+  }
+  
+
+};
+  
+
+
+
+template <class ABasic>
 class BasicData : public MBasicData
 {
+private:
+  volatile ABasic* fAddress; // Memory address of the basic data
 public:
-  BasicData(volatile void* addr, const char* basic_type) :
-    MBasicData(addr, basic_type) { }
+  BasicData(const char* name, volatile void* addr, const char* basic_type, TStreamerElement* element) :
+    MBasicData(basic_type), fAddress(reinterpret_cast<volatile ABasic*>(addr)) {
+    Int_t arrayLen = element ? element->GetArrayLength() : 0;
+    if(arrayLen == 0) { // just a single element
+      fgAll().insert(std::make_pair<std::string, MBasicData*>(name, this));
+    }
+    else { // an array
+      if(element->GetArrayDim() > 4) { 
+      	Warning("MapData", "No support for arrays > 4 dimensions. The array %s is %d and will not be mapped!",
+ 		name, element->GetArrayDim());
+      }
+      else {
+      	Int_t size = element->GetSize() / arrayLen;
+	ArrayConverter arrayConvert(element);
+	for(Int_t i=0; i< arrayLen; ++i) {
+	  void_pointer_add(addr, size*(i>0));
+	  MBasicData::New(arrayConvert.GetFullName(name, i).c_str(), addr, basic_type, 0);
+	}
+      }
+    }
+  }
+
   Double_t GetValue() {
-    LockingPointer<T> pAddress(reinterpret_cast<volatile T*> (fAddress), rb::Hist::GetMutex());
-    return *pAddress;
+    LockingPointer<ABasic> p(fAddress, rb::Hist::GetMutex());
+    return *p;
   }
-  virtual void SetValue(Double_t newval) {
-    LockingPointer<T> pAddress(reinterpret_cast<volatile T*> (fAddress), rb::Hist::GetMutex());
-    *pAddress = T(newval);
+
+  void SetValue(Double_t newval) {
+    LockingPointer<ABasic> p(fAddress, rb::Hist::GetMutex());
+    *p = ABasic(newval);
   }
+
   virtual ~BasicData() { }
 };
 
 #define CHECK_TYPE(type)		    \
   else if (!strcmp(basic_type_name, #type)) \
-    return new BasicData<type> (addr, basic_type_name)
-MBasicData* MBasicData::New(volatile void* addr, const char* basic_type_name) {
+    return new BasicData<type> (name, addr, basic_type_name, element)
+  MBasicData* MBasicData::New(const char* name, volatile void* addr, const char* basic_type_name, TStreamerElement* element) {
   if(0);
   CHECK_TYPE(Double_t);
   CHECK_TYPE(Float_t);
@@ -183,7 +250,6 @@ MBasicData* MBasicData::New(volatile void* addr, const char* basic_type_name) {
   else return 0;
 }
 #undef CHECK_TYPE
-  
 
 
 
@@ -196,74 +262,47 @@ MBasicData* MBasicData::New(volatile void* addr, const char* basic_type_name) {
 // rb::Data::Getvalue                                    //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 Double_t rb::Data::GetValue(const char* name) {
-  BasicDataMap_t::iterator it = fgBasicDataMap().find(name);
-  if(it == fgBasicDataMap().end()) {
+  MBasicData* basicData = 0;
+  basicData = MBasicData::Find(name);
+  if(!basicData) {
     Error("GetValue", "%s not found.", name);
     return -1.;
   }
-  MBasicData* b = it->second;
-  return (Double_t)b->GetValue();
+  return (Double_t)basicData->GetValue();
 }
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // static rb::Data::SetValue                             //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 void rb::Data::SetValue(const char* name, Double_t newvalue) {
-  BasicDataMap_t::iterator it = fgBasicDataMap().find(name);
-  if(it == fgBasicDataMap().end()) {
+  MBasicData* basicData = 0;
+  basicData = MBasicData::Find(name);
+  if(!basicData) {
     Error("SetData", "Data object: %s not found.", name);
     return;
   }
-  MBasicData* b = it->second;
-  b->SetValue(newvalue);
+  basicData->SetValue(newvalue);
 }
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // static rb::Data::SavePrimitive                        //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 void rb::Data::SavePrimitive(ostream& strm) {
-  if(fgBasicDataMap().empty()) return;
-  BasicDataMap_t::iterator it;
-  for(it = fgBasicDataMap().begin(); it != fgBasicDataMap().end(); ++it) {
-    strm << "  rb::Data::SetValue(\"" << it->first << "\", " << GetValue(it->first.c_str()) << ");\n";
-  }
+  MBasicData::SavePrimitive(strm);
 }
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // static rb::Data::MapData                              //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 Bool_t rb::Data::MapData(const char* name, TStreamerElement* element, volatile void* base_address) {
-  Bool_t ret = kFALSE; // return value, default to false
-
   string typeName = element->GetTypeName(); // the type of this specific element
   remove_duplicate_spaces(typeName); // in case someone did 'unsigned    short' or whatever
 
   volatile void* address = base_address; // address of base pointer to the whole class containing this element
   void_pointer_add(address, element->GetOffset()); // increment to address of this specific element
-  MBasicData* basicData = MBasicData::New(address, typeName); // try to create an MBasicData derived instance
+  MBasicData* basicData = MBasicData::New(name, address, typeName.c_str(), element); // try to create an MBasicData derived instance
 
-  if(basicData) { // this element is a basic data type, so process it
-    ret = kTRUE;
-    Int_t arrLen = element->GetArrayLength();
-    if(!arrLen) { // just a single element
-      fgBasicDataMap().insert(std::make_pair(name, basicData));
-    }
-    else { // an array
-      if(element->GetArrayDim() > 4) {
-	Warning("MapData", "No support for arrays > 4 dimensions. The array %s is %d and will not be mapped!",
-		name, element->GetArrayDim());
-      }
-      else {
-	Int_t size = element->GetSize() / arrLen;
-	ArrayConverter arrayConvert(element);
-	for(Int_t i=0; i< arrLen; ++i) {
-	  void_pointer_add(address, size*(i>0));
-	  fgBasicDataMap().insert(std::make_pair(arrayConvert.GetFullName(name, i), MBasicData::New(address, typeName)));
-	}
-      }
-    }
-  }
-  return ret;
+  return (basicData == 0);
 }
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
@@ -294,30 +333,8 @@ void rb::Data::MapClass(const char* name, const char* classname, volatile void* 
 // static rb::Data::PrintAll                             //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 void rb::Data::PrintAll() {
-  if(fgBasicDataMap().empty()) return;
-  vector<string> names, values, classes;
-
-  BasicDataMap_t::iterator it = fgBasicDataMap().begin();
-  while(it != fgBasicDataMap().end()) {
-    names.push_back(it->first);
-    values.push_back(double2str(GetValue(it->first.c_str())));
-    classes.push_back(it->second->kBasicClassName);
-    ++it;
-  }
-  Int_t maxName  = max_element(names.begin(), names.end(), string_len_compare)->size();
-  maxName = maxName > 4 ? maxName : 4;
-
-  printf("\n%-*s\t%s\n", maxName, "Name", "Value [class]");
-  printf("%-*s\t%s\n", maxName, "----", "-------------");
-  for(Int_t i=0; i< names.size(); ++i) {
-    if(atoi(values.at(i).c_str()) < 0)
-      printf("%-*s\t%s [%s]\n", maxName, names.at(i).c_str(), values.at(i).c_str(), classes.at(i).c_str());
-    else
-      printf("%-*s\t %s [%s]\n", maxName, names.at(i).c_str(), values.at(i).c_str(), classes.at(i).c_str());
-  } printf("\n");
+  MBasicData::PrintAll();
 }
-
-
 
 
 #else // Template class member function implementations
@@ -351,7 +368,6 @@ void rb::TData<T>::Init(Bool_t makeVisible, const char* args) {
   }
 
   fData = data;
-  fgMap().insert(std::make_pair<std::string, Data*>(kName, this));
 
   if (makeVisible) {
     if(PrintHeader()) {
@@ -363,12 +379,12 @@ void rb::TData<T>::Init(Bool_t makeVisible, const char* args) {
     std::cout << "      " << kName << "\t\t\t" << fClassName << "\n";
 
     MapClass(kName.c_str(), fClassName.c_str(), reinterpret_cast<volatile void*>(fData));
-
-    LockingPointer<T> pData (fData, fMutex);
-    void* v = reinterpret_cast<void*>(pData.Get());
-    std::string brName = kName; brName += ".";
-    rb::Hist::AddBranch(kName.c_str(), fClassName.c_str(), &v);
   }
+
+  LockingPointer<T> pData (fData, fMutex);
+  void* v = reinterpret_cast<void*>(pData.Get());
+  std::string brName = kName; brName += ".";
+  rb::Hist::AddBranch(kName.c_str(), fClassName.c_str(), &v);
 }
 
 template <class T>
@@ -382,16 +398,11 @@ rb::TData<T>::~TData() {
   LockingPointer<T> pData(fData, fMutex);
   delete pData.Get();
   fData = 0;
-
-  Map_t::iterator it = fgMap().find(kName);
-  if(it != fgMap().end()) {
-    fgMap().erase(it);
-  }
 }
 
 template <class T>
-std::auto_ptr<LockingPointer<T> > rb::TData<T>::GetLockedData() {  
-  std::auto_ptr<LockingPointer<T> > out (new LockingPointer<T> (fData, fMutex));
+AutoLockingPointer<T> rb::TData<T>::Get() {
+  AutoLockingPointer<T> out (fData, fMutex);
   return out;
 }
 

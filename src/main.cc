@@ -12,7 +12,7 @@ Int_t main(Int_t argc, Char_t** argv)
 {
   //  rb::Logo();
   rb::Rint rbApp("RootBeer", &argc, argv, 0, 0, kTRUE);
-  Midas m;
+  //  Midas m;
   gROOT->ProcessLine("gStyle->SetOptTitle(kTRUE)");
   rbApp.Run();
   return 0;

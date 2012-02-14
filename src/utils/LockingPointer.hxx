@@ -2,12 +2,12 @@
 //! \brief defines a RAII-style locking pointer.
 //! \details The basic idea behind these classes is nicely explained
 //! <a href = "http://drdobbs.com/cpp/184403766">here</a>.
-#ifndef __LOCKING_POINTER__
-#define __LOCKING_POINTER__
+#ifndef LOCKING_POINTER_HXX
+#define LOCKING_POINTER_HXX
 #include <TMutex.h>
+#include "utils/counted_ptr.h"
 
-
-/// RAII mutex-locking pointer class.
+//! RAII mutex-locking pointer class.
 
 //! This class allows access to objects shared between threads which have been
 //! marked <tt>volatile</tt>, with pointer-like semantics.  When instantiated,
@@ -38,21 +38,21 @@ template <typename T>
 class LockingPointer
 {
 private:
-  /// Pointer to the critical object we want to access.
+  //! Pointer to the critical object we want to access.
   T* fObject;
 
-  /// Mutex used to lock the critical object.
+  //! Mutex used to lock the critical object.
   TMutex* fMutex;
 
 public:
-  /// Constructor (by reference).
+  //! Constructor (by reference).
   //! Set fObject and fMutex, lock fMutex.
   LockingPointer(volatile T& object, TMutex& mutex) :
     fObject(const_cast<T*>(&object)), fMutex(&mutex) {
     fMutex->Lock();
   }
 
-  /// Constructor (by pointer).
+  //! Constructor (by pointer).
   //! Set fObject and fMutex, lock fMutex. Included for convenience
   //! so we don't have to dereference things that are already pointers.
   LockingPointer(volatile T* object, TMutex& mutex) :
@@ -60,38 +60,38 @@ public:
     fMutex->Lock();
   }
 
-  /// Destructor.
+  //! Destructor.
   //! Release the fMutex lock.
   ~LockingPointer() {
     fMutex->UnLock();
   }
 
-  /// Return a pointer to the critical object.
+  //! Return a pointer to the critical object.
   T* Get() {
     return fObject;
   }
 
-  /// Return a pointer to the critical object.
+  //! Return a pointer to the critical object.
   //! Same as Get(), but as an operator, allowing "real" pointer-like semantics.
   T* operator-> () {
     return fObject;
   }
 
-  /// Return a reference to the critical object.
+  //! Return a reference to the critical object.
   T& operator* () {
     return *fObject;
   }
 
 private:
-  /// Copy constructor, does nothing.
+  //! Copy constructor, does nothing.
   LockingPointer(const LockingPointer& other) { };
 
-  /// Assignment operator, does nothing.
+  //! Assignment operator, does nothing.
   LockingPointer& operator= (const LockingPointer& other) { };
 };
 
 
-/// Performs exactly the same functions as LockFreePointer but without any mutex locking.
+//! Performs exactly the same functions as LockFreePointer but without any mutex locking.
 
 //! Basically, this should only be used in cases where there is no need to lock the critical
 //! object or when its mutex has already been locked. Example:
@@ -113,49 +113,94 @@ template <typename T>
 class LockFreePointer
 {
 private:
-  /// Pointer to the critical object we want to access.
+  //! Pointer to the critical object we want to access.
   T* fObject;
 
 public:
-  /// Constructor (by reference).
+  //! Constructor (by reference).
   //! Set fObject.
   LockFreePointer(volatile T& object) :
     fObject(const_cast<T*>(&object)) {  }
 
-  /// Constructor (by pointer).
+  //! Constructor (by pointer).
   //! Set fObject.
   LockFreePointer(volatile T* object) :
     fObject(const_cast<T*>(object)) {  }
 
-  /// Descructor.
+  //! Descructor.
   //! Nothing to do.
   ~LockFreePointer() { }
 
-  /// Return a pointer to the critical object.
+  //! Return a pointer to the critical object.
   T* Get() {
     return fObject;
   }
 
-  /// Return a pointer to the critical object.
+  //! Return a pointer to the critical object.
   //! Same as Get(), but as an operator, allowing "real" pointer-like semantics.
   T* operator-> () {
     return fObject;
   }
 
-  /// Return a reference to the critical object.
+  //! Return a reference to the critical object.
   T& operator* () {
     return *fObject;
   }
 
 private:
-  /// Copy constructor, does nothing.
+  //! Copy constructor, does nothing.
   LockFreePointer(const LockFreePointer& other) { };
 
-  /// Assignment operator, does nothing.
+  //! Assignment operator, does nothing.
   LockFreePointer& operator= (const LockFreePointer& other) { };
 };
 
 
+//! \brief Increase the scope of a locking pointer.
+//! \details Wraps a "smart" reference-counted pointer to a LockingPointer.
+//! We can return objects of this class from a function and effectively extend the
+//! scope of the locking pointer to one level beyond the function from which it is
+//! returned. Overloading of the \c -> \c * and Get() operators allows pointer-like
+//! semantics directly.
+template <typename T>
+class AutoLockingPointer
+{
+private:
+  //! Reference-counted pointer to a new LockFreePointer
+  counted_ptr<LockingPointer<T> > fPointer;
+
+public:
+  //! Call the constructor for fPointer.
+  AutoLockingPointer(volatile T& object, TMutex& mutex) :
+    fPointer (new LockingPointer<T> (object, mutex)) { }
+
+  //! Call the constructor for fPointer.
+  AutoLockingPointer(volatile T* object, TMutex& mutex) :
+    fPointer (new LockingPointer<T> (object, mutex)) { }
+
+  //! Copy the reference counted pointer
+  AutoLockingPointer(const AutoLockingPointer<T>& other) :
+    fPointer(other.fPointer) { }
+
+  //! Nothing to do
+  ~AutoLockingPointer() { }
+
+  //! Return a pointer to the critical object.
+  T* Get() {
+    return fPointer->Get();
+  }
+
+  //! Return a pointer to the critical object.
+  //! Same as Get(), but as an operator, allowing "real" pointer-like semantics.
+  T* operator-> () {
+    return fPointer->Get();
+  }
+
+  //! Return a reference to the critical object.
+  T& operator* () {
+    return fPointer->operator*();
+  }
+};
 
 
 #endif

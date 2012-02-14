@@ -53,6 +53,6 @@
 //! GET_LOCKING_POINTER(pMine, my_class_instance, MyClass);
 //! pMine->MemberFunction();
 //! \endcode
-#define GET_LOCKING_POINTER(SYMBOL, NAME, CLASS)			\
-  auto_ptr<LockingPointer<CLASS> > temp_12312312312 = ((rb::TData<CLASS>*)NAME##_Data)->GetLockedData(); \
-  LockingPointer<CLASS>& SYMBOL = *temp_12312312312;
+// #define GET_LOCKING_POINTER(SYMBOL, NAME, CLASS)			\
+//   auto_ptr<LockingPointer<CLASS> > temp_12312312312 = ((rb::TData<CLASS>*)NAME##_Data)->GetLockedData(); \
+//   LockingPointer<CLASS>& SYMBOL = *temp_12312312312;
