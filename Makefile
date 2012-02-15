@@ -52,7 +52,7 @@ SOURCES= $(MIDASONLINE) $(SRC)/Rootbeer.cxx $(SRC)/Data.cxx $(SRC)/Buffer.cxx $(
 $(SRC)/midas/TMidasEvent.cxx $(SRC)/midas/rbMidasEvent.cxx \
 $(USER_SOURCES) $(USER)/Skeleton.cxx
 
-HEADERS=$(SRC)/Rootbeer.hxx $(SRC)/Data.hxx $(SRC)/Skeleton.hxx $(SRC)/Buffer.hxx $(SRC)/midas/rbMidasEvent.h $(SRC)/midas/TMidasFile.h $(USER_HEADERS)
+HEADERS=$(SRC)/Rootbeer.hxx $(SRC)/Data.hxx $(SRC)/Skeleton.hxx $(SRC)/Buffer.hxx $(SRC)/midas/rbMidasEvent.h $(SRC)/midas/TMidasFile.h $(USER_HEADERS) $(SRC)/utils/Thread.hxx
 
 libRootbeer.so: libRBHist.so cint/RBDictionary.cxx $(SOURCES)
 	g++ $(DYLIB) -o $(PWD)/lib/$@ -lRBHist $(CXXFLAGS) $(MIDASLIBS) $(ROOTGLIBS) $(RPATH)  -p cint/RBDictionary.cxx $(SOURCES) 

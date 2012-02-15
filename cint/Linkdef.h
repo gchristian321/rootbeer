@@ -1,5 +1,5 @@
-/** \file Linkdef.h */
-/*! \brief Tells CINT to generate dictionaries for our classes. */
+//! \file Linkdef.h
+//! \brief Tells CINT to generate dictionaries for our classes.
  
  
 #ifdef __CINT__ 
@@ -10,9 +10,10 @@
  
 #pragma link C++ namespace rb; 
 #pragma link C++ namespace rb::Canvas;
-#pragma link C++ namespace rb::CutG;
+#pragma link C++ class rb::Rint+;
  
 #pragma link C++ class rb::Data+; 
+// #pragma link C++ class ThreadExecutor+;
 
 #include "../user/UserLinkdef.h"
 

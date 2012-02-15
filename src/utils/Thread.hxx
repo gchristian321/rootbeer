@@ -1,81 +1,135 @@
-//! \file ThreadExecutor.hxx
-//! \brief Defines an ABC for managing the running of threaded functions.
-#ifndef THREAD_EXECUTOR_HXX
-#define THREAD_EXECUTOR_HXX
+//! \file Thread.hxx
+//! \brief Defines an ABC for managing the running of threaded processes.
+#ifndef THREAD_HXX
+#define THREAD_HXX
 #include <cassert>
 #include <string>
-#include <map>
+#include <list>
+#include <algorithm>
 #include <TThread.h>
 
 
 
-//! \brief Manages the execution of threaded functions.
-class ThreadExecutor
+namespace rb
 {
-private:
-  const char* fName;
-  static std::map<std::string, ThreadExecutor*>& fgMap() {
-    static std::map<std::string, ThreadExecutor*>* out =
-      new std::map<std::string, ThreadExecutor*>();
-    return *out;
-  }
-  TThread* fThread;
+  //! \brief Manages the execution of threaded functions.
+  //! \details This class allows for threads to be run under the RAII principle, i.e.
+  //! via a class that automatically handles it's own initialization and destruction
+  //! of running in the threaded environment. This is an abstract base class, with th
+  //! pure virtual function DoInThread() that must be implemented in derived classes.
+  //! To use, simply create a new instance of a derived class and then call Run().
+  //! \code
+  //! rb::Thread* thread = new MyThreadedClass();
+  //! thread->Run();
+  //! \endcode
+  //! \warning For proper use, you must allocate onto the heap using <tt>new</tt>. Otherwise,
+  //! if the rb::Thread instance goes out of scope wile the threaded function is still
+  //! running, there will be major problems since the destructor is called upon returning
+  //! from DoInThread().  To avoid accidental stack allocation, you can make the constructor
+  //! of your derived classes private or protected and then add a static New() or Create() function
+  //! that returns a pointer to heap-allocated instance (or a CreateAndRun() function that crates and
+  //! instance on the heap and also calls Run()).
+  class Thread
+  {
+  public:
+    typedef std::list<std::string> List_t;
 
-  //! Checks to make sure there's no duplicate thread names in the program.
-  const char* NameCheck(const char* name) {
-    bool ThreadNameIsUnique = TThread::GetThread(name) == 0;
-    assert(ThreadNameIsUnique);
-    return name;
-  }
+  private:
+    //! Name of the thread
+    //! \note Must be unique; duplicate names result in an assert.
+    const char* fName;
 
-public:
-  //! Initializes fThread
-  ThreadExecutor(const char* name) : fName(name), fThread(0) {
-    NameCheck(name);
-  }
-
-  //! The function that we want to run in the thread.
-  virtual void DoInThread() = 0;
-
-  //! Starts the thread
-  inline Int_t Run() {
-    fThread = new TThread(fName, ThreadExecutor::FRun);
-    fgMap().insert(std::make_pair<std::string, ThreadExecutor*>(fName, this));
-    return fThread->Run(reinterpret_cast<void*>(this));
-  }
-
-  //! Checks if a specific thread is running
-  static Bool_t IsRunning(const char* name) {
-    return fgMap().find(name) != fgMap().end();
-  }
-
-  //! Stops a specific thread from runing
-  static void Stop(const char* name) {
-    fgMap().erase(name);
-  }
-
-  //! Calls fThread->Join()
-  virtual ~ThreadExecutor() {
-    Stop(fName);
-    if(fThread) {
-      fThread->Join();
-      delete fThread;
+    //! Keeps track of all presently <it>running</it> threads.
+    static Thread::List_t& fgList() {
+      static Thread::List_t* out = new Thread::List_t();
+      return *out;
     }
-  }
 
-private:
-  //! \brief Function for passing to the TThread constructor.
-  static void * FRun(void * args) {
-    ThreadExecutor * this_ =  reinterpret_cast<ThreadExecutor*> (args);
-    this_->DoInThread();
-    delete this_;
-  }
+    //! ROOT TThread, handles the running of the threaded function.
+    TThread* fThread;
 
-  //! Copy constructor (prevent copying)
-  ThreadExecutor(const ThreadExecutor& other) { }
+    //! Checks to make sure there's no duplicate thread names in the program,
+    //! throws an assert if there is.
+    //! \todo Maybe it would be better to use an exception?
+    const char* NameCheck(const char* name) {
+      bool ThreadNameIsUnique = TThread::GetThread(name) == 0;
+      assert(ThreadNameIsUnique);
+      return name;
+    }
 
-  //! Prevent equivalency.
-  ThreadExecutor& operator= (const ThreadExecutor& other) { }
-};
+  public:
+    //! \details Sets fName, initializes fThread to 0, checks for duplicate names.
+    Thread(const char* name) : fName(name), fThread(0) {
+      NameCheck(name);
+    }
+
+    //! \details Calls Stop(), TThread::Join() on fThread, deallocated fThread.
+    virtual ~Thread() {
+      Stop(fName);
+      if(fThread) {
+	//	fThread->Join();
+	delete fThread;
+      }
+    }
+
+    //! \brief Function that we want to run in a threaded environment.
+    //! \details As this is pure virtual, it must be implemented in derived
+    //! classes. This is where we tell what we want to actually happen in the
+    //! threaded environment.
+    virtual void DoInThread() = 0;
+
+    //! \brief Start running the thread.
+    Int_t Run() {
+      fThread = new TThread(fName, Thread::FRun);
+      fgList().push_back(fName);
+      return fThread->Run(reinterpret_cast<void*>(this));
+    }
+
+    //! \brief Checks if a specific thread is running (see Stop() for more details).
+    static Bool_t IsRunning(const char* name) {
+      List_t::iterator pos = std::find(fgList().begin(), fgList().end(), name);
+      return pos != fgList().end();
+    }
+
+    //! Stop running a specific thread.
+    //! \details This function, along with IsRunning() are meant to allow
+    //! threads to be terminated by an external signal.  To do this, place
+    //! a condition on IsRunning within the implementation of DoInThread(),
+    //! then an external call to TThread::Stop() can stop the thread execution.
+    //! For example:
+    //! \code
+    //! // In MyThread::DoInThread()
+    //! while TThread::IsRuning("MyThreadName") // do something
+    //! // .... //
+    //! // Now in some externalfunction
+    //! if (whatever) TThread::Stop("MyThreadName") // breaks out of the DoInThread() loop.
+    //! \endcode
+    static void Stop(const char* name) {
+      fgList().remove(name);
+      if(TThread::GetThread(name)) {
+	TThread::GetThread(name)->Join();
+      }
+    }
+
+  private:
+    //! \brief Function for passing to the TThread constructor.
+    //! \details TThread requires a function <tt>void * func(void *)</tt>
+    //! Here we define one that takes (void*)this as the argument, allowing
+    //! us to run a normal member function [DoInThread()] in the threaded
+    //! environment.  DoInThread() returns, call the destructor on this,
+    //! allowing for self-management of allocated memory.
+    static void * FRun(void * args) {
+      Thread * this_ =  reinterpret_cast<Thread*> (args);
+      this_->DoInThread();
+      delete this_;
+    }
+
+    //! Copy constructor (prevent copying)
+    Thread(const Thread& other) { }
+
+    //! Prevent equivalency.
+    Thread& operator= (const Thread& other) { }
+  };
+}
 
 #endif

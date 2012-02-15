@@ -28,7 +28,6 @@
 #pragma link C++ defined_in /home/dragon/gc/dragon/analyzer/src/vme/vme.hxx;
 #pragma link C++ class TMidasEvent+;
 #pragma link C++ class TMidasFile+;
-#pragma link C++ class TimeStamp+;
 
 
 #pragma link C++ class ExampleData+;

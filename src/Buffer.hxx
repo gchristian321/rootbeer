@@ -4,123 +4,25 @@
 #define BUFFER_HXX__
 #include <string>
 #include <Rtypes.h>
-#include "utils/ThreadExecutor.hxx"
+#include "utils/Thread.hxx"
 
 
-static const Int_t N_SOURCES = 3;
-enum DataSources { ONLINE_, FILE_, LIST_ };
 namespace rb
 {
-  class BufferSource;
-
-  class ThreadFile : public ThreadExecutor
-  {
-  private:
-    const char* kFileName;
-    const Bool_t kStopAtEnd;
-    BufferSource* fBuffer;
-  public:
-    ThreadFile(const char* filename, Bool_t stopAtEnd);
-    virtual ~ThreadFile();
-
-    void DoInThread();
-  };
-
-  class ThreadOnline : public ThreadExecutor
-  {
-  private:
-    const char* fSourceArg;
-    const char* fOtherArg;
-    char** fOtherArgs;
-    const int fNumOthers;
-    BufferSource* fBuffer;
-  public:
-    ThreadOnline(const char* source, const char* other, char** others, int nothers);
-    virtual ~ThreadOnline();
-    
-    void DoInThread();
-  };
-
-
-
-  // class Connector
-  // {
-  // private:
-  //   TThread* fThread;
-  // protected:
-  //   BufferSource* fBuffer;
-  //   Bool_t fRun;
-  // public:
-  //   Connector(); //BufferSource* buf);
-  //   virtual ~Connector();
-  //   virtual void Attach() = 0;
-  //   void Run() { fThread->Run((void*)this); }
-  // private:
-  //   static void* RunThread(void* args)  {
-  //     reinterpret_cast<Connector*>(args)->Attach();
-  //   }
-  //   friend class BufferSource;
-  // };
-
-  // class File : public Connector
-  // {
-  // private:
-  //   const Bool_t kStopAtEnd;
-  //   const std::string kFileName;
-  // public:
-  //   File(const char* filename, Bool_t stopAtEnd); //, BufferSource* buf);
-  //   virtual ~File() {};
-  //   void Attach();
-  // };
-
-  // class Online : public Connector
-  // {
-  // private:
-  //   const char* fSourceArg;
-  //   const char* fOtherArg;
-  //   char** fOtherArgs;
-  //   const int fNumOthers;
-  // public:
-  //   Online(const char* source, const char* other, char** others, int nothers, BufferSource* buf);
-  //   virtual ~Online() {};
-  //   void Attach();
-  // };
-
-
+  //! \brief ABC for defining how to obtain and unpack data buffers.
+  //! \details By creating a class derived from this one, users can define
+  //! how to connect (disconnect) to (from) an offline or online data source, how to recieve incoming
+  //! data buffers, and how to unpack those buffers into user-defined classes.  All of the
+  //! non-static member functions are pure virtual and must be implemented in derived classes.  See the
+  //! documentation of individual functions for an explanation of what each should do.
   class BufferSource
   {
-  private:
-    //! Thread for attaching to buffer sources.
-    //    TThread fThread;
-
-    // class PrivateConnector {
-    // private:
-    //   Connector* fConnector_;
-    // public:
-    //   PrivateConnector() : fConnector_(0) {}
-    //   void Start(Connector* new_) { fConnector_ = new_; }
-    //   void Stop() { if (fConnector_) { delete fConnector_; fConnector_ = 0; } }
-    //   Connector* operator() () { return fConnector_; }
-    //   ~PrivateConnector() { Stop(); }
-    // }
-    //   fConnector;
-
-    //    void StartConnection(Connector* new_);
   public:
-    Bool_t IsConnected() { return 1; } //fConnector()->fRun; }
-    // void RunOnline(const char* host, const char*  other, char** others, Int_t nothers);
-    // void RunFile(const char* filename, Bool_t stopAtEnd);
-    // void RunList(const char* filename);
-    void Unattach();
-    static BufferSource* GetFromUser();
+    //! \details Nothing to do.
+    BufferSource() {}
 
-  protected:
-    //! Constructor
-    BufferSource();
-
-  public:
-    //! Destructor
-    virtual ~BufferSource() {};
+    //! \details Nothing to do.
+    virtual ~BufferSource() {}
 
     //! Open a data file
     //! \param [in] file_name Name (path) of the file to open.
@@ -145,16 +47,144 @@ namespace rb
     //! \returns true if buffer is successfully read, false otherwise.
     virtual Bool_t ReadBufferOnline() = 0;
 
+    //! Terminate connection to an offline data source.
     virtual void CloseFile() = 0;
 
+    //! Terminate connection to an online data source.
     virtual void DisconnectOnline() = 0;
 
-    //! Unpack an abstract buffer into rb::Data classes.
-    //! \returns Error code
+    //! Unpack an abstract buffer into rb::Data-derived classes.
+    //! \returns true on successful unpack, false otherwise.
     virtual Bool_t UnpackBuffer() = 0;
 
-    //    friend class Connector;
+    //! \brief Creation function.
+    //! \details This is used as a generic way to get a pointer to an instance of a class derived from BufferSource,
+    //! when the specific derived class is unknown <i>a priori</i>.  This function should be implemented by users
+    //! such that it returns a pointer to the specific class they want to use for reading and unpacking data. Example:
+    //! \code
+    //! BufferSource* New() {
+    //!     return new MyBufferSource();
+    //! }
+    //! \endcode
+    //! \returns A pointer to a \c new instance of a class derived from BufferSource.
+    static BufferSource* New();
   };
+
+
+  //! Contains classes used to attach to various data sources.
+  namespace attach
+  {
+    //! Defines how we attach to offline data (a file) in a threaded environment.
+    class File : public rb::Thread
+    {
+    private:
+      //! Name (path) of the offline.
+      const char* kFileName;
+
+      //! Tells whether to stop reading at EOF (true) or stay connected and wait for more data to come in (false).
+      const Bool_t kStopAtEnd;
+
+      //! Pointer to a BufferSource derived class used for getting and unpacking buffers.
+      BufferSource* fBuffer;
+
+    protected:
+      //! \details Set kFileName and kStopAtEnd, initialize fBuffer to the result
+      //! of BufferSource::New()
+      //! \note Protected so that we can't accidentally create a stack instance,
+      //! use static New() or CreateAndRun() to make heap allocated instances.
+      File(const char* filename, Bool_t stopAtEnd);
+
+    public:
+      //! \details Deallocate fBuffer.
+      virtual ~File();
+
+      //! \brief Open the file, loop contents and use fBuffer to extract and unpack data.
+      void DoInThread();
+
+      //! \brief Returns A \c new instance of rb::attach::File
+      static File* New(const char* filename, Bool_t stopAtEnd);
+
+      //! \brief Conststructs a \c new instance of rb::attach::File and calls rb::Thread::Run().
+      static void CreateAndRun(const char* filename, Bool_t stopAtEnd);
+    };
+
+    inline File::~File() {
+      delete fBuffer;
+    }
+
+    inline File* File::New(const char* filename, Bool_t stopAtEnd) {
+      return new File(filename, stopAtEnd);
+    }
+
+    inline void File::CreateAndRun(const char* filename, Bool_t stopAtEnd) {
+      File * f = new File(filename, stopAtEnd);
+      f->Run();
+    }
+
+
+
+    //! Defines how we attach to online data.
+    //! \note The data members and constructor have been designed such that they
+    //! can accomodata a wide variety of connection formats. However, depending
+    //! on the particular impementation of rootbeer, it may be difficult or ackward to
+    //! use the default. In this case, it is sugested that the user alter this class
+    //! to better suit his/her experiment.
+    class Online : public rb::Thread
+    {
+    private:
+      //! \brief The source of the online data.
+      //! \details Usually this is the host name or ip address of where the data come in from.
+      const char* fSourceArg;
+
+      //! \brief Secondary argument that might be needed to obtain online data.
+      //! \details Examples: MIDAS experiment name, port number, etc.
+      const char* fOtherArg;
+
+      //! \brief Any other arguments that are not covered by the first two.
+      //! \details Like the arguments to main (<tt>char** argc</tt>), this can basically be used
+      //! to represent anything.
+      char** fOtherArgs;
+
+      //! The length of the \c char* array fOtherArgs.
+      const int fNumOthers;
+
+      //! Pointer to a BufferSource derived class used for getting and unpacking buffers.
+      BufferSource* fBuffer;
+
+    protected:
+      //! \details Sets data fields, allocates fBuffer using BufferSource::New()
+      //! \note Protected so that we can't accidentally create a stack instance,
+      //! use static New() or CreateAndRun() to make heap allocated instances.
+      Online(const char* source, const char* other, char** others, int nothers);
+
+    public:
+      //! \details Deallocates fBuffer
+      virtual ~Online();
+
+      //! \brief Connects to an online data source, listens for data and unpacks it when present (using fBuffer).
+      void DoInThread();
+
+      //! \brief Returns A \c new instance of rb::attach::Online
+      static Online* New(const char* source, const char* other, char** others, int nothers);
+
+      //! \brief Conststructs a \c new instance of rb::attach::Online and calls rb::Thread::Run().
+      static void CreateAndRun(const char* source, const char* other, char** others, int nothers);
+    };
+
+    inline Online::~Online() {
+      delete fBuffer;
+    }
+
+    inline Online* Online::New(const char* source, const char* other, char** others, int nothers) {
+      return new Online(source, other, others, nothers);
+    }
+
+    inline void Online::CreateAndRun(const char* source, const char* other, char** others, int nothers) {
+      Online * o = new Online(source, other, others, nothers);
+      o->Run();
+    }
+
+  }
 }
 
 #endif
