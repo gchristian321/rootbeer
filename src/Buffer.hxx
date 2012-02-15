@@ -24,76 +24,93 @@ namespace rb
     virtual ~ThreadFile();
 
     void DoInThread();
-  };    
-
-  class Connector
-  {
-  private:
-    TThread* fThread;
-  protected:
-    BufferSource* fBuffer;
-    Bool_t fRun;
-  public:
-    Connector(); //BufferSource* buf);
-    virtual ~Connector();
-    virtual void Attach() = 0;
-    void Run() { fThread->Run((void*)this); }
-  private:
-    static void* RunThread(void* args)  {
-      reinterpret_cast<Connector*>(args)->Attach();
-    }
-    friend class BufferSource;
   };
 
-  class File : public Connector
-  {
-  private:
-    const Bool_t kStopAtEnd;
-    const std::string kFileName;
-  public:
-    File(const char* filename, Bool_t stopAtEnd); //, BufferSource* buf);
-    virtual ~File() {};
-    void Attach();
-  };
-
-  class Online : public Connector
+  class ThreadOnline : public ThreadExecutor
   {
   private:
     const char* fSourceArg;
     const char* fOtherArg;
     char** fOtherArgs;
     const int fNumOthers;
+    BufferSource* fBuffer;
   public:
-    Online(const char* source, const char* other, char** others, int nothers, BufferSource* buf);
-    virtual ~Online() {};
-    void Attach();
+    ThreadOnline(const char* source, const char* other, char** others, int nothers);
+    virtual ~ThreadOnline();
+    
+    void DoInThread();
   };
+
+
+
+  // class Connector
+  // {
+  // private:
+  //   TThread* fThread;
+  // protected:
+  //   BufferSource* fBuffer;
+  //   Bool_t fRun;
+  // public:
+  //   Connector(); //BufferSource* buf);
+  //   virtual ~Connector();
+  //   virtual void Attach() = 0;
+  //   void Run() { fThread->Run((void*)this); }
+  // private:
+  //   static void* RunThread(void* args)  {
+  //     reinterpret_cast<Connector*>(args)->Attach();
+  //   }
+  //   friend class BufferSource;
+  // };
+
+  // class File : public Connector
+  // {
+  // private:
+  //   const Bool_t kStopAtEnd;
+  //   const std::string kFileName;
+  // public:
+  //   File(const char* filename, Bool_t stopAtEnd); //, BufferSource* buf);
+  //   virtual ~File() {};
+  //   void Attach();
+  // };
+
+  // class Online : public Connector
+  // {
+  // private:
+  //   const char* fSourceArg;
+  //   const char* fOtherArg;
+  //   char** fOtherArgs;
+  //   const int fNumOthers;
+  // public:
+  //   Online(const char* source, const char* other, char** others, int nothers, BufferSource* buf);
+  //   virtual ~Online() {};
+  //   void Attach();
+  // };
 
 
   class BufferSource
   {
   private:
     //! Thread for attaching to buffer sources.
-    TThread fThread;
+    //    TThread fThread;
 
-    class PrivateConnector {
-    private:
-      Connector* fConnector_;
-    public:
-      PrivateConnector() : fConnector_(0) {}
-      void Start(Connector* new_) { fConnector_ = new_; }
-      void Stop() { if (fConnector_) { delete fConnector_; fConnector_ = 0; } }
-      Connector* operator() () { return fConnector_; }
-      ~PrivateConnector() { Stop(); }
-    }
-      fConnector;
+    // class PrivateConnector {
+    // private:
+    //   Connector* fConnector_;
+    // public:
+    //   PrivateConnector() : fConnector_(0) {}
+    //   void Start(Connector* new_) { fConnector_ = new_; }
+    //   void Stop() { if (fConnector_) { delete fConnector_; fConnector_ = 0; } }
+    //   Connector* operator() () { return fConnector_; }
+    //   ~PrivateConnector() { Stop(); }
+    // }
+    //   fConnector;
 
-    void StartConnection(Connector* new_);
+    //    void StartConnection(Connector* new_);
   public:
-    Bool_t IsConnected() { return fConnector()->fRun; }
-    void RunOnline(const char* host, const char*  other, char** others, Int_t nothers);
-    void RunFile(const char* filename, Bool_t stopAtEnd);
-    void RunList(const char* filename);
+    Bool_t IsConnected() { return 1; } //fConnector()->fRun; }
+    // void RunOnline(const char* host, const char*  other, char** others, Int_t nothers);
+    // void RunFile(const char* filename, Bool_t stopAtEnd);
+    // void RunList(const char* filename);
     void Unattach();
     static BufferSource* GetFromUser();
 
@@ -136,7 +153,7 @@ namespace rb
     //! \returns Error code
     virtual Bool_t UnpackBuffer() = 0;
 
-    friend class Connector;
+    //    friend class Connector;
   };
 }
 

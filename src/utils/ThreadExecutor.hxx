@@ -13,7 +13,7 @@ private:
 
 public:
   //! Initializes fThread
-  ThreadExecutor(const char* name) :
+  ThreadExecutor(const char* name = "AThread") :
     fThread(name, ThreadExecutor::FRun) {}
 
   //! Calls fThread->Join()

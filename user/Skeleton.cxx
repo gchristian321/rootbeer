@@ -146,6 +146,9 @@ Bool_t Midas::ReadBufferOnline() {
 }
 
 Midas::~Midas() {
+#ifdef MIDAS_ONLINE
+  TMidasOnline::instance()->disconnect();
+#endif  
 }
 
 void Midas::RunStart(int transition, int run_number, int trans_time) {
