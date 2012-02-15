@@ -401,9 +401,10 @@ rb::TData<T>::~TData() {
 }
 
 template <class T>
-AutoLockingPointer<T> rb::TData<T>::Get() {
+AutoLockingPointer<T> rb::TData<T>::GetPointer() {
   AutoLockingPointer<T> out (fData, fMutex);
   return out;
 }
+
 
 #endif

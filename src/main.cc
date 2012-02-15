@@ -11,6 +11,7 @@
 Int_t main(Int_t argc, Char_t** argv)
 {
   //  rb::Logo();
+  //  rb::fBgo = new rb::TData<Bgo>("bgo", false); rb::test();
   rb::Rint rbApp("RootBeer", &argc, argv, 0, 0, kTRUE);
   //  Midas m;
   gROOT->ProcessLine("gStyle->SetOptTitle(kTRUE)");

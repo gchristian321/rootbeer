@@ -6,6 +6,7 @@
 #define LOCKING_POINTER_HXX
 #include <TMutex.h>
 #include "utils/counted_ptr.h"
+// #define LOCKING_POINTER_VERBOSE
 
 //! RAII mutex-locking pointer class.
 
@@ -50,6 +51,9 @@ public:
   LockingPointer(volatile T& object, TMutex& mutex) :
     fObject(const_cast<T*>(&object)), fMutex(&mutex) {
     fMutex->Lock();
+#ifdef LOCKING_POINTER_VERBOSE
+    Info("LockingPointer", "Locking");
+#endif
   }
 
   //! Constructor (by pointer).
@@ -58,12 +62,18 @@ public:
   LockingPointer(volatile T* object, TMutex& mutex) :
     fObject(const_cast<T*>(object)), fMutex(&mutex) {
     fMutex->Lock();
+#ifdef LOCKING_POINTER_VERBOSE
+    Info("LockingPointer", "Locking");
+#endif
   }
 
   //! Destructor.
   //! Release the fMutex lock.
   ~LockingPointer() {
     fMutex->UnLock();
+#ifdef LOCKING_POINTER_VERBOSE
+    Info("~LockingPointer", "UnLocking");
+#endif
   }
 
   //! Return a pointer to the critical object.
@@ -166,7 +176,7 @@ template <typename T>
 class AutoLockingPointer
 {
 private:
-  //! Reference-counted pointer to a new LockFreePointer
+  //! Reference-counted pointer to a new LockingPointer
   counted_ptr<LockingPointer<T> > fPointer;
 
 public:

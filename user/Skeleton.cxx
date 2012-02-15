@@ -74,15 +74,17 @@ protected:
   Int_t fRequestId; //< Return code for online event requests.
   TMidasFile fFile; //< Offline MIDAS file.
   TMidasEvent fBuffer; //< Midas event buffer.
-  rb::TData<Bgo> fBgo;
+  //  rb::TData<Bgo> fBgo;
 public:
-  Midas() : fRequestId(-1), fBgo("bgo", false) {}
+  Midas() : fRequestId(-1)/*, fBgo("bgo", false)*/ {}
   virtual ~Midas();
   virtual Bool_t OpenFile(const char* file_name, char** other = 0, int nother = 0);
   virtual Bool_t ConnectOnline(const char* host, const char* other_arg = "", char** other_args = 0, int n_others = 0);
   virtual Bool_t ReadBufferOffline();
   virtual Bool_t ReadBufferOnline();
   virtual Bool_t UnpackBuffer();
+  virtual void CloseFile();
+  virtual void DisconnectOnline();
 protected:
   static void RunStop(int transition, int run_number, int trans_time);
   static void RunStart(int transition, int run_number, int trans_time);
@@ -144,9 +146,6 @@ Bool_t Midas::ReadBufferOnline() {
 }
 
 Midas::~Midas() {
-#ifdef MIDAS_ONLINE
-  TMidasOnline::instance()->disconnect();
-#endif
 }
 
 void Midas::RunStart(int transition, int run_number, int trans_time) {
@@ -170,10 +169,14 @@ Bool_t Midas::UnpackBuffer() {
   // (DRAGON test setup)
   Short_t eventId = fBuffer.GetEventId();
   vme::Module::reset_all();
-  
+
+  AutoLockingPointer<Bgo> pBgo = fBgo->GetPointer();
+  //  pBgo->test();
+
   switch(eventId) {
   case 1: // event
-    vme::Module::unpack_all(fBuffer);
+    //    vme::Module::unpack_all(fBuffer);
+    pBgo->q[0] =  gRandom->Gaus(1000,50);
     break;
   case 2: // scaler
     break;
@@ -183,15 +186,24 @@ Bool_t Midas::UnpackBuffer() {
   }
   rb::Hist::FillAll();
   return kTRUE;
+
 #else
   return kFALSE;
 #endif
 }
 
 
-rb::BufferSource* rb::BufferSource::Instance() {
-  static BufferSource* m = 0;
-  if (!m) m = new Midas();
-  return m;
+void Midas::CloseFile() {
+  fFile.Close();
 }
-  
+
+void Midas::DisconnectOnline() {
+#ifdef MIDAS_ONLINE
+  TMidasOnline::instance()->disconnect();
+#endif
+}  
+
+
+rb::BufferSource* rb::BufferSource::GetFromUser() {
+  return new Midas();
+}

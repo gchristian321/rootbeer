@@ -4,9 +4,9 @@
 //! in the \c rb namespace. So, to do any action specific to \c ROOTBEER (as opposed
 //! to just plain <tt>ROOT</tt>), the user will call <tt>rb::DoWhatever()</tt>.  All
 //! of the available user functions and their descriptions can be found in this Doxygen file.
-#ifndef __ROOTBEER__
-#define __ROOTBEER__
-#include <stdlib.h>
+#ifndef ROOTBEER_HXX
+#define ROOTBEER_HXX
+#include <cstdlib>
 #include <vector>
 #include <string>
 #include <TCutG.h>
@@ -14,6 +14,12 @@
 #include "Hist.hxx"
 #include "Data.hxx"
 #include "Buffer.hxx"
+
+#ifndef __MAKECINT__
+#define RB_EXTERN
+#include "ImportDataMacros.h"
+#endif
+
 
 
 /// Namespace wrapping the \c ROOTBEER objects and user functions.
@@ -116,8 +122,8 @@ namespace rb
   //!  we need to override the Terminate()  method to stop threaded processes.
   class Rint : public TRint
   {
-  private:
-    BufferSource * fBuffers;
+  // private:
+  //   BufferSource * fBuffers;
   public:
     /// \brief Constructor
     //! \details Just call the standard \c TRint constructor, plus set the prompt to be
@@ -125,20 +131,14 @@ namespace rb
     //! \note The \c \%d means that the number of commands entered in the session is
     //! what's present.
     Rint(const char* appClassName, int* argc, char** argv,
-	 void* options = 0, int numOptions = 0, Bool_t noLogo = kFALSE) :
-      TRint(appClassName, argc, argv, options, numOptions, noLogo) {
-      SetPrompt("rootbeer [%d] ");
-      fBuffers = BufferSource::Instance();
-      if(!fBuffers) {
-	Error("Rint", "BufferSource::GetInstance has not been properly defined.");
-	Terminate(EXIT_FAILURE);
-      }
-    }
+	 void* options = 0, int numOptions = 0, Bool_t noLogo = kFALSE);
 
     /// \brief Terminate the application.
     //! \details Stops any running threads and frees any memory that was allocated during
     //! the CINT session.
     void Terminate(Int_t status = 0);
+
+    //    void Run(Bool_t ret = kFALSE);
 
     /// \brief Destructor
     //! \details Calls Terminate() with error code.

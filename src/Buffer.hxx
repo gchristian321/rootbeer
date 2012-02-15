@@ -4,7 +4,7 @@
 #define BUFFER_HXX__
 #include <string>
 #include <Rtypes.h>
-
+#include "utils/ThreadExecutor.hxx"
 
 
 static const Int_t N_SOURCES = 3;
@@ -12,6 +12,20 @@ enum DataSources { ONLINE_, FILE_, LIST_ };
 namespace rb
 {
   class BufferSource;
+
+  class ThreadFile : public ThreadExecutor
+  {
+  private:
+    const char* kFileName;
+    const Bool_t kStopAtEnd;
+    BufferSource* fBuffer;
+  public:
+    ThreadFile(const char* filename, Bool_t stopAtEnd);
+    virtual ~ThreadFile();
+
+    void DoInThread();
+  };    
+
   class Connector
   {
   private:
@@ -20,7 +34,7 @@ namespace rb
     BufferSource* fBuffer;
     Bool_t fRun;
   public:
-    Connector(BufferSource* buf);
+    Connector(); //BufferSource* buf);
     virtual ~Connector();
     virtual void Attach() = 0;
     void Run() { fThread->Run((void*)this); }
@@ -37,7 +51,7 @@ namespace rb
     const Bool_t kStopAtEnd;
     const std::string kFileName;
   public:
-    File(const char* filename, Bool_t stopAtEnd, BufferSource* buf);
+    File(const char* filename, Bool_t stopAtEnd); //, BufferSource* buf);
     virtual ~File() {};
     void Attach();
   };
@@ -50,7 +64,7 @@ namespace rb
     char** fOtherArgs;
     const int fNumOthers;
   public:
-    Online (const char* source, const char* other, char** others, int nothers, BufferSource* buf);
+    Online(const char* source, const char* other, char** others, int nothers, BufferSource* buf);
     virtual ~Online() {};
     void Attach();
   };
@@ -81,15 +95,13 @@ namespace rb
     void RunFile(const char* filename, Bool_t stopAtEnd);
     void RunList(const char* filename);
     void Unattach();
-
+    static BufferSource* GetFromUser();
 
   protected:
     //! Constructor
     BufferSource();
 
   public:
-    static BufferSource* Instance();
-
     //! Destructor
     virtual ~BufferSource() {};
 
@@ -115,6 +127,10 @@ namespace rb
     //! Read an abstract buffer from an online data source.
     //! \returns true if buffer is successfully read, false otherwise.
     virtual Bool_t ReadBufferOnline() = 0;
+
+    virtual void CloseFile() = 0;
+
+    virtual void DisconnectOnline() = 0;
 
     //! Unpack an abstract buffer into rb::Data classes.
     //! \returns Error code

@@ -4,7 +4,7 @@
 //!  data storage classes.
 #ifndef DATA_HXX
 #define DATA_HXX
-#include <assert.h>
+#include <cassert>
 #include <typeinfo>
 #include <string>
 #include <sstream>
@@ -149,14 +149,15 @@ namespace rb
     //! \details Returns an AutoLockingPointer wrapping the user class.
     //! This allows thread safe access to the data in the scope that it's
     //! needed while also ensuring that dynamic resources are freed properly.
-    inline AutoLockingPointer<T> Get();
+    inline AutoLockingPointer<T> GetPointer();
   };
 } // namespace rb
 
 // Implementation of TData functions
+#ifndef __MAKECINT__
 #define IMPLEMENT_DATA_TEMPLATES
 #include "Data.cxx"
 #undef  IMPLEMENT_DATA_TEMPLATES
-
+#endif
 
 #endif
