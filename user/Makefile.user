@@ -1,4 +1,3 @@
-
 ############################
 ### Define any variables you might want to use later here, like the directory
 ### paths of your sources. Example:
@@ -23,35 +22,20 @@ USER_INCLUDES=-I$(DRAGON_SRC)
 ### Specify the full path for each header. Example:
 ### USER_HEADERS=/path/to/headers/header1.hxx /path/to/headers/header2.hxx
 
-USER_HEADERS=$(USER)/ExampleData.hh \
-$(DRAGON_SRC)/vme/vme.hxx 
+USER_HEADERS=$(USER)/ExampleData.hh $(DRAGON_SRC)/vme/vme.hxx 
 
 ############################
 ### Use the USER_SOURCES variable to tell the compiler where all of your source (compile) files are located.
 ### Specify the full path for each file. Example:
 ### USER_HEADERS=/path/to/sources/source1.cxx /path/to/sources/source2.cxx
-USER_SOURCES= \
-$(DRAGON_SRC)/vme/vme.cxx
-
-
-##### TODO:::: Move midas stuff to permanent makefile!!!
-
+USER_SOURCES= $(DRAGON_SRC)/vme/vme.cxx
 
 
 ############################
-### Specify the type of data packed into your event files by setting the DATATYPE variable.
-### (Note: NSCL and MIDAS are both 16-bit unsigned integers)
-
 ### If you want to use the stock routines for extracting MIDAS data buffers, uncomment the following
-### two lines and make sure all others are commented.
+### line and make sure all other STOCK_BUFFER lines are commented.
 STOCK_BUFFERS=-DMIDAS_BUFFERS
-#USER_BUFFER_TYPE=TMidasEvent
 
 ### If you want to use the stock routines for extracting NSCL data buffers, uncomment the following
-### two lines and make sure all others are commented.
+### line and make sure all other STOCK_BUFFER lines are commented.
 #STOCK_BUFFERS=-DNSCL_BUFFERS
-#USER_BUFFER_TYPE=std::vector<uint16_t>
-
-### If you want (or need) to define your own routines to extract data buffers, define the buffer type
-### below.
-#USER_BUFFER_TYPE=
