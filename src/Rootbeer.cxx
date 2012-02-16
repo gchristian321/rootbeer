@@ -33,7 +33,7 @@ rb::Rint::Rint(const char* appClassName, int* argc, char** argv,
 void rb::Rint::Terminate(Int_t status) {
   rb::Canvas::StopUpdate();
   rb::Unattach();
-  gSystem->Sleep(0.5e3);
+  //  gSystem->Sleep(0.5e3);
 
   // Deallocate memory of global rb::Data<T> classes.
 #define RB_DEALLOCATE
