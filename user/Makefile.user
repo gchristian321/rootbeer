@@ -31,7 +31,7 @@ $(DRAGON_SRC)/vme/vme.hxx
 ### Specify the full path for each file. Example:
 ### USER_HEADERS=/path/to/sources/source1.cxx /path/to/sources/source2.cxx
 USER_SOURCES= \
-$(DRAGON_SRC)/VariableDefaults.cxx $(DRAGON_SRC)/vme/vme.cxx \
+$(DRAGON_SRC)/vme/vme.cxx
 
 
 ##### TODO:::: Move midas stuff to permanent makefile!!!
