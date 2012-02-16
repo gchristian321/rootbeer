@@ -1,6 +1,5 @@
 //! \file Skeleton.cxx
 //! \brief This is where users plug their analysis codes into ROOTBEER.
-#include "Skeleton.hxx"
 #include "Data.hxx"
 #include "Buffer.hxx"
 #include "Rootbeer.hxx"
