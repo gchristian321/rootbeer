@@ -2,4 +2,4 @@
 
 
 
-RB_IMPORT_DATA(Bgo, fBgo, "bgo", true, "")
+RB_IMPORT_DATA(Bgo, fBgo, "bgo", false, "")
