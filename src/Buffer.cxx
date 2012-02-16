@@ -59,7 +59,7 @@
 // Constructor                                           //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 rb::attach::File::File(const char* filename, Bool_t stopAtEnd) :
-  rb::Thread("AttachFile"),
+  rb::Thread(FILE_THREAD_NAME),
   kFileName(gSystem->ExpandPathName(filename)),
   kStopAtEnd(stopAtEnd) {
 
@@ -76,14 +76,14 @@ void rb::attach::File::DoInThread() {
     return;
   }
 
-  while(rb::Thread::IsRunning("AttachFile")) { // loop over buffers in the file
+  while(rb::Thread::IsRunning(FILE_THREAD_NAME)) { // loop over buffers in the file
     bool read_success = fBuffer->ReadBufferOffline();
     if (read_success) fBuffer->UnpackBuffer(); // got an event
     else if (kStopAtEnd) break; // we're done
     else gSystem->Sleep(10e3); // wait 10 sec. for more data
   }
 
-  if(rb::Thread::IsRunning("AttachFile")) // read the complete file
+  if(rb::Thread::IsRunning(FILE_THREAD_NAME)) // read the complete file
     Info("AttachFile", "Done reading %s", kFileName);
   else                                    // told to stop externally
     Info("AttachFile", "Connection to %s aborted.", kFileName);
@@ -102,7 +102,7 @@ void rb::attach::File::DoInThread() {
 // Constructor                                           //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 rb::attach::Online::Online(const char* source, const char* other, char** others, int nothers) :
-  rb::Thread("AttachOnline"),
+  rb::Thread(ONLINE_THREAD_NAME),
   fSourceArg(source),
   fOtherArg(other),
   fOtherArgs(others),
@@ -118,7 +118,7 @@ rb::attach::Online::Online(const char* source, const char* other, char** others,
 void rb::attach::Online::DoInThread() {
   Bool_t connected = fBuffer->ConnectOnline(fSourceArg, fOtherArg, fOtherArgs, fNumOthers);
   if (!connected) return;
-  while (rb::Thread::IsRunning("AttachOnline")) {
+  while (rb::Thread::IsRunning(ONLINE_THREAD_NAME)) {
     Bool_t readSuccess = fBuffer->ReadBufferOnline();
     if(!readSuccess) break;
     fBuffer->UnpackBuffer();

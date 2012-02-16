@@ -1,6 +1,7 @@
 //! \file Rootbeer.cxx 
 //! \brief Implements the user interface functions.
 #include <iostream>
+#include "Buffer.hxx"
 #include "Rootbeer.hxx"
 
 // Include forward declarations of global rb::Data<T> classes.
@@ -129,6 +130,5 @@ void rb::AttachList(const char* filename) {
 // void rb::Unattach()                                   //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 void rb::Unattach() {
-  rb::Thread::Stop("AttachFile");  
-  rb::Thread::Stop("AttachOnline");
+  rb::attach::StopAll();
 }

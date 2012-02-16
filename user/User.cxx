@@ -134,7 +134,7 @@ Bool_t rb::Midas::ReadBufferOnline() {
   int size = 0;
   do { // loop until we get an error or event, or quit polling, or unattach
     size = onlineMidas->receiveEvent(fRequestId, pEvent, sizeof(pEvent), kTRUE);
-  } while (size == 0 && rb::Thread::IsRunning("AttachOnline") && onlineMidas->poll(1000));
+  } while (size == 0 && rb::Thread::IsRunning(rb::attach::ONLINE_THREAD_NAME) && onlineMidas->poll(1000));
 
   if(size == 0) // Unattached or stopped polling
     ret = kFALSE;

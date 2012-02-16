@@ -12,7 +12,6 @@
 #include <TRint.h>
 #include "Hist.hxx"
 #include "Data.hxx"
-#include "Buffer.hxx"
 
 #ifndef __MAKECINT__
 #define RB_EXTERN

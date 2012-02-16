@@ -184,7 +184,17 @@ namespace rb
       o->Run();
     }
 
-  }
-}
+    namespace
+    {
+      const char* FILE_THREAD_NAME = "AtachFile";
+      const char* ONLINE_THREAD_NAME = "AttachOnline";
+      // Stops all running attach threads //
+      inline void StopAll() {
+	rb::Thread::Stop(FILE_THREAD_NAME);
+	rb::Thread::Stop(ONLINE_THREAD_NAME);
+      }
+    } // namespace
+  } // namespace attach
+} // namespace rb
 
 #endif
