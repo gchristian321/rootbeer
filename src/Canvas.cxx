@@ -3,72 +3,109 @@
 //! \details Also defines a number of internal functions to be called by the
 //! user ones.
 #include <TCanvas.h>
-#include <TThread.h>
 #include "Rootbeer.hxx"
 #include "utils/Timer.hxx"
+#include "utils/Thread.hxx"
 #include "utils/LockingPointer.hxx"
-using namespace std;
 
-namespace rb
+
+
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// Internal constants, data, functions, and classes.     //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+namespace
 {
-  // Here we declare some internal functions.
-  namespace Canvas
+  /// Maximum update rate, currently set to one second.
+  const Int_t MAX_RATE = 1;
+
+  /// Name of the thread
+  const char* THREAD_NAME = "CanvasUpdate";
+
+  /// The rate at which canvases are updated (in seconds).
+  Int_t updateRate = 0;
+
+  /// Mutex for locking threded canvas operations.
+  TMutex gMutex (kFALSE);
+
+  /// Run the canvas updating in a separate thread.
+  class CanvasUpdate : public rb::Thread
   {
-    /// Update whatever histograms are on the current canvas/pad,
-    /// including any sub-pads owned by this one.
-    void UpdatePad(TVirtualPad* pad);
+  private:
+    Int_t fRate; // update rate (seconds)
+    CanvasUpdate(const char* name, Int_t rate) :
+      rb::Thread(name), fRate(rate) {}
+  public:
+    ~CanvasUpdate() {}
+    static void CreateAndRun(const char* name, Int_t rate) {
+      CanvasUpdate * c = new CanvasUpdate(name, rate);
+      c->Run();
+    }
+    void DoInThread() {
+      rb::Timer t(fRate);
+      while(rb::Thread::IsRunning(fName)) {
+	if(t.Check()) rb::Canvas::UpdateAll();
+      }
+    }
+  };
 
-    /// Clear whatever histograms are on the current canvas/pad,
-    /// including any sub-pads owned by this one.
-    void ClearPad(TVirtualPad* pad);
+  /// Update whatever histograms are on the current canvas/pad,
+  /// including any sub-pads owned by this one.
+  void UpdatePad(TVirtualPad* pad) {
+    std::string type = pad->ClassName();
+    pad = dynamic_cast<TPad*>(pad);
+    if(!pad) Error("UpdatePad", "Passed an invalid type, %s.", type.c_str());
 
-    /// Set cavases to update every on a regular basis.
-    void* TimedUpdate(void* rate);
+    gMutex.Lock();
+    pad->cd();
+    TList* primitives = pad->GetListOfPrimitives();
+    gMutex.UnLock();
 
-    /// Maximum update rate, currently set to one second.
-    static const Int_t MAX_RATE = 1;
+    for(Int_t i=0; i< primitives->GetEntries(); ++i) {
+      TVirtualPad* subpad = dynamic_cast<TVirtualPad*>(primitives->At(i));
+      if(subpad) UpdatePad(subpad);
+    }
 
-    /// The rate at which canvases are updated (in seconds).
-    Int_t updateRate = 0;
-
-    /// Thread in which the canvas updating functions are run.
-    TThread thCanvas("thCanvas", rb::Canvas::TimedUpdate);
-
-    /// Mutex for locking threded canvas operations.
-    //! \note Not recursive.
-    TMutex gMutex (kFALSE);
+    gMutex.Lock();
+    pad->Modified();
+    pad->Update();
+    gMutex.UnLock();
   }
-}
 
+  /// Clear whatever histograms are on the current canvas/pad,
+  /// including any sub-pads owned by this one.
+  void ClearPad(TVirtualPad* pad) {
+    std::string type = pad->ClassName();
+    pad = dynamic_cast<TPad*>(pad);
+    if(!pad) Error("UpdatePad", "Passed an invalid type, %s.", type.c_str());
+
+    gMutex.Lock();
+    pad->cd();
+    TList* primitives = pad->GetListOfPrimitives();
+    gMutex.UnLock();
+
+    for(Int_t i=0; i< primitives->GetEntries(); ++i) {
+      TVirtualPad* subpad = dynamic_cast<TVirtualPad*>(primitives->At(i));
+      if(subpad) ClearPad(subpad);
+    }
+    rb::Canvas::ClearCurrent();
+  }
+} // namespace
+
+
+
+
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// Implementation of                                     //
+// namespace rb::Canvas                                  //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 
 void rb::Canvas::UpdateCurrent() {
-  rb::Canvas::gMutex.Lock();
+  gMutex.Lock();
   if(gPad) {
     gPad->Modified();
     gPad->Update();
   }
-  rb::Canvas::gMutex.UnLock();
-}
-
-void rb::Canvas::UpdatePad(TVirtualPad* pad) {
-  string type = pad->ClassName();
-  pad = dynamic_cast<TPad*>(pad);
-  if(!pad) Error("rb::Canvas::UpdatePad", "Passed an invalid type, %s.", type.c_str());
-
-  rb::Canvas::gMutex.Lock();
-  pad->cd();
-  TList* primitives = pad->GetListOfPrimitives();
-  rb::Canvas::gMutex.UnLock();
-
-  for(Int_t i=0; i< primitives->GetEntries(); ++i) {
-    TVirtualPad* subpad = dynamic_cast<TVirtualPad*>(primitives->At(i));
-    if(subpad) rb::Canvas::UpdatePad(subpad);
-  }
-
-  rb::Canvas::gMutex.Lock();
-  pad->Modified();
-  pad->Update();
-  rb::Canvas::gMutex.UnLock();
+  gMutex.UnLock();
 }
 
 void rb::Canvas::UpdateAll() {
@@ -76,35 +113,21 @@ void rb::Canvas::UpdateAll() {
   TPad* pad;
   for(Int_t i=0; i< gROOT->GetListOfCanvases()->GetEntries(); ++i) {
     pad = dynamic_cast<TPad*>(gROOT->GetListOfCanvases()->At(i));
-    if(pad) rb::Canvas::UpdatePad(pad);
+    if(pad) UpdatePad(pad);
   }
-  rb::Canvas::gMutex.Lock();
+  gMutex.Lock();
   if(pInitial) pInitial->cd();
-  rb::Canvas::gMutex.UnLock();
-}
-
-void* rb::Canvas::TimedUpdate(void * rate) {
-  rb::Timer t(updateRate);
-  while(updateRate > 0) {
-    if(t.Check()) UpdateAll();
-  }
-  return rate;
+  gMutex.UnLock();
 }
 
 Int_t rb::Canvas::StopUpdate() {
-  if(updateRate > 0) {
-    updateRate = 0;
-    thCanvas.Join();
-  }
-  else {
-    updateRate = 0;
-  }
+  rb::Thread::Stop(THREAD_NAME);
+  updateRate = 0;
   return updateRate;
 }
 
 Int_t rb::Canvas::StartUpdate(Int_t rate) {
-  Int_t r = (Int_t)rate;
-  if(r < MAX_RATE) {
+  if(rate < MAX_RATE) {
     Error("StartUpdate",
 	  "Passed an invalid update rate: %d. The update rate must be >= %d second(s).",
 	  rate, MAX_RATE);
@@ -113,9 +136,9 @@ Int_t rb::Canvas::StartUpdate(Int_t rate) {
   else {
     StopUpdate();
     updateRate = rate;
-    thCanvas.Run();
+    CanvasUpdate::CreateAndRun(THREAD_NAME, rate);
     return 0;
-  }
+  }  
 }
 
 Int_t rb::Canvas::GetUpdateRate() {
@@ -123,7 +146,7 @@ Int_t rb::Canvas::GetUpdateRate() {
 }
 
 void rb::Canvas::ClearCurrent() {
-  rb::Canvas::gMutex.Lock();
+  gMutex.Lock();
   if(gPad) {
     for(Int_t i = 0; i < gPad->GetListOfPrimitives()->GetEntries(); ++i) {
       TH1* hst = dynamic_cast<TH1*> (gPad->GetListOfPrimitives()->At(i));
@@ -135,24 +158,7 @@ void rb::Canvas::ClearCurrent() {
       gPad->Update();
     }
   }
-  rb::Canvas::gMutex.UnLock();
-}
-
-void rb::Canvas::ClearPad(TVirtualPad* pad) {
-  string type = pad->ClassName();
-  pad = dynamic_cast<TPad*>(pad);
-  if(!pad) Error("rb::Canvas::UpdatePad", "Passed an invalid type, %s.", type.c_str());
-
-  rb::Canvas::gMutex.Lock();
-  pad->cd();
-  TList* primitives = pad->GetListOfPrimitives();
-  rb::Canvas::gMutex.UnLock();
-
-  for(Int_t i=0; i< primitives->GetEntries(); ++i) {
-    TVirtualPad* subpad = dynamic_cast<TVirtualPad*>(primitives->At(i));
-    if(subpad) rb::Canvas::ClearPad(subpad);
-  }
-  ClearCurrent();
+  gMutex.UnLock();
 }
 
 void rb::Canvas::ClearAll() {
@@ -160,9 +166,9 @@ void rb::Canvas::ClearAll() {
   TPad* pad;
   for(Int_t i=0; i< gROOT->GetListOfCanvases()->GetEntries(); ++i) {
     pad = dynamic_cast<TPad*>(gROOT->GetListOfCanvases()->At(i));
-    if(pad) rb::Canvas::ClearPad(pad);
+    if(pad) ClearPad(pad);
   }
-  rb::Canvas::gMutex.Lock();
+  gMutex.Lock();
   if(pInitial) pInitial->cd();
-  rb::Canvas::gMutex.UnLock();
+  gMutex.UnLock();
 }

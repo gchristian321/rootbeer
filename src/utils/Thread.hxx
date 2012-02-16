@@ -34,11 +34,12 @@ namespace rb
   public:
     typedef std::list<std::string> List_t;
 
-  private:
+  protected:
     //! Name of the thread
     //! \note Must be unique; duplicate names result in an assert.
     const char* fName;
 
+  private:
     //! Keeps track of all presently <it>running</it> threads.
     static Thread::List_t& fgList() {
       static Thread::List_t* out = new Thread::List_t();
