@@ -25,8 +25,4 @@
 
 
 #pragma link C++ defined_in /home/dragon/gc/dragon/analyzer/src/vme/vme.hxx;
-
-
-#pragma link C++ class ExampleData+;
-#pragma link C++ class ExampleVariables+;
-#pragma link C++ class InnerVariables+;
+#pragma link C++ defined_in /home/dragon/gc/rootbeer/user/ExampleData.hh;
