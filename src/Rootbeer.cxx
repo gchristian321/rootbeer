@@ -123,7 +123,7 @@ void rb::AttachFile(const char* filename, Bool_t stop_at_end) {
 // void rb::AttachList                                   //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 void rb::AttachList(const char* filename) {
-  Error("AttachList", "Implement!!");
+  rb::attach::List::CreateAndRun(filename);
 }
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//

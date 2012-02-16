@@ -2,8 +2,6 @@
 //! \brief Defines classes relevent to obtaining and unpacking data buffers.
 #ifndef BUFFER_HXX__
 #define BUFFER_HXX__
-#include <string>
-#include <Rtypes.h>
 #include "utils/Thread.hxx"
 
 
@@ -78,7 +76,7 @@ namespace rb
     class File : public rb::Thread
     {
     private:
-      //! Name (path) of the offline.
+      //! Name (path) of the offline file.
       const char* kFileName;
 
       //! Tells whether to stop reading at EOF (true) or stay connected and wait for more data to come in (false).
@@ -121,6 +119,49 @@ namespace rb
       f->Run();
     }
 
+    //! Defines how we attach to a list of offline files.
+    class List : public rb::Thread
+    {
+    private:
+      //! Name (path) of the list file.
+      const char* kListFileName;
+
+      //! Pointer to a BufferSource derived class used for getting and unpacking buffers.
+      BufferSource* fBuffer;
+
+    protected:
+      //! \details Set kListFileName, initialize fBuffer to the result
+      //! of BufferSource::New()
+      //! \note Protected so that we can't accidentally create a stack instance,
+      //! use static New() or CreateAndRun() to make heap allocated instances.
+      List(const char* filename);
+
+    public:
+      //! \details Deallocate fBuffer.
+      virtual ~List();
+
+      //! \brief Open the list file, attach to each file in the list in sequence.
+      void DoInThread();
+
+      //! \brief Returns A \c new instance of rb::attach::List
+      static List* New(const char* filename);
+
+      //! \brief Conststructs a \c new instance of rb::attach::List and calls rb::Thread::Run().
+      static void CreateAndRun(const char* filename);
+    };
+
+    inline List::~List() {
+      delete fBuffer;
+    }
+
+    inline List* List::New(const char* filename) {
+      return new List(filename);
+    }
+
+    inline void List::CreateAndRun(const char* filename) {
+      List * L = new List(filename);
+      L->Run();
+    }
 
 
     //! Defines how we attach to online data.
@@ -184,13 +225,18 @@ namespace rb
       o->Run();
     }
 
+    // Some useful functions & constants //
     namespace
     {
-      const char* FILE_THREAD_NAME = "AtachFile";
+      const char* FILE_THREAD_NAME   = "AtachFile";
+      const char* LIST_THREAD_NAME   = "AtachList";
       const char* ONLINE_THREAD_NAME = "AttachOnline";
-      // Stops all running attach threads //
+      inline Bool_t FileAttached()   { return rb::Thread::IsRunning(FILE_THREAD_NAME);   }
+      inline Bool_t ListAttached()   { return rb::Thread::IsRunning(LIST_THREAD_NAME);   }
+      inline Bool_t OnlineAttached() { return rb::Thread::IsRunning(ONLINE_THREAD_NAME); }
       inline void StopAll() {
 	rb::Thread::Stop(FILE_THREAD_NAME);
+	rb::Thread::Stop(LIST_THREAD_NAME);
 	rb::Thread::Stop(ONLINE_THREAD_NAME);
       }
     } // namespace

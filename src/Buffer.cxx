@@ -1,58 +1,19 @@
 //! \file Buffer.cxx
-//! \brief Implements classes deefined in Buffer.hxx
-#include <iostream>
+//! \brief Implements classes defined in Buffer.hxx
 #include <fstream>
-#include <string>
-#include <TSystem.h>
-#include <TThread.h>
+#include <memory>
 #include <TError.h>
+#include <TString.h>
+#include <TSystem.h>
 #include "Buffer.hxx"
 
 
 
 
 
-// void* rb::BufferSource::AttachList_(void * arg) {
-//   BufferSource::SetAttached(LIST_);
-
-//   char* filename = (char*)arg;
-//   ifstream ifs(filename);
-//   if(!ifs.good()) {
-//     Error("AttachList", "List file: %s not found.", filename);
-//     return 0;
-//   }
-//   std::string line;
-//   while(1) {
-//     getline(ifs, line);
-//     if(!ifs.good()) break;
-
-//     line = line.substr(0, line.find("#"));
-//     std::string str("");
-//     for(UInt_t i=0; i< line.size(); ++i) {
-//       if(line[i] != ' ') str.push_back(line[i]);
-//     }
-//     if(str.size() == 0) continue; // empty line, skip
-
-//     /// opening current file ///
-//     BufferSource* f = BufferSource::Instance(); //new USER_BUFFER_SOURCE(); // delete in ::AttachFile
-//     f->FileArgs().stopEnd = kTRUE;
-//     f->FileArgs().fileName = str;
-//     Bool_t open = f->OpenFile(gSystem->ExpandPathName(filename));
-//     if(!open) {
-//       Info("AttachList", "The file %s wasn't found. Moving on to the next one.", str.c_str());
-//       ///	delete f;
-//       continue;
-//     }
-//     AttachFile_(reinterpret_cast<void*>(f));
-//   }
-//   BufferSource::SetNotAttached(FILE_);
-//   Unattach();
-//   return arg;
-// }
-
-
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-// Class rb::attach::File                                //
+// Class                                                 //
+// rb::attach::File                                      //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
@@ -72,30 +33,77 @@ rb::attach::File::File(const char* filename, Bool_t stopAtEnd) :
 void rb::attach::File::DoInThread() {
   Bool_t open = fBuffer->OpenFile(kFileName);
   if(!open) {
-    Error("AtachFile", "File %s not readable.", kFileName);
+    Error("AttachFile", "File %s not readable.", kFileName);
     return;
   }
 
-  while(rb::Thread::IsRunning(FILE_THREAD_NAME)) { // loop over buffers in the file
+  while(FileAttached() || ListAttached()) { // loop over buffers in the file
     bool read_success = fBuffer->ReadBufferOffline();
     if (read_success) fBuffer->UnpackBuffer(); // got an event
     else if (kStopAtEnd) break; // we're done
     else gSystem->Sleep(10e3); // wait 10 sec. for more data
   }
 
-  if(rb::Thread::IsRunning(FILE_THREAD_NAME)) // read the complete file
+  if(FileAttached()) // read the complete file
     Info("AttachFile", "Done reading %s", kFileName);
-  else                                    // told to stop externally
-    Info("AttachFile", "Connection to %s aborted.", kFileName);
+  else {
+    if(!ListAttached())  // told to stop externally
+      Info("AttachFile", "Connection to %s aborted.", kFileName);
+  }
 
   fBuffer->CloseFile();
 }
 
 
 
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// Class                                                 //
+// rb::attach::List                                      //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-// Class rb::attach::Online                              //
+// Constructor                                           //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+rb::attach::List::List(const char* filename) :
+  rb::Thread(LIST_THREAD_NAME),
+  kListFileName(gSystem->ExpandPathName(filename)) {
+
+  fBuffer = BufferSource::New();
+}
+
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// void rb::attach::List::DoInThread()                   //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+void rb::attach::List::DoInThread() {
+  ifstream ifs(kListFileName);
+  if(!ifs.good()) {
+    Error("AttachList", "List file: %s not found.", kListFileName);
+    return;
+  }
+  while(ListAttached()) {
+    TString line;
+    line.ReadLine(ifs);
+    if(!ifs.good()) break;
+    line.ReplaceAll(" ", "");
+    if(line.Contains("#"))
+      line.Remove(line.First("#"));
+    if(line.IsNull()) continue; // empty line
+
+    // Attach to the listed file //
+    std::auto_ptr<File> f (File::New(line.Data(), true));
+    f->DoInThread();
+  }
+  if(ListAttached())
+    Info("AttachList", "Done reading list: %s", kListFileName);
+  else
+    Info("AttachList", "Connection aborted.");
+}
+
+
+
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// Class                                                 //
+// rb::attach::Online                                    //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
@@ -118,7 +126,7 @@ rb::attach::Online::Online(const char* source, const char* other, char** others,
 void rb::attach::Online::DoInThread() {
   Bool_t connected = fBuffer->ConnectOnline(fSourceArg, fOtherArg, fOtherArgs, fNumOthers);
   if (!connected) return;
-  while (rb::Thread::IsRunning(ONLINE_THREAD_NAME)) {
+  while (OnlineAttached()) {
     Bool_t readSuccess = fBuffer->ReadBufferOnline();
     if(!readSuccess) break;
     fBuffer->UnpackBuffer();

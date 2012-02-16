@@ -68,7 +68,6 @@ namespace rb
     virtual ~Thread() {
       Stop(fName);
       if(fThread) {
-	//	fThread->Join();
 	delete fThread;
       }
     }
