@@ -4,8 +4,7 @@
 #include "Rootbeer.hxx"
 
 #define RB_INIT
-#include "ImportDataMacros.h"
-rb::BufferSource* gBuffers = 0;
+#include "Data.hxx"
 
 
 
@@ -47,7 +46,7 @@ rb::Rint::Rint(const char* appClassName, int* argc, char** argv,
   SetPrompt("rootbeer [%d] ");
 
 #define RB_ALLOCATE
-#include "ImportDataMacros.h"
+#include "Data.hxx"
 
 }
 
@@ -59,7 +58,7 @@ void rb::Rint::Terminate(Int_t status) {
   gSystem->Sleep(0.5e3);
 
 #define RB_DEALLOCATE
-#include "ImportDataMacros.h"
+#include "Data.hxx"
 
   rb::Hist::DeleteAll();
   TRint::Terminate(status);

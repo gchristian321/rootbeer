@@ -12,8 +12,7 @@
 #pragma link C++ namespace rb::Canvas;
 #pragma link C++ class rb::Rint+;
  
-#pragma link C++ class rb::Data+; 
-// #pragma link C++ class ThreadExecutor+;
+#pragma link C++ class rb::MData+; 
 
 #include "../user/UserLinkdef.h"
 

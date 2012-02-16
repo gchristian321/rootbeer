@@ -74,7 +74,6 @@ protected:
   Int_t fRequestId; //< Return code for online event requests.
   TMidasFile fFile; //< Offline MIDAS file.
   TMidasEvent fBuffer; //< Midas event buffer.
-  //  rb::TData<Bgo> fBgo;
 public:
   Midas() : fRequestId(-1)/*, fBgo("bgo", false)*/ {}
   virtual ~Midas();

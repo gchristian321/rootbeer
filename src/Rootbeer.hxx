@@ -17,7 +17,7 @@
 
 #ifndef __MAKECINT__
 #define RB_EXTERN
-#include "ImportDataMacros.h"
+#include "Data.hxx"
 #endif
 
 
