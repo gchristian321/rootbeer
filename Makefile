@@ -50,7 +50,7 @@ COMPILE= g++ $(CXXFLAGS) $(ROOTGLIBS) $(RPATH)
 all: rootbeer
 
 rootbeer: $(RBLIB)/libRBHist.so $(RBLIB)/libRootbeer.so $(SRC)/main.cc 
-	g++ $(CXXFLAGS) $(INCFLAGS) -lRootbeer $(SRC)/main.cc -o rootbeer $(MIDASLIBS) $(ROOTGLIBS) -lm -lz -lpthread $(RPATH) -I$(ROOTSYS)/include
+	$(COMPILE) -lRootbeer $(MIDASLIBS) $(SRC)/main.cc -o rootbeer
 
 
 #### ROOTBEER LIBRARY ####
