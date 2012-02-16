@@ -1,9 +1,6 @@
 //! \file main.cc
 //! \brief Implements the \c main program and Doxygen documentation.
-#include "TRint.h"
 #include "Rootbeer.hxx"
-#include "Hist.hxx"
-#include "Data.hxx"
 
 
 /// \brief The \c main ROOTBEER function.
