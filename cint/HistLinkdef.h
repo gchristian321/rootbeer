@@ -11,8 +11,13 @@
 #pragma link C++ namespace rb;
 #pragma link C++ class rb::Hist+;
 #pragma link C++ class rb::SummaryHist+;
-#pragma link C++ class rb::GHist+;
+#pragma link C++ class rb::GammaHist+;
 #pragma link C++ class std::list<rb::Hist*>;
 #pragma link C++ class std::list<rb::Hist*>::iterator;
+#pragma link C++ class rb::BitHist<8>+;
+#pragma link C++ class rb::BitHist<16>+;
+#pragma link C++ class rb::BitHist<32>+;
+#pragma link C++ class rb::BitHist<64>+;
+
 
 #endif // #ifdef __CINT__

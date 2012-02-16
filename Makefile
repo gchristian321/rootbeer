@@ -99,7 +99,7 @@ $(OBJ)/midas/TMidasOnline.o: $(RBLIB)/libRBHist.so $(CINT)/RBDictionary.cxx $(SR
 -o $@  -p $(SRC)/midas/TMidasOnline.cxx \
 
 
-$(CINT)/RBDictionary.cxx: $(HEADERS) $(USER)/UserLinkdef.h $(CINT)/Linkdef.h
+$(CINT)/RBDictionary.cxx: $(HEADERS) $(USER)/UserLinkdef.h $(CINT)/Linkdef.h $(USER)/ImportData.h
 	rootcint -f $@ -c $(CXXFLAGS)  -p $(HEADERS) $(CINT)/Linkdef.h \
 
 

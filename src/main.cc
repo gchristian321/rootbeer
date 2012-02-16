@@ -119,13 +119,9 @@ Int_t main(Int_t argc, Char_t** argv)
   
 
   \n \section compile Downloading & Compiling
-  The ROOTBEER source code can be downloaded from http:://trshare/triumf.ca/~gchristian/rootbeer/download/ Both .zip
-  and .tar.gz formats are available.  Potential developers or those who want to stay on top of bug fixes and other
-  improvements can check out the sources using <a href="http://git-scm.com" target="_blank">git</a>
-  \code
-  git checkout somewhere....
-  \endcode
-  For more information on contributing to ROOTBEER, see the \link develop Developers \endlink page.
+  The ROOTBEER source code can be downloaded as a .zip file from https://github.com/gchristian321/rootbeer
+  (click the "ZIP" link on the left side of the page). The sources can also be checked out directly using
+  git, with the appropriate paths listed on the github webpage.
 
   To compile, unpack the sources and \c cd to the top-level ROOTBEER directory.  If the location of the ROOT
   header files is not normally searched by your compiler, then you will need to edit the Makefile. Open up
@@ -304,13 +300,16 @@ Int_t main(Int_t argc, Char_t** argv)
   rb::Canvas::UpdateCurrent(); // Update just the currently selected canvas
   \endcode
 
-  as well as clear them
+  as well as zero out ("Clear") the histogram currently drawn in a canvas
 
   \code
   rb::Canvas::ClearAll(); // Clear all canvases
 
-  rb::Canvas::UpdateCurrent(); // Clear just the currently selected canvas
+  rb::Canvas::ClearCurrent(); // Clear just the currently selected canvas
   \endcode
+
+  Note that the rb::Canvas::Clear* functions are distinct from the standard ROOT TCanvas::Clear() function,
+  which removes the histogram from the canvas entirely.
 
 
 

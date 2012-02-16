@@ -1,10 +1,11 @@
 //! \file Hist.hxx
-//!  \brief Defines the histogram class used in <tt>ROOTBEER</tt>.
+//! \brief Defines the histogram class used in <tt>ROOTBEER</tt>.
 #ifndef __HIST__
 #define __HIST__
 #include <string>
 #include <sstream>
 #include <vector>
+#include <bitset>
 #include <list>
 #include <TH1D.h>
 #include <TH2D.h>
@@ -163,7 +164,7 @@ namespace rb
 
     /// Clear function.
     //! Zeros-out all axes of fHistogram.
-    void Clear() {
+    virtual void Clear() {
       LockingPointer<CriticalElements> critical(fCritical, fgMutex);
       TH1D* hist = static_cast<TH1D*>(critical->fHistogram);
       for(Int_t p = 0; p < hist->fN; ++p) hist->fArray[p] = 0.;
@@ -281,8 +282,6 @@ namespace rb
   //! a 1d histogram for the corresponding parameter.  Orientation can either be hirozontal or vertical. Horizontal
   //! means that the parameter axis is the y axis (so the parameter values extend horizontally), vertical means it's
   //! the x axis (parameter values extend vertically).
-  //!
-  //! This class inherits from rb::Hist and overrides the virtual Fill() and DoFill() methods.
   class SummaryHist : public Hist
   {
   protected:
@@ -313,15 +312,6 @@ namespace rb
 		    const char* paramList,  const char* gate = "",
 		    const char* orientation = "v");
 
-    //! Fill function.
-    //! Overrides the virtual method defined for rb::Hist
-    /////    Int_t Fill();    
-
-    //! Return the orientation.
-    Int_t GetOrientation() {
-      return kOrient;
-    }
-
     //! Return the number of parameters.
     Int_t GetNPar() {
       return nPar;
@@ -334,17 +324,16 @@ namespace rb
   /// Gamma histogram class.
 
   //! A "gamma" histogram is a type of histogram displaying multiple parameters at once. It appears as a normal
-  //! 1d or 2d histogram, but the number of counts increments for each count of any of the specified parameters.
-
-  //! This class inherits from rb::Hist and overrides the virtual Fill() and DoFill() methods.
-  class GHist : public Hist
+  //! 1d or 2d histogram, but the number of counts per bin increments whenever <i>any</i> of the specified
+  //! parameters has a value in that bin.
+  class GammaHist : public Hist
   {
   protected:
     //! Number of parameters.
     Int_t nPar;
 
     //! Constructor
-    GHist(const char* name, const char* title, const char* params, const char* gate, Int_t ndimensions);
+    GammaHist(const char* name, const char* title, const char* params, const char* gate, Int_t ndimensions);
 
     //! Initialize function
     //! Helper function called by New().
@@ -374,18 +363,106 @@ namespace rb
 		    Int_t nbinsy, Double_t ylow, Double_t yhigh,
 		    const char* params,  const char* gate = "");
 
-    //! Return the number of parameters.
-    Int_t GetNPar() {
-      return nPar;
-    }
-
     //! CINT ClassDef macro.
-    ClassDef(GHist, 0);
+    ClassDef(GammaHist, 0);
   };
-  
+
+  /// Bitmask histogram class.
+
+  //! A bitmask histogram displays the true bits in a parameter.  For each event,
+  //! the bin corresponding to a given bit in a word increments if that bit is set to 1.
+  //! This is a template class, with the template argument being the number of bits to
+  //! display.
+  //! \note Currently, CINT dictionaries are only generated for the following numbers of 
+  //! bits: 8, 16, 32, and 64. If you need others, you'll need to add
+  //! \code
+  //! #pragma link C++ class rb::BitHist<N>+; // N is the number of bits you want
+  //! \endcode
+  //! to HistLinkdef.h
+
+  template <Int_t NBITS>
+  class BitHist : public Hist
+  {
+  protected:
+    //! Constructor
+    BitHist(const char* name, const char* title, const char* param, const char* gate);
+
+    //! New() helper function
+    static Bool_t BitInitialize(const char* name, const char* title, const char* param, const char* gate);
+
+    //! Internal filling function
+    virtual Int_t DoFill(TH1* hst, TTreeFormula* gate, std::vector<TTreeFormula*>& params); 
+
+  public:
+    //! Creation function
+    static void New(const char* name, const char* title, const char* param, const char* gate);
+
+    ClassDef(BitHist, 0);
+  };
 }
 
 
+#ifndef __MAKECINT__ // Template implementations
+
+template <Int_t NBITS>
+rb::BitHist<NBITS>::BitHist(const char* name, const char* title, const char* param, const char* gate) :
+  Hist(name, title, param, gate, 1) { }
+
+template <Int_t NBITS>
+inline void rb::BitHist<NBITS>::New(const char* name, const char* title, const char* param, const char* gate) {
+  BitInitialize(name, title, param, gate);
+}
+
+template <Int_t NBITS>
+Int_t rb::BitHist<NBITS>::DoFill(TH1* hst, TTreeFormula* gate, std::vector<TTreeFormula*>& params) {
+  if(!gate->EvalInstance()) return 0;
+
+  Int_t ret = 0;
+  std::bitset<NBITS> bits (params[0]->EvalInstance());
+  for(Int_t i=0; i< NBITS; ++i) {
+    if (bits[i]) { 
+      static_cast<TH1D*>(hst)->Fill(i);
+      ++ret;
+    }
+  }
+  return ret;
+}
+  
+template <Int_t NBITS>
+Bool_t rb::BitHist<NBITS>::BitInitialize(const char* name, const char* title, const char* param, const char* gate) {
+  // Create rb::Hist instance
+  rb::BitHist<NBITS>* _this = new rb::BitHist<NBITS>(name, title, param, gate);
+  if(!_this->kConstructorSuccess) return kFALSE;
+
+  // Set internal histogram
+  //! \note The histogram isn't accessable to any other threads until we add it to
+  //! fgList, so it's safe to access the critical elements via a non-locking pointer.
+  LockFreePointer<CriticalElements> unlocked_critical(_this->fCritical);
+
+  Bool_t successfulHistCreation = kTRUE;
+  TH1::AddDirectory(kFALSE);
+  unlocked_critical->fHistogram =
+    new TH1D(_this->fName, _this->fTitle, NBITS, 0, NBITS);
+
+  std::string xtitle = unlocked_critical->fParams.at(0)->GetExpFormula().Data();
+  xtitle += " [bits]";
+  unlocked_critical->fHistogram->GetXaxis()->SetTitle(xtitle.c_str());
+  TH1::AddDirectory(kTRUE);
+
+  // Add to collections
+  LockingPointer<List_t> hlist(fgList, fgMutex);
+  if(successfulHistCreation) {
+    hlist->push_back(_this);
+
+    if(gDirectory) {
+      _this->fDirectory = gDirectory;
+      _this->fDirectory->Append(_this, kTRUE);
+    }
+  }
+  return successfulHistCreation;
+}
+#endif // $ifndef __MAKECINT__
 
 
 #endif
+  

@@ -486,24 +486,16 @@ Int_t rb::SummaryHist::DoFill(TH1* hst, TTreeFormula* gate, vector<TTreeFormula*
   return 0;
 }
 
-// // //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-// // // rb::Hist::Fill()                                      //
-// // //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-// // Int_t rb::SummaryHist::Fill() {
-// //   LockingPointer<CriticalElements> critical(fCritical, fgMutex);
-// //   DoFill(critical->fHistogram, critical->fGate, critical->fParams);
-// // }
-
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // Class                                                 //
-// rb::GHist                                              //
+// rb::GammaHist                                         //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-// rb::GHist::GHist                                      //
+// rb::GammaHist::GammaHist                              //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-rb::GHist::GHist(const char* name, const char* title, const char* param, const char* gate, Int_t dimensions) {
+rb::GammaHist::GammaHist(const char* name, const char* title, const char* param, const char* gate, Int_t dimensions) {
   kConstructorSuccess = kTRUE; fHistogramClone = 0; kDimensions = dimensions;
 
   LockFreePointer<CriticalElements>  critical(fCritical);
@@ -519,7 +511,7 @@ rb::GHist::GHist(const char* name, const char* title, const char* param, const c
   // Initialize parameters
   vector<string> vPar1 = tokenize(param, ":");
   if(kDimensions != vPar1.size()) {
-    Error("GHist", "Invalid parameter argument for a %d-dimensional hist (%s)", dimensions, param);
+    Error("GammaHist", "Invalid parameter argument for a %d-dimensional hist (%s)", dimensions, param);
     kConstructorSuccess = kFALSE;
     return;
   }
@@ -560,7 +552,7 @@ rb::GHist::GHist(const char* name, const char* title, const char* param, const c
   }
 
   if(nParams.size() == 0) {
-    Error("GHist", "Invalid parameter argument %s", param);
+    Error("GammaHist", "Invalid parameter argument %s", param);
     kConstructorSuccess = kFALSE;
     return;
   }
@@ -568,7 +560,7 @@ rb::GHist::GHist(const char* name, const char* title, const char* param, const c
     Int_t nParams0 = nParams[0];
     for(UInt_t k=1; k< nParams.size(); ++k) {
       if(nParams[k] != nParams0) {
-	Error("GHist", "Invalid parameter argument %s", param);
+	Error("GammaHist", "Invalid parameter argument %s", param);
 	kConstructorSuccess = kFALSE;
 	return;
       }
@@ -591,16 +583,16 @@ rb::GHist::GHist(const char* name, const char* title, const char* param, const c
 
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-// static rb::GHist::Initialize                          //
+// static rb::GammaHist::Initialize                      //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-Bool_t rb::GHist::GInitialize(const char* name, const char* title,
+Bool_t rb::GammaHist::GInitialize(const char* name, const char* title,
 			      const char* paramList, const char* gate, UInt_t ndim,
 			      Int_t nbinsx, Double_t xlow, Double_t xhigh,
 			      Int_t nbinsy, Double_t ylow, Double_t yhigh,
 			      Int_t nbinsz, Double_t zlow, Double_t zhigh) {
 
   // Create rb::Hist instance
-  rb::GHist* _this = new rb::GHist(name, title, paramList, gate, ndim);
+  rb::GammaHist* _this = new rb::GammaHist(name, title, paramList, gate, ndim);
   if(!_this->kConstructorSuccess) return kFALSE;
 
   // Set internal histogram
@@ -652,9 +644,9 @@ Bool_t rb::GHist::GInitialize(const char* name, const char* title,
 }
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-// rb::GHist::DoFill()                                   //
+// rb::GammaHist::DoFill()                               //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-Int_t rb::GHist::DoFill(TH1* hst, TTreeFormula* gate, vector<TTreeFormula*>& params) {
+Int_t rb::GammaHist::DoFill(TH1* hst, TTreeFormula* gate, vector<TTreeFormula*>& params) {
   if(!gate->EvalInstance()) return 0;
 
   Int_t ret = -1;
@@ -678,20 +670,20 @@ Int_t rb::GHist::DoFill(TH1* hst, TTreeFormula* gate, vector<TTreeFormula*>& par
 }
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-// static rb::GHist::New (One-dimensional)               //
+// static rb::GammaHist::New (One-dimensional)           //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-void rb::GHist::New(const char* name, const char* title,
+void rb::GammaHist::New(const char* name, const char* title,
 		    Int_t nbinsx, Double_t xlow, Double_t xhigh,
 		    const char* param, const char* gate) {
-  rb::GHist::GInitialize(name, title, param, gate, 1, nbinsx, xlow, xhigh);
+  rb::GammaHist::GInitialize(name, title, param, gate, 1, nbinsx, xlow, xhigh);
 }
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-// static rb::GHist::New (Two-dimensional)               //
+// static rb::GammaHist::New (Two-dimensional)           //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-void rb::GHist::New(const char* name, const char* title,
+void rb::GammaHist::New(const char* name, const char* title,
 		    Int_t nbinsx, Double_t xlow, Double_t xhigh,
 		    Int_t nbinsy, Double_t ylow, Double_t yhigh,
 		    const char* param, const char* gate) {
-  rb::GHist::GInitialize(name, title, param, gate, 2, nbinsx, xlow, xhigh, nbinsy, ylow, yhigh);
+  rb::GammaHist::GInitialize(name, title, param, gate, 2, nbinsx, xlow, xhigh, nbinsy, ylow, yhigh);
 }
