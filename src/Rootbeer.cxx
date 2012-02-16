@@ -1,62 +1,40 @@
 //! \file Rootbeer.cxx 
-//!  \brief Implements the user interface functions.
+//! \brief Implements the user interface functions.
 #include <iostream>
 #include "Rootbeer.hxx"
 
+// Include forward declarations of global rb::Data<T> classes.
 #define RB_INIT
 #include "Data.hxx"
 
 
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// Class rb::Rint Implementation                         //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 
-void rb::Logo() {
-  std::cout << "                                                                 \n"
-	    << "                            ___                                  \n"
-	    << "                          .'   '.                                \n"
-	    << "                         /       \\           oOoOo              \n"
-	    << "                        |         |       ,==|||||               \n"
-	    << "                         \\       /       _|| |||||              \n"
-	    << "                          '.___.'    _.-'^|| |||||               \n"
-	    << "                        __/_______.-'     '==HHHHH               \n"
-	    << "                   _.-'` /                   \"\"\"\"\"          \n"
-	    << "                .-'     /   oOoOo                                \n"
-	    << "                `-._   / ,==|||||                                \n"
-	    << "                    '-/._|| |||||                                \n"
-	    << "                     /  ^|| |||||                                \n"
-	    << "                    /    '==HHHHH                                \n"
-	    << "                   /________\"\"\"\"\"                           \n"
-	    << "                   `\\       `\\                                 \n"
-	    << "                     \\        `\\   /                           \n"
-	    << "                      \\         `\\/                            \n"
-	    << "                      /                                          \n"
-	    << "                     /                                           \n"
-	    << "                    /_____                                       \n"
-	    << "                                                                 \n"
-	    << "      Welcome to ROOT BEER, the ROOT Basic Event ExtractoR       \n"
-	    << "                                                                 \n"
-    ;
-}
-
-
-
-// class rb::Rint //
-
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// Constructor                                           //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 rb::Rint::Rint(const char* appClassName, int* argc, char** argv,
-	       void* options, int numOptions, Bool_t noLogo) :
-  TRint(appClassName, argc, argv, options, numOptions, noLogo) {
+	       void* options, int numOptions, Bool_t liteLogo) :
+  TRint(appClassName, argc, argv, options, numOptions, kTRUE) {
   SetPrompt("rootbeer [%d] ");
-
+  PrintLogo(liteLogo);
+  
+  // Allocate memory to global rb::Data<T> classes.
 #define RB_ALLOCATE
 #include "Data.hxx"
-
 }
 
-
-// Terminate function
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// void rb::Rint::Terminate()                            //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 void rb::Rint::Terminate(Int_t status) {
   rb::Canvas::StopUpdate();
   rb::Unattach();
   gSystem->Sleep(0.5e3);
 
+  // Deallocate memory of global rb::Data<T> classes.
 #define RB_DEALLOCATE
 #include "Data.hxx"
 
@@ -64,20 +42,37 @@ void rb::Rint::Terminate(Int_t status) {
   TRint::Terminate(status);
 }
 
-
-
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-// Internal helper functions                             //
+// void rb::Rint::PrintLogo()                            //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-namespace
-{
-  //! Stop a running thread, used in rb::Unattach().
-  inline void StopThread(const char* name) {
-    if(!TThread::GetThread(name)) return; // Thread not running, nothing to do
-    rb::Thread::Stop(name); // Send signal to stop the thread.
-    while (TThread::GetThread(name)) ; // Wait until thread finishes executing
-  }
+void rb::Rint::PrintLogo(Bool_t lite) {
+  if(!lite)
+    std::cout << "                                                                 \n"
+	      << "                            ___                                  \n"
+	      << "                          .'   '.                                \n"
+	      << "                         /       \\           oOoOo              \n"
+	      << "                        |         |       ,==|||||               \n"
+	      << "                         \\       /       _|| |||||              \n"
+	      << "                          '.___.'    _.-'^|| |||||               \n"
+	      << "                        __/_______.-'     '==HHHHH               \n"
+	      << "                   _.-'` /                   \"\"\"\"\"          \n"
+	      << "                .-'     /   oOoOo                                \n"
+	      << "                `-._   / ,==|||||                                \n"
+	      << "                    '-/._|| |||||                                \n"
+	      << "                     /  ^|| |||||                                \n"
+	      << "                    /    '==HHHHH                                \n"
+	      << "                   /________\"\"\"\"\"                           \n"
+	      << "                   `\\       `\\                                 \n"
+	      << "                     \\        `\\   /                           \n"
+	      << "                      \\         `\\/                            \n"
+	      << "                      /                                          \n"
+	      << "                     /                                           \n"
+	      << "                    /_____                                       \n";
+  std::cout   << "                                                                 \n"
+	      << "      Welcome to ROOT BEER, the ROOT Basic Event ExtractoR       \n"
+	      << "                                                                 \n";
 }
+
 
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
@@ -104,7 +99,7 @@ void rb::AttachOnline(const char* host, const char* other, char** others, int no
        "defined in order to attach to online data with rootbeer.\n");
 #endif
 
-#elif defined _NSCL_
+#elif defined NSCL_BUFFERS
   Info("AttachOnline",
        "Online attachment to NSCL data is not yet implemented.");
 #else
@@ -136,7 +131,4 @@ void rb::AttachList(const char* filename) {
 void rb::Unattach() {
   rb::Thread::Stop("AttachFile");  
   rb::Thread::Stop("AttachOnline");
-  // StopThread("AttachFile");
-  // StopThread("AttachOnline");
 }
-

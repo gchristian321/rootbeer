@@ -6,7 +6,6 @@
 //! of the available user functions and their descriptions can be found in this Doxygen file.
 #ifndef ROOTBEER_HXX
 #define ROOTBEER_HXX
-#include <cstdlib>
 #include <vector>
 #include <string>
 #include <TCutG.h>
@@ -44,10 +43,6 @@ namespace rb
   /// \brief Disconnect from a data source.
   //! Stops all reading of data andl closes out the relevant threads.
   extern void Unattach();
-
-  /// \brief Display the \c ROOTBEER logo.
-  //! \details ASCII art of naturally clumsy man stumbling while carrying two full mugs of root beer.
-  extern void Logo();
 
   /// \brief Write configuration file
   //! \details The configureation file is CINT code that reproduces things you've defined in ROOTBEER
@@ -122,8 +117,6 @@ namespace rb
   //!  we need to override the Terminate()  method to stop threaded processes.
   class Rint : public TRint
   {
-  // private:
-  //   BufferSource * fBuffers;
   public:
     /// \brief Constructor
     //! \details Just call the standard \c TRint constructor, plus set the prompt to be
@@ -138,15 +131,20 @@ namespace rb
     //! the CINT session.
     void Terminate(Int_t status = 0);
 
-    //    void Run(Bool_t ret = kFALSE);
+    /// \brief Display the \c ROOTBEER logo.
+    //! \details ASCII art of naturally clumsy man stumbling whilst carrying two full mugs of root beer.
+    virtual void PrintLogo(Bool_t lite);
 
     /// \brief Destructor
     //! \details Calls Terminate() with error code.
-    ~Rint() {
-      Terminate(EXIT_FAILURE);
-    }
+    ~Rint();
+
     ClassDef(rb::Rint, 0);
   };
+
+  inline rb::Rint::~Rint() {
+    Terminate(1);
+  }
 
 }
 

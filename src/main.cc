@@ -6,14 +6,11 @@
 #include "Data.hxx"
 
 
-/// The \c main ROOTBEER function.
-/*! Creates an instance of \c rb::Rint and runs it. */
+/// \brief The \c main ROOTBEER function.
+//! \details Creates an instance of \c rb::Rint and runs it.
 Int_t main(Int_t argc, Char_t** argv)
 {
-  //  rb::Logo();
-  //  rb::fBgo = new rb::TData<Bgo>("bgo", false); rb::test();
-  rb::Rint rbApp("RootBeer", &argc, argv, 0, 0, kTRUE);
-  //  Midas m;
+  rb::Rint rbApp("RootBeer", &argc, argv, 0, 0, true); //false);
   gROOT->ProcessLine("gStyle->SetOptTitle(kTRUE)");
   rbApp.Run();
   return 0;
