@@ -374,7 +374,7 @@ namespace rb
   //! This is a template class, with the template argument being the number of bits to
   //! display.
   //! \note Currently, CINT dictionaries are only generated for the following numbers of 
-  //! bits: 8, 16, 32, and 64. If you need others, you'll need to add
+  //! bits: 1, 2, 4, 8, 16, 32, and 64. If you need others, you'll need to add
   //! \code
   //! #pragma link C++ class rb::BitHist<N>+; // N is the number of bits you want
   //! \endcode

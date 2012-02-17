@@ -2,45 +2,6 @@
 //! \brief Classes and functions relevant to data unpacking.
 //! \details Defines the rb::Data class, a generic wrapper for user-defined
 //! data storage classes.
-
-// If any of the RB_* macros are defined, we're just including this file to 
-// get the appropriate definition of RB_IMPORT_DATA
-
-#if defined RB_EXTERN
-
-#define RB_IMPORT_DATA(CLASS, SYMBOL, NAME, VISIBLE, ARGS)	\
-  extern rb::Data<CLASS> * SYMBOL;
-#include "../user/ImportData.h"
-#undef RB_EXTERN
-#undef RB_IMPORT_DATA
-
-#elif defined RB_INIT
-
-#define RB_IMPORT_DATA(CLASS, SYMBOL, NAME, VISIBLE, ARGS)	\
-  rb::Data<CLASS> * SYMBOL = 0;
-#include "../user/ImportData.h"
-#undef RB_INIT
-#undef RB_IMPORT_DATA
-
-#elif defined RB_ALLOCATE
-
-#define RB_IMPORT_DATA(CLASS, SYMBOL, NAME, VISIBLE, ARGS)	\
-  SYMBOL = new rb::Data<CLASS> (NAME, VISIBLE, ARGS);
-#include "../user/ImportData.h"
-#undef RB_ALLOCATE
-#undef RB_IMPORT_DATA
-
-#elif defined RB_DEALLOCATE
-
-#define RB_IMPORT_DATA(CLASS, SYMBOL, NAME, VISIBLE, ARGS)	\
-  delete SYMBOL;
-#include "../user/ImportData.h"
-#undef RB_DEALLOCATE
-#undef RB_IMPORT_DATA
-
-
-#else // 'Normal' file inclusion
-
 #ifndef DATA_HXX
 #define DATA_HXX
 #include <string>
@@ -178,12 +139,20 @@ namespace rb
     //! needed while also ensuring that dynamic resources are freed properly.
     //! To use (e.g. in your implementaion of rb::BufferSource::UnpackBuffer()):
     //! \code
-    //! AutoLockingPointer<MyClass> p = gMyClass->GetPointer();
+    //! AutoLockingPointer<MyClass> p = gMyClass.GetPointer();
     //! p->DoSomething();
-    //! // or //
-    //! gMyClass->GetPointer()->DoSomething();
     //! \endcode
     AutoLockingPointer<T> GetPointer();
+
+    /// \brief Return a scoped and locked pointer to the user class.
+    //! \details Same function as GetPointer(), except as an operator it
+    //! can be more naturally used as a "one off" without defining a separate
+    //! pointer. Example:
+    //! \code
+    //! gMyClass()->DoSomething();
+    //! \endcode
+    AutoLockingPointer<T> operator() ();
+
   };
 } // namespace rb
 
@@ -219,6 +188,15 @@ inline rb::Data<T>::~Data() {
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 template <class T>
 inline AutoLockingPointer<T> rb::Data<T>::GetPointer() {
+  AutoLockingPointer<T> out (fData, fMutex);
+  return out;
+}
+
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// AutoLockingPointer<T> rb::Data<T>::operator()         //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+template <class T>
+inline AutoLockingPointer<T> rb::Data<T>::operator()() {
   AutoLockingPointer<T> out (fData, fMutex);
   return out;
 }
@@ -273,8 +251,6 @@ void rb::Data<T>::Init(Bool_t makeVisible, const char* args) {
   std::string brName = kName; brName += ".";
   rb::Hist::AddBranch(kName.c_str(), fClassName.c_str(), &v);
 }
-
-
 #endif // #ifndef __MAKECINT__
+
 #endif // #ifndef DATA_HXX
-#endif // # RB_* defined

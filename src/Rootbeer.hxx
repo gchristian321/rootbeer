@@ -1,4 +1,4 @@
-//! \file rootbeer.hxx
+//! \file Rootbeer.hxx
 //! \brief Define the \c CINT user interface to <tt>ROOTBEER</tt>
 //! \details The user interface to anything \c ROOTBEER specific is done via functions
 //! in the \c rb namespace. So, to do any action specific to \c ROOTBEER (as opposed
@@ -15,7 +15,7 @@
 
 #ifndef __MAKECINT__
 #define RB_EXTERN
-#include "Data.hxx"
+#include "rb_import_data.h"
 #endif
 
 

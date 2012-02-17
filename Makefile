@@ -13,7 +13,7 @@ RPATH    += -Wl,-rpath,$(ROOTSYS)/lib -Wl,-rpath,$(PWD)/lib
 DYLIB=-shared
 FPIC=-fPIC
 INCFLAGS=-I$(SRC) -I$(CINT) -I$(USER) $(USER_INCLUDES)
-DEBUG=-pg -ggdb -O0
+DEBUG=-ggdb -O0
 CXXFLAGS=$(DEBUG) $(INCFLAGS) -L$(PWD)/lib $(STOCK_BUFFERS) -DBUFFER_TYPE=$(USER_BUFFER_TYPE)
 
 
@@ -99,7 +99,7 @@ $(OBJ)/midas/TMidasOnline.o: $(RBLIB)/libRBHist.so $(CINT)/RBDictionary.cxx $(SR
 -o $@  -p $(SRC)/midas/TMidasOnline.cxx \
 
 
-$(CINT)/RBDictionary.cxx: $(HEADERS) $(USER)/UserLinkdef.h $(CINT)/Linkdef.h $(USER)/ImportData.h
+$(CINT)/RBDictionary.cxx: $(HEADERS) $(USER)/UserLinkdef.h $(CINT)/Linkdef.h $(USER)/ImportData.h $(SRC)/rb_import_data.h
 	rootcint -f $@ -c $(CXXFLAGS)  -p $(HEADERS) $(CINT)/Linkdef.h \
 
 

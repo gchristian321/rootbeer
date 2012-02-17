@@ -148,32 +148,39 @@ Int_t main(Int_t argc, Char_t** argv)
 
   \n \section attach Attaching to Data
   In ROOTBEER, it is possible to attach to either an online data source (streaming in from somewhere) or an offline
-  one (data saved in a file).  To attach to an online data source, the command is
-  \code
-  rb::AttachOnline();
-  \endcode
-  ROOTBEER will now start looking for data buffers from a source defined in the compiled code.
-  When it is sent buffers, ROOTBEER will unpack them into pre-compiled data structures. The user then has access
-  to the data via \link hist Histograms\endlink that he/she can define. The receiving, unpacking, and histogramming
-  of online data is handled "behind the scenes" in a separate thread from the one running CINT, so the user still
-  has full access to the command line when online data is coming in.
+  one (data saved in a file). Attaching to data sources is done in a separate thread from the one running CINT, so
+  you are able to have access to the command line while data are acquired, unpacked, and put into histograms behind
+  the scenes.
 
-  To stop receiving online buffers, use the Unattach() function:
+  To attach to an online data source, the command is
+  \code
+  rb::AttachOnline(const char* source, const char* other, char** others, int nothers);
+  \endcode
+  The specific arguments to rb::AttachOnline() will depend on your experiment since we can't know <i>a priori</i>
+  what information is needed for you to attach to online data. Typically "source" refers to some host machine,
+  "other" is any other information that might be needed, and then the remainind arguments can be used in case two
+  fields are not sufficient.
+
+  Offline data sources can be read using
+  \code
+  rb::AttachFile(const char* filename, bool stop_at_end);
+  \endcode
+
+  The first argument is the name (path) of the offline file, and the second specifies whether you want to stop
+  reading at the end of the file [true], or stay attached and wait for more data to come it [false].
+
+  It's also possible to string multiple offline files together using
+  \code
+  rb::AttachList(const char* filename);
+  \endcode
+
+  Here the argument is the name of a file that lists the path of each data file you want to read.  This file
+  can also contain comments, marked by <tt>#</tt>, and all whitespace is ignored.
+
+  Any time you are attached to a data source (any type), you can cancel using the function
   \code
   rb::Unattach();
   \endcode
-
-  ROOTBEER can also read offline data from a saved file:
-  \code
-  rb::AttachFile("myOfflineFileName.evt");
-  \endcode
-
-  As with online data, this is run in a separate thread. Optionally, you can specify a second argument (a boolean)
-  that tells whether to Unattach() at the end of the file (argument <tt>true</tt>, the default) or to stay attached
-  and wait for more data to come in (argument <tt>false</tt>).
-
-  It's also possible to string multiple offline files together, using the \c rb::AttachList() command. The argument
-  is a string specifying the name of a file that lists the paths of the files you want to read in order.
 
   Note that if the user calls any of the \c Attach commands while already conneted to a data source, ROOTBEER
   will first Unattach() from the old one before connecting to the new one.
@@ -278,6 +285,15 @@ Int_t main(Int_t argc, Char_t** argv)
   Note that the zeroing of histograms can also be performed via the <a href=#canvas><b>Canvas</b></a>
   on which is resides.
 
+  In addition to the standard 1-, 2-, and 3-dimensional histograms, ROOTBEER also includes some specialized
+  histogram types. For more information, consult the linked documentation for each:
+
+  
+  - "Gamma Histograms": rb::GammaHist
+  - "Summary Histograms": rb::SummaryHist
+  - "Bitmask Histograms": rb::BitHist
+
+
 
   \n \section canvas Canvases
 
@@ -321,7 +337,8 @@ Int_t main(Int_t argc, Char_t** argv)
   \page data Customizing for Your Experiment
 
   - <a href=#data_intro><b>Introduction</b></a>
-  - <a href=#data_skel><b>Filling in the Skeleton</b></a>
+  - <a href=#data_skel><b>Adding Your Classes to ROOTBEER</b></a>
+  - <a href=#data_buffers><b>Defining How to Acquire and Unpack Data</b></a>
   - <a href=#data_other><b>Other Odds and Ends</b></a>
 
 
@@ -400,7 +417,7 @@ Int_t main(Int_t argc, Char_t** argv)
    };
 
    class Top {
-     sub sub;
+     Sub sub;
      double c;
    };
 
@@ -423,118 +440,93 @@ Int_t main(Int_t argc, Char_t** argv)
   \endcode
 
 
-   \section data_skel Skeleton
+   \section data_skel Adding Your Classes
 
    Once you've got a compatible set of analysis codes written, then there's a few things you need to do
    to make it work with ROOTBEER. All of the files that you'll need to edit are located in the \c user directory.
    This directory is also the place where you can locate the source code files for your unpacking routines, if you
    want (you can also have them located anywhere on you system, as exaplained below). The files you'll definitely
-   need to edit are <tt>Makefile.user</tt>, <tt>UserLinkdef.h</tt>, and <tt>Skeleton.cxx</tt>.
+   need to edit are Makefile.user, UserLinkdef.h, ImportData.h, and User.cxx
   
    The first thing you need to do is to tell the compiler and CINT about your source files and their locations.
    First, open the \c Makefile.user file, and fill in the blanks to define the directory in which your header
    files are located (if it's not <tt>rootbeer/user</tt>), and the paths to each of your source and header files.
-   The comments in \c Makefile.user explain how to do each of these things.  Somewhat unrelated, you'll also need
-   to specify the type of data that is present in your packed event files (i.e., short int, int, long int, etc.),
-   by filling in the appropriate value of the <tt>DATATYPE</tt> variable at the bottom of the file.
+   The comments in \c Makefile.user explain how to do each of these things.
 
-   After editing <tt>Makefile.user<\tt>, open up <tt>UserLinkdef.h</tt>. Again, the comments will tell you what
+   After editing <tt>Makefile.user</tt>, open up <tt>UserLinkdef.h</tt>. Again, the comments will tell you what
    to do (or for a more readable version, see the linked doxygen page).  The basic idea is that you're telling
    CINT, ROOT's C++ interpreter to generate a dictionary for your classes, so that you can work with them interactively
-   in the interpreter.
+   in the interpreter and so that they can automatically be parsed into a tree structure.
 
-   The last file you need to edit is <tt>Skeleton.cxx</tt>. Again, most everything is explained in the comments, but
-   we'll go through it here too. The first thing you need to do is to \c #include the header files for any of the code
-   you've written.  Do this under the section denoted with
+   Next, you will need to define (or "import") the instances of your user class that you need in rootbeer. To do this,
+   open up the ImportData.h file, and use the RB_IMPORT_DATA macro to add instances of your classes:
    \code
-   //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-   //\\ Add the header includes for your classes here. //
-   //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+   RB_IMPORT_DATA(ClassType, variableName, "treeBranchName", (bool)visible, "constructor args");
    \endcode
-   Below that \c #include all of the headers you'll need.
+   See the linked documentation page on
+   <a href="rb__import__data_8h.html#a7623fcbdf2c95113416d11bc0fd5286e"><b>RB_IMPORT_DATA</b></a>
+   and ImportData.h for more information and examples. It should be noted that the RB_IMPORT_DATA macro does not
+   create a "bare" instance of your class directly. Instead it creates a new global instance of rb::Data <T>, with
+   the template argument being your class type. Doing things this way automatically calls the appropriate functions
+   allowing your data to be displayed in histograms, and furthermore it allows thread-safe access to the classes,
+   both in compiled code and in CINT.  For more information, see the documentation on rb::MData and rb::Data.
+
+
+   \section data_buffers Acquiring and Upacking Data
+
+   Now that you've got instances of your data classes added to ROOTBEER, you'll need to tell it how to acquire
+   and unpack data.  This is done by defining a new class that inherits from the abstract base class rb::BufferSource
+   and implements all of its pure virtual methods. Additionally, you will need to implement the static New() method
+   of rb::BufferSource such that it returns a pointer to a new instance of your derived class.  The definition and
+   implemention of your derived class and rb::BufferSource::New() can all be contained in the file User.cxx. More
+   detailed instructions on how to create your derived BufferSource class can be found in the documentation pages of
+   both rb::BufferSource and User.cxx.
+
+   If your experiment involves MIDAS or NSCL (spectrodaq) readout, then you may be able to make use of the pre-defined
+   BufferSource derived classes that come with stock ROOTBEER. In principle, if you use either of these two systems,
+   you will only have to implement the UnpackBuffer() method (which will always be experiment specific).  To "turn on"
+   the use of either of these pre-defined classes, uncomment the appropriate lines as noted in UserLinkdef.h
+
+   In the course of implementing your BufferSource derived class, you'll presumably want access to the global instances
+   of your user classes (otherwise you don't have anywhere to put the data).  Direct access to your classes is not allowed
+   due to the issues that could arise in a threaded environment.  Instead, you'll need to use the GetPointer() method
+   of rb::Data to obtain a special type of pointer that allows thread safe access to your data. This special pointer
+   (AutoLockingPointer), has the standard pointer semantics, e.g. a dereference and indirection operator
    \code
-   #include "MyFirstHeader.hxx"
-   #include "MyNextHeader.hxx"
-   ...
+   p->SomeMemberFunction(); //< dereference
+   SomeFunction(*pPar); //< indirection
    \endcode
 
-   The next thing you'll need to do is to create some instances of your user data classes. This is done below the
-   comment block
+   Consider the following example:
    \code
-   //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-   //\\ Define instances of your class here    \\//
-   //\\ (using the ADD_CLASS_INSTANCE macros). \\//
-   //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+   // [ MyHeader.hxx ] //
+   struct MyClass {
+     double d;
+     void f();
+   };
+   void ff (const MyClass& c);
+
+   // [ ImportData.h ] //
+   #include "MyHeader.hxx"
+   RB_IMPORT_DATA(MyClass, gMyClass, "mine", false, "");
+
+   // [ User.cxx ] //
+   #include "MyHeader.hxx"
+   class MyBufferSource : public rb::BufferSource {
+     // ... //
+   };
+
+   Bool_t MyBufferSource::UnpackBuffer() {
+     AutoLockingPointer pMyClass = gMyClass->GetPointer();
+     pMyClass->f();
+     ff(*pMyClass);
+     // ... //
+   }
+
+   rb::BufferSource* rb::BufferSource::New() {
+     return new MyBufferSource();
+   }
    \endcode
-   using the \c ADD_CLASS_INSTANCE macros. For more information on using these macros, see the docuentation page
-   on Skeleton.hxx
-
-    Finally, you need to implement the routines to do the actual buffer extraction and processing.
-    This is done by filling in the blanks below
-    \code
-    //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-    //\\ Here you should define how to process your data buffers        \\//
-    //\\ by implementing the ReadBuffer() and UnpackBuffer() functions. \\//
-    //\\ For more information, see the doxygen page on rb::unpack       \\//
-    //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-    \endcode
-
-    The first function you'll need to fill in is ReadBuffer() (see the linked dxygen page for more info on what
-    this function is suposed to do). The basic idea is that you want to tell ROOTBEER how to take the raw data from a
-    <a href = http://www.cplusplus.com/reference/iostream/istream/>std::istream</a> and copy it over into an
-    appropriately-sized <a href = http://www.cplusplus.com/reference/stl/vector/>std::vector</a>.  Routines to
-    do this are already written for NSCL and MIDAS data, so if applicable you can use these routines by uncommenting the
-    appropriate \c #define macros.  Otherwise, you'll need to write your own (in the \c #else conditional compilation
-    block).
-
-    The next function to fill in is UnpackBuffer() (again, follow the link for more info).  This function tells ROOTBEER
-    how to process the data in each buffer. Usually, you'll delegate the bulk of this to routines in your user code, but unless
-    we start making assumptions about how your data is strucured, this function will probably need to include
-    a bit of data crunching directly.  Really, it's hard to say much more about what to do with this function without
-    knowing what your data looks like, so the rest is up to the user. Do keep in mind that, as noted with a comment block,
-    you need to include a call to rb::Hist::FillAll() after you have processed each event, otherwise your data will never
-    make it into your histograms which defeats the whole purpose.
-
-    One thing to note about implementing UnpackBuffer() is how to get access to the user classes you instantiated
-    using <tt>ADD_CLASS_INSTANCE</tt>. Because your data will be unpacked in a thread separate from the main one running
-    CINT, access to it needs to be controlled by mutexes (if that doesn't make any sense, don't
-    worry, just keep reading). In fact, things have been set up so that the only straightforward way you can get access to your
-    class instances is through a LockingPointer. You can do this easily using the \c GET_LOCKING_POINTER macro, which takes
-    three arguments
-    -# The pointer variable name.
-    -# The original variable name you used in \c ADD_CLASS_INSTANCE
-    -# The class name.
-
-    For example, if I want access to \c par as created a few lines above:
-    \code
-    GET_LOCKING_POINER(pPar, par, MyParams);
-    \endcode
-    Now I've access to the data and routines of \c par via the LockingPointer <tt>pPar</tt>. You can learn more about how to
-    use the LockingPointer in it's class documentation, but the three most useful functions are:
-
-    the dereference operator
-    \c ->
-    \code
-    pPar->SomeMemberFunction();
-    \endcode
-    the indirection operator \c *
-    \code
-    // elsewhere
-    void SomeFunction(const MyParams& p);
-    // here
-    SomeFunction(*pPar);
-    \endcode
-    and the \c Get() function, which returns a pointer
-    \code
-    // elsewhere
-    void SomePointerFunction(MyParams* p);
-    // here
-    SomePointerFunction(pPar.Get());
-    \endcode
-
-
-   For more information on what's going on behind the scenes in what's been described in this section, see the
-   documentation on the rb::Data class.
 
 
    \section data_other Other

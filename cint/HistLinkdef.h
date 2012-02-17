@@ -14,6 +14,9 @@
 #pragma link C++ class rb::GammaHist+;
 #pragma link C++ class std::list<rb::Hist*>;
 #pragma link C++ class std::list<rb::Hist*>::iterator;
+#pragma link C++ class rb::BitHist<1>+;
+#pragma link C++ class rb::BitHist<2>+;
+#pragma link C++ class rb::BitHist<4>+;
 #pragma link C++ class rb::BitHist<8>+;
 #pragma link C++ class rb::BitHist<16>+;
 #pragma link C++ class rb::BitHist<32>+;

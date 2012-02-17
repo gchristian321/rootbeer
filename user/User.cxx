@@ -168,6 +168,7 @@ Bool_t rb::Midas::UnpackBuffer() {
   switch(eventId) {
   case 1: // event
     vme::Module::unpack_all(fBuffer);
+    pBgo->q[0] += 1000;
     //    pBgo->q[0] =  gRandom->Gaus(1000,50);
     break;
   case 2: // scaler

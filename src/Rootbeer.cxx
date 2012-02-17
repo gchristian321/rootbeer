@@ -6,7 +6,7 @@
 
 // Include forward declarations of global rb::Data<T> classes.
 #define RB_INIT
-#include "Data.hxx"
+#include "rb_import_data.h"
 
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
@@ -24,7 +24,7 @@ rb::Rint::Rint(const char* appClassName, int* argc, char** argv,
   
   // Allocate memory to global rb::Data<T> classes.
 #define RB_ALLOCATE
-#include "Data.hxx"
+#include "rb_import_data.h"
 }
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
@@ -37,7 +37,7 @@ void rb::Rint::Terminate(Int_t status) {
 
   // Deallocate memory of global rb::Data<T> classes.
 #define RB_DEALLOCATE
-#include "Data.hxx"
+#include "rb_import_data.h"
 
   rb::Hist::DeleteAll();
   TRint::Terminate(status);
