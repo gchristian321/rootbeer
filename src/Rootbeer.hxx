@@ -6,13 +6,10 @@
 //! of the available user functions and their descriptions can be found in this Doxygen file.
 #ifndef ROOTBEER_HXX
 #define ROOTBEER_HXX
-#include <vector>
-#include <string>
-#include <TCutG.h>
 #include <TRint.h>
 #include "Hist.hxx"
 #include "Data.hxx"
-
+#include "vme/vme.hxx"
 #ifndef __MAKECINT__
 #define RB_EXTERN
 #include "rb_import_data.h"
@@ -132,6 +129,7 @@ namespace rb
 
     /// \brief Display the \c ROOTBEER logo.
     //! \details ASCII art of naturally clumsy man stumbling whilst carrying two full mugs of root beer.
+    //! \param [in] lite 'false' prints the full logo, 'true' just prints a welcome message.
     virtual void PrintLogo(Bool_t lite);
 
     /// \brief Destructor

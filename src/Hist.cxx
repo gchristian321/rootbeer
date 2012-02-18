@@ -74,9 +74,9 @@ inline std::string check_name(const char* name) {
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // Static data members.                                  //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-TMutex rb::Hist::fgMutex (kFALSE);
-volatile rb::Hist::List_t rb::Hist::fgList;
-volatile TTree  rb::Hist::fgTree;
+// rb::Mutex rb::Hist::fgMutex (kFALSE);
+// volatile rb::Hist::List_t rb::Hist::fgList;
+// volatile TTree  rb::Hist::fgTree;
 
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
@@ -129,7 +129,7 @@ rb::Hist::Hist(const char* name, const char* title, const char* param, const cha
 // Destuctor                                             //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 rb::Hist::~Hist() {
-  LockingPointer<CriticalElements> critical(fCritical, fgMutex);
+  LockingPointer<CriticalElements> critical(fCritical, fgMutex());
 
   // remove from fgList and directory
   List_t* pList = critical->GetList();
@@ -193,7 +193,7 @@ Bool_t rb::Hist::Initialize(const char* name, const char* title,
   TH1::AddDirectory(kTRUE);
 
   // Add to collections
-  LockingPointer<List_t> hlist(fgList, fgMutex);
+  LockingPointer<List_t> hlist(fgList(), fgMutex());
   if(successfulHistCreation) {
     hlist->push_back(_this);
 
@@ -239,7 +239,7 @@ void rb::Hist::New(const char* name, const char* title,
 // rb::Hist::Regate                                      //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 Int_t rb::Hist::Regate(const char* newgate) {
-  LockingPointer<CriticalElements> critical(fCritical, fgMutex);
+  LockingPointer<CriticalElements> critical(fCritical, fgMutex());
 
   // check that new gate formula is valid
   TTreeFormula tempFormula("temp", check_gate(newgate).c_str(), critical->GetTree());
@@ -268,7 +268,7 @@ Int_t rb::Hist::Regate(const char* newgate) {
 // rb::Hist::GetParam                                    //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 string rb::Hist::GetParam(UInt_t axis) {
-  LockingPointer<CriticalElements> critical(fCritical, fgMutex);
+  LockingPointer<CriticalElements> critical(fCritical, fgMutex());
   if(axis < critical->fParams.size()) {
     return critical->fParams[axis]->GetExpFormula().Data();
   }
@@ -284,7 +284,7 @@ TH1* rb::Hist::GetHist() {
   if(fHistogramClone) delete fHistogramClone;
   TH1::AddDirectory(kFALSE);
   fHistogramClone =
-    static_cast<TH1*>(LockingPointer<CriticalElements>(fCritical, fgMutex)->fHistogram->Clone());
+    static_cast<TH1*>(LockingPointer<CriticalElements>(fCritical, fgMutex())->fHistogram->Clone());
   TH1::AddDirectory(kTRUE);
   return fHistogramClone;
 }
@@ -321,7 +321,7 @@ Int_t rb::Hist::DoFill(TH1* hst, TTreeFormula* gate, vector<TTreeFormula*>& para
 // static rb::Hist::FillAll                              //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 void rb::Hist::FillAll() {
-  LockingPointer<List_t> hlist(fgList, fgMutex); // makes it safe to not lock the others
+  LockingPointer<List_t> hlist(fgList(), fgMutex()); // makes it safe to not lock the others
   List_t::iterator it;
   for(it = hlist->begin(); it != hlist->end(); ++it) {
     rb::Hist* pHst = *it;
@@ -334,8 +334,8 @@ void rb::Hist::FillAll() {
 // static rb::Hist::DeleteAll                            //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 void rb::Hist::DeleteAll() {
-  TMutex deleteMutex; // create a local mutex to avoid deadlock when calling delete
-  LockingPointer<List_t> hlist(fgList, deleteMutex);
+  rb::Mutex deleteMutex; // create a local mutex to avoid deadlock when calling delete
+  LockingPointer<List_t> hlist(fgList(), deleteMutex);
    while(1) {
      if(hlist->size() == 0) break;
      delete *hlist->begin();
@@ -346,7 +346,7 @@ void rb::Hist::DeleteAll() {
 // rb::Hist::Fill()                                      //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 Int_t rb::Hist::Fill() {
-  LockingPointer<CriticalElements> critical(fCritical, fgMutex);
+  LockingPointer<CriticalElements> critical(fCritical, fgMutex());
   return DoFill(critical->fHistogram, critical->fGate, critical->fParams);
 }
 
@@ -462,7 +462,7 @@ void rb::SummaryHist::New(const char* name, const char* title,
   TH1::AddDirectory(kTRUE);
 
   // Add to collections
-  LockingPointer<List_t> hlist(fgList, fgMutex);
+  LockingPointer<List_t> hlist(fgList(), fgMutex());
   if(successfulHistCreation) {
     hlist->push_back(_this);
 
@@ -631,7 +631,7 @@ Bool_t rb::GammaHist::GInitialize(const char* name, const char* title,
   TH1::AddDirectory(kTRUE);
 
   // Add to collections
-  LockingPointer<List_t> hlist(fgList, fgMutex);
+  LockingPointer<List_t> hlist(fgList(), fgMutex());
   if(successfulHistCreation) {
     hlist->push_back(_this);
 

@@ -25,7 +25,7 @@ namespace
   Int_t updateRate = 0;
 
   /// Mutex for locking threded canvas operations.
-  TMutex gMutex (kFALSE);
+  rb::Mutex gMutex (kFALSE);
 
   /// Run the canvas updating in a separate thread.
   class CanvasUpdate : public rb::Thread

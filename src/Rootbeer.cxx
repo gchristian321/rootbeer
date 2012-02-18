@@ -89,6 +89,7 @@ void rb::AttachOnline(const char* host, const char* other, char** others, int no
   if(others || nothers)
     Warning("AttachOnline", "Arguments \'others\' and \'n_others\' are unused");
 
+  rb::Unattach();
   rb::attach::Online::CreateAndRun(host, other, others, nothers);
 
 #else
@@ -116,6 +117,7 @@ void rb::AttachOnline(const char* host, const char* other, char** others, int no
 // void rb::AttachFile                                   //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 void rb::AttachFile(const char* filename, Bool_t stop_at_end) {
+  rb::Unattach();
   rb::attach::File::CreateAndRun(filename, stop_at_end);
 }
 
@@ -123,6 +125,7 @@ void rb::AttachFile(const char* filename, Bool_t stop_at_end) {
 // void rb::AttachList                                   //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 void rb::AttachList(const char* filename) {
+  rb::Unattach();
   rb::attach::List::CreateAndRun(filename);
 }
 

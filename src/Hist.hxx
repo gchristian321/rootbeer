@@ -16,7 +16,6 @@
 #include <TROOT.h>
 #include <TError.h>
 #include <TObjArray.h>
-#include <TMutex.h>
 #include "utils/LockingPointer.hxx"
 
 
@@ -37,6 +36,8 @@ namespace rb
   //! the wrapped TH1* to the right type in the constructor.
   class Hist : public TNamed
   {
+  private:
+    Hist& operator= (const Hist& other) {}
   public:
     /// Typedef for a std::list of rb::Hist pointers.
     typedef std::list<rb::Hist*> List_t;
@@ -92,30 +93,30 @@ namespace rb
       //! \note We can safely return a LockFreePointer here since we're already inside a \c volatile
       //! member, which means that fgMutex should already be locked.
       TTree* GetTree() {
-	return LockFreePointer<TTree>(fgTree).Get();
+	return LockFreePointer<TTree>(fgTree()).Get();
       }
 
       /// Returns a pointer to fgList.
       //! \note We can safely return a LockFreePointer here since we're already inside a \c volatile
       //! member, which means that fgMutex should already be locked.
       List_t* GetList() {
-	return LockFreePointer<List_t>(&fgList).Get();
+	return LockFreePointer<List_t>(fgList()).Get();
       }
     } fCritical;
 
     /// List of all existing rb::Hist objects.
     //! \note Declared \c volatile because it is a resource shared between threads.
     //! Access via LockingPointer.
-    static volatile List_t fgList;
+    static volatile List_t& fgList() { static List_t * L = new List_t() ; return *L; }
 
     /// TTree for calculating parameter and gate values.
     //! \note Declared \c volatile because it is a resource shared between threads.
     //! Access via LockingPointer.
-    static volatile TTree fgTree;
+    static volatile TTree& fgTree() { static TTree * T = new TTree(); return *T; }
 
     /// Global mutex
     //! Protects all rb::Hist objects.
-    static TMutex fgMutex;
+    static rb::Mutex& fgMutex() { static rb::Mutex * M = new rb::Mutex(kFALSE); return *M; }
 
     /// Function to initialize a histogram.
     //! Basically this is just a helper function that is called by the various
@@ -159,13 +160,13 @@ namespace rb
     //! \Note that this draws fHistogram directly, not a copy (to that it can still continue to be auto-updated
     //! by the rb::Canvas functions).
     void Draw(Option_t* option = "") {
-      LockingPointer<CriticalElements>(fCritical, fgMutex)->fHistogram->Draw(option);
+      LockingPointer<CriticalElements>(fCritical, fgMutex())->fHistogram->Draw(option);
     }
 
     /// Clear function.
     //! Zeros-out all axes of fHistogram.
     virtual void Clear() {
-      LockingPointer<CriticalElements> critical(fCritical, fgMutex);
+      LockingPointer<CriticalElements> critical(fCritical, fgMutex());
       TH1D* hist = static_cast<TH1D*>(critical->fHistogram);
       for(Int_t p = 0; p < hist->fN; ++p) hist->fArray[p] = 0.;
     }
@@ -191,7 +192,7 @@ namespace rb
 
     /// Return the gate argument
     std::string GetGate() {
-      return LockingPointer<CriticalElements>(fCritical, fgMutex)->fGate->GetExpFormula().Data();
+      return LockingPointer<CriticalElements>(fCritical, fgMutex())->fGate->GetExpFormula().Data();
     }
 
     /// Return the parameter name associated with the specified axis.
@@ -199,17 +200,17 @@ namespace rb
 
     /// Set line color.
     void SetLineColor(Color_t lcolor) {
-      LockingPointer<CriticalElements>(fCritical, fgMutex)->fHistogram->SetLineColor(lcolor);
+      LockingPointer<CriticalElements>(fCritical, fgMutex())->fHistogram->SetLineColor(lcolor);
     }
 
     /// Set marker color.
     void SetMarkerColor(Color_t mcolor) {
-      LockingPointer<CriticalElements>(fCritical, fgMutex)->fHistogram->SetMarkerColor(mcolor);
+      LockingPointer<CriticalElements>(fCritical, fgMutex())->fHistogram->SetMarkerColor(mcolor);
     }
 
     /// Return a reference to the global histogram mutex.
-    static TMutex& GetMutex() {
-      return fgMutex;
+    static rb::Mutex& GetMutex() {
+      return fgMutex();
     }
 
     /// Function to fill all histograms
@@ -219,18 +220,18 @@ namespace rb
     //! \note Since this uses TTree::Clone(), it dynamically allocetes memory that
     //! should be deleted by the user.
     static TTree* GetTreeClone() {
-      return LockingPointer<TTree>(fgTree, fgMutex)->CloneTree(0);
+      return LockingPointer<TTree>(fgTree(), fgMutex())->CloneTree(0);
     }
 
     /// Function to add branches to fgTree.
     static TBranch* AddBranch(const char* name, const char* classname, void** obj,
 			      Int_t bufsize = 32000, Int_t splitlevel = 99) {
-      return LockingPointer<TTree>(fgTree, fgMutex)->Branch(name, classname, obj, bufsize, splitlevel);
+      return LockingPointer<TTree>(fgTree(), fgMutex())->Branch(name, classname, obj, bufsize, splitlevel);
     }
 
     /// Function to access entries of \c Hist::fgList
     static rb::Hist* Find(const char* name) {
-      LockingPointer<List_t> hlist(fgList, fgMutex);
+      LockingPointer<List_t> hlist(fgList(), fgMutex());
       List_t::iterator it;
       for(it = hlist->begin(); it != hlist->end(); ++it) {
 	if(!strcmp((*it)->GetName(), name)) return *it;
@@ -244,12 +245,12 @@ namespace rb
 
     /// Returns the total number of entries in \c fgList
     static UInt_t GetNumber() {
-      return LockingPointer<List_t>(fgList, fgMutex)->size();
+      return LockingPointer<List_t>(fgList(), fgMutex())->size();
     }
 
     /// Set an alias in \c fgTree
     static Bool_t SetAlias(const char* aliasName, const char* aliasFormula) {
-      LockingPointer<TTree>(fgTree, fgMutex)->SetAlias(aliasName, aliasFormula);
+      LockingPointer<TTree>(fgTree(), fgMutex())->SetAlias(aliasName, aliasFormula);
     }
 
     /// One-dimensional creation function
@@ -450,7 +451,7 @@ Bool_t rb::BitHist<NBITS>::BitInitialize(const char* name, const char* title, co
   TH1::AddDirectory(kTRUE);
 
   // Add to collections
-  LockingPointer<List_t> hlist(fgList, fgMutex);
+  LockingPointer<List_t> hlist(fgList(), fgMutex());
   if(successfulHistCreation) {
     hlist->push_back(_this);
 

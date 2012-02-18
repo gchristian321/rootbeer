@@ -48,7 +48,7 @@ namespace rb
     TMidasFile fFile; //< Offline MIDAS file.
     TMidasEvent fBuffer; //< Midas event buffer.
   public:
-    Midas() : fRequestId(-1) {}
+    Midas();
     virtual ~Midas();
     virtual Bool_t OpenFile(const char* file_name, char** other = 0, int nother = 0);
     virtual Bool_t ConnectOnline(const char* host, const char* other_arg = "", char** other_args = 0, int n_others = 0);
@@ -68,6 +68,8 @@ namespace rb
 rb::BufferSource* rb::BufferSource::New() {
   return new rb::Midas();
 }
+
+inline rb::Midas::Midas() : fRequestId(-1) {}
 
 inline Bool_t rb::Midas::OpenFile(const char* file_name, char** other, int nother) {
   return fFile.Open(file_name);
@@ -162,13 +164,13 @@ Bool_t rb::Midas::UnpackBuffer() {
   Short_t eventId = fBuffer.GetEventId();
   vme::Module::reset_all();
 
-  AutoLockingPointer<Bgo> pBgo = fBgo->GetPointer();
+  //  CountedLockingPointer<Bgo> pBgo = fBgo.GetPointer();
   //  pBgo->test();
 
   switch(eventId) {
   case 1: // event
     vme::Module::unpack_all(fBuffer);
-    pBgo->q[0] += 1000;
+    fBgo->q[0] += fBgo2->q[0]; //1000;
     //    pBgo->q[0] =  gRandom->Gaus(1000,50);
     break;
   case 2: // scaler

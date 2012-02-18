@@ -4,6 +4,8 @@
 #define BUFFER_HXX__
 #include "utils/Thread.hxx"
 
+#include "Rootbeer.hxx"
+#include "vme/vme.hxx"
 
 namespace rb
 {
@@ -15,10 +17,19 @@ namespace rb
   //! documentation of individual functions for an explanation of what each should do.
   class BufferSource
   {
-  public:
-    //! \details Nothing to do.
+  protected:
+    int dummy1, dummy2;
+#ifndef __MAKECINT__
+#define RB_REFERENCE_DECLARE
+#include "rb_import_data.h"
+    BufferSource() : dummy1(0),
+#define RB_REFERENCE_INIT
+#include "rb_import_data.h"
+		     dummy2(0) {}
+#else
     BufferSource() {}
-
+#endif
+  public:
     //! \details Nothing to do.
     virtual ~BufferSource() {}
 

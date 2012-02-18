@@ -92,7 +92,7 @@ namespace rb
     volatile T* fData;
 
     /// Mutex to protect access to fData.
-    TMutex fMutex;
+    rb::Mutex fMutex;
 
     /// Does most of the work for the constructor.
     void Init(Bool_t makeVisible, const char* args = "");
@@ -134,24 +134,30 @@ namespace rb
     virtual ~Data();
 
     /// \brief Return a scoped and locked pointer to the user class.
-    //! \details Returns an AutoLockingPointer wrapping the user class.
+    //! \details Returns a CountedLockingPointer wrapping the user class.
     //! This allows thread safe access to the data in the scope that it's
     //! needed while also ensuring that dynamic resources are freed properly.
     //! To use (e.g. in your implementaion of rb::BufferSource::UnpackBuffer()):
     //! \code
-    //! AutoLockingPointer<MyClass> p = gMyClass.GetPointer();
+    //! CountedLockingPointer<MyClass> p = gMyClass.GetPointer();
     //! p->DoSomething();
     //! \endcode
-    AutoLockingPointer<T> GetPointer();
+    //! \warning If you follow the example above (e.g. create a specific
+    //! instance of CountedLockingPointer<MyClass>, the mutex will not be
+    //! released until this pointer goes out of scope.  If you are compiling
+    //! without DEBUG defined, this will result in a deadlock condition (basically
+    //! the program will freeze).  Compiling with DEBUG defined will cause the program
+    //! to exit with an error message.
+    CountedLockingPointer<T> GetPointer();
 
     /// \brief Return a scoped and locked pointer to the user class.
     //! \details Same function as GetPointer(), except as an operator it
     //! can be more naturally used as a "one off" without defining a separate
     //! pointer. Example:
     //! \code
-    //! gMyClass()->DoSomething();
+    //! gMyClass->DoSomething();
     //! \endcode
-    AutoLockingPointer<T> operator() ();
+    CountedLockingPointer<T> operator-> ();
 
   };
 } // namespace rb
@@ -187,17 +193,17 @@ inline rb::Data<T>::~Data() {
 // AutoLockingPointer<T> rb::Data<T>::GetPointer()       //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 template <class T>
-inline AutoLockingPointer<T> rb::Data<T>::GetPointer() {
-  AutoLockingPointer<T> out (fData, fMutex);
+inline CountedLockingPointer<T> rb::Data<T>::GetPointer() {
+  CountedLockingPointer<T> out (fData, &fMutex);
   return out;
 }
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-// AutoLockingPointer<T> rb::Data<T>::operator()         //
+// AutoLockingPointer<T> rb::Data<T>::operator-> ()      //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 template <class T>
-inline AutoLockingPointer<T> rb::Data<T>::operator()() {
-  AutoLockingPointer<T> out (fData, fMutex);
+inline CountedLockingPointer<T> rb::Data<T>::operator->() {
+  CountedLockingPointer<T> out (fData, &fMutex);
   return out;
 }
 

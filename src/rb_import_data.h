@@ -25,25 +25,36 @@
 
 #if defined RB_ALLOCATE  // [rb::Rint::Rint()]
 #define RB_IMPORT_DATA(CLASS, SYMBOL, NAME, VISIBLE, ARGS)	\
-  SYMBOL = new rb::Data<CLASS> (NAME, VISIBLE, ARGS);
+  p__##SYMBOL = new rb::Data<CLASS> (NAME, VISIBLE, ARGS);
 #undef RB_ALLOCATE
 
 #elif defined RB_DEALLOCATE // [rb::Rint::Terminate()]
 #define RB_IMPORT_DATA(CLASS, SYMBOL, NAME, VISIBLE, ARGS)	\
-  delete SYMBOL;
+  delete p__##SYMBOL;
 #undef RB_DEALLOCATE
 
 #elif defined RB_EXTERN // [Rootbeer.hxx]
 #define RB_IMPORT_DATA(CLASS, SYMBOL, NAME, VISIBLE, ARGS)	\
-  extern rb::Data<CLASS>* SYMBOL;
+  extern rb::Data<CLASS>* p__##SYMBOL;
 #undef RB_EXTERN
 
 #elif defined RB_INIT // [Rootbeer.cxx]
 #define RB_IMPORT_DATA(CLASS, SYMBOL, NAME, VISIBLE, ARGS)	\
-  rb::Data<CLASS> * SYMBOL = 0;
+  rb::Data<CLASS> * p__##SYMBOL = 0;
 #undef RB_INIT
+
+#elif defined RB_REFERENCE_DECLARE // [rb::BufferSource]
+#define RB_IMPORT_DATA(CLASS, SYMBOL, NAME, VISIBLE, ARGS)	\
+  rb::Data<CLASS>& SYMBOL;					
+#undef RB_REFERENCE_DECLARE
+
+#elif defined RB_REFERENCE_INIT // [rb::BufferSource::BufferSource]
+#define RB_IMPORT_DATA(CLASS, SYMBOL, NAME, VISIBLE, ARGS)	\
+  SYMBOL (*p__##SYMBOL),
+#undef RB_REFERENCE_INIT
 
 #endif
 
 #include "../user/ImportData.h"
 #undef RB_IMPORT_DATA
+

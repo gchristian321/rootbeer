@@ -14,6 +14,7 @@ DYLIB=-shared
 FPIC=-fPIC
 INCFLAGS=-I$(SRC) -I$(CINT) -I$(USER) $(USER_INCLUDES)
 DEBUG=-ggdb -O0
+#-DDEBUG
 CXXFLAGS=$(DEBUG) $(INCFLAGS) -L$(PWD)/lib $(STOCK_BUFFERS) -DBUFFER_TYPE=$(USER_BUFFER_TYPE)
 
 
@@ -99,7 +100,8 @@ $(OBJ)/midas/TMidasOnline.o: $(RBLIB)/libRBHist.so $(CINT)/RBDictionary.cxx $(SR
 -o $@  -p $(SRC)/midas/TMidasOnline.cxx \
 
 
-$(CINT)/RBDictionary.cxx: $(HEADERS) $(USER)/UserLinkdef.h $(CINT)/Linkdef.h $(USER)/ImportData.h $(SRC)/rb_import_data.h
+$(CINT)/RBDictionary.cxx: $(HEADERS) $(USER)/UserLinkdef.h $(CINT)/Linkdef.h $(USER)/ImportData.h \
+$(SRC)/utils/Mutex.hxx $(SRC)/utils/LockingPointer.hxx $(SRC)/rb_import_data.h
 	rootcint -f $@ -c $(CXXFLAGS)  -p $(HEADERS) $(CINT)/Linkdef.h \
 
 
@@ -111,7 +113,7 @@ $(RBLIB)/libRBHist.so: $(SRC)/Hist.cxx $(CINT)/HistDictionary.cxx
 -o $@ $(CXXFLAGS) -p $^ \
 
 
-$(CINT)/HistDictionary.cxx: $(SRC)/Hist.hxx $(SRC)/utils/LockingPointer.hxx $(CINT)/HistLinkdef.h
+$(CINT)/HistDictionary.cxx: $(SRC)/Hist.hxx $(SRC)/utils/LockingPointer.hxx $(SRC)/utils/Mutex.hxx $(CINT)/HistLinkdef.h
 	rootcint -f $@ -c $(CXXFLAGS) -p $^ \
 
 

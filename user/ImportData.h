@@ -35,6 +35,7 @@
 //!
 #include "vme/vme.hxx"
 RB_IMPORT_DATA(Bgo, fBgo, "bgo", false, "")
+RB_IMPORT_DATA(Bgo, fBgo2, "bgo2", true, "")
 
 
 

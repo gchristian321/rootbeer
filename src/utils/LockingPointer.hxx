@@ -4,8 +4,7 @@
 //! <a href = "http://drdobbs.com/cpp/184403766">here</a>.
 #ifndef LOCKING_POINTER_HXX
 #define LOCKING_POINTER_HXX
-#include <TMutex.h>
-#include "utils/counted_ptr.h"
+#include "utils/Mutex.hxx"
 // #define LOCKING_POINTER_VERBOSE
 
 //! RAII mutex-locking pointer class.
@@ -16,7 +15,7 @@
 //! of scope.  The basic idea behind how to use this class is something like this:
 //! \code
 //! volatile MyClass myclass; // Some object shared between threads that needs locking.
-//! TMutex mtx; // The mutex we use to lock myclass
+//! rb::Mutex mtx; // The mutex we use to lock myclass
 //! 
 //! void someThreadedFunction() {
 //!    LockingPointer<MyClass> p (myclass, mtx); // Get access to 'myclass', locked by 'mtx'.
@@ -43,12 +42,12 @@ private:
   T* fObject;
 
   //! Mutex used to lock the critical object.
-  TMutex* fMutex;
+  rb::Mutex* fMutex;
 
 public:
   //! Constructor (by reference).
   //! Set fObject and fMutex, lock fMutex.
-  LockingPointer(volatile T& object, TMutex& mutex) :
+  LockingPointer(volatile T& object, rb::Mutex& mutex) :
     fObject(const_cast<T*>(&object)), fMutex(&mutex) {
     fMutex->Lock();
 #ifdef LOCKING_POINTER_VERBOSE
@@ -59,7 +58,7 @@ public:
   //! Constructor (by pointer).
   //! Set fObject and fMutex, lock fMutex. Included for convenience
   //! so we don't have to dereference things that are already pointers.
-  LockingPointer(volatile T* object, TMutex& mutex) :
+  LockingPointer(volatile T* object, rb::Mutex& mutex) :
     fObject(const_cast<T*>(object)), fMutex(&mutex) {
     fMutex->Lock();
 #ifdef LOCKING_POINTER_VERBOSE
@@ -108,7 +107,7 @@ private:
 //! \code
 //! volatile MyClass c1; // Some critical object.
 //! volatile MyClass c2; // Some other critical object.
-//! TMutex mtx; // Mutex protecting c1 and c2.
+//! rb::Mutex mtx; // Mutex protecting c1 and c2.
 //! void function() {
 //!    LockingPointer<MyClass> p1(c1, mtx); // locks mtx.
 //!    LockFreePointer<MyClass> p2(c2, mtx); // gives access to c2, no need to lock
@@ -166,51 +165,96 @@ private:
 };
 
 
-//! \brief Increase the scope of a locking pointer.
-//! \details Wraps a "smart" reference-counted pointer to a LockingPointer.
-//! We can return objects of this class from a function and effectively extend the
-//! scope of the locking pointer to one level beyond the function from which it is
-//! returned. Overloading of the \c -> \c * and Get() operators allows pointer-like
-//! semantics directly.
-template <typename T>
-class AutoLockingPointer
+//! \brief Reference counting LockingPointer
+//! \details Like a LockingPointer, except it releases the mutex when going
+//! out of scope and can be coiped.
+template <class T>
+class CountedLockingPointer
 {
 private:
-  //! Reference-counted pointer to a new LockingPointer
-  counted_ptr<LockingPointer<T> > fPointer;
+  //! Reference counter
+  struct Counter {
+    T* fPtr;
+    rb::Mutex* fMutex;
+    UInt_t fCount;
+    Counter(volatile T* p = 0, rb::Mutex* m = 0, UInt_t c = 1) :
+      fPtr(const_cast<T*>(p)), fCount(c) {
+      fMutex = m;
+      if(fMutex) fMutex->Lock();
+#ifdef LOCKING_POINTER_VERBOSE
+	Info("CountedLockingPointer", "Locking");
+#endif
+    }
+  } * fCounter;
 
 public:
-  //! Call the constructor for fPointer.
-  AutoLockingPointer(volatile T& object, TMutex& mutex) :
-    fPointer (new LockingPointer<T> (object, mutex)) { }
-
-  //! Call the constructor for fPointer.
-  AutoLockingPointer(volatile T* object, TMutex& mutex) :
-    fPointer (new LockingPointer<T> (object, mutex)) { }
-
-  //! Copy the reference counted pointer
-  AutoLockingPointer(const AutoLockingPointer<T>& other) :
-    fPointer(other.fPointer) { }
-
-  //! Nothing to do
-  ~AutoLockingPointer() { }
+  //! Allocate a new counter
+  explicit CountedLockingPointer(volatile T* object = 0, rb::Mutex* mutex = 0) :
+    fCounter(0) {
+    if (object) fCounter = new Counter(object, mutex);
+  }
+  //! Allocate a new counter
+  explicit CountedLockingPointer(volatile T& object, rb::Mutex* mutex) :
+    fCounter(0) {
+    fCounter = new Counter(&object, mutex);
+  }
+  //! Call Release()
+  ~CountedLockingPointer() { Release(); }
+  //! Call Acquire
+  CountedLockingPointer(const CountedLockingPointer& other) throw () {
+    Acquire(other.fCounter);
+  }
+  //! Release this, acquire other.
+  CountedLockingPointer& operator= (const CountedLockingPointer& other) {
+    if (this != &other) {
+      Release();
+      Acquire(other.fCounter);
+    }
+    return *this;
+  }
 
   //! Return a pointer to the critical object.
-  T* Get() {
-    return fPointer->Get();
+  T* Get() const throw() {
+    return  fCounter ? fCounter->fPtr : 0;
   }
 
   //! Return a pointer to the critical object.
   //! Same as Get(), but as an operator, allowing "real" pointer-like semantics.
-  T* operator-> () {
-    return fPointer->Get();
+  T* operator-> () const throw() {
+    return  fCounter->fPtr;
   }
 
   //! Return a reference to the critical object.
-  T& operator* () {
-    return fPointer->operator*();
+  T& operator* () const throw() {
+    return *fCounter->fPtr;
+  }
+
+  //! Check if no copies are made.
+  Bool_t IsUnique() const throw() {
+    return (fCounter ? fCounter->fCount == 1 : kTRUE);
+  }
+
+private:
+  //! Increment the count
+  void Acquire(Counter* c) throw() {
+    fCounter = c;
+    if (c) ++c->fCount;
+  }
+
+  //! Decrement the count, delete if it is 0
+  void Release() {
+    if (fCounter) {
+      if (--fCounter->fCount == 0) {
+	//	delete fCounter->fPtr;
+	fCounter->fMutex->UnLock();
+#ifdef LOCKING_POINTER_VERBOSE
+	Info("CountedLockingPointer", "UnLocking");
+#endif
+	delete fCounter;
+      }
+      fCounter = 0;
+    }
   }
 };
-
 
 #endif
