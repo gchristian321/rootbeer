@@ -2,10 +2,9 @@
 //! \brief Defines classes relevent to obtaining and unpacking data buffers.
 #ifndef BUFFER_HXX__
 #define BUFFER_HXX__
+#include "Rootbeer.hxx"
 #include "utils/Thread.hxx"
 
-#include "Rootbeer.hxx"
-#include "vme/vme.hxx"
 
 namespace rb
 {
@@ -239,8 +238,8 @@ namespace rb
     // Some useful functions & constants //
     namespace
     {
-      const char* FILE_THREAD_NAME   = "AtachFile";
-      const char* LIST_THREAD_NAME   = "AtachList";
+      const char* FILE_THREAD_NAME   = "AttachFile";
+      const char* LIST_THREAD_NAME   = "AttachList";
       const char* ONLINE_THREAD_NAME = "AttachOnline";
       inline Bool_t FileAttached()   { return rb::Thread::IsRunning(FILE_THREAD_NAME);   }
       inline Bool_t ListAttached()   { return rb::Thread::IsRunning(LIST_THREAD_NAME);   }

@@ -157,6 +157,11 @@ Bool_t rb::Midas::ReadBufferOnline() {
 }
 
 
+void add(Bgo& to, Bgo& from) {
+  to.q[0] += from.q[1];
+  //  printf("add\n");
+}
+
 //#include <TRandom3.h>
 Bool_t rb::Midas::UnpackBuffer() {
 #ifdef MIDAS_BUFFERS
@@ -169,17 +174,20 @@ Bool_t rb::Midas::UnpackBuffer() {
 
   switch(eventId) {
   case 1: // event
+    {
     vme::Module::unpack_all(fBuffer);
-    fBgo->q[0] += fBgo2->q[0]; //1000;
+       fBgo->q[0] += fBgo2->q[0]; //1000;
+    
     //    pBgo->q[0] =  gRandom->Gaus(1000,50);
     break;
+    }
   case 2: // scaler
     break;
   default:
     //    Warning("UnpackBuffer", "Unrecognized Event Id: %d", eventId);
     break;
   }
-  rb::Hist::FillAll();
+  //  rb::Hist::FillAll();
   return kTRUE;
 
 #else

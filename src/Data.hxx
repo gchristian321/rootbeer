@@ -151,9 +151,18 @@ namespace rb
     CountedLockingPointer<T> GetPointer();
 
     /// \brief Return a scoped and locked pointer to the user class.
-    //! \details Same function as GetPointer(), except as an operator it
-    //! can be more naturally used as a "one off" without defining a separate
-    //! pointer. Example:
+    //! \details Same function as GetPointer(), but allowing for more pointer-like
+    //! behavior (it's almost the same as normal dereferencing, but the \c * is needed
+    //! twice). Example:
+    //! \code
+    //! (**gMyClass).DoSomething();
+    //! // or //
+    //! do_something (**gMyClass);
+    //! \endcode
+    CountedLockingPointer<T> operator* ();
+
+    /// \brief Return a scoped and locked pointer to the user class.
+    //! \details Alows a rb::Data<T> reference to be used like a pointer, e.g.
     //! \code
     //! gMyClass->DoSomething();
     //! \endcode
@@ -194,6 +203,15 @@ inline rb::Data<T>::~Data() {
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 template <class T>
 inline CountedLockingPointer<T> rb::Data<T>::GetPointer() {
+  CountedLockingPointer<T> out (fData, &fMutex);
+  return out;
+}
+
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// AutoLockingPointer<T> rb::Data<T>::operator()         //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+template <class T>
+inline CountedLockingPointer<T> rb::Data<T>::operator* () {
   CountedLockingPointer<T> out (fData, &fMutex);
   return out;
 }
