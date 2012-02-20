@@ -2,10 +2,10 @@
 //! \brief Defines classes relevent to obtaining and unpacking data buffers.
 #ifndef BUFFER_HXX__
 #define BUFFER_HXX__
-#include "Rootbeer.hxx"
+#include "Rint.hxx"
 #include "utils/Thread.hxx"
 
-
+//#include "vme/vme.hxx"
 namespace rb
 {
   //! \brief ABC for defining how to obtain and unpack data buffers.
@@ -16,21 +16,19 @@ namespace rb
   //! documentation of individual functions for an explanation of what each should do.
   class BufferSource
   {
+  private:
+    const Int_t kDummy;
+
   protected:
-    int dummy1, dummy2;
-#ifndef __MAKECINT__
+    //! References to the rb::Data objects in rb::Rint::Globals.
 #define RB_REFERENCE_DECLARE
 #include "rb_import_data.h"
-    BufferSource() : dummy1(0),
-#define RB_REFERENCE_INIT
-#include "rb_import_data.h"
-		     dummy2(0) {}
-#else
-    BufferSource() {}
-#endif
+
+    //! Initializes refeerences to rb::Data objects in rb::Rint (gApplication).
+    BufferSource();
   public:
     //! \details Nothing to do.
-    virtual ~BufferSource() {}
+    virtual ~BufferSource();
 
     //! Open a data file
     //! \param [in] file_name Name (path) of the file to open.
@@ -77,6 +75,8 @@ namespace rb
     //! \returns A pointer to a \c new instance of a class derived from BufferSource.
     static BufferSource* New();
   };
+
+  inline BufferSource::~BufferSource() {}
 
 
   //! Contains classes used to attach to various data sources.

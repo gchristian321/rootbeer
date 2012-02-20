@@ -6,16 +6,7 @@
 //! of the available user functions and their descriptions can be found in this Doxygen file.
 #ifndef ROOTBEER_HXX
 #define ROOTBEER_HXX
-#include <TRint.h>
-#include "Hist.hxx"
-#include "Data.hxx"
-#include "vme/vme.hxx"
-#ifndef __MAKECINT__
-#define RB_EXTERN
-#include "rb_import_data.h"
-#endif
-
-
+#include <Rtypes.h>
 
 /// Namespace wrapping the \c ROOTBEER objects and user functions.
 namespace rb
@@ -106,43 +97,6 @@ namespace rb
     extern Int_t GetUpdateRate();
 
   }
-
-    
-  /// \brief Class that runs the interactive ROOT application.
-  //! \details We can essentially use the normal <tt>TRint</tt>, except
-  //!  we need to override the Terminate()  method to stop threaded processes.
-  class Rint : public TRint
-  {
-  public:
-    /// \brief Constructor
-    //! \details Just call the standard \c TRint constructor, plus set the prompt to be
-    //! <tt>rootbeer [\%d]</tt>.
-    //! \note The \c \%d means that the number of commands entered in the session is
-    //! what's present.
-    Rint(const char* appClassName, int* argc, char** argv,
-	 void* options = 0, int numOptions = 0, Bool_t noLogo = kFALSE);
-
-    /// \brief Terminate the application.
-    //! \details Stops any running threads and frees any memory that was allocated during
-    //! the CINT session.
-    void Terminate(Int_t status = 0);
-
-    /// \brief Display the \c ROOTBEER logo.
-    //! \details ASCII art of naturally clumsy man stumbling whilst carrying two full mugs of root beer.
-    //! \param [in] lite 'false' prints the full logo, 'true' just prints a welcome message.
-    virtual void PrintLogo(Bool_t lite);
-
-    /// \brief Destructor
-    //! \details Calls Terminate() with error code.
-    ~Rint();
-
-    ClassDef(rb::Rint, 0);
-  };
-
-  inline rb::Rint::~Rint() {
-    Terminate(1);
-  }
-
 }
 
 

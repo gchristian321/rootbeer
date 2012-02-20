@@ -26,10 +26,10 @@ namespace rb
     /// Name of the class instance.
     const std::string kName;
 
+  public:
     /// For keeping track of whether or not MapData() needs to print the header lines.
     static Bool_t& PrintHeader() { static Bool_t* b = new Bool_t(kTRUE); return *b; }
 
-  public:
     /// Sets kName.
     MData(const char* name) : kName(name) {};
 
@@ -63,10 +63,10 @@ namespace rb
     /// Print the fill name and current value of every data member in every listed class.
     static void PrintAll();
 
-  protected:
     /// Recurse through a class and construct an instance of MBasicData for each basic data type.
     virtual void MapClass(const char* name, const char* classname, volatile void* address);
 
+  protected:
     /// \brief Adds a specific element to fgObjectMap.
     //! \details For a specific element of a class, check if it's a basic data type. If so, construct
     //! an MBasicData.  If not, return false.
@@ -81,9 +81,21 @@ namespace rb
   //! of the basic data types are mapped by the parent class MData, which allows the user to access them in
   //! CINT using MData::GetValue() and MData::SetValue().
   template <class T>
-  class Data : public MData
+  class Data
   {
   private:
+    /// \brief The name assigned to the TTree branch starting with this class instance.
+    //! \details For example, if we have some class:
+    //! \code
+    //! class C {
+    //!    int a;
+    //!    // etc //
+    //! };
+    //! \endcode
+    //! and set kBranchName to <tt>fC</tt>, then TTree branch names would look like
+    //! <tt>fC.a</tt>, etc.
+    const char* kBranchName;
+
     /// String specifying the type of the user data class.
     std::string fClassName;
 
@@ -101,7 +113,10 @@ namespace rb
     /// \details Allocates memory to the user data class and sets internal variables.
     //!
     //! \param [in] name Name of the user data class. This is how you will refer to it in the
-    //! interactive CINT session, i.e. <tt>t->Draw("name.whatever");</tt>.
+    //! interactive CINT session, i.e. <tt>t->Draw("name.whatever");</tt>. Note that if you
+    //! end this with a "<tt>.</tt>", full branch name specifications will be required to
+    //! read data from a TTree, e.g. <tt>t->Draw("name.whatever")</tt> required over just
+    //! <tt>t->Draw("whatever");</tt>
     //!
     //! \param [in] makeVisible Specifies whether or not you want to make the class visible
     //! in CINT.  If this is selected true, then you will be able to change or read the values of
@@ -184,7 +199,7 @@ namespace rb
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 template <class T>
 inline rb::Data<T>::Data(const char* name, Bool_t makeVisible, const char* args) :
-  MData(name) {
+  kBranchName(name) {
   Init(makeVisible, args);
 }
 
@@ -259,21 +274,22 @@ void rb::Data<T>::Init(Bool_t makeVisible, const char* args) {
   fData = data;
 
   if (makeVisible) {
-    if(PrintHeader()) {
+    if(MData::PrintHeader()) {
       std::cout << "\nMapping the address of user data objects:\n"
 		<< "      Name\t\t\tClass Name\n"
 		<< "      ----\t\t\t----------\n";
-      PrintHeader() = kFALSE;
+      MData::PrintHeader() = kFALSE;
     }
-    std::cout << "      " << kName << "\t\t\t" << fClassName << "\n";
+    std::cout << "      " << kBranchName << "\t\t\t" << fClassName << "\n";
 
-    MapClass(kName.c_str(), fClassName.c_str(), reinterpret_cast<volatile void*>(fData));
+    MData m(kBranchName);
+    m.MapClass(kBranchName, fClassName.c_str(), reinterpret_cast<volatile void*>(fData));
   }
+
 
   LockingPointer<T> pData (fData, fMutex);
   void* v = reinterpret_cast<void*>(pData.Get());
-  std::string brName = kName; brName += ".";
-  rb::Hist::AddBranch(kName.c_str(), fClassName.c_str(), &v);
+  rb::Hist::AddBranch(kBranchName, fClassName.c_str(), &v);
 }
 #endif // #ifndef __MAKECINT__
 

@@ -54,9 +54,11 @@ rootbeer: $(RBLIB)/libRBHist.so $(RBLIB)/libRootbeer.so $(SRC)/main.cc
 
 #### ROOTBEER LIBRARY ####
 OBJECTS=$(OBJ)/midas/TMidasEvent.o $(OBJ)/midas/TMidasFile.o $(MIDASONLINE) \
-        $(OBJ)/Data.o $(OBJ)/Buffer.o $(OBJ)/User.o $(OBJ)/Canvas.o $(OBJ)/WriteConfig.o $(OBJ)/Rootbeer.o
+$(OBJ)/Data.o $(OBJ)/Buffer.o $(OBJ)/User.o $(OBJ)/Canvas.o $(OBJ)/WriteConfig.o \
+$(OBJ)/Rint.o $(OBJ)/Rootbeer.o
 
-HEADERS=$(SRC)/Rootbeer.hxx $(SRC)/Data.hxx $(SRC)/Buffer.hxx $(SRC)/midas/*.h $(SRC)/utils/*.h* $(USER_HEADERS)
+HEADERS=$(SRC)/Rootbeer.hxx $(SRC)/Rint.hxx $(SRC)/Data.hxx $(SRC)/Buffer.hxx \
+$(SRC)/midas/*.h $(SRC)/utils/*.h* $(USER_HEADERS)
 
 
 $(RBLIB)/libRootbeer.so: $(RBLIB)/libRBHist.so $(CINT)/RBDictionary.cxx $(USER_SOURCES) $(OBJECTS)
@@ -66,6 +68,10 @@ $(RBLIB)/libRootbeer.so: $(RBLIB)/libRBHist.so $(CINT)/RBDictionary.cxx $(USER_S
 $(OBJ)/Rootbeer.o: $(RBLIB)/libRBHist.so $(CINT)/RBDictionary.cxx $(SRC)/Rootbeer.cxx
 	$(COMPILE) $(FPIC) -c \
 -o $@  -p $(SRC)/Rootbeer.cxx \
+
+$(OBJ)/Rint.o: $(RBLIB)/libRBHist.so $(CINT)/RBDictionary.cxx $(SRC)/Rint.cxx
+	$(COMPILE) $(FPIC) -c \
+-o $@  -p $(SRC)/Rint.cxx \
 
 $(OBJ)/WriteConfig.o: $(RBLIB)/libRBHist.so $(CINT)/RBDictionary.cxx $(SRC)/WriteConfig.cxx
 	$(COMPILE) $(FPIC) -c \

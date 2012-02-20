@@ -3,6 +3,11 @@
 //! \details The actual definition will depend on the location from which
 //!  this file is #included, basically this allows the macro to be put in just
 //!  one place (ImportData.h) but used differently in multiple others.
+#ifndef __MAKECINT__
+
+//! Allocate Data<T> classes on heap or stack?
+#define RB_DATA_ON_HEAP 0
+
 
 
 //! \def RB_IMPORT_DATA(CLASS, SYMBOL, NAME, VISIBLE, ARGS)
@@ -23,38 +28,50 @@
 #define RB_IMPORT_DATA(CLASS, SYMBOL, NAME, VISIBLE, ARGS)
 #undef RB_IMPORT_DATA // Doxygen trick //
 
-#if defined RB_ALLOCATE  // [rb::Rint::Rint()]
+#if defined RB_DECLARE
+#if RB_DATA_ON_HEAP
 #define RB_IMPORT_DATA(CLASS, SYMBOL, NAME, VISIBLE, ARGS)	\
-  p__##SYMBOL = new rb::Data<CLASS> (NAME, VISIBLE, ARGS);
-#undef RB_ALLOCATE
+  std::auto_ptr<rb::Data<CLASS> > SYMBOL;
+#else
+#define RB_IMPORT_DATA(CLASS, SYMBOL, NAME, VISIBLE, ARGS)	\
+  rb::Data<CLASS> SYMBOL;
+#endif
+#undef RB_DECLARE
 
-#elif defined RB_DEALLOCATE // [rb::Rint::Terminate()]
+#elif defined RB_INIT
+#if RB_DATA_ON_HEAP
 #define RB_IMPORT_DATA(CLASS, SYMBOL, NAME, VISIBLE, ARGS)	\
-  delete p__##SYMBOL;
-#undef RB_DEALLOCATE
-
-#elif defined RB_EXTERN // [Rootbeer.hxx]
+  SYMBOL(new rb::Data<CLASS>(NAME, VISIBLE, ARGS)),
+#else
 #define RB_IMPORT_DATA(CLASS, SYMBOL, NAME, VISIBLE, ARGS)	\
-  extern rb::Data<CLASS>* p__##SYMBOL;
-#undef RB_EXTERN
-
-#elif defined RB_INIT // [Rootbeer.cxx]
-#define RB_IMPORT_DATA(CLASS, SYMBOL, NAME, VISIBLE, ARGS)	\
-  rb::Data<CLASS> * p__##SYMBOL = 0;
+  SYMBOL(NAME, VISIBLE, ARGS),
+#endif
 #undef RB_INIT
 
 #elif defined RB_REFERENCE_DECLARE // [rb::BufferSource]
 #define RB_IMPORT_DATA(CLASS, SYMBOL, NAME, VISIBLE, ARGS)	\
-  rb::Data<CLASS>& SYMBOL;					
+  rb::Data<CLASS>& SYMBOL;
 #undef RB_REFERENCE_DECLARE
 
 #elif defined RB_REFERENCE_INIT // [rb::BufferSource::BufferSource]
+#if RB_DATA_ON_HEAP
 #define RB_IMPORT_DATA(CLASS, SYMBOL, NAME, VISIBLE, ARGS)	\
-  SYMBOL (*p__##SYMBOL),
+  SYMBOL(*(static_cast<rb::Rint*>(gApplication)->fGlobals.SYMBOL.get())),
+#else
+#define RB_IMPORT_DATA(CLASS, SYMBOL, NAME, VISIBLE, ARGS)	\
+  SYMBOL(static_cast<rb::Rint*>(gApplication)->fGlobals.SYMBOL),
+#endif
 #undef RB_REFERENCE_INIT
+
+#else
+#define RB_IMPORT_DATA(CLASS, SYMBOL, NAME, VISIBLE, ARGS) //
+#if RB_DATA_ON_HEAP
+#include <memory>
+#endif
 
 #endif
 
 #include "../user/ImportData.h"
 #undef RB_IMPORT_DATA
 
+#endif // #ifndef __MAKECINT__

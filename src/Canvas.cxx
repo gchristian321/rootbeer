@@ -4,6 +4,7 @@
 //! user ones.
 #include <TCanvas.h>
 #include "Rootbeer.hxx"
+#include "Hist.hxx"
 #include "utils/Timer.hxx"
 #include "utils/Thread.hxx"
 #include "utils/LockingPointer.hxx"

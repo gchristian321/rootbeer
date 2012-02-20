@@ -22,10 +22,7 @@
 //! to an online data source is installed on your system. If it is, then the appropriate macros are 
 //! #defined and the appropriate branches of the code are compiled. Otherwise, rootbeer will be
 //! compiled with attaching to online data disabled.
-//!
-//! \note The current setup assumes that your BufferSource can be instantiated with a default
-//! (no argument) constructor. If this is not the case, you'll need to change the definition
-//! of rb::BufferSource::New in Buffer.hxx and update Buffer.cxx to reflect your change.
+
 
 // Standard includes, do not remove //
 #include "Rootbeer.hxx"
@@ -33,7 +30,7 @@
 
 
 
-// Definition of a BufferSource class to handle MIDAS data (at TRIUMF).
+// Definition of a BufferSource class to handle MIDAS data (at TRIUMF). //
 #ifdef MIDAS_BUFFERS
 #include "midas/TMidasFile.h"
 #ifdef MIDAS_ONLINE
@@ -187,7 +184,7 @@ Bool_t rb::Midas::UnpackBuffer() {
     //    Warning("UnpackBuffer", "Unrecognized Event Id: %d", eventId);
     break;
   }
-  //  rb::Hist::FillAll();
+  rb::Hist::FillAll();
   return kTRUE;
 
 #else
