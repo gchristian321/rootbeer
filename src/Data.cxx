@@ -2,9 +2,6 @@
 //! \brief Implements Data.hxx
 #include <algorithm>
 #include <TROOT.h>
-#include <TClass.h>
-#include <TStreamerInfo.h>
-#include <TStreamerElement.h>
 #include <TTreeFormula.h>
 #include "Data.hxx"
 
@@ -12,8 +9,6 @@
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // Internal Helper Functions & Classes                   //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-namespace
-{
   //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
   // void_pointer_add                                      //
   //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
@@ -56,65 +51,11 @@ namespace
   //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
   // Helper Classes                                        //
   //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-  // This is just a quick and dirty class to reconstruct the original indices
-  // of a multi-dimensional array that has been flattened by TStreamerElements.
-  // All we really need out is just strings with the original indices in brackets.
-  class ArrayConverter
-  {
-  private:
-    TStreamerElement* fElement;
-    std::vector<std::string> fIndices;
-  public:
-    ArrayConverter(TStreamerElement* element);
-    // Return the original indices.
-    std::string GetFullName(const char* baseName, UInt_t index);
-  };
 
-  // Helper class for performing set and get operations on the
-  // basic data elements (e.g. ints, doubles, etc.) that are wrapped
-  // by the class pointed to by the fData pointer of rb::Data
-  // The basic idea is that rb::Data has a static map keyed by the complete
-  // string names of all basic data types (e.g. "top.sub.end"), and indexing
-  // a pointer to the appropriate derived (template) class of MBasicData.
-  // For example, if "top.sub.end" is a double, then the key "top.sub.end"
-  // would index a pointer to a BasicData<double>, which is derived from
-  // MBasic data.
-  class MBasicData
-  {
-  public:
-    typedef std::map<std::string, MBasicData*> Map_t;
-  protected:
-    static MBasicData::Map_t& fgAll();
-    const std::string kBasicClassName;
-  public:
-    MBasicData(const char* basic_type_name);
-    virtual ~MBasicData() { };
-    virtual Double_t GetValue() = 0;
-    virtual void SetValue(Double_t newval) = 0;
-    static MBasicData* Find(const char* name);
-    static void SavePrimitive(std::ostream& strm);
-    static void PrintAll();
-    static MBasicData* New(const char* name, volatile void* addr, const char* basic_type_name, TStreamerElement* element);
-  };
-  
-  template <class ABasic>
-  class BasicData : public MBasicData
-  {
-  private:
-    volatile ABasic* fAddress; // Memory address of the basic data
-  public:
-    BasicData(const char* name, volatile void* addr, const char* basic_type, TStreamerElement* element);
-    Double_t GetValue();
-    void SetValue(Double_t newval);
-    virtual ~BasicData() { }
-  };
-
-
-
-  ////////////////////////////////////////
-  ///// ArrayConverter Implementation ////
-  ////////////////////////////////////////
-  ArrayConverter::ArrayConverter(TStreamerElement* element) :
+  ////////////////////////////////////////////////////
+  ///// MBasicData::ArrayConverter Implementation ////
+  ////////////////////////////////////////////////////
+  MBasicData::ArrayConverter::ArrayConverter(TStreamerElement* element) :
     fElement(element) {
     std::stringstream sstr;
     Int_t ndim = fElement->GetArrayDim();
@@ -138,7 +79,7 @@ namespace
     }
   }
 
-  std::string ArrayConverter::GetFullName(const char* baseName, UInt_t index) {
+  std::string MBasicData::ArrayConverter::GetFullName(const char* baseName, UInt_t index) {
     if(index < fIndices.size()) {
       std::string out = baseName;
       out += fIndices[index];
@@ -189,8 +130,8 @@ namespace
 #undef CHECK_TYPE
 
 
-  MBasicData::MBasicData(const char* basic_type_name) :
-    kBasicClassName(basic_type_name) { }
+MBasicData::MBasicData(const char* branch_name, const char* basic_type_name) :
+  kBranchName(branch_name), kBasicClassName(basic_type_name) {}
 
   MBasicData::Map_t& MBasicData::fgAll() {
     static MBasicData::Map_t* m = new MBasicData::Map_t();
@@ -234,93 +175,10 @@ namespace
     } printf("\n");
   }
 
-
-  //////////////////////////////////////////
-  ///// BasicData<ABasic> Implementaion ////
-  //////////////////////////////////////////
-  template <class ABasic>
-  BasicData<ABasic>::BasicData(const char* name, volatile void* addr, const char* basic_type, TStreamerElement* element) :
-    MBasicData(basic_type), fAddress(reinterpret_cast<volatile ABasic*>(addr)) {
-    Int_t arrayLen = element ? element->GetArrayLength() : 0;
-    if(arrayLen == 0) { // just a single element
-      fgAll().insert(std::make_pair<std::string, MBasicData*>(name, this));
-    }
-    else { // an array
-      if(element->GetArrayDim() > 4) { 
-	Warning("MapData", "No support for arrays > 4 dimensions. The array %s is %d and will not be mapped!",
-		name, element->GetArrayDim());
-      }
-      else {
-	Int_t size = element->GetSize() / arrayLen;
-	ArrayConverter arrayConvert(element);
-	for(Int_t i=0; i< arrayLen; ++i) {
-	  void_pointer_add(addr, size*(i>0));
-	  MBasicData::New(arrayConvert.GetFullName(name, i).c_str(), addr, basic_type, 0);
-	}
-      }
-    }
-  }
-
-  template <class ABasic>
-  inline Double_t BasicData<ABasic>::GetValue() {
-    LockingPointer<ABasic> p(fAddress, rb::Hist::GetMutex());
-    return *p;
-  }
-
-  template <class ABasic>
-  inline void BasicData<ABasic>::SetValue(Double_t newval) {
-    LockingPointer<ABasic> p(fAddress, rb::Hist::GetMutex());
-    *p = ABasic(newval);
-  }
-
-} // namespace
-
-
-
-
-
-//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-// Class                                                 //
-// rb::MData                                             //
-//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-
-//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-// rb::MData::GetValue                                   //
-//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-Double_t rb::MData::GetValue(const char* name) {
-  MBasicData* basicData = 0;
-  basicData = MBasicData::Find(name);
-  if(!basicData) {
-    Error("GetValue", "%s not found.", name);
-    return -1.;
-  }
-  return (Double_t)basicData->GetValue();
-}
-
-//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-// static rb::MData::SetValue                            //
-//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-void rb::MData::SetValue(const char* name, Double_t newvalue) {
-  MBasicData* basicData = 0;
-  basicData = MBasicData::Find(name);
-  if(!basicData) {
-    Error("SetData", "Data object: %s not found.", name);
-    return;
-  }
-  basicData->SetValue(newvalue);
-}
-
-//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-// static rb::MData::SavePrimitive                       //
-//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-void rb::MData::SavePrimitive(ostream& strm) {
-  MBasicData::SavePrimitive(strm);
-}
-
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // static rb::MData::MapData                             //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-Bool_t rb::MData::MapData(const char* name, TStreamerElement* element, volatile void* base_address) {
+Bool_t MBasicData::MapData(const char* name, TStreamerElement* element, volatile void* base_address) {
   std::string typeName = element->GetTypeName(); // the type of this specific element
   remove_duplicate_spaces(typeName); // in case someone did 'unsigned    short' or whatever
 
@@ -334,7 +192,7 @@ Bool_t rb::MData::MapData(const char* name, TStreamerElement* element, volatile 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // rb::MData::MapClass                                   //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-void rb::MData::MapClass(const char* name, const char* classname, volatile void* address) {
+void MBasicData::MapClass(const char* name, const char* classname, volatile void* address) {
 
   TClass* cl = TClass::GetClass(classname);
   if(!cl) return;
@@ -343,21 +201,30 @@ void rb::MData::MapClass(const char* name, const char* classname, volatile void*
   TObjArray* elems = sinfo->GetElements();
 
   for( Int_t i=0; i< elems->GetEntries(); ++i) {
-    TStreamerElement* element =
-      reinterpret_cast <TStreamerElement*>(elems->At(i));
+    TStreamerElement* element = reinterpret_cast <TStreamerElement*>(elems->At(i));
     std::stringstream ssName;
     ssName << name << "." << element->GetName();
     Bool_t basic = MapData(ssName.str().c_str(), element, address);
     if(!basic) {
       void_pointer_add(address, element->GetOffset());
-      MapClass(ssName.str().c_str(),  element->GetTypeName(), address);
+      MapClass(name, classname, address);
     }
   }
 }
 
+
+
+
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-// static rb::MData::PrintAll                            //
+// Class                                                 //
+// rb::MData                                             //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-void rb::MData::PrintAll() {
-  MBasicData::PrintAll();
+
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// static rb::MData::SavePrimitive                       //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+void rb::MData::SavePrimitive(ostream& strm) {
+  MBasicData::SavePrimitive(strm);
 }
+
+

@@ -158,7 +158,7 @@ namespace rb
 
     /// Draw function.
     //! \Note that this draws fHistogram directly, not a copy (to that it can still continue to be auto-updated
-    //! by the rb::Canvas functions).
+    //! by the rb::canvas functions).
     void Draw(Option_t* option = "") {
       LockingPointer<CriticalElements>(fCritical, fgMutex())->fHistogram->Draw(option);
     }

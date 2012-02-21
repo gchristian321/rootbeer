@@ -306,28 +306,28 @@ Int_t main(Int_t argc, Char_t** argv)
   To Start/Stop auto-updating use the StartUpdate() or StopUpdate() functions:
 
   \code
-  rb::Canvas::StartUpdate(5); // All canvases will now refresh every five seconds.
+  rb::canvas::StartUpdate(5); // All canvases will now refresh every five seconds.
 
-  rb::Canvas::StopUpdate(); // Canvases will no longer auto-refresh
+  rb::canvas::StopUpdate(); // Canvases will no longer auto-refresh
   \endcode
 
 
   You can also update canvases manually, either individual or all at once
   \code
-  rb::Canvas::UpdateAll(); // Update all canvases
+  rb::canvas::UpdateAll(); // Update all canvases
 
-  rb::Canvas::UpdateCurrent(); // Update just the currently selected canvas
+  rb::canvas::UpdateCurrent(); // Update just the currently selected canvas
   \endcode
 
   as well as zero out ("Clear") the histogram currently drawn in a canvas
 
   \code
-  rb::Canvas::ClearAll(); // Clear all canvases
+  rb::canvas::ClearAll(); // Clear all canvases
 
-  rb::Canvas::ClearCurrent(); // Clear just the currently selected canvas
+  rb::canvas::ClearCurrent(); // Clear just the currently selected canvas
   \endcode
 
-  Note that the rb::Canvas::Clear* functions are distinct from the standard ROOT TCanvas::Clear() function,
+  Note that the rb::canvas::Clear* functions are distinct from the standard ROOT TCanvas::Clear() function,
   which removes the histogram from the canvas entirely.
 
 

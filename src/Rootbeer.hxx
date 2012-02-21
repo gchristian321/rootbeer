@@ -65,7 +65,7 @@ namespace rb
   extern Int_t WriteCanvases(const char* filename, Bool_t prompt = kTRUE);
 
   /// Contains user functions relevant to updating canvases and other graphics.
-  namespace Canvas
+  namespace canvas
   {
     /// \brief Update every open canvas.
     //! \details
@@ -96,6 +96,35 @@ namespace rb
     //! \brief
     extern Int_t GetUpdateRate();
 
+  }
+
+  /// Contains user functions to set or get the values of basic data members of user classes.
+  namespace data
+  {
+    /// Get the value of a user class data member.
+    //! \param [in] name The full name (TTree leaf) of the data member. For example:
+    //! \code
+    //! struct AStruct {
+    //!   int a;
+    //! } mine;
+    //! \endcode
+    //! would be accessed by
+    //! \code
+    //! rb::data::GetValue("mine.a");
+    //! \endcode
+    //! \returns The value of the basic data member keyed by <i>name</i>, casted
+    //! to a Double_t.
+    extern Double_t GetValue(const char* name);
+
+    /// Set the value of a user class data member.
+    //! \param [in] name The full name (TTree leaf) of the data member (see data::GetValue() for
+    //! an example).
+    //! \param [in] newvalue What you want to set the data keyed by <i>name</i> to.
+    extern void SetValue(const char* name, Double_t newvalue);
+
+
+    /// Print the fill name and current value of every data member in every listed class.
+    extern void PrintAll();
   }
 }
 

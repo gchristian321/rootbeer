@@ -7,11 +7,15 @@
 #include <string>
 #include <iostream>
 #include <sstream>
+#include <TClass.h>
+#include <TStreamerInfo.h>
+#include <TStreamerElement.h>
 #include <TError.h>
 #include "Hist.hxx"
 
 namespace rb
 {
+
   //! \brief Base class for allowing access to user data classes.
   //! \details Along with its template derived classes rb::Data<T>, this
   //! allows users access to their data classes both in compiled codes (e.g.
@@ -52,34 +56,169 @@ namespace rb
     //! \endcode
     //! \returns The value of the basic data member keyed by <i>name</i>, casted
     //! to a Double_t.
-    static Double_t GetValue(const char* name);
+    //    static Double_t GetValue(const char* name);
 
     /// Set the value of a user class data member.
     //! \param [in] name The full name (TTree leaf) of the data member (see GetValue() for
     //! an example).
     //! \param [in] newvalue What you want to set the data keyed by <i>name</i> to.
-    static void SetValue(const char* name, Double_t newvalue);
-
-    /// Print the fill name and current value of every data member in every listed class.
-    static void PrintAll();
+    //    static void SetValue(const char* name, Double_t newvalue);
 
     /// Recurse through a class and construct an instance of MBasicData for each basic data type.
-    virtual void MapClass(const char* name, const char* classname, volatile void* address);
+    /////    virtual void MapClass(const char* name, const char* classname, volatile void* address);
 
   protected:
     /// \brief Adds a specific element to fgObjectMap.
     //! \details For a specific element of a class, check if it's a basic data type. If so, construct
     //! an MBasicData.  If not, return false.
-    virtual Bool_t MapData(const char* name, TStreamerElement* element, volatile void* base_address);
+    /////    virtual Bool_t MapData(const char* name, TStreamerElement* element, volatile void* base_address);
+  };
+}
+
+
+
+  // Helper class for performing set and get operations on the
+  // basic data elements (e.g. ints, doubles, etc.) that are wrapped
+  // by the class pointed to by the fData pointer of rb::Data
+  // The basic idea is that rb::Data has a static map keyed by the complete
+  // string names of all basic data types (e.g. "top.sub.end"), and indexing
+  // a pointer to the appropriate derived (template) class of MBasicData.
+  // For example, if "top.sub.end" is a double, then the key "top.sub.end"
+  // would index a pointer to a BasicData<double>, which is derived from
+  // MBasic data.
+  class MBasicData
+  {
+  public:
+    typedef std::map<std::string, MBasicData*> Map_t;
+  protected:
+    static MBasicData::Map_t& fgAll();
+    const char* kBasicClassName;
+    const char* kBranchName;
+  public:
+    MBasicData(const char* branch_name, const char* basic_type_name);
+    virtual ~MBasicData() { };
+    virtual Double_t GetValue() = 0;
+    virtual void SetValue(Double_t newval) = 0;
+    static MBasicData* Find(const char* name);
+    static void SavePrimitive(std::ostream& strm);
+    static void PrintAll();
+    static MBasicData* New(const char* name, volatile void* addr, const char* basic_type_name, TStreamerElement* element);
+ 
+   /// Recurse through a class and construct an instance of MBasicData for each basic data type.
+#ifndef __MAKECINT__
+    static void MapClass(const char* name, const char* classname, volatile void* address);
+#endif
+
+  protected:
+    /// \brief Adds a specific element to fgObjectMap.
+    //! \details For a specific element of a class, check if it's a basic data type. If so, construct
+    //! an MBasicData.  If not, return false.
+    static Bool_t MapData(const char* name, TStreamerElement* element, volatile void* base_address);
+
+    // This is just a quick and dirty class to reconstruct the original indices
+    // of a multi-dimensional array that has been flattened by TStreamerElements.
+    // All we really need out is just strings with the original indices in brackets.
+    class ArrayConverter
+    {
+    private:
+      TStreamerElement* fElement;
+      std::vector<std::string> fIndices;
+    public:
+      ArrayConverter(TStreamerElement* element);
+      // Return the original indices.
+      std::string GetFullName(const char* baseName, UInt_t index);
+    };
+
+  };
+  
+  template <class ABasic>
+  class BasicData : public MBasicData
+  {
+  private:
+    volatile ABasic* fAddress; // Memory address of the basic data
+
+  public:
+    BasicData(const char* name, volatile void* addr, const char* basic_type, TStreamerElement* element);
+    Double_t GetValue();
+    void SetValue(Double_t newval);
+    virtual ~BasicData() { }
   };
 
 
+#ifndef __MAKECINT__
+  //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+  // void_pointer_add                                      //
+  //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+  // Add an offset to a void* pointer
+  extern void void_pointer_add(volatile void*& initial, Int_t offset);
+
+  //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+  // remove_duplicate_spaces                               //
+  //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+  // Remove adjacent whitespace from a \c std::string
+  extern void remove_duplicate_spaces(std::string& str);
+
+  //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+  // double2str                                            //
+  //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+  // Convert a double to a std::string
+  extern std::string double2str(Double_t d);
+
+  //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+  // string_len_compare                                    //
+  //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+  // Tell is a string is longer than the other
+  extern bool string_len_compare (const std::string& lhs, const std::string& rhs);
+
+
+  //////////////////////////////////////////
+  ///// BasicData<ABasic> Implementaion ////
+  //////////////////////////////////////////
+  template <class ABasic>
+  BasicData<ABasic>::BasicData(const char* name, volatile void* addr, const char* basic_type, TStreamerElement* element) :
+    MBasicData(name, basic_type), fAddress(reinterpret_cast<volatile ABasic*>(addr)) {
+    Int_t arrayLen = element ? element->GetArrayLength() : 0;
+    if(arrayLen == 0) { // just a single element
+      fgAll().insert(std::make_pair<std::string, MBasicData*>(name, this));
+    }
+    else { // an array
+      if(element->GetArrayDim() > 4) { 
+	Warning("MapData", "No support for arrays > 4 dimensions. The array %s is %d and will not be mapped!",
+		name, element->GetArrayDim());
+      }
+      else {
+	Int_t size = element->GetSize() / arrayLen;
+	ArrayConverter arrayConvert(element);
+	for(Int_t i=0; i< arrayLen; ++i) {
+	  void_pointer_add(addr, size*(i>0));
+	  MBasicData::New(arrayConvert.GetFullName(name, i).c_str(), addr, basic_type, 0);
+	}
+      }
+    }
+  }
+
+  template <class ABasic>
+  inline Double_t BasicData<ABasic>::GetValue() {
+    LockingPointer<ABasic> p(fAddress, rb::Hist::GetMutex());
+    return *p;
+  }
+
+  template <class ABasic>
+  inline void BasicData<ABasic>::SetValue(Double_t newval) {
+    LockingPointer<ABasic> p(fAddress, rb::Hist::GetMutex());
+    *p = ABasic(newval);
+  }
+#endif
+
+
+namespace rb
+{
   //! \brief Prvides access to the user's data classes.
   //! \details Instances of the user data classes are wrapped by this class as a <tt>volatile T*</tt>
   //! pointer. In compiled code, the data classes are only accessable via the GetLockingPointer() method,
   //! which ensures thread safety. If the makeVisible flag is set to true in the constructor, the addresses
   //! of the basic data types are mapped by the parent class MData, which allows the user to access them in
-  //! CINT using MData::GetValue() and MData::SetValue().
+  //! CINT using rb::data::GetValue() and rb::data::SetValue().
   template <class T>
   class Data
   {
@@ -274,16 +413,15 @@ void rb::Data<T>::Init(Bool_t makeVisible, const char* args) {
   fData = data;
 
   if (makeVisible) {
-    if(MData::PrintHeader()) {
+    if(1) { /////MData::PrintHeader()) {
       std::cout << "\nMapping the address of user data objects:\n"
 		<< "      Name\t\t\tClass Name\n"
 		<< "      ----\t\t\t----------\n";
-      MData::PrintHeader() = kFALSE;
+      /////MData::PrintHeader() = kFALSE;
     }
     std::cout << "      " << kBranchName << "\t\t\t" << fClassName << "\n";
 
-    MData m(kBranchName);
-    m.MapClass(kBranchName, fClassName.c_str(), reinterpret_cast<volatile void*>(fData));
+    MBasicData::MapClass(kBranchName, fClassName.c_str(), reinterpret_cast<volatile void*> (fData));
   }
 
 

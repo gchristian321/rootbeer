@@ -65,3 +65,36 @@ void rb::AttachList(const char* filename) {
 void rb::Unattach() {
   rb::attach::StopAll();
 }
+
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// Double_t rb::data::GetValue                           //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+Double_t rb::data::GetValue(const char* name) {
+  MBasicData* basicData = 0;
+  basicData = MBasicData::Find(name);
+  if(!basicData) {
+    Error("GetValue", "%s not found.", name);
+    return -1.;
+  }
+  return (Double_t)basicData->GetValue();
+}
+
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// void rb::data::SetValue                               //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+void rb::data::SetValue(const char* name, Double_t newvalue) {
+  MBasicData* basicData = 0;
+  basicData = MBasicData::Find(name);
+  if(!basicData) {
+    Error("SetData", "Data object: %s not found.", name);
+    return;
+  }
+  basicData->SetValue(newvalue);
+}
+
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// void rb::data::PrintAll                               //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+void rb::data::PrintAll() {
+  MBasicData::PrintAll();
+}

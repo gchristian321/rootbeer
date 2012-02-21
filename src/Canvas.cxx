@@ -44,7 +44,7 @@ namespace
     void DoInThread() {
       rb::Timer t(fRate);
       while(rb::Thread::IsRunning(fName)) {
-	if(t.Check()) rb::Canvas::UpdateAll();
+	if(t.Check()) rb::canvas::UpdateAll();
       }
     }
   };
@@ -88,7 +88,7 @@ namespace
       TVirtualPad* subpad = dynamic_cast<TVirtualPad*>(primitives->At(i));
       if(subpad) ClearPad(subpad);
     }
-    rb::Canvas::ClearCurrent();
+    rb::canvas::ClearCurrent();
   }
 } // namespace
 
@@ -97,10 +97,10 @@ namespace
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // Implementation of                                     //
-// namespace rb::Canvas                                  //
+// namespace rb::canvas                                  //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 
-void rb::Canvas::UpdateCurrent() {
+void rb::canvas::UpdateCurrent() {
   gMutex.Lock();
   if(gPad) {
     gPad->Modified();
@@ -109,7 +109,7 @@ void rb::Canvas::UpdateCurrent() {
   gMutex.UnLock();
 }
 
-void rb::Canvas::UpdateAll() {
+void rb::canvas::UpdateAll() {
   TPad* pInitial = dynamic_cast<TPad*>(gPad);
   TPad* pad;
   for(Int_t i=0; i< gROOT->GetListOfCanvases()->GetEntries(); ++i) {
@@ -121,13 +121,13 @@ void rb::Canvas::UpdateAll() {
   gMutex.UnLock();
 }
 
-Int_t rb::Canvas::StopUpdate() {
+Int_t rb::canvas::StopUpdate() {
   rb::Thread::Stop(THREAD_NAME);
   updateRate = 0;
   return updateRate;
 }
 
-Int_t rb::Canvas::StartUpdate(Int_t rate) {
+Int_t rb::canvas::StartUpdate(Int_t rate) {
   if(rate < MAX_RATE) {
     Error("StartUpdate",
 	  "Passed an invalid update rate: %d. The update rate must be >= %d second(s).",
@@ -142,11 +142,11 @@ Int_t rb::Canvas::StartUpdate(Int_t rate) {
   }  
 }
 
-Int_t rb::Canvas::GetUpdateRate() {
+Int_t rb::canvas::GetUpdateRate() {
   return updateRate;
 }
 
-void rb::Canvas::ClearCurrent() {
+void rb::canvas::ClearCurrent() {
   gMutex.Lock();
   if(gPad) {
     for(Int_t i = 0; i < gPad->GetListOfPrimitives()->GetEntries(); ++i) {
@@ -162,7 +162,7 @@ void rb::Canvas::ClearCurrent() {
   gMutex.UnLock();
 }
 
-void rb::Canvas::ClearAll() {
+void rb::canvas::ClearAll() {
   TPad* pInitial = dynamic_cast<TPad*>(gPad);
   TPad* pad;
   for(Int_t i=0; i< gROOT->GetListOfCanvases()->GetEntries(); ++i) {

@@ -9,7 +9,8 @@
 #pragma link C++ nestedclasses; 
  
 #pragma link C++ namespace rb; 
-#pragma link C++ namespace rb::Canvas;
+#pragma link C++ namespace rb::data;
+#pragma link C++ namespace rb::canvas;
 #pragma link C++ class rb::Rint+;
 #pragma link C++ class rb::MData+; 
 
