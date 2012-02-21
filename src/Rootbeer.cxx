@@ -70,8 +70,8 @@ void rb::Unattach() {
 // Double_t rb::data::GetValue                           //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 Double_t rb::data::GetValue(const char* name) {
-  MBasicData* basicData = 0;
-  basicData = MBasicData::Find(name);
+  data::MBasic* basicData = 0;
+  basicData = data::MBasic::Find(name);
   if(!basicData) {
     Error("GetValue", "%s not found.", name);
     return -1.;
@@ -83,8 +83,8 @@ Double_t rb::data::GetValue(const char* name) {
 // void rb::data::SetValue                               //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 void rb::data::SetValue(const char* name, Double_t newvalue) {
-  MBasicData* basicData = 0;
-  basicData = MBasicData::Find(name);
+  data::MBasic* basicData = 0;
+  basicData = data::MBasic::Find(name);
   if(!basicData) {
     Error("SetData", "Data object: %s not found.", name);
     return;
@@ -96,5 +96,6 @@ void rb::data::SetValue(const char* name, Double_t newvalue) {
 // void rb::data::PrintAll                               //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 void rb::data::PrintAll() {
-  MBasicData::PrintAll();
+  data::MBasic::Printer p;
+  p.PrintAll();
 }

@@ -20,11 +20,11 @@ namespace rb
     const Int_t kDummy;
 
   protected:
-    //! References to the rb::Data objects in rb::Rint::Globals.
+    //! References to the rb::data::Wrapper objects in rb::Rint::Globals.
 #define RB_REFERENCE_DECLARE
 #include "rb_import_data.h"
 
-    //! Initializes refeerences to rb::Data objects in rb::Rint (gApplication).
+    //! Initializes refeerences to rb::data::Wrapper objects in rb::Rint (gApplication).
     BufferSource();
   public:
     //! \details Nothing to do.
@@ -59,7 +59,7 @@ namespace rb
     //! Terminate connection to an online data source.
     virtual void DisconnectOnline() = 0;
 
-    //! Unpack an abstract buffer into rb::Data-derived classes.
+    //! Unpack an abstract buffer into rb::data::Wrapper-derived classes.
     //! \returns true on successful unpack, false otherwise.
     virtual Bool_t UnpackBuffer() = 0;
 

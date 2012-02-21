@@ -469,10 +469,10 @@ Int_t main(Int_t argc, Char_t** argv)
    See the linked documentation page on
    <a href="rb__import__data_8h.html#a7623fcbdf2c95113416d11bc0fd5286e"><b>RB_IMPORT_DATA</b></a>
    and ImportData.h for more information and examples. It should be noted that the RB_IMPORT_DATA macro does not
-   create a "bare" instance of your class directly. Instead it creates a new global instance of rb::Data <T>, with
+   create a "bare" instance of your class directly. Instead it creates a new global instance of rb::data::Wrapper <T>, with
    the template argument being your class type. Doing things this way automatically calls the appropriate functions
    allowing your data to be displayed in histograms, and furthermore it allows thread-safe access to the classes,
-   both in compiled code and in CINT.  For more information, see the documentation on rb::MData and rb::Data.
+   both in compiled code and in CINT.  For more information, see the documentation on rb::data::Basic and rb::data::Wrapper.
 
 
    \section data_buffers Acquiring and Upacking Data
@@ -492,8 +492,9 @@ Int_t main(Int_t argc, Char_t** argv)
 
    In the course of implementing your BufferSource derived class, you'll presumably want access to the global instances
    of your user classes (otherwise you don't have anywhere to put the data).  Direct access to your classes is not allowed
-   due to the issues that could arise in a threaded environment.  Instead, you'll need to use the GetPointer() method
-   of rb::Data to obtain a special type of pointer that allows thread safe access to your data. This special pointer
+   due to the issues that could arise in a threaded environment.  Instead, you'll need to use the GetPointer()
+   \todo UPDATE "Acquiring and Unpacking Data" section
+   of rb::data to obtain a special type of pointer that allows thread safe access to your data. This special pointer
    (AutoLockingPointer), has the standard pointer semantics, e.g. a dereference and indirection operator
    \code
    p->SomeMemberFunction(); //< dereference
