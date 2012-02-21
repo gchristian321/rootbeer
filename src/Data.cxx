@@ -200,31 +200,14 @@ void MBasicData::MapClass(const char* name, const char* classname, volatile void
   TStreamerInfo* sinfo = static_cast<TStreamerInfo*>(cl->GetStreamerInfo());
   TObjArray* elems = sinfo->GetElements();
 
-  for( Int_t i=0; i< elems->GetEntries(); ++i) {
+  for(Int_t i=0; i< elems->GetEntries(); ++i) {
     TStreamerElement* element = reinterpret_cast <TStreamerElement*>(elems->At(i));
     std::stringstream ssName;
     ssName << name << "." << element->GetName();
     Bool_t basic = MapData(ssName.str().c_str(), element, address);
     if(!basic) {
       void_pointer_add(address, element->GetOffset());
-      MapClass(name, classname, address);
+      MapClass(name, element->GetTypeName(), address);
     }
   }
 }
-
-
-
-
-//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-// Class                                                 //
-// rb::MData                                             //
-//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-
-//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-// static rb::MData::SavePrimitive                       //
-//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-void rb::MData::SavePrimitive(ostream& strm) {
-  MBasicData::SavePrimitive(strm);
-}
-
-
