@@ -8,8 +8,6 @@
 #include <iostream>
 #include <sstream>
 #include <TClass.h>
-#include <TStreamerInfo.h>
-#include <TStreamerElement.h>
 #include <TDataMember.h>
 #include "Hist.hxx"
 
@@ -67,7 +65,7 @@ namespace rb
     //! \details The motivation behind this class is to allow users to have safe
     //! access to the basic data members of their classes in CINT. Typically this is
     //! desired for data representing, e.g. calibration variables and the like, so that
-    //! such values can be changed "on the fly" while data is coming in. Because of potantial
+    //! such values can be changed "on the fly" while data is coming in. Because of potential
     //! conflicts with the background thread performing data unpacking, calibration, etc. it is
     //! not safe to give CINT access to the user's classes directly. Instead, what we basically
     //! do is create a map of the memory address of each basic data type (e.g. int, double, float, etc)
@@ -79,7 +77,7 @@ namespace rb
     //!
     //! The basic funtion of this template class is three-fold:
     //!    -# It encapsulates the memory address of the each basic data member.
-    //!    -# A pointer to each instance of data::Basic<B> is stored in the global std::map
+    //!    -# A pointer to each instance of data::Basic<T> is stored in the global std::map
     //!       data::MBasic::fgAll, keyed by the "name" (leaf name) of its corresponding basic
     //!       data member.
     //!    -# The class allows (read and write) access to the values of its encapsulated basic data
@@ -88,16 +86,63 @@ namespace rb
     //!
     //! Instances of this class are created from the constructor of rb::data::Wrapper <T>, whenever the user
     //! requests that his/her class be mapped by specifying the <i>makeVisible</i> argument of rb::data::Wrapper::Wrapper
-    //! to true. 
+    //! to true. Individual fields of a class can be excluded from the mapping by including a special comment directly
+    //! after the field declaration (following the spirit of using comments to direct TStreamer construction in ROOT).
+    //! There are two options for exclusion comments: the first is <tt>//!</tt>, which will both exclude the field
+    //! from being mapped by this class, and also exclude it from having a TStreamer created in ROOT (or in other words,
+    //! it won't show up in any TTree branches or anywhere if the class is written to a ROOT file). Basically, the <tt>//!</tt>
+    //! works just as in normal ROOT.  The comment block that is specifit to ROOTBEER it <tt>//#</tt>.  Use of this comment
+    //! will prevent the field in question (and any of its sbsequent members) from being mapped by rb::data::Basic <T>, but
+    //! it will still show up in TTrees, etc. The comments <tt>//!</tt> and <tt>//#</tt> can also be mixed, with the <tt>!</tt>
+    //! always coming first; this will allow fields to be accessable in CINT but not viewable in TTrees, etc.
     //!
-    //! In case it isn't clear, the template argument is the actual type of the basic data, e.g. int, double, etc.
-    template <class B>
+    //! The intention behind introducing the <tt>//#</tt> option is to allow parameters and variables to be mixed within a class.
+    //! Typically, one will always want to view parameters event-by-event in hostograms, but will not want to be able to change their
+    //! values manually. Variables, on the other hand, are something we do want to change manually and may or may not care about
+    //! viewing in histograms. The present system gives any of these options. For example, say I've done the following:
+    //! \code
+    //! // Some external header //
+    //! struct Data {
+    //!   Int_t param; //# (parameter) Can't be viewed in CINT, can be put in Trees.
+    //!   Int_t var;   //  (varaible) Can be viewed in CINT or Trees.
+    //!   Int_t var2   //! (varaible) Can be viewed in CINT but not Trees.
+    //!   SomeClass internal; //!# Ignore this both in CINT and in Trees.
+    //! };
+    //! // ImportData.h //
+    //! #include "some_external_header.h"
+    //! RB_IMPORT_DATA(Data, fData, "data", true, "");
+    //! RB_IMPORT_DATA(Data, fData, "data2", false, "");
+    //! \endcode
+    //!
+    //! In this case the following would be allowed:
+    //! \code
+    //! rb::Hist::New("hparam","",100,0,100,"data.param"); 
+    //! rb::Hist::New("hvar","",100,0,100,"data.var");
+    //! // ^^(and likewise replacing "data." with "data2.") //
+    //!
+    //! rb::data::GetValue("data.var");    // [or rb::data::SetValue("data.var", 12);]
+    //! rb::data::GetValue("data.var2");   // [or rb::data::SetValue("data.var2", 123);]
+    //! \endcode
+    //!
+    //! The following would <i>not</i> be allowed:
+    //! \code
+    //! rb::Hist::New("hvar2","",100,0,100,"data.var2");
+    //! rb::Hist::New("hinternal","",100,0,100,"data.internal.....");
+    //! // ^^(and likewise replacing "data." with "data2.") //
+    //!
+    //! rb::data::GetValue("data.param"); //< [likewise for SetValue()]
+    //! rb::data::GetValue("data.internam...."); //< [likewise for SetValue()]
+    //! rb::Data::SetValue("data2.ANYTHING"); //< [likewise for SetValue()]
+    //! \endcode
+    //!
+    //! \note In case it isn't clear, the template argument is the actual type of the basic data, e.g. int, double, etc.
+    template <class T>
     class Basic : public MBasic
     {
     private:
       //! Memory address of the basic data
       //! \note Marked volatile so that all access has to be through LockingPointers.
-      volatile B * fAddress;
+      volatile T * fAddress;
     public:
       /// \brief Sets fAddress and inserts \c this into data::MBasic::fgAll.
       //! \details Also, in the case of an array, it iterates through the whole array and
