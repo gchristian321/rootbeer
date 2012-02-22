@@ -1,8 +1,10 @@
 //! \file Data.cxx
 //! \brief Implements Data.hxx
 #include <algorithm>
+#include <set>
 #include "Data.hxx"
 #include "Rint.hxx"
+
 
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
@@ -10,49 +12,40 @@
 // rb::data::MBasic Implementation       //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 
-//\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-// Constructor                //
-//\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// MBasic* rb::data::MBasic::New() [static]    //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+void rb::data::MBasic::New(const char* name, volatile void* addr, TDataMember* d) {
 #define CHECK_TYPE(type)						\
-  else if (!strcmp(basic_type_name, #type))				\
-    return new rb::data::Basic<type> (name, addr, basic_type_name, element)
-rb::data::MBasic* rb::data::MBasic::New(const char* name, volatile void* addr, const char* basic_type_name, TStreamerElement* element) {
+  else if (!strcmp(d->GetTrueTypeName(), #type))			\
+    rb::data::MBasic* m = new rb::data::Basic<type> (name, addr, d);
   if(0);
-  CHECK_TYPE(Double_t);
-  CHECK_TYPE(Float_t);
-  CHECK_TYPE(Long64_t);
-  CHECK_TYPE(Long_t);
-  CHECK_TYPE(Int_t);
-  CHECK_TYPE(Short_t);
-  CHECK_TYPE(Char_t);
-  CHECK_TYPE(Bool_t);
-  CHECK_TYPE(ULong64_t);
-  CHECK_TYPE(ULong_t);
-  CHECK_TYPE(UInt_t);
-  CHECK_TYPE(UShort_t);
-  CHECK_TYPE(double);
-  CHECK_TYPE(float);
-  CHECK_TYPE(long long);
-  CHECK_TYPE(long);
-  CHECK_TYPE(int);
-  CHECK_TYPE(short);
-  CHECK_TYPE(char);
-  CHECK_TYPE(bool);
-  CHECK_TYPE(unsigned long long);
-  CHECK_TYPE(unsigned long);
-  CHECK_TYPE(unsigned int);
-  CHECK_TYPE(unsigned);
-  CHECK_TYPE(unsigned short);
-  else return 0;
-}
+  CHECK_TYPE(double)
+  CHECK_TYPE(float)
+  CHECK_TYPE(long long)
+  CHECK_TYPE(long)
+  CHECK_TYPE(int)
+  CHECK_TYPE(short)
+  CHECK_TYPE(char)
+  CHECK_TYPE(bool)
+  CHECK_TYPE(unsigned long long)
+  CHECK_TYPE(unsigned long)
+  CHECK_TYPE(unsigned int)
+  CHECK_TYPE(unsigned short)
+  CHECK_TYPE(unsigned char)
+  else;
 #undef CHECK_TYPE
+}
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // void rb::data::MBasic::fgAll() [static]     //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-rb::data::MBasic::Map_t& rb::data::MBasic::fgAll() {
-  static rb::data::MBasic::Map_t* m = new rb::data::MBasic::Map_t();
-  return *m;
-}
+// rb::data::MBasic::Map_t& rb::data::MBasic::fgAll() {
+//   /*
+//   static rb::data::MBasic::Map_t* m = new rb::data::MBasic::Map_t();
+//   return *m;
+//   */
+//   return fgAll();
+// }
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // MBasic* rb::data::MBasic::Find() [static]   //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
@@ -78,6 +71,16 @@ void rb::data::MBasic::Printer::SavePrimitive(std::ostream& strm) {
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // void rb::data::MBasic::Printer::PrintAll()        //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+namespace { // Helper functions for PrintAll()
+  inline bool string_len_compare (const std::string& lhs, const std::string& rhs) {
+    return rhs.size() > lhs.size();
+  }
+  inline std::string double2str(Double_t d) {
+    std::stringstream sstr;
+    sstr << d;
+    return sstr.str();
+  }
+}
 void rb::data::MBasic::Printer::PrintAll() {
   if(fgAll().empty()) return;
   std::vector<std::string> names, values, classes;
@@ -86,13 +89,13 @@ void rb::data::MBasic::Printer::PrintAll() {
   while(it != fgAll().end()) {
     names.push_back(it->first);
     values.push_back(double2str(it->second->GetValue()));
-    classes.push_back(it->second->kBasicClassName);
+    classes.push_back(it->second->fDataMember->GetTrueTypeName());
     ++it;
   }
   Int_t maxName  = max_element(names.begin(), names.end(), string_len_compare)->size();
   maxName = maxName > 4 ? maxName : 4;
 
-  printf("\n%-*s\t%s\n", maxName, "Name", "Value [class]");
+  printf("\n%-*s\t%s\n", maxName, "Name", "Value [type]");
   printf("%-*s\t%s\n", maxName, "----", "-------------");
   for(Int_t i=0; i< names.size(); ++i) {
     if(atoi(values.at(i).c_str()) < 0)
@@ -107,44 +110,65 @@ void rb::data::MBasic::Printer::PrintAll() {
 // Class                                 //
 // rb::data::Mapper Implementation       //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-
-//\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-// Constructor                //
-//\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-
+namespace { // Helper Functions & Class //
+  inline Bool_t ShouldBeMapped(TDataMember* d) {
+    std::string title = d->GetTitle();
+    return (title.size() == 0) ?
+      true : !(title[0] == '!' || title[0] == '#');
+  }
+  class ArrayConverter // Class to reconstruct the original indices				       
+  {		       // of a multi-dimensional array that has been flattened by TStreamerElements.
+  public:	       // Gives us strings with the original indices in brackets.
+    ArrayConverter(TDataMember* d);
+    // Return the original indices.
+    std::string GetFullName(const char* baseName, UInt_t index);
+    Int_t GetArrayLength() { return fArrayLength; }
+  private:
+    TDataMember* fElement;
+    std::vector<std::string> fIndices;
+    Int_t fArrayLength;
+  }; // class ArrayConverter
+}
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-// Bool_t rb::data::Mapper::MapElement()  //
+// void rb::data::Mapper::HandleBasic()   //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-Bool_t rb::data::Mapper::MapElement(const char* name, TStreamerElement* element, volatile void* base_address) {
-  std::string typeName = element->GetTypeName(); // the type of this specific element
-  remove_duplicate_spaces(typeName); // in case someone did 'unsigned    short' or whatever
-
-  volatile void* address = base_address; // address of base pointer to the whole class containing this element
-  void_pointer_add(address, element->GetOffset()); // increment to address of this specific element
-  rb::data::MBasic* basicData = rb::data::MBasic::New(name, address, typeName.c_str(), element); // try to create an data::MBasic derived instance
-
-  return (basicData == 0);
+void rb::data::Mapper::HandleBasic(TDataMember* d, const char* name) {
+  Long_t addr = fBase + d->GetOffset();
+  Int_t nDim = d->GetArrayDim();
+  if(nDim == 0) { // not an array
+    rb::data::MBasic::New(name, reinterpret_cast<void*>(addr), d);
+  }
+  else if(d->GetArrayDim() > 4) // too big
+    Warning("MapData",
+	    "No support for arrays > 4 dimensions. The array %s is %d and will not be mapped!",
+	    name, d->GetArrayDim());
+  else {
+    ArrayConverter ac(d);
+    Int_t arrayLen = ac.GetArrayLength();
+    Int_t size = d->GetUnitSize();
+    for(Int_t i=0; i< arrayLen; ++i) {
+      addr += size*(i>0);
+      rb::data::MBasic::New(ac.GetFullName(name, i).c_str(), reinterpret_cast<void*>(addr), d);
+    }
+  }
 }
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // void rb::data::Mapper::MapClass()      //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-void rb::data::Mapper::MapClass(const char* name, const char* classname, volatile void* address) {
-
+void rb::data::Mapper::MapClass(const char* name, const char* classname) {
   TClass* cl = TClass::GetClass(classname);
   if(!cl) return;
+  TList* dataMembers = cl->GetListOfDataMembers();
+  for(Int_t i=0; i< dataMembers->GetEntries(); ++i) {
+    TDataMember* d = reinterpret_cast<TDataMember*>(dataMembers->At(i));
+    if(!ShouldBeMapped(d)) continue;
 
-  TStreamerInfo* sinfo = static_cast<TStreamerInfo*>(cl->GetStreamerInfo());
-  TObjArray* elems = sinfo->GetElements();
-
-  for(Int_t i=0; i< elems->GetEntries(); ++i) {
-    TStreamerElement* element = reinterpret_cast<TStreamerElement*>(elems->At(i));
     std::stringstream ssName;
-    ssName << name << "." << element->GetName();
-    Bool_t basic = MapElement(ssName.str().c_str(), element, address);
-    if(!basic) {
-      void_pointer_add(address, element->GetOffset());
-      MapClass(name, element->GetTypeName(), address);
-    }
+    ssName << name << "." << d->GetName();
+    if(d->IsBasic())
+      HandleBasic(d, ssName.str().c_str());
+    else
+      MapClass(ssName.str().c_str(), d->GetTrueTypeName());
   }
 }
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
@@ -161,4 +185,46 @@ void rb::data::Mapper::Message(const char* brName, const char* clName) {
   }
   sstr << "      " << brName << "\t\t\t" << clName << "\n";
   rb::gApp()->AddMessage(sstr.str());
+}
+
+
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// Class ArrayConverter                   //
+// Implementation                         //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+ArrayConverter::ArrayConverter(TDataMember* d) : fElement(d), fArrayLength(0) {
+  for(Int_t j=0; j< d->GetArrayDim(); ++j)
+    fArrayLength += d->GetMaxIndex(j);
+
+  std::stringstream sstr;
+  Int_t ndim = fElement->GetArrayDim();
+  std::vector<UInt_t> index(4, 0);
+
+  // Lazy way of "flattening" the array, just use nested for loops.  TStreamerElement
+  // only supports up to 4-dimensional arrays anyway so there's no loss. Though really this
+  // should be done recursively withouth the for loops (or some other clever way).
+  for(index[0] = 0; index[0] < fElement->GetMaxIndex(0); ++index[0]) {
+    for(index[1] = 0; index[1] < (ndim > 1 ? fElement->GetMaxIndex(1) : 1) ; ++index[1]) {
+      for(index[2] = 0; index[2] < (ndim > 2 ? fElement->GetMaxIndex(2) : 1) ; ++index[2]) {
+	for(index[3] = 0; index[3] < (ndim > 3 ? fElement->GetMaxIndex(3) : 1) ; ++index[3]) {
+	  sstr.str("");
+	  for(Int_t i=0; i< ndim; ++i) {
+	    sstr << "[" << index[i] << "]";
+	  }
+	  fIndices.push_back(sstr.str());
+	}
+      }
+    }
+  }
+}
+std::string ArrayConverter::GetFullName(const char* baseName, UInt_t index)  {
+  if(index < fIndices.size()) {
+    std::string out = baseName;
+    out += fIndices[index];
+    return out;
+  }
+  else {
+    fprintf(stderr, "Invalid index %d\n", index);
+    return "";
+  }
 }

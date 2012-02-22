@@ -10,6 +10,7 @@
 #include <TClass.h>
 #include <TStreamerInfo.h>
 #include <TStreamerElement.h>
+#include <TDataMember.h>
 #include "Hist.hxx"
 
 namespace rb
@@ -27,10 +28,10 @@ namespace rb
       //! data::MBasic instance
       static MBasic::Map_t& fgAll();
       //! The type of basic data (int, double, etc.)
-      const char* kBasicClassName;
+      const TDataMember* fDataMember;
     public:
-      //! Sets kBasicClassName
-      MBasic(const char* basicClass) : kBasicClassName(basicClass) {}
+      //! Sets fDataMember
+      MBasic(const TDataMember* d);
       //! Nothing to do
       virtual ~MBasic() {}
       //! Pure virtual, see rb::data::Basic
@@ -38,14 +39,14 @@ namespace rb
       //! Pure virtual, see rb::data::Basic
       virtual void SetValue(Double_t newval) = 0;
       //! Search for an instance of Basic*
-      //! \param [in] branchName The name (how it would be referred to in TTree::Draw) of the class instance being searched for.
-      static MBasic* Find(const char* branchName);
+      //! \param [in] leafName The name (how it would be referred to in TTree::Draw) of the class instance being searched for.
+      static MBasic* Find(const char* leafName);
       //! Allocate a \c new instance of data::MBasic.
       //! \returns A heap allocated instance of a data::MBasic-derived class (i.e. some data::Basic template class). It is
       //! automatically caseted to the correct type based on the <i>basic_type_name</i> input parameter.
-      static MBasic* New(const char* name, volatile void* addr, const char* basic_type_name, TStreamerElement* element);
+      static void New(const char* name, volatile void* addr, TDataMember* element);
 
-      //! Prints or writes to a stream information on each entry in fgAll().
+      //! Prints or writes to a stream information on each entry in fgAll.
       class Printer
       {
       public:
@@ -55,8 +56,41 @@ namespace rb
 	void PrintAll();
       };
     };
+    inline rb::data::MBasic::MBasic(const TDataMember* d) :
+      fDataMember(d) {}
+    inline MBasic::Map_t& MBasic::fgAll() {
+      static MBasic::Map_t* m = new MBasic::Map_t();
+      return *m;
+    }
 
-    /// \brief Takes care of the actual mapping of names to addresses of each basic data type.
+    /// \brief Allows access to basic data members of user classes in CINT.
+    //! \details The motivation behind this class is to allow users to have safe
+    //! access to the basic data members of their classes in CINT. Typically this is
+    //! desired for data representing, e.g. calibration variables and the like, so that
+    //! such values can be changed "on the fly" while data is coming in. Because of potantial
+    //! conflicts with the background thread performing data unpacking, calibration, etc. it is
+    //! not safe to give CINT access to the user's classes directly. Instead, what we basically
+    //! do is create a map of the memory address of each basic data type (e.g. int, double, float, etc)
+    //! that is a member of the user's classes. This class then allows access (read or write) to the
+    //! values of those basic data members, keyed by their "name."  Note that here the "name" of the
+    //! basic data member essentially refers to it's name in the tree structure defined by the user's
+    //! class. Or in other words, it's the leaf name that TTree would give to the member if you had
+    //! called TTree::Branch using an instance of your class.
+    //!
+    //! The basic funtion of this template class is three-fold:
+    //!    -# It encapsulates the memory address of the each basic data member.
+    //!    -# A pointer to each instance of data::Basic<B> is stored in the global std::map
+    //!       data::MBasic::fgAll, keyed by the "name" (leaf name) of its corresponding basic
+    //!       data member.
+    //!    -# The class allows (read and write) access to the values of its encapsulated basic data
+    //!       through SetValue() and GetValue() member functions. Note that each of these functions
+    //!       locks a mutex, ensuring thread safety.
+    //!
+    //! Instances of this class are created from the constructor of rb::data::Wrapper <T>, whenever the user
+    //! requests that his/her class be mapped by specifying the <i>makeVisible</i> argument of rb::data::Wrapper::Wrapper
+    //! to true. 
+    //!
+    //! In case it isn't clear, the template argument is the actual type of the basic data, e.g. int, double, etc.
     template <class B>
     class Basic : public MBasic
     {
@@ -65,10 +99,10 @@ namespace rb
       //! \note Marked volatile so that all access has to be through LockingPointers.
       volatile B * fAddress;
     public:
-      /// \brief Sets fAddress and inserts \c this into data::MBasic::fgAll().
+      /// \brief Sets fAddress and inserts \c this into data::MBasic::fgAll.
       //! \details Also, in the case of an array, it iterates through the whole array and
       //! creates a new instance of data::Basic for each element.
-      Basic(const char* name, volatile void* addr, const char* basic_type, TStreamerElement* element);
+      Basic(const char* name, volatile void* addr, const TDataMember* d);
       //! Return the value of the data stored at fAddress
       Double_t GetValue();
       //! Change the value of the data stored at fAddress
@@ -77,22 +111,26 @@ namespace rb
       virtual ~Basic();
     };
 
-    //! Helper class to perform the mapping of name -> address for basic data members of user classes.
+    //! Helper class to perform the actual mapping of name -> address for basic data members of user classes.
     class Mapper
     {
+    private:
+      //! Base address of the class.
+      Long_t fBase;
     public:
       //! Calls Message()
-      Mapper(const char* branchName, const char* className);
+      Mapper(const char* branchName, const char* className, Long_t baseAddress);
       //! Recurses through a class structure, and for each basic data member, creates a new
       //! instance of rb::data::Basic.
-      void MapClass(const char* name, const char* classname, volatile void* address);
+      void MapClass(const char* name, const char* classname);
     private:
-      //! Helper function called by MapClass, checks if the element a basic data or not.
-      Bool_t MapElement(const char* name, TStreamerElement* element, volatile void* base_address);
+      //! Handle a basic element, create a new instance of MBasic data for each array element.
+      void HandleBasic(TDataMember* d, const char* name);
       //! Adds a message to rb::Rint::fMessage indicating that a class's basic data has been mapped out.
       void Message(const char* brName, const char* clName);
     };
-    inline Mapper::Mapper(const char* branchName, const char* className) {
+    inline Mapper::Mapper(const char* branchName, const char* className, Long_t baseAddress) :
+      fBase(baseAddress) {
       Message(branchName, className);
     }
 
@@ -209,82 +247,6 @@ namespace rb
 
 
 #ifndef __MAKECINT__
-namespace
-{
-  //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-  //   Helper Functions & Classses  //
-  //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-
-  // Add an offset to a void* pointer //
-  void void_pointer_add(volatile void*& initial, Int_t offset) {
-    volatile char* temp =  reinterpret_cast<volatile char*>(initial);
-    temp += offset;
-    initial = reinterpret_cast<volatile void*>(temp);
-  }
-  // Remove adjacent whitespace from a \c std::string //
-  void remove_duplicate_spaces(std::string& str) {
-    for(int i=str.size()-1; i > 0; --i) {
-      if(str[i] == ' ' && str[i-1] == ' ')
-	str.erase(i,1);
-    }
-  }
-  // Convert a double to a std::string //
-  inline std::string double2str(Double_t d) {
-    std::stringstream sstr;
-    sstr << d;
-    return sstr.str();
-  }
-  // Tell if a string is longer than the other //
-  bool string_len_compare (const std::string& lhs, const std::string& rhs) {
-    return rhs.size() > lhs.size();
-  }
-  // Class to reconstruct the original indices
-  // of a multi-dimensional array that has been flattened by TStreamerElements.
-  // Gives us strings with the original indices in brackets.
-  class ArrayConverter
-  {
-  public:
-    ArrayConverter(TStreamerElement* element) : fElement(element) {
-      std::stringstream sstr;
-      Int_t ndim = fElement->GetArrayDim();
-      std::vector<UInt_t> index(4, 0);
-
-      // Lazy way of "flattening" the array, just use nested for loops.  TStreamerElement
-      // only supports up to 4-dimensional arrays anyway so there's no loss. Though really this
-      // should be done recursively withouth the for loops (or some other clever way).
-      for(index[0] = 0; index[0] < fElement->GetMaxIndex(0); ++index[0]) {
-	for(index[1] = 0; index[1] < (ndim > 1 ? fElement->GetMaxIndex(1) : 1) ; ++index[1]) {
-	  for(index[2] = 0; index[2] < (ndim > 2 ? fElement->GetMaxIndex(2) : 1) ; ++index[2]) {
-	    for(index[3] = 0; index[3] < (ndim > 3 ? fElement->GetMaxIndex(3) : 1) ; ++index[3]) {
-	      sstr.str("");
-	      for(Int_t i=0; i< ndim; ++i) {
-		sstr << "[" << index[i] << "]";
-	      }
-	      fIndices.push_back(sstr.str());
-	    }
-	  }
-	}
-      }
-    }
-    // Return the original indices.
-    std::string GetFullName(const char* baseName, UInt_t index)  {
-      if(index < fIndices.size()) {
-	std::string out = baseName;
-	out += fIndices[index];
-	return out;
-      }
-      else {
-	fprintf(stderr, "Invalid index %d\n", index);
-	return "";
-      }
-    }
-  private:
-    TStreamerElement* fElement;
-    std::vector<std::string> fIndices;
-  }; // class ArrayConverter
-} // namespace 
-
-
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // Template Class                        //
 // rb::data::Basic<B> Implementation     //
@@ -294,26 +256,9 @@ namespace
 // Constructor                //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 template <class B>
-rb::data::Basic<B>::Basic(const char* name, volatile void* addr, const char* basic_type, TStreamerElement* element) :
-  MBasic(basic_type), fAddress(reinterpret_cast<volatile B*>(addr)) {
-  Int_t arrayLen = element ? element->GetArrayLength() : 0;
-  if(arrayLen == 0) { // just a single element
-    fgAll().insert(std::make_pair<std::string, MBasic*>(name, this));
-  }
-  else { // an array
-    if(element->GetArrayDim() > 4) { 
-      Warning("MapData", "No support for arrays > 4 dimensions. The array %s is %d and will not be mapped!",
-	      name, element->GetArrayDim());
-    }
-    else {
-      Int_t size = element->GetSize() / arrayLen;
-      ArrayConverter arrayConvert(element);
-      for(Int_t i=0; i< arrayLen; ++i) {
-	void_pointer_add(addr, size*(i>0));
-	MBasic::New(arrayConvert.GetFullName(name, i).c_str(), addr, basic_type, 0);
-      }
-    }
-  }
+rb::data::Basic<B>::Basic(const char* name, volatile void* addr, const TDataMember* d) :
+  MBasic(d), fAddress(reinterpret_cast<volatile B*>(addr)) {
+  fgAll().insert(std::make_pair<std::string, MBasic*>(name, this));
 }
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // Destructor                 //
@@ -420,8 +365,8 @@ void rb::data::Wrapper<T>::Init(Bool_t makeVisible, const char* args) {
 
   // Map "visible" classes for CINT
   if (makeVisible) {
-    data::Mapper m (kBranchName, className.c_str());
-    m.MapClass(kBranchName, className.c_str(), reinterpret_cast<volatile void*> (fData));
+    data::Mapper m (kBranchName, className.c_str(), reinterpret_cast<Long_t>(fData));
+    m.MapClass(kBranchName, className.c_str());
   }
 
   // Add branch to rb::Hist tree

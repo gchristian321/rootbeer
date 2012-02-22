@@ -98,7 +98,7 @@ namespace rb
 
   }
 
-  /// Contains user functions to set or get the values of basic data members of user classes.
+  /// Wraps classes and functions relevant to the access of data and methods of user classes.
   namespace data
   {
     /// Get the value of a user class data member.

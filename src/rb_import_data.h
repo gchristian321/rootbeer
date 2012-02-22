@@ -56,10 +56,10 @@
 #elif defined RB_REFERENCE_INIT // [rb::BufferSource::BufferSource]
 #if RB_DATA_ON_HEAP
 #define RB_IMPORT_DATA(CLASS, SYMBOL, NAME, VISIBLE, ARGS)	\
-  SYMBOL(*(rb::gApp()->fGlobals.SYMBOL.get())),
+  SYMBOL(*(rb::gApp()->fDataGlobals.SYMBOL.get())),
 #else
 #define RB_IMPORT_DATA(CLASS, SYMBOL, NAME, VISIBLE, ARGS)	\
-  SYMBOL(rb::gApp()->fGlobals.SYMBOL),
+  SYMBOL(rb::gApp()->fDataGlobals.SYMBOL),
 #endif
 #undef RB_REFERENCE_INIT
 
