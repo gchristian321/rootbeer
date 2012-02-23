@@ -97,7 +97,6 @@ namespace rb
     extern Int_t GetUpdateRate();
 
   }
-
   /// Wraps classes and functions relevant to the access of data and methods of user classes.
   namespace data
   {
@@ -126,8 +125,51 @@ namespace rb
     /// Print the fill name and current value of every data member in every listed class.
     extern void PrintAll();
   }
-}
+  /// Creation functions for histograms
+  namespace hist
+  {
+    /// One-dimensional creation function
+    extern void New(const char* name, const char* title,
+		    Int_t nbinsx, Double_t xlow, Double_t xhigh,
+		    const char* param, const char* gate = "");
 
+    /// Two-dimensional creation function
+    extern void New(const char* name, const char* title,
+		    Int_t nbinsx, Double_t xlow, Double_t xhigh,
+		    Int_t nbinsy, Double_t ylow, Double_t yhigh,
+		    const char* param, const char* gate = "");
+
+    /// Three-dimensional creation function
+    extern void New(const char* name, const char* title,
+		    Int_t nbinsx, Double_t xlow, Double_t xhigh,
+		    Int_t nbinsy, Double_t ylow, Double_t yhigh,
+		    Int_t nbinsz, Double_t zlow, Double_t zhigh,
+		    const char* param, const char* gate = "");
+
+    /// Summary histogram creation
+    extern void NewSummary(const char* name, const char* title,
+			   Int_t nbins, Double_t low, Double_t high,
+			   const char* paramList,  const char* gate = "",
+			   const char* orientation = "v");
+
+    /// Gamma hist creation (1d)
+    extern void NewGamma(const char* name, const char* title,
+			 Int_t nbinsx, Double_t xlow, Double_t xhigh,
+			 const char* params,  const char* gate = "");
+
+    /// Gamma hist creation (2d)
+    extern void NewGamma(const char* name, const char* title,
+			 Int_t nbinsx, Double_t xlow, Double_t xhigh,
+			 Int_t nbinsy, Double_t ylow, Double_t yhigh,
+			 const char* params,  const char* gate = "");
+
+    /// Bit hist creation
+    // template <Int_t NBITS>
+    //  void rb::hist::NewBits<NBITS>(const char* name, const char* title, const char* param, const char* gate) {
+    //   rb::BitHist<NBITS>::BitInitialize(name, title, param, gate);
+    // }
+  }
+}
 
 
 #endif

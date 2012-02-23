@@ -6,7 +6,7 @@
 #ifndef __MAKECINT__
 
 //! Allocate Data<T> classes on heap or stack?
-#define RB_DATA_ON_HEAP 0
+#define RB_DATA_ON_HEAP 1
 
 
 
@@ -47,6 +47,24 @@
   SYMBOL(NAME, VISIBLE, ARGS),
 #endif
 #undef RB_INIT
+
+#elif defined RB_ADD_BRANCH
+#if RB_DATA_ON_HEAP
+#define RB_IMPORT_DATA(CLASS, SYMBOL, NAME, VISIBLE, ARGS)	\
+  {								\
+    CountedLockingPointer<CLASS> p = SYMBOL->GetPointer();	\
+    void * v = reinterpret_cast<void*>(p.Get());		\
+    LockFreePointer<TTree>(fTree)->Branch(NAME, #CLASS, &v);	\
+  }
+#else
+#define RB_IMPORT_DATA(CLASS, SYMBOL, NAME, VISIBLE, ARGS)	\
+  {								\
+    CountedLockingPointer<CLASS> p = *SYMBOL;			\
+    void * v = reinterpret_cast<void*>(p.Get());		\
+    LockFreePointer<TTree>(fTree)->Branch(NAME, #CLASS, &v);	\
+  }
+#endif
+#undef RB_ADD_BRANCH
 
 #elif defined RB_REFERENCE_DECLARE // [rb::BufferSource]
 #define RB_IMPORT_DATA(CLASS, SYMBOL, NAME, VISIBLE, ARGS)	\

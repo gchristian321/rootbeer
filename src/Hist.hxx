@@ -1,12 +1,13 @@
 //! \file Hist.hxx
 //! \brief Defines the histogram class used in <tt>ROOTBEER</tt>.
-#ifndef __HIST__
-#define __HIST__
+#ifndef HIST_HXX
+#define HIST_HXX
 #include <string>
 #include <sstream>
 #include <vector>
 #include <bitset>
 #include <list>
+#include <set>
 #include <TH1D.h>
 #include <TH2D.h>
 #include <TH3D.h>
@@ -41,6 +42,7 @@ namespace rb
   public:
     /// Typedef for a std::list of rb::Hist pointers.
     typedef std::list<rb::Hist*> List_t;
+    typedef std::set<rb::Hist*> Set_t;
 
   protected:
     /// Constructor error code: true = success, false = failure.
@@ -60,7 +62,7 @@ namespace rb
     //! This is basically the only thing that CINT users can access, via the GetHist() function.
     //! The reason for doing it this way is thread safety. By only allowing CINT users access to
     //! a copy of fHistogram (created within a mutex lock), we ensure that there will never be any
-    //! conflicts between the main therad and others that can modify the internal histogram.
+    //! conflicts between the main thread and others that can modify the internal histogram.
     TH1* fHistogramClone;
 
     /// Directory owning this rb::Hist instance.
@@ -92,8 +94,12 @@ namespace rb
       /// Returns a pointer to fgTree.
       //! \note We can safely return a LockFreePointer here since we're already inside a \c volatile
       //! member, which means that fgMutex should already be locked.
-      TTree* GetTree() {
-	return LockFreePointer<TTree>(fgTree()).Get();
+      TTree* GetTree(Hist* this_) {
+	return LockFreePointer<TTree>(this_->fTree).Get();
+      }
+
+      Set_t* GetSet(Hist* this_) {
+	return LockFreePointer<Set_t>(this_->fSet).Get();
       }
 
       /// Returns a pointer to fgList.
@@ -109,10 +115,12 @@ namespace rb
     //! Access via LockingPointer.
     static volatile List_t& fgList() { static List_t * L = new List_t() ; return *L; }
 
+    volatile Set_t* fSet;
+
     /// TTree for calculating parameter and gate values.
     //! \note Declared \c volatile because it is a resource shared between threads.
     //! Access via LockingPointer.
-    static volatile TTree& fgTree() { static TTree * T = new TTree(); return *T; }
+    volatile TTree* fTree;
 
     /// Global mutex
     //! Protects all rb::Hist objects.
@@ -126,11 +134,14 @@ namespace rb
     //!      (e.g. TH1D for 1d, etc)
     //!    - Adding of the rb::Hist object to both ROOT's gDirectory->fList and the static
     //!      rb::Hist::fgList list of all rb::Hist objects.
+  public:
     static Bool_t Initialize(const char* name, const char* title,
-			     const char* param, const char* gate, UInt_t ndim,
+			     const char* param, const char* gate,
+			     UInt_t ndim, TTree* tree, Set_t* set,
 			     Int_t nbinsx, Double_t xlow, Double_t xhigh,
-			     Int_t nbinsy, Double_t ylow, Double_t yhigh,
-			     Int_t nbinsz, Double_t zlow, Double_t zhigh);
+			     Int_t nbinsy = 0, Double_t ylow = 0, Double_t yhigh = 0,
+			     Int_t nbinsz = 0, Double_t zlow = 0, Double_t zhigh = 0);
+  protected:
 
     /// Internal function to fill the histogram.
     //! Called from the public Fill() and FillAll(), does not do any mutex locking,
@@ -141,7 +152,7 @@ namespace rb
     //! Set the internal \c TTree and \c fGate fields.
     //! \note This is made \c private so that CINT users can't create explicit instances of rb::Hist
     //! objects. Instead they use rb::Hist::New and then access via the automatic pointer CINT provides. 
-    Hist(const char* name, const char* title, const char* param, const char* gate, UInt_t npar);
+    Hist(const char* name, const char* title, const char* param, const char* gate, UInt_t npar, TTree* tree, Set_t* set);
 
   public:
     /// Fill the histogram from its internal parameter value(s).
@@ -173,7 +184,7 @@ namespace rb
 
     /// Default constructor.
     //! Does nothing, just here to make rootcint happy.
-    Hist() { } ;
+    Hist(): fTree(0) {}
 
     /// Destructor
     //! Free resorces allocted to TTreeFormulae, remove this from fgList.
@@ -208,25 +219,14 @@ namespace rb
       LockingPointer<CriticalElements>(fCritical, fgMutex())->fHistogram->SetMarkerColor(mcolor);
     }
 
-    /// Return a reference to the global histogram mutex.
-    static rb::Mutex& GetMutex() {
-      return fgMutex();
-    }
-
     /// Function to fill all histograms
     static void FillAll();
 
     /// Returns a copy of fgTree.
     //! \note Since this uses TTree::Clone(), it dynamically allocetes memory that
     //! should be deleted by the user.
-    static TTree* GetTreeClone() {
-      return LockingPointer<TTree>(fgTree(), fgMutex())->CloneTree(0);
-    }
-
-    /// Function to add branches to fgTree.
-    static TBranch* AddBranch(const char* name, const char* classname, void** obj,
-			      Int_t bufsize = 32000, Int_t splitlevel = 99) {
-      return LockingPointer<TTree>(fgTree(), fgMutex())->Branch(name, classname, obj, bufsize, splitlevel);
+    TTree* GetTreeClone() {
+      return LockingPointer<TTree>(fTree, fgMutex())->CloneTree(0);
     }
 
     /// Function to access entries of \c Hist::fgList
@@ -248,28 +248,28 @@ namespace rb
       return LockingPointer<List_t>(fgList(), fgMutex())->size();
     }
 
-    /// Set an alias in \c fgTree
-    static Bool_t SetAlias(const char* aliasName, const char* aliasFormula) {
-      LockingPointer<TTree>(fgTree(), fgMutex())->SetAlias(aliasName, aliasFormula);
-    }
+    // /// Set an alias in \c fgTree
+    // static Bool_t SetAlias(const char* aliasName, const char* aliasFormula) {
+    //   LockingPointer<TTree>(fgTree(), fgMutex())->SetAlias(aliasName, aliasFormula);
+    // }
 
-    /// One-dimensional creation function
-    static void New(const char* name, const char* title,
-		    Int_t nbinsx, Double_t xlow, Double_t xhigh,
-		    const char* param, const char* gate = "");
+    // /// One-dimensional creation function
+    // friend void rb::hist::New(const char* name, const char* title,
+    // 			      Int_t nbinsx, Double_t xlow, Double_t xhigh,
+    // 			      const char* param, const char* gate = "");
 
-    /// Two-dimensional creation function
-    static void New(const char* name, const char* title,
-		    Int_t nbinsx, Double_t xlow, Double_t xhigh,
-		    Int_t nbinsy, Double_t ylow, Double_t yhigh,
-		    const char* param, const char* gate = "");
+    // /// Two-dimensional creation function
+    // friend void rb::hist::New(const char* name, const char* title,
+    // 			      Int_t nbinsx, Double_t xlow, Double_t xhigh,
+    // 			      Int_t nbinsy, Double_t ylow, Double_t yhigh,
+    // 			      const char* param, const char* gate = "");
 
-    /// Three-dimensional creation function
-    static void New(const char* name, const char* title,
-		    Int_t nbinsx, Double_t xlow, Double_t xhigh,
-		    Int_t nbinsy, Double_t ylow, Double_t yhigh,
-		    Int_t nbinsz, Double_t zlow, Double_t zhigh,
-		    const char* param, const char* gate = "");
+    // /// Three-dimensional creation function
+    // friend void rb::hist::New(const char* name, const char* title,
+    // 			      Int_t nbinsx, Double_t xlow, Double_t xhigh,
+    // 			      Int_t nbinsy, Double_t ylow, Double_t yhigh,
+    // 			      Int_t nbinsz, Double_t zlow, Double_t zhigh,
+    // 			      const char* param, const char* gate = "");
 
     ClassDef(Hist, 0);
   };
@@ -294,7 +294,7 @@ namespace rb
     Int_t nPar;
 
     //! Constructor
-    SummaryHist(const char* name, const char* title, const char* params, const char* gate, const char* orient);
+    SummaryHist(const char* name, const char* title, const char* params, const char* gate, const char* orient, TTree* tree);
 
     //! Internal filling function.
     //! Same idea as for rb::Hist, but implemented as needed for a summary histogram.
@@ -308,10 +308,10 @@ namespace rb
     //! \param paramList List of all the parameters to be displayed separated by semicolons.
     //!        Arrays can also be specified as (e.g. from index 0 to index 15 inclusive) \c someArray[0-15] 
     //! \param orientation "v" = vertical "h" = horizontal, not case sensitive.
-    static void New(const char* name, const char* title,
-		    Int_t nbins, Double_t low, Double_t high,
-		    const char* paramList,  const char* gate = "",
-		    const char* orientation = "v");
+    // friend void rb::hist::NewSummary(const char* name, const char* title,
+    // 				     Int_t nbins, Double_t low, Double_t high,
+    // 				     const char* paramList,  const char* gate = "",
+    // 				     const char* orientation = "v");
 
     //! Return the number of parameters.
     Int_t GetNPar() {
@@ -334,35 +334,38 @@ namespace rb
     Int_t nPar;
 
     //! Constructor
-    GammaHist(const char* name, const char* title, const char* params, const char* gate, Int_t ndimensions);
+    GammaHist(const char* name, const char* title, const char* params, const char* gate, Int_t ndimensions, TTree* tree);
 
+  public:
     //! Initialize function
     //! Helper function called by New().
     static Bool_t GInitialize(const char* name, const char* title,
-			      const char* param, const char* gate, UInt_t ndim,
+			      const char* param, const char* gate,
+			      UInt_t ndim, TTree* tree,
 			      Int_t nbinsx, Double_t xlow, Double_t xhigh,
 			      Int_t nbinsy = 0, Double_t ylow = 0, Double_t yhigh = 0,
 			      Int_t nbinsz = 0, Double_t zlow = 0, Double_t zhigh = 0);
 
+  protected:
     //! Internal filling function.
     //! Same idea as for rb::Hist, but implemented as needed for a gamma histogram.
     virtual Int_t DoFill(TH1* hst, TTreeFormula* gate, std::vector<TTreeFormula*>& params);
 
   public:
-    //! Public creation function for 1d.
-    //! Looks like the normal 1d creation function, but the multiple parameters are
-    //! delimited with a semicolon.
-    static void New(const char* name, const char* title,
-		    Int_t nbinsx, Double_t xlow, Double_t xhigh,
-		    const char* params,  const char* gate = "");
+    // //! Public creation function for 1d.
+    // //! Looks like the normal 1d creation function, but the multiple parameters are
+    // //! delimited with a semicolon.
+    // friend void rb::hist::NewGamma(const char* name, const char* title,
+    // 				   Int_t nbinsx, Double_t xlow, Double_t xhigh,
+    // 				   const char* params,  const char* gate = "");
 
-    //! Public creation function for 2d.
-    //! Looks like the normal 2d creation function, but the multiple parameters are
-    //! delimited with a semicolon.  The standard prescription applies for dividing x and y axes: Y:X.
-    static void New(const char* name, const char* title,
-		    Int_t nbinsx, Double_t xlow, Double_t xhigh,
-		    Int_t nbinsy, Double_t ylow, Double_t yhigh,
-		    const char* params,  const char* gate = "");
+    // //! Public creation function for 2d.
+    // //! Looks like the normal 2d creation function, but the multiple parameters are
+    // //! delimited with a semicolon.  The standard prescription applies for dividing x and y axes: Y:X.
+    // friend void rb::hist::NewGamma(const char* name, const char* title,
+    // 				   Int_t nbinsx, Double_t xlow, Double_t xhigh,
+    // 				   Int_t nbinsy, Double_t ylow, Double_t yhigh,
+    // 				   const char* params,  const char* gate = "");
 
     //! CINT ClassDef macro.
     ClassDef(GammaHist, 0);
@@ -386,17 +389,19 @@ namespace rb
   {
   protected:
     //! Constructor
-    BitHist(const char* name, const char* title, const char* param, const char* gate);
+    BitHist(const char* name, const char* title, const char* param, const char* gate, TTree* tree, Set_t* set);
 
+  public:
     //! New() helper function
-    static Bool_t BitInitialize(const char* name, const char* title, const char* param, const char* gate);
+    static Bool_t BitInitialize(const char* name, const char* title, const char* param, const char* gate, TTree* tree, Set_t* set);
 
+  protected:
     //! Internal filling function
     virtual Int_t DoFill(TH1* hst, TTreeFormula* gate, std::vector<TTreeFormula*>& params); 
 
   public:
-    //! Creation function
-    static void New(const char* name, const char* title, const char* param, const char* gate);
+    // //! Creation function
+    // friend void rb::hist::NewBits<NBITS>(const char* name, const char* title, const char* param, const char* gate);
 
     ClassDef(BitHist, 0);
   };
@@ -406,13 +411,13 @@ namespace rb
 #ifndef __MAKECINT__ // Template implementations
 
 template <Int_t NBITS>
-rb::BitHist<NBITS>::BitHist(const char* name, const char* title, const char* param, const char* gate) :
-  Hist(name, title, param, gate, 1) { }
+rb::BitHist<NBITS>::BitHist(const char* name, const char* title, const char* param, const char* gate, TTree* tree, Set_t* set) :
+  Hist(name, title, param, gate, 1, tree, set) { }
 
-template <Int_t NBITS>
-inline void rb::BitHist<NBITS>::New(const char* name, const char* title, const char* param, const char* gate) {
-  BitInitialize(name, title, param, gate);
-}
+// template <Int_t NBITS>
+// inline void rb::BitHist<NBITS>::New(const char* name, const char* title, const char* param, const char* gate) {
+//   BitInitialize(name, title, param, gate);
+// }
 
 template <Int_t NBITS>
 Int_t rb::BitHist<NBITS>::DoFill(TH1* hst, TTreeFormula* gate, std::vector<TTreeFormula*>& params) {
@@ -430,9 +435,9 @@ Int_t rb::BitHist<NBITS>::DoFill(TH1* hst, TTreeFormula* gate, std::vector<TTree
 }
   
 template <Int_t NBITS>
-Bool_t rb::BitHist<NBITS>::BitInitialize(const char* name, const char* title, const char* param, const char* gate) {
+Bool_t rb::BitHist<NBITS>::BitInitialize(const char* name, const char* title, const char* param, const char* gate, TTree* tree, Set_t* set) {
   // Create rb::Hist instance
-  rb::BitHist<NBITS>* _this = new rb::BitHist<NBITS>(name, title, param, gate);
+  rb::BitHist<NBITS>* _this = new rb::BitHist<NBITS>(name, title, param, gate, tree, set);
   if(!_this->kConstructorSuccess) return kFALSE;
 
   // Set internal histogram

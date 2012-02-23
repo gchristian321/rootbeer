@@ -7,9 +7,12 @@
 #define DATA_HXX
 #include <iostream>
 #include <sstream>
+#include <TROOT.h>
+#include <TTree.h>
+#include <TError.h>
 #include <TClass.h>
 #include <TDataMember.h>
-#include "Hist.hxx"
+#include "utils/LockingPointer.hxx"
 
 namespace rb
 {
@@ -160,23 +163,27 @@ namespace rb
     class Mapper
     {
     private:
-      //! Base address of the class.
-      Long_t fBase;
+      //! Branch name used for this instance.
+      const std::string kBranchName;
+      //! Name of the class known to TClass.
+      const std::string kClassName;
+      //! Base memory address of the class.
+      const Long_t kBase;
     public:
-      //! Calls Message()
-      Mapper(const char* branchName, const char* className, Long_t baseAddress);
+      //! Set constants, call Message() is callMessage is false
+      Mapper(const char* branchname, const char* classname, Long_t base_address, Bool_t call_message);
       //! Recurses through a class structure, and for each basic data member, creates a new
       //! instance of rb::data::Basic.
-      void MapClass(const char* name, const char* classname);
+      void MapClass();
     private:
       //! Handle a basic element, create a new instance of MBasic data for each array element.
       void HandleBasic(TDataMember* d, const char* name);
       //! Adds a message to rb::Rint::fMessage indicating that a class's basic data has been mapped out.
-      void Message(const char* brName, const char* clName);
+      void Message();
     };
-    inline Mapper::Mapper(const char* branchName, const char* className, Long_t baseAddress) :
-      fBase(baseAddress) {
-      Message(branchName, className);
+    inline Mapper::Mapper(const char* branchname, const char* classname, Long_t base_address, Bool_t call_message) :
+      kBranchName(branchname), kClassName(classname), kBase(base_address) {
+      if(call_message) Message();
     }
 
     //! \brief Provides access to the user's data classes in compiled code.
@@ -205,13 +212,13 @@ namespace rb
       //! \note Volatile so that we have to use a LockingPointer to get access, ensuring thread safety.
       volatile T* fData;
 
-      /// Mutex to protect access to fData.
-      rb::Mutex fMutex;
-
       /// Does most of the work for the constructor.
       void Init(Bool_t makeVisible, const char* args = "");
 
     public:
+      /// Add as a branch in a TTree.
+      void CreateBranch(TTree& tree, Int_t bufsize = 32000, Int_t splitlevel = 99);
+
       /// \details Allocates memory to the user data class and sets internal variables.
       //!
       //! \param [in] name Name of the user data class. This is how you will refer to it in the
@@ -286,46 +293,51 @@ namespace rb
       CountedLockingPointer<T> operator-> ();
     };
   } // namespace data
+  class BufferSource;
 } // namespace rb
-
-
 
 
 #ifndef __MAKECINT__
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // Template Class                        //
-// rb::data::Basic<B> Implementation     //
+// rb::data::Basic<T> Implementation     //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-
+namespace rb {
+  namespace globals {
+    namespace {
+      extern rb::Mutex& Mutex();
+    }
+  }
+}
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // Constructor                //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-template <class B>
-rb::data::Basic<B>::Basic(const char* name, volatile void* addr, const TDataMember* d) :
-  MBasic(d), fAddress(reinterpret_cast<volatile B*>(addr)) {
+template <class T>
+rb::data::Basic<T>::Basic(const char* name, volatile void* addr, const TDataMember* d) :
+  MBasic(d), fAddress(reinterpret_cast<volatile T*>(addr)) {
   fgAll().insert(std::make_pair<std::string, MBasic*>(name, this));
 }
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // Destructor                 //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-template <class B>
-inline rb::data::Basic<B>::~Basic() {}
+template <class T>
+inline rb::data::Basic<T>::~Basic() {}
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-// Double_t rb::data::Basic<B>::GetValue()   //
+// Double_t rb::data::Basic<T>::GetValue()   //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-template <class B>
-inline Double_t rb::data::Basic<B>::GetValue() {
-  LockingPointer<B> p(fAddress, rb::Hist::GetMutex());
+template <class T>
+inline Double_t rb::data::Basic<T>::GetValue() {
+  LockingPointer<T> p(fAddress, rb::globals::Mutex());
   return *p;
 }
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-// void rb::data::Basic<B>::SetValue()       //
+// void rb::data::Basic<T>::SetValue()       //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-template <class B>
-inline void rb::data::Basic<B>::SetValue(Double_t newval) {
-  LockingPointer<B> p(fAddress, rb::Hist::GetMutex());
-  *p = B(newval);
+template <class T>
+inline void rb::data::Basic<T>::SetValue(Double_t newval) {
+  LockingPointer<T> p(fAddress, rb::globals::Mutex());
+  *p = T(newval);
 }
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
@@ -346,32 +358,46 @@ inline rb::data::Wrapper<T>::Wrapper(const char* name, Bool_t makeVisible, const
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 template <class T>
 inline rb::data::Wrapper<T>::~Wrapper() {
-  LockingPointer<T> pData(fData, fMutex);
+  LockingPointer<T> pData(fData, globals::Mutex());
   delete pData.Get();
   fData = 0;
 }
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-// AutoLockingPointer<T> rb::data::Wrapper<T>::GetPointer()       //
+// void rb::data::Wrapper<T>::CreateBranch()                      //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+template <class T>
+void rb::data::Wrapper<T>::CreateBranch(TTree& tree, Int_t bufsize, Int_t splitlevel) {
+  const char* clName = TClass::GetClass(typeid(T))->ClassName();
+  LockingPointer<T> pData (fData, globals::Mutex());
+  void* v = reinterpret_cast<void*>(pData.Get());
+  TBranch* branch = tree.Branch(kBranchName, clName, v, bufsize, splitlevel);
+  if(!branch)
+    Error("CreateBranch",
+	  "TTree::Branch returned a null pointer. BranchName: %s, Class Name: %s",
+	  kBranchName, clName);
+}
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// CountedLockingPointer<T> rb::data::Wrapper<T>::GetPointer()    //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 template <class T>
 inline CountedLockingPointer<T> rb::data::Wrapper<T>::GetPointer() {
-  CountedLockingPointer<T> out (fData, &fMutex);
+  CountedLockingPointer<T> out (fData, &globals::Mutex());
   return out;
 }
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-// AutoLockingPointer<T> rb::data::Wrapper<T>::operator()         //
+// CountedLockingPointer<T> rb::data::Wrapper<T>::operator()      //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 template <class T>
 inline CountedLockingPointer<T> rb::data::Wrapper<T>::operator* () {
-  CountedLockingPointer<T> out (fData, &fMutex);
+  CountedLockingPointer<T> out (fData, &globals::Mutex());
   return out;
 }
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-// AutoLockingPointer<T> rb::data::Wrapper<T>::operator-> ()      //
+// CountedLockingPointer<T> rb::data::Wrapper<T>::operator-> ()   //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 template <class T>
 inline CountedLockingPointer<T> rb::data::Wrapper<T>::operator->() {
-  CountedLockingPointer<T> out (fData, &fMutex);
+  CountedLockingPointer<T> out (fData, &globals::Mutex());
   return out;
 }
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
@@ -410,14 +436,9 @@ void rb::data::Wrapper<T>::Init(Bool_t makeVisible, const char* args) {
 
   // Map "visible" classes for CINT
   if (makeVisible) {
-    data::Mapper m (kBranchName, className.c_str(), reinterpret_cast<Long_t>(fData));
-    m.MapClass(kBranchName, className.c_str());
+    data::Mapper mapper (kBranchName, className.c_str(), reinterpret_cast<Long_t>(fData), true);
+    mapper.MapClass();
   }
-
-  // Add branch to rb::Hist tree
-  LockingPointer<T> pData (fData, fMutex);
-  void* v = reinterpret_cast<void*>(pData.Get());
-  rb::Hist::AddBranch(kBranchName, className.c_str(), &v);
 }
 #endif // #ifndef __MAKECINT__
 #endif // #ifndef DATA_HXX

@@ -1,7 +1,6 @@
 //! \file Data.cxx
 //! \brief Implements Data.hxx
 #include <algorithm>
-#include <set>
 #include "Data.hxx"
 #include "Rint.hxx"
 
@@ -36,16 +35,6 @@ void rb::data::MBasic::New(const char* name, volatile void* addr, TDataMember* d
   else;
 #undef CHECK_TYPE
 }
-//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-// void rb::data::MBasic::fgAll() [static]     //
-//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-// rb::data::MBasic::Map_t& rb::data::MBasic::fgAll() {
-//   /*
-//   static rb::data::MBasic::Map_t* m = new rb::data::MBasic::Map_t();
-//   return *m;
-//   */
-//   return fgAll();
-// }
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // MBasic* rb::data::MBasic::Find() [static]   //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
@@ -133,7 +122,7 @@ namespace { // Helper Functions & Class //
 // void rb::data::Mapper::HandleBasic()   //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 void rb::data::Mapper::HandleBasic(TDataMember* d, const char* name) {
-  Long_t addr = fBase + d->GetOffset();
+  Long_t addr = kBase + d->GetOffset();
   Int_t nDim = d->GetArrayDim();
   if(nDim == 0) { // not an array
     rb::data::MBasic::New(name, reinterpret_cast<void*>(addr), d);
@@ -150,31 +139,40 @@ void rb::data::Mapper::HandleBasic(TDataMember* d, const char* name) {
       addr += size*(i>0);
       rb::data::MBasic::New(ac.GetFullName(name, i).c_str(), reinterpret_cast<void*>(addr), d);
     }
-  }
+  }  
 }
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // void rb::data::Mapper::MapClass()      //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-void rb::data::Mapper::MapClass(const char* name, const char* classname) {
-  TClass* cl = TClass::GetClass(classname);
+namespace {
+  inline std::string append_name(const std::string& base, const char* toAppend) {
+  std::stringstream out;
+  out << base << "." << toAppend;
+  return out.str();
+  }
+}
+void rb::data::Mapper::MapClass() {
+  TClass* cl = TClass::GetClass(kClassName.c_str());
   if(!cl) return;
   TList* dataMembers = cl->GetListOfDataMembers();
   for(Int_t i=0; i< dataMembers->GetEntries(); ++i) {
     TDataMember* d = reinterpret_cast<TDataMember*>(dataMembers->At(i));
     if(!ShouldBeMapped(d)) continue;
 
-    std::stringstream ssName;
-    ssName << name << "." << d->GetName();
+    std::string newName = append_name(kBranchName, d->GetName());
     if(d->IsBasic())
-      HandleBasic(d, ssName.str().c_str());
-    else
-      MapClass(ssName.str().c_str(), d->GetTrueTypeName());
+      HandleBasic(d, newName.c_str());
+    else {
+      Long_t addr = kBase + d->GetOffset();
+      Mapper sub_mapper(newName.c_str(), d->GetTrueTypeName(), addr, false);
+      sub_mapper.MapClass();
+    }
   }
 }
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // void rb::data::Mapper::Message()       //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-void rb::data::Mapper::Message(const char* brName, const char* clName) {
+void rb::data::Mapper::Message() {
   std::stringstream sstr;
   static Bool_t printHeader(kTRUE);
   if(printHeader) {
@@ -183,7 +181,7 @@ void rb::data::Mapper::Message(const char* brName, const char* clName) {
 	 << "      ----\t\t\t----------\n";
     printHeader = kFALSE;
   }
-  sstr << "      " << brName << "\t\t\t" << clName << "\n";
+  sstr << "      " << kBranchName << "\t\t\t" << kClassName << "\n";
   rb::gApp()->AddMessage(sstr.str());
 }
 
@@ -228,3 +226,8 @@ std::string ArrayConverter::GetFullName(const char* baseName, UInt_t index)  {
     return "";
   }
 }
+
+
+// rb::Mutex& rb::globals::Mutex() {
+//   return rb::gApp()->fDataGlobals.fMutex;
+// }

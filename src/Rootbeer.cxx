@@ -3,6 +3,7 @@
 #include <iostream>
 #include "Buffer.hxx"
 #include "Rootbeer.hxx"
+#include "Hist.hxx"
 
 
 
@@ -98,4 +99,116 @@ void rb::data::SetValue(const char* name, Double_t newvalue) {
 void rb::data::PrintAll() {
   data::MBasic::Printer p;
   p.PrintAll();
+}
+
+
+
+
+
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// static rb::Hist::New (One-dimensional)                //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+void rb::hist::New(const char* name, const char* title,
+		   Int_t nbinsx, Double_t xlow, Double_t xhigh,
+		   const char* param, const char* gate) {
+  TTree* tree = rb::gApp()->fDataGlobals.GetLockedTree().Get();
+  Hist::Set_t* set = LockFreePointer<Hist::Set_t>(rb::gApp()->fDataGlobals.fHistograms).Get();  
+  rb::Hist::Initialize(name, title, param, gate, 1, tree, set, nbinsx, xlow, xhigh);
+}
+
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// static rb::hist::New (Two-dimensional)                //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+void rb::hist::New(const char* name, const char* title,
+		   Int_t nbinsx, Double_t xlow, Double_t xhigh,
+		   Int_t nbinsy, Double_t ylow, Double_t yhigh,
+		   const char* param, const char* gate) {
+  TTree* tree = rb::gApp()->fDataGlobals.GetLockedTree().Get();
+  Hist::Set_t* set = LockFreePointer<Hist::Set_t>(rb::gApp()->fDataGlobals.fHistograms).Get();  
+  rb::Hist::Initialize(name, title, param, gate, 2, tree, set, nbinsx, xlow, xhigh, nbinsy, ylow, yhigh);
+}
+
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// static rb::hist::New (Three-dimensional)              //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+void rb::hist::New(const char* name, const char* title,
+		   Int_t nbinsx, Double_t xlow, Double_t xhigh,
+		   Int_t nbinsy, Double_t ylow, Double_t yhigh,
+		   Int_t nbinsz, Double_t zlow, Double_t zhigh,
+		   const char* param, const char* gate) {
+  TTree* tree = rb::gApp()->fDataGlobals.GetLockedTree().Get();
+  Hist::Set_t* set = LockFreePointer<Hist::Set_t>(rb::gApp()->fDataGlobals.fHistograms).Get();  
+  rb::Hist::Initialize(name, title, param, gate, 3, tree, set, nbinsx, xlow, xhigh, nbinsy, ylow, yhigh, nbinsz, zlow, zhigh);
+}
+
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// rb::Summaryhist::New()                                //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+void rb::hist::NewSummary(const char* name, const char* title,
+			  Int_t nbins, Double_t low, Double_t high,
+			  const char* paramList,  const char* gate,
+			  const char* orientation) {
+  return;
+  // // Create rb::Hist instance
+  // rb::SummaryHist* _this = new rb::SummaryHist(name, title, paramList, gate, orientation);
+  // if(!_this->kConstructorSuccess) return;
+
+  // // Set internal histogram
+  // //! \note The histogram isn't accessable to any other threads until we add it to
+  // //! fgList, so it's safe to access the critical elements via a non-locking pointer.
+  // LockFreePointer<CriticalElements> unlocked_critical(_this->fCritical);
+
+  // Bool_t successfulHistCreation = kTRUE;
+  // TH1::AddDirectory(kFALSE);
+
+  // Int_t npar = unlocked_critical->fParams.size();
+
+  // if(!_this->kOrient) { // vertical
+  //   unlocked_critical->fHistogram =
+  //     new TH2D(_this->fName, _this->fTitle, npar, 0, npar, nbins, low, high);
+  //   unlocked_critical->fHistogram->GetXaxis()->SetTitle(paramList);
+  //   unlocked_critical->fHistogram->GetYaxis()->SetTitle("");
+  // }
+  // else { // horizontal
+  //   unlocked_critical->fHistogram =
+  //     new TH2D(_this->fName, _this->fTitle, nbins, low, high, npar, 0, npar);
+  //   unlocked_critical->fHistogram->GetXaxis()->SetTitle("");
+  //   unlocked_critical->fHistogram->GetYaxis()->SetTitle(paramList);
+  // }
+  // TH1::AddDirectory(kTRUE);
+
+  // // Add to collections
+  // LockingPointer<List_t> hlist(fgList(), fgMutex());
+  // if(successfulHistCreation) {
+  //   hlist->push_back(_this);
+
+  //   if(gDirectory) {
+  //     _this->fDirectory = gDirectory;
+  //     _this->fDirectory->Append(_this, kTRUE);
+  //   }
+  // }
+}
+
+
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// static rb::hist::NewGamma (One-dimensional)           //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+void rb::hist::NewGamma(const char* name, const char* title,
+			Int_t nbinsx, Double_t xlow, Double_t xhigh,
+			const char* param, const char* gate) {
+  TTree* tree = rb::gApp()->fDataGlobals.GetLockedTree().Get();
+  Hist::Set_t* set = LockFreePointer<Hist::Set_t>(rb::gApp()->fDataGlobals.fHistograms).Get();
+  rb::GammaHist::GInitialize(name, title, param, gate, 1, tree, /*set,*/ nbinsx, xlow, xhigh);
+}
+
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// static rb::hist::NewGamma (Two-dimensional)           //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+void rb::hist::NewGamma(const char* name, const char* title,
+			Int_t nbinsx, Double_t xlow, Double_t xhigh,
+			Int_t nbinsy, Double_t ylow, Double_t yhigh,
+			const char* param, const char* gate) {
+  TTree* tree = rb::gApp()->fDataGlobals.GetLockedTree().Get();
+  Hist::Set_t* set = LockFreePointer<Hist::Set_t>(rb::gApp()->fDataGlobals.fHistograms).Get();
+  rb::GammaHist::GInitialize(name, title, param, gate, 2, tree, /*set,*/ nbinsx, xlow, xhigh, nbinsy, ylow, yhigh);
 }

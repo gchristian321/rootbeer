@@ -22,5 +22,4 @@
 #pragma link C++ class rb::BitHist<32>+;
 #pragma link C++ class rb::BitHist<64>+;
 
-
 #endif // #ifdef __CINT__

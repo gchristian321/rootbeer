@@ -1,11 +1,10 @@
 //! \file Buffer.hxx
 //! \brief Defines classes relevent to obtaining and unpacking data buffers.
-#ifndef BUFFER_HXX__
-#define BUFFER_HXX__
+#ifndef BUFFER_HXX
+#define BUFFER_HXX
 #include "Rint.hxx"
 #include "utils/Thread.hxx"
 
-//#include "vme/vme.hxx"
 namespace rb
 {
   //! \brief ABC for defining how to obtain and unpack data buffers.

@@ -152,7 +152,7 @@ void rb::canvas::ClearCurrent() {
     for(Int_t i = 0; i < gPad->GetListOfPrimitives()->GetEntries(); ++i) {
       TH1* hst = dynamic_cast<TH1*> (gPad->GetListOfPrimitives()->At(i));
       if(hst) {
-	LockingPointer<TH1D> hstd (static_cast<TH1D*>(hst), rb::Hist::GetMutex());
+	LockFreePointer<TH1D> hstd (static_cast<TH1D*>(hst));
 	for(UInt_t p = 0; p < hstd->fN; ++p) hstd->fArray[p] = 0.;
       }
       gPad->Modified();

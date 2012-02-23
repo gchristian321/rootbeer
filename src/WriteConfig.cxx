@@ -8,6 +8,7 @@
 #include <TCutG.h>
 #include "Rootbeer.hxx"
 #include "Data.hxx"
+#include "Hist.hxx"
 using namespace std;
 
 

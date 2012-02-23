@@ -27,7 +27,7 @@
 // Standard includes, do not remove //
 #include "Rootbeer.hxx"
 #include "Buffer.hxx"
-
+#include "Hist.hxx"
 
 
 // Definition of a BufferSource class to handle MIDAS data (at TRIUMF). //
@@ -153,18 +153,11 @@ Bool_t rb::Midas::ReadBufferOnline() {
 #endif
 }
 
-
-void add(Bgo& to, Bgo& from) {
-  to.q[0] += from.q[1];
-  //  printf("add\n");
-}
-
-//#include <TRandom3.h>
 Bool_t rb::Midas::UnpackBuffer() {
 #ifdef MIDAS_BUFFERS
   // (DRAGON test setup)
   Short_t eventId = fBuffer.GetEventId();
-  vme::Module::reset_all();
+  fBgo->reset();
 
   //  CountedLockingPointer<Bgo> pBgo = fBgo.GetPointer();
   //  pBgo->test();
@@ -172,10 +165,9 @@ Bool_t rb::Midas::UnpackBuffer() {
   switch(eventId) {
   case 1: // event
     {
-    vme::Module::unpack_all(fBuffer);
-       fBgo->q[0] += fBgo2->q[0]; //1000;
-    
-    //    pBgo->q[0] =  gRandom->Gaus(1000,50);
+      fBgo->unpack(fBuffer);
+      // fBgo->q[0] = 1000; ///fBgo2->q[0]; //1000;
+	   //             printf("q[0]: %i\n", fBgo->q[0]);
     break;
     }
   case 2: // scaler
