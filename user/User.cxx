@@ -28,6 +28,7 @@
 #include "Rootbeer.hxx"
 #include "Buffer.hxx"
 #include "Event.hxx"
+#include "Data.hxx"
 #include "Hist.hxx"
 
 
@@ -63,6 +64,7 @@ namespace rb
   };
 }
 
+#include "vme/vme.hxx"
 enum {
   DRAGON_EVENT = 1,
   DRAGON_SCALER = 2
@@ -70,12 +72,10 @@ enum {
 class DragonEvent : public rb::Event
 {
 private:
-  std::auto_ptr<Bgo> fBgo;
+  rb::data::Wrapper<Bgo> fBgo;
 public:
-  DragonEvent() : fBgo(new Bgo()) {
-    void * v = reinterpret_cast<void*>(fBgo.get());
-    GetTree()->Branch("BGO","Bgo",&v);
-}
+  DragonEvent() : fBgo("bgo", this, true, "") {
+  }
   ~DragonEvent() {}
 private:
   TMidasEvent* Cast(void* addr) {return reinterpret_cast<TMidasEvent*>(addr);}
@@ -178,7 +178,7 @@ Bool_t rb::Midas::UnpackBuffer() {
 #ifdef MIDAS_BUFFERS
   // (DRAGON test setup)
   Short_t eventId = fBuffer.GetEventId();
-  fBgo->reset();
+  //  fBgo->reset();
 
   //  CountedLockingPointer<Bgo> pBgo = fBgo.GetPointer();
   //  pBgo->test();

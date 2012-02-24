@@ -17,8 +17,8 @@
 // Constructor                                           //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 rb::BufferSource::BufferSource() :
-#define RB_REFERENCE_INIT
-#include "rb_import_data.h"
+// #define RB_REFERENCE_INIT
+// #include "rb_import_data.h"
   kDummy(0) {}
 
 

@@ -20,8 +20,8 @@ namespace rb
 
   protected:
     //! References to the rb::data::Wrapper objects in rb::Rint::Globals.
-#define RB_REFERENCE_DECLARE
-#include "rb_import_data.h"
+// #define RB_REFERENCE_DECLARE
+// #include "rb_import_data.h"
 
     //! Initializes refeerences to rb::data::Wrapper objects in rb::Rint (gApplication).
     BufferSource();

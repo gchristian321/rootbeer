@@ -1,9 +1,8 @@
 //! \file Data.cxx
 //! \brief Implements Data.hxx
 #include <algorithm>
-#include "Data.hxx"
 #include "Rint.hxx"
-
+#include "Data.hxx"
 
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
@@ -226,8 +225,3 @@ std::string ArrayConverter::GetFullName(const char* baseName, UInt_t index)  {
     return "";
   }
 }
-
-
-// rb::Mutex& rb::globals::Mutex() {
-//   return rb::gApp()->fDataGlobals.fMutex;
-// }

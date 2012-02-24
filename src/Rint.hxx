@@ -4,7 +4,6 @@
 #include <sstream>
 #include <TRint.h>
 #include "Event.hxx"
-#include "Globals.hxx"
 #include "rb_import_data.h"
 
 
@@ -22,16 +21,13 @@ namespace rb
   private:
     //! Messages to be printed at program startup
     std::stringstream fMessage;
-
     //! Map of all event processors, keyed by an integer code.
     EventMap_t fEvents;
-    
   public:
     //! Find all event processors with a specific code.
     //! \param [in] code Event code you're searching for
     //! \returns a vector containing a pointer to each event with code <i>code</i>.
     Events_t GetEvents(Int_t code);
-
     /// \brief Constructor
     //! \details Just call the standard \c TRint constructor, plus set the prompt to be
     //! <tt>rootbeer [\%d]</tt>.
@@ -39,24 +35,19 @@ namespace rb
     //! what's present.
     Rint(const char* appClassName, int* argc, char** argv,
 	 void* options = 0, int numOptions = 0, Bool_t noLogo = kFALSE);
-
     /// \brief Terminate the application.
     //! \details Stops any running threads and frees any memory that was allocated during
     //! the CINT session.
     void Terminate(Int_t status = 0);
-
     /// \brief Display the \c ROOTBEER logo.
     //! \details ASCII art of naturally clumsy man stumbling whilst carrying two full mugs of root beer.
     //! \param [in] lite 'false' prints the full logo, 'true' just prints a welcome message.
     virtual void PrintLogo(Bool_t lite);
-
     /// Add something to print at startup.
     void AddMessage(const std::string& str);
-
     /// \brief Destructor
     //! \details Calls Terminate() with error code.
     ~Rint();
-
   private:
     /// Adds an instance of an event processor to fEvents.
     //! \tparam T The type of the instance you want to register.
@@ -64,32 +55,19 @@ namespace rb
     void RegisterEvent(Int_t code) {
       fEvents.insert(std::make_pair<Int_t, rb::Event*>(code, rb::Event::Instance<T>()));
     }
-
-    /// \brief Registers all event processort in the program.
+    /// \brief Registers all event processors in the program.
     //! \details This needs to be implemented by users to account for
     //! the different event processors they want to use in the program.
     //! See rb::Event documentation for more information.
     void RegisterEvents();
-
   public:
-    //! Encapsulates the global rb::data::Wrapper <T> objects.
-    globals::Data fDataGlobals;
-
     ClassDef(rb::Rint, 0);
   };
 
   namespace
   { // Cast of ROOT's global gApplication pointer into an rb::Rint
     inline Rint* gApp() { return static_cast<rb::Rint*>(gApplication); }
-  }
-  namespace globals
-  {
-    namespace
-    {
-      inline Data* GetData() { return &(gApp()->fDataGlobals); }
-
-      inline rb::Mutex& Mutex() { return static_cast<rb::Rint*>(gApplication)->fDataGlobals.GetMutex(); }
-    }
+    //    inline Rint* gApplication() { return static_cast<rb::Rint*>(::gApplication); }
   }
 } // namespace rb
 inline rb::Rint::~Rint() {

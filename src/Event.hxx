@@ -19,20 +19,6 @@ namespace event
   //! Helper classes related to histograms
   namespace histogram
   {
-    /// \brief Functor class for filling histograms.
-    //! \details Filling all histograms through the private operator() and then
-    //! friending Event ensures that FillAll() can only be called from Event but without
-    //! making fSet accessable except to Event::Histograms.
-    class Manager;
-    class Filler
-    {
-    private:
-      //! Call Fill() on every entry in <i>histograms</i>.
-      void operator() (Manager& manager);
-    public:
-      //! Give access to operator()
-      friend class rb::Event;
-    };
     /// \brief Wraps a container of all histograms registered to this event type.
     //! \details Also takes care of functions for Adding and Deleting histograms.
     class Manager
@@ -42,17 +28,18 @@ namespace event
       volatile HistContainer_t fSet;
       //! Reference to Event::fMutex
       rb::Mutex& fMutex;
-    public:
+      //! Fill all histograms in fSet
+      void FillAll();
       //! Set fMutex
       Manager(rb::Mutex& fMutex);
       //! Deletes all entries in fSet
       ~Manager();
+    public:
       //! Add a histogram to fSet
       void Add(rb::Hist* hist);
       //! Delete a histogram and remove from fSet
       void Delete(rb::Hist* hist);
-      //! Give access to fSet
-      friend class Filler;
+      friend class rb::Event;
     };
   }
 }
@@ -69,8 +56,6 @@ namespace rb
     //! TTree associated with this event type.
     volatile std::auto_ptr<TTree> fTree;
   public:
-    //! For filling within Hists
-    event::histogram::Filler FillAll;
     //! For histogram container management
     event::histogram::Manager Hists;
   protected:
@@ -83,6 +68,7 @@ namespace rb
     //! \brief Get a locked pointer to fTree
     CountedLockingPointer<TTree> GetTree();
 #endif
+
     //! \brief Public interface for processing an event.
     //! \details The real work for actually doing something with the event data
     //! is done in the virtual member DoProcess(). This function just takes care
@@ -121,8 +107,8 @@ namespace {
     return hist->Fill();
   } } fill_hist;
 }
-inline void event::histogram::Filler::operator() (Manager& manager) {
-  LockFreePointer<HistContainer_t> pSet(manager.fSet);
+inline void event::histogram::Manager::FillAll() {
+  LockFreePointer<HistContainer_t> pSet(fSet);
   std::for_each(pSet->begin(), pSet->end(), fill_hist);
 }
 inline event::histogram::Manager::Manager(rb::Mutex& mutex) : fMutex(mutex) {
@@ -158,13 +144,13 @@ inline void rb::Event::Destruct(Event*& event) {
 }
 inline CountedLockingPointer<TTree> rb::Event::GetTree() {
   volatile TTree* tree = LockFreePointer<std::auto_ptr<TTree> >(fTree)->get();
-  CountedLockingPointer<TTree> pTree(tree, &fMutex);
-  return pTree;
+  CountedLockingPointer<TTree> p_tree(tree, &fMutex);
+  return p_tree;
 }
 inline void rb::Event::Process(void* event_address, Int_t nchar) {
   ScopedLock<rb::Mutex> lock(fMutex);
   Bool_t success = DoProcess(event_address, nchar);
-  if(success) FillAll(Hists);
+  if(success) Hists.FillAll();
   else HandleBadEvent();
 }
 template <typename Derived> rb::Event*& rb::Event::Instance() {

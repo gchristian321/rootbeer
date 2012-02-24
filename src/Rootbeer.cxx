@@ -1,8 +1,9 @@
 //! \file Rootbeer.cxx 
 //! \brief Implements the user interface functions.
 #include <iostream>
-#include "Buffer.hxx"
 #include "Rootbeer.hxx"
+#include "Buffer.hxx"
+#include "Data.hxx"
 #include "Hist.hxx"
 
 
@@ -111,8 +112,7 @@ void rb::data::PrintAll() {
 void rb::hist::New(const char* name, const char* title,
 		   Int_t nbinsx, Double_t xlow, Double_t xhigh,
 		   const char* param, const char* gate, Int_t event_code) {
-  // TTree* tree = rb::gApp()->fDataGlobals.GetLockedTree().Get();
-  Hist::Set_t* set = LockFreePointer<Hist::Set_t>(rb::gApp()->fDataGlobals.fHistograms).Get();
+  Hist::Set_t set ;
   try {
     Events_t events = gApp()->GetEvents(event_code);
     if(events.size() == 0) {
@@ -127,7 +127,7 @@ void rb::hist::New(const char* name, const char* title,
     rb::Hist * hist = 0;
     {
       CountedLockingPointer<TTree> pTree = events.at(0)->GetTree();
-      hist = new rb::Hist(name, title, param, gate, 1, pTree.Get(), set, nbinsx, xlow, xhigh);
+      hist = new rb::Hist(name, title, param, gate, 1, pTree.Get(), &set, nbinsx, xlow, xhigh);
     }
     events.at(0)->Hists.Add(hist);
   } catch (std::exception& e) {
@@ -141,13 +141,14 @@ void rb::hist::New(const char* name, const char* title,
 		   Int_t nbinsx, Double_t xlow, Double_t xhigh,
 		   Int_t nbinsy, Double_t ylow, Double_t yhigh,
 		   const char* param, const char* gate) {
-  TTree* tree = rb::gApp()->fDataGlobals.GetLockedTree().Get();
-  Hist::Set_t* set = LockFreePointer<Hist::Set_t>(rb::gApp()->fDataGlobals.fHistograms).Get();  
+  /*
+  Hist::Set_t set ;
   try {
-    rb::Hist * hist = new rb::Hist(name, title, param, gate, 2, tree, set, nbinsx, xlow, xhigh, nbinsy, ylow, yhigh);
+    rb::Hist * hist = new rb::Hist(name, title, param, gate, 2, tree, &set, nbinsx, xlow, xhigh, nbinsy, ylow, yhigh);
   } catch (std::exception& e) {
     Error("rb::hist::New", "%s", e.what());
   }
+  */
 }
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
@@ -158,13 +159,14 @@ void rb::hist::New(const char* name, const char* title,
 		   Int_t nbinsy, Double_t ylow, Double_t yhigh,
 		   Int_t nbinsz, Double_t zlow, Double_t zhigh,
 		   const char* param, const char* gate) {
-  TTree* tree = rb::gApp()->fDataGlobals.GetLockedTree().Get();
-  Hist::Set_t* set = LockFreePointer<Hist::Set_t>(rb::gApp()->fDataGlobals.fHistograms).Get();  
+  /*
+  Hist::Set_t set ;
   try {
-    rb::Hist * hist = new rb::Hist(name, title, param, gate, 3, tree, set, nbinsx, xlow, xhigh, nbinsy, ylow, yhigh, nbinsz, zlow, zhigh);
+    rb::Hist * hist = new rb::Hist(name, title, param, gate, 3, tree, &set, nbinsx, xlow, xhigh, nbinsy, ylow, yhigh, nbinsz, zlow, zhigh);
   } catch (std::exception& e) {
     Error("rb::hist::New", "%s", e.what());
   }
+  */
 }
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//

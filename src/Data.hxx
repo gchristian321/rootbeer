@@ -12,8 +12,10 @@
 #include <TError.h>
 #include <TClass.h>
 #include <TDataMember.h>
+#include "Event.hxx"
 #include "utils/LockingPointer.hxx"
 
+#define RB_DATA_ON_STACK
 namespace rb
 {
   namespace data
@@ -94,7 +96,7 @@ namespace rb
     //! There are two options for exclusion comments: the first is <tt>//!</tt>, which will both exclude the field
     //! from being mapped by this class, and also exclude it from having a TStreamer created in ROOT (or in other words,
     //! it won't show up in any TTree branches or anywhere if the class is written to a ROOT file). Basically, the <tt>//!</tt>
-    //! works just as in normal ROOT.  The comment block that is specifit to ROOTBEER it <tt>//#</tt>.  Use of this comment
+    //! works just as in normal ROOT.  The comment block that is specific to ROOTBEER it <tt>//#</tt>.  Use of this comment
     //! will prevent the field in question (and any of its sbsequent members) from being mapped by rb::data::Basic <T>, but
     //! it will still show up in TTrees, etc. The comments <tt>//!</tt> and <tt>//#</tt> can also be mixed, with the <tt>!</tt>
     //! always coming first; this will allow fields to be accessable in CINT but not viewable in TTrees, etc.
@@ -207,18 +209,18 @@ namespace rb
       //! and set kBranchName to <tt>fC</tt>, then TTree branch names would look like
       //! <tt>fC.a</tt>, etc.
       const char* kBranchName;
-
+#ifdef RB_DATA_ON_STACK
+      /// Instance of the user data class.
+      T fData;
+#else
       /// Pointer to the user data class.
-      //! \note Volatile so that we have to use a LockingPointer to get access, ensuring thread safety.
-      volatile T* fData;
-
+      std::auto_ptr<T> fData;
+#endif
       /// Does most of the work for the constructor.
-      void Init(Bool_t makeVisible, const char* args = "");
-
-    public:
+      void Init(Event* event, Bool_t makeVisible, const char* args = "");
       /// Add as a branch in a TTree.
-      void CreateBranch(TTree& tree, Int_t bufsize = 32000, Int_t splitlevel = 99);
-
+      void CreateBranch(TTree* const tree, Int_t bufsize = 32000, Int_t splitlevel = 99);
+    public:
       /// \details Allocates memory to the user data class and sets internal variables.
       //!
       //! \param [in] name Name of the user data class. This is how you will refer to it in the
@@ -227,11 +229,16 @@ namespace rb
       //! read data from a TTree, e.g. <tt>t->Draw("name.whatever")</tt> required over just
       //! <tt>t->Draw("whatever");</tt>
       //!
+      //! \param [in] event Pointer to an rb::Event instance. If this is non-null, then
+      //! \c this intance will be added as a branch in the Tree within the event. A null
+      //! pointer is ignored and this instance won't be added as a branch in any trees.
+      //!
       //! \param [in] makeVisible Specifies whether or not you want to make the class visible
       //! in CINT.  If this is selected true, then you will be able to change or read the values of
       //! basic data types in your user data class using SetData() and GetData().  If selected false,
       //! you won't have direct access to the data (in CINT) and will only be able to view it in histograms.
-      //! Generally, one wants to specify true for variables and false for parameters.
+      //! Generally, one wants to specify true for variables and false for parameters (or add comment
+      //! fields as explained in the rb::data::Basic <T> documentation.
       //!
       //! \param [in] args Optional arguments to pass to the user data class's constructor. They should
       //! be in the literal format that would appear if writing the constructor directly in code. For
@@ -248,52 +255,24 @@ namespace rb
       //! \endcode
       //! If this argument is left as the default (empty string), the user class is constructed
       //! without any arguments, i.e. <tt>new MyClass()</tt>.
-      //!
-      //! \note Typically in rootbeer, this constructor is not called explicitly. Instead, it is
-      //! automatically invoked at the appropriate place once the user calls a corresponding
-      //! instance of the RB_IMPORT_DATA macro.
-      Wrapper(const char* name, Bool_t makeVisible = kFALSE, const char* args = "");
+      Wrapper(const char* name, Event* event = 0, Bool_t makeVisible = true, const char* args = "");
 
-      //! \details Frees memory allocated to the user class.
+      /// \details Frees memory allocated to the user class.
       virtual ~Wrapper();
 
-      /// \brief Return a scoped and locked pointer to the user class.
-      //! \details Returns a CountedLockingPointer wrapping the user class.
-      //! This allows thread safe access to the data in the scope that it's
-      //! needed while also ensuring that dynamic resources are freed properly.
-      //! To use (e.g. in your implementaion of rb::BufferSource::UnpackBuffer()):
-      //! \code
-      //! CountedLockingPointer<MyClass> p = gMyClass.GetPointer();
-      //! p->DoSomething();
-      //! \endcode
-      //! \warning If you follow the example above (e.g. create a specific
-      //! instance of CountedLockingPointer<MyClass>, the mutex will not be
-      //! released until this pointer goes out of scope.  If you are compiling
-      //! without DEBUG defined, this will result in a deadlock condition (basically
-      //! the program will freeze).  Compiling with DEBUG defined will cause the program
-      //! to exit with an error message.
-      CountedLockingPointer<T> GetPointer();
+      /// Pointer access to the internal data.
+      //! \returns Pointer to fData.
+      T* Get();
 
-      /// \brief Return a scoped and locked pointer to the user class.
-      //! \details Same function as GetPointer(), but allowing for more pointer-like
-      //! behavior (it's almost the same as normal dereferencing, but the \c * is needed
-      //! twice). Example:
-      //! \code
-      //! (**gMyClass).DoSomething();
-      //! // or //
-      //! do_something (**gMyClass);
-      //! \endcode
-      CountedLockingPointer<T> operator* ();
+      /// Indirection operator
+      //! \returns Pointer to fData.
+      T* operator-> ();
 
-      /// \brief Return a scoped and locked pointer to the user class.
-      //! \details Alows a rb::data::Wrapper<T> reference to be used like a pointer, e.g.
-      //! \code
-      //! gMyClass->DoSomething();
-      //! \endcode
-      CountedLockingPointer<T> operator-> ();
+      /// Dereference operator
+      //! \returns reference to fData.
+      T& operator* ();
     };
   } // namespace data
-  class BufferSource;
 } // namespace rb
 
 
@@ -302,13 +281,7 @@ namespace rb
 // Template Class                        //
 // rb::data::Basic<T> Implementation     //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-namespace rb {
-  namespace globals {
-    namespace {
-      extern rb::Mutex& Mutex();
-    }
-  }
-}
+
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // Constructor                //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
@@ -321,14 +294,15 @@ rb::data::Basic<T>::Basic(const char* name, volatile void* addr, const TDataMemb
 // Destructor                 //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 template <class T>
-inline rb::data::Basic<T>::~Basic() {}
-
+inline rb::data::Basic<T>::~Basic() {
+}
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // Double_t rb::data::Basic<T>::GetValue()   //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 template <class T>
 inline Double_t rb::data::Basic<T>::GetValue() {
-  LockingPointer<T> p(fAddress, rb::globals::Mutex());
+  rb::Mutex mutex;
+  LockingPointer<T> p(fAddress, mutex);
   return *p;
 }
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
@@ -336,7 +310,8 @@ inline Double_t rb::data::Basic<T>::GetValue() {
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 template <class T>
 inline void rb::data::Basic<T>::SetValue(Double_t newval) {
-  LockingPointer<T> p(fAddress, rb::globals::Mutex());
+  rb::Mutex mutex;
+  LockingPointer<T> p(fAddress, mutex);
   *p = T(newval);
 }
 
@@ -344,67 +319,104 @@ inline void rb::data::Basic<T>::SetValue(Double_t newval) {
 // Template Class                        //
 // rb::data::Wrapper<T> Implementation   //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+namespace
+{
+#ifndef RB_DATA_ON_STACK
+  template<class T> T* Construct(const char* args) {
+    // Allocate new instance of T
+    T* data = 0;
+    if(!strcmp(args, "")) data = new T(); // default constructor
+    else { // non-default constructor, needs gROOT->ProcessLineFast()
+      std::stringstream cmd;
+      cmd << "new " << TClass::GetClass(typeid(T))->GetName() << "(" << args  << ");";
+      data = reinterpret_cast<T*> (gROOT->ProcessLineFast(cmd.str().c_str()));
+    }
+    if (!data) {
+      Error("Data::Init",
+	    "Couldn't create a new instance of the template class "
+	    "(typeid.name(): %s, constructor arguments: %s).",
+	    typeid(T).name(), args);
+      data = 0;
+    }
+    return data;
+  }
+#endif
+}
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // Constructor                //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 template <class T>
-inline rb::data::Wrapper<T>::Wrapper(const char* name, Bool_t makeVisible, const char* args) :
-  kBranchName(name) {
-  Init(makeVisible, args);
+inline rb::data::Wrapper<T>::Wrapper(const char* name, Event* event, Bool_t makeVisible, const char* args) :
+  kBranchName(name),
+#ifdef RB_DATA_ON_STACK
+  fData()
+#else
+  fData(Construct<T>(args))
+#endif
+{
+  Init(event, makeVisible, args);
 }
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // Destructor                 //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 template <class T>
 inline rb::data::Wrapper<T>::~Wrapper() {
-  LockingPointer<T> pData(fData, globals::Mutex());
-  delete pData.Get();
-  fData = 0;
 }
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // void rb::data::Wrapper<T>::CreateBranch()                      //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 template <class T>
-void rb::data::Wrapper<T>::CreateBranch(TTree& tree, Int_t bufsize, Int_t splitlevel) {
-  const char* clName = TClass::GetClass(typeid(T))->ClassName();
-  LockingPointer<T> pData (fData, globals::Mutex());
-  void* v = reinterpret_cast<void*>(pData.Get());
-  TBranch* branch = tree.Branch(kBranchName, clName, v, bufsize, splitlevel);
-  if(!branch)
-    Error("CreateBranch",
-	  "TTree::Branch returned a null pointer. BranchName: %s, Class Name: %s",
-	  kBranchName, clName);
+void rb::data::Wrapper<T>::CreateBranch(TTree* const tree, Int_t bufsize, Int_t splitlevel) {
+  const char* const clName = TClass::GetClass(typeid(T))->GetName();
+#ifdef RB_DATA_ON_STACK
+  void* v = reinterpret_cast<void*>(&fData);
+#else
+  void* v = reinterpret_cast<void*>(fData.get());
+#endif
+  if(!v) {
+    Error("CreateBranch", "NULL pointer to data");
+    return;
+  }
+  TBranch* branch = tree->Branch(kBranchName, clName, &v, bufsize, splitlevel);
+  if(!branch) Error("CreateBranch",
+		    "TTree::Branch returned a null pointer. BranchName: %s, Class Name: %s",
+		    kBranchName, clName);
 }
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-// CountedLockingPointer<T> rb::data::Wrapper<T>::GetPointer()    //
+// T* rb::data::Wrapper<T>::Get()                                 //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 template <class T>
-inline CountedLockingPointer<T> rb::data::Wrapper<T>::GetPointer() {
-  CountedLockingPointer<T> out (fData, &globals::Mutex());
-  return out;
+inline T* rb::data::Wrapper<T>::Get() {
+#ifdef RB_DATA_ON_STACK
+  return &fData;
+#else
+  return fData.get();
+#endif
 }
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-// CountedLockingPointer<T> rb::data::Wrapper<T>::operator()      //
+// T* rb::data::Wrapper<T>::operator-> ()                         //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 template <class T>
-inline CountedLockingPointer<T> rb::data::Wrapper<T>::operator* () {
-  CountedLockingPointer<T> out (fData, &globals::Mutex());
-  return out;
+inline T* rb::data::Wrapper<T>::operator->() {
+  return Get();
 }
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-// CountedLockingPointer<T> rb::data::Wrapper<T>::operator-> ()   //
+// T* rb::data::Wrapper<T>::operator() ()                         //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 template <class T>
-inline CountedLockingPointer<T> rb::data::Wrapper<T>::operator->() {
-  CountedLockingPointer<T> out (fData, &globals::Mutex());
-  return out;
+inline T& rb::data::Wrapper<T>::operator* () {
+#ifdef RB_DATA_ON_STACK
+  return fData;
+#else
+  return *fData;
+#endif
 }
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // void rb::data::Wrapper<T>::Init()                               //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 template <class T>
-void rb::data::Wrapper<T>::Init(Bool_t makeVisible, const char* args) {
+void rb::data::Wrapper<T>::Init(Event* event, Bool_t makeVisible, const char* args) {
   // Figure out class name
   TClass* cl = TClass::GetClass(typeid(T));
   if(!cl) {
@@ -415,30 +427,17 @@ void rb::data::Wrapper<T>::Init(Bool_t makeVisible, const char* args) {
 	  typeid(T).name(), args);
     return;
   }
-  std::string className = cl->GetName();
-
-  // Allocate new instance of T
-  T* data = 0;
-  if(!strcmp(args, "")) data = new T(); // default constructor
-  else { // non-default constructor, needs gROOT->ProcessLineFast()
-    std::stringstream cmd;
-    cmd << "new " << className << "(" << args  << ");";
-    data = reinterpret_cast<T*> (gROOT->ProcessLineFast(cmd.str().c_str()));
-  }
-  if (!data) {
-    Error("Data::Init",
-	  "Couldn't create a new instance of the template class "
-	  "(typeid.name(): %s, constructor arguments: %s).",
-	  typeid(T).name(), args);
-    return;
-  }
-  fData = data;
-
   // Map "visible" classes for CINT
   if (makeVisible) {
-    data::Mapper mapper (kBranchName, className.c_str(), reinterpret_cast<Long_t>(fData), true);
+#ifdef RB_DATA_ON_STACK
+    data::Mapper mapper (kBranchName, cl->GetName(), reinterpret_cast<Long_t>(&fData), true);
+#else
+    data::Mapper mapper (kBranchName, cl->GetName(), reinterpret_cast<Long_t>(fData.get()), true);
+#endif
     mapper.MapClass();
   }
+  // Add as a branch in the event's internal tree.
+  if(event) CreateBranch(event->GetTree().Get());
 }
 #endif // #ifndef __MAKECINT__
 #endif // #ifndef DATA_HXX
