@@ -27,6 +27,7 @@
 // Standard includes, do not remove //
 #include "Rootbeer.hxx"
 #include "Buffer.hxx"
+#include "Event.hxx"
 #include "Hist.hxx"
 
 
@@ -61,6 +62,26 @@ namespace rb
     static void RunResume(int transition, int run_number, int trans_time);
   };
 }
+
+enum {
+  DRAGON_EVENT = 1,
+  DRAGON_SCALER = 2
+};
+class DragonEvent : public rb::Event
+{
+private:
+  std::auto_ptr<Bgo> fBgo;
+public:
+  DragonEvent() : fBgo(new Bgo()) {
+    void * v = reinterpret_cast<void*>(fBgo.get());
+    GetTree()->Branch("BGO","Bgo",&v);
+}
+  ~DragonEvent() {}
+private:
+  TMidasEvent* Cast(void* addr) {return reinterpret_cast<TMidasEvent*>(addr);}
+  Bool_t DoProcess(void* event_address, Int_t nchar);
+  void HandleBadEvent() {Error("DragonEvent", "Something went wrong!!");}
+};
 
 rb::BufferSource* rb::BufferSource::New() {
   return new rb::Midas();
@@ -163,20 +184,22 @@ Bool_t rb::Midas::UnpackBuffer() {
   //  pBgo->test();
 
   switch(eventId) {
-  case 1: // event
+  case DRAGON_EVENT: // event
     {
-      fBgo->unpack(fBuffer);
+      rb::Event* event = rb::Event::Instance<DragonEvent>();
+      event->Process(&fBuffer, 0);
+      //     fBgo->unpack(fBuffer);
       // fBgo->q[0] = 1000; ///fBgo2->q[0]; //1000;
 	   //             printf("q[0]: %i\n", fBgo->q[0]);
     break;
     }
-  case 2: // scaler
+  case DRAGON_SCALER: // scaler
     break;
   default:
     //    Warning("UnpackBuffer", "Unrecognized Event Id: %d", eventId);
     break;
   }
-  rb::Hist::FillAll();
+  ////  rb::Hist::FillAll();
   return kTRUE;
 
 #else
@@ -184,8 +207,19 @@ Bool_t rb::Midas::UnpackBuffer() {
 #endif
 }
 
+Bool_t DragonEvent::DoProcess(void* addr, Int_t nchar) {
+  TMidasEvent* fEvent = Cast(addr);
+  if(fEvent) {
+    fBgo->unpack(*fEvent);
+    //    printf("fBgo->qraw[0]: %i\n", fBgo->qraw[0]);
+    return true;
+  }
+  else return false;
+}
+
 void rb::Rint::RegisterEvents() {
   // Register events here //
+  RegisterEvent<DragonEvent>(DRAGON_EVENT);
 }
 
 #else

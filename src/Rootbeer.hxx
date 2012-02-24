@@ -131,7 +131,7 @@ namespace rb
     /// One-dimensional creation function
     extern void New(const char* name, const char* title,
 		    Int_t nbinsx, Double_t xlow, Double_t xhigh,
-		    const char* param, const char* gate = "");
+		    const char* param, const char* gate = "", Int_t event_code = 1);
 
     /// Two-dimensional creation function
     extern void New(const char* name, const char* title,

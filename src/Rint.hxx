@@ -61,8 +61,8 @@ namespace rb
     /// Adds an instance of an event processor to fEvents.
     //! \tparam T The type of the instance you want to register.
     template <typename T>
-    void ResisterEvent(Int_t code) {
-      fEvents.insert(std::make_pair<Int_t, rb::Event*>(code, rb::Event::Instance<T>));
+    void RegisterEvent(Int_t code) {
+      fEvents.insert(std::make_pair<Int_t, rb::Event*>(code, rb::Event::Instance<T>()));
     }
 
     /// \brief Registers all event processort in the program.

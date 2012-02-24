@@ -110,16 +110,30 @@ void rb::data::PrintAll() {
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 void rb::hist::New(const char* name, const char* title,
 		   Int_t nbinsx, Double_t xlow, Double_t xhigh,
-		   const char* param, const char* gate) {
-  TTree* tree = rb::gApp()->fDataGlobals.GetLockedTree().Get();
+		   const char* param, const char* gate, Int_t event_code) {
+  // TTree* tree = rb::gApp()->fDataGlobals.GetLockedTree().Get();
   Hist::Set_t* set = LockFreePointer<Hist::Set_t>(rb::gApp()->fDataGlobals.fHistograms).Get();
   try {
-    rb::Hist * hist = new rb::Hist(name, title, param, gate, 1, tree, set, nbinsx, xlow, xhigh);
+    Events_t events = gApp()->GetEvents(event_code);
+    if(events.size() == 0) {
+      std::stringstream error;
+      error << "Invalid event code: " << event_code;
+      std::invalid_argument exception(error.str().c_str());
+      throw exception;
+    }
+    // Events_t::iterator it = events.begin();
+    // while (it != events.end()) (*it++)->Hists.Add(hist);
+
+    rb::Hist * hist = 0;
+    {
+      CountedLockingPointer<TTree> pTree = events.at(0)->GetTree();
+      hist = new rb::Hist(name, title, param, gate, 1, pTree.Get(), set, nbinsx, xlow, xhigh);
+    }
+    events.at(0)->Hists.Add(hist);
   } catch (std::exception& e) {
     Error("rb::hist::New", "%s", e.what());
   }
 }
-
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // static rb::hist::New (Two-dimensional)                //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//

@@ -6,6 +6,7 @@
 #include <memory>
 #include <string>
 #include <sstream>
+#include <iostream>
 #include <algorithm>
 #include "Hist.hxx"
 #include "utils/Mutex.hxx"
@@ -27,7 +28,7 @@ namespace event
     {
     private:
       //! Call Fill() on every entry in <i>histograms</i>.
-      void operator() (const Manager& histograms);
+      void operator() (Manager& manager);
     public:
       //! Give access to operator()
       friend class rb::Event;
@@ -38,7 +39,7 @@ namespace event
     {
     private:
       //! Container of pointers to histograms registered to this event type.
-      HistContainer_t fSet;
+      volatile HistContainer_t fSet;
       //! Reference to Event::fMutex
       rb::Mutex& fMutex;
     public:
@@ -60,16 +61,18 @@ namespace rb
   /// \brief Abstract base class for event processors.
   class Event
   {
-  public:
-    //! For histogram container management
-    event::histogram::Manager Hists;
-    //! For filling within Hists
-    event::histogram::Filler FillAll;
   private:
     //! Mutex to protect access to critical elements.
+    //! \warning This should always be the first data member declared since it is used in the destructor
+    //! of other members.
     rb::Mutex fMutex;
     //! TTree associated with this event type.
     volatile std::auto_ptr<TTree> fTree;
+  public:
+    //! For filling within Hists
+    event::histogram::Filler FillAll;
+    //! For histogram container management
+    event::histogram::Manager Hists;
   protected:
     //! Initialize data members
     Event();
@@ -84,7 +87,9 @@ namespace rb
     //! \details The real work for actually doing something with the event data
     //! is done in the virtual member DoProcess(). This function just takes care
     //! of behind-the-scenes stuff like filling histograms and mutex locking.
-    void Process();
+    //! \param addr Address of the beginning of the event.
+    //! \param [in] nchar length of the event in bytes.
+    void Process(void* event_address, Int_t nchar);
 
     //! \brief Singleton instance function.
     //! \details Each derived class is a singleton, with only one instance allowed.
@@ -101,7 +106,7 @@ namespace rb
     //! \details Users shold implement this in derived classes to instruct the program
     //!  on how to unpack event data into their classes.
     //! \returns Error code: true upon successful unpack, false otherwise.
-    virtual Bool_t DoProcess() = 0;
+    virtual Bool_t DoProcess(void* event_address, Int_t nchar) = 0;
 
     //! \brief Defines what should be done upon failure to successfully process an event.
     //! \details Users may want/need to handle bad events differently, e.g. by throwing an exception,
@@ -111,14 +116,14 @@ namespace rb
 } // namespace rb
 
 #ifndef __MAKECINT__
-#define SCOPED_LOCK rb::ScopedLock<rb::Mutex> lock(fMutex);
 namespace {
   struct HistFill { Int_t operator() (rb::Hist* const& hist) {
     return hist->Fill();
   } } fill_hist;
 }
-inline void event::histogram::Filler::operator() (const Manager& histograms) {
-  std::for_each(histograms.fSet.begin(), histograms.fSet.end(), fill_hist);
+inline void event::histogram::Filler::operator() (Manager& manager) {
+  LockFreePointer<HistContainer_t> pSet(manager.fSet);
+  std::for_each(pSet->begin(), pSet->end(), fill_hist);
 }
 inline event::histogram::Manager::Manager(rb::Mutex& mutex) : fMutex(mutex) {
 }
@@ -128,18 +133,18 @@ namespace {
   } } delete_hist;
 }
 inline event::histogram::Manager::~Manager() {
-  SCOPED_LOCK;
-  std::for_each(fSet.begin(), fSet.end(), delete_hist);
-  fSet.clear();
+  LockingPointer<HistContainer_t> pSet(fSet, fMutex);
+  std::for_each(pSet->begin(), pSet->end(), delete_hist);
+  pSet->clear();
 }
 inline void event::histogram::Manager::Add(rb::Hist* hist) {
-  SCOPED_LOCK;
-  fSet.insert(hist);
+  LockingPointer<HistContainer_t> pSet(fSet, fMutex);;
+  pSet->insert(hist);
 }
 inline void event::histogram::Manager::Delete(rb::Hist* hist) {
-  SCOPED_LOCK;
+  LockingPointer<HistContainer_t> pSet(fSet, fMutex);;
   delete hist;
-  fSet.erase(hist);
+  pSet->erase(hist);
 }
 inline rb::Event::Event() :
   fMutex(false), Hists(fMutex),
@@ -156,9 +161,9 @@ inline CountedLockingPointer<TTree> rb::Event::GetTree() {
   CountedLockingPointer<TTree> pTree(tree, &fMutex);
   return pTree;
 }
-inline void rb::Event::Process() {
-  SCOPED_LOCK;
-  Bool_t success = DoProcess();
+inline void rb::Event::Process(void* event_address, Int_t nchar) {
+  ScopedLock<rb::Mutex> lock(fMutex);
+  Bool_t success = DoProcess(event_address, nchar);
   if(success) FillAll(Hists);
   else HandleBadEvent();
 }
@@ -167,7 +172,6 @@ template <typename Derived> rb::Event*& rb::Event::Instance() {
   if(!event) event = new Derived();
   return event;  
 }
-#undef SCOPED_LOCK
 #endif
 
 #endif
