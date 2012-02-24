@@ -8,7 +8,7 @@ using namespace std;
 
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-// Utility functions                                     //
+// Utility functions & classes                           //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
@@ -82,46 +82,17 @@ inline std::string check_name(const char* name) {
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // Constructor                                           //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-rb::Hist::Hist(const char* name, const char* title, const char* param, const char* gate, UInt_t npar, TTree* tree, Set_t* set) :
-  kConstructorSuccess(kTRUE), kDimensions(npar), fHistogramClone(0), fTree(tree), fSet(set) {
-  LockFreePointer<CriticalElements>  critical(fCritical);
-  critical->fHistogram = 0;
-
-  // Initialize gate
-  fCritical.fGate = new TTreeFormula("fGate", check_gate(gate).c_str(), critical->GetTree(this));
-  if(!fCritical.fGate->GetNdim()) {
-    kConstructorSuccess = kFALSE;
-    return;
-  }
-
-  // Initialize parameters
-  vector<string> vPar = tokenize(param, ":");
-  if(vPar.size() != npar) {
-    Error("Hist", "Parameter specification %s is invalid for a %d-dimensional histogram.",
-	  param, npar);
-    kConstructorSuccess = kFALSE;
-    return;
-  }
-
-  for(UInt_t i=0; i< npar; ++i) {
-    stringstream parname; parname << "param" << i;
-    critical->fParams.push_back(new TTreeFormula(parname.str().c_str(), vPar[i].c_str(), critical->GetTree(this)));
-
-    if(!critical->fParams[i]->GetNdim())
-      kConstructorSuccess = kFALSE;
-  }
-
-  // Set name & title
-  fName  = check_name(name).c_str();
-
-  stringstream sstr;
-  sstr << param << " {" << fCritical.fGate->GetExpFormula().Data() << "}";
-  kDefaultTitle = sstr.str();
-  if(string(title).empty())
-    fTitle = kDefaultTitle.c_str();
-  else
-    fTitle = title;
-  kInitialTitle = fTitle;
+rb::Hist::Hist(const char* name, const char* title,
+	       const char* param, const char* gate,
+	       UInt_t ndim, TTree* tree, Set_t* set,
+	       Int_t nbinsx, Double_t xlow, Double_t xhigh,
+	       Int_t nbinsy, Double_t ylow, Double_t yhigh,
+	       Int_t nbinsz, Double_t zlow, Double_t zhigh) :
+  kDimensions(ndim),
+  fHistogramClone(0),
+  fTree(tree),
+  fSet(set) {
+  Initialize (name, title, param, gate, ndim, tree, set, nbinsx, xlow, xhigh, nbinsy, ylow, yhigh, nbinsz, zlow, zhigh);
 }
 
 
@@ -142,7 +113,7 @@ rb::Hist::~Hist() {
   for(UInt_t i=0; i< critical->fParams.size(); ++i)
     delete critical->fParams[i];
 
-  if(critical->fHistogram) delete critical->fHistogram;
+  if(critical->fHistogram.th1) delete critical->fHistogram.th1;
   if(fHistogramClone) delete fHistogramClone;
 }
 
@@ -150,91 +121,103 @@ rb::Hist::~Hist() {
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // static rb::Hist::Initialize                           //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-Bool_t rb::Hist::Initialize(const char* name, const char* title,
-			    const char* param, const char* gate,
-			    UInt_t ndim, TTree* tree, Set_t* set,
-			    Int_t nbinsx, Double_t xlow, Double_t xhigh,
-			    Int_t nbinsy, Double_t ylow, Double_t yhigh,
-			    Int_t nbinsz, Double_t zlow, Double_t zhigh) {
-  // Create rb::Hist instance
-  rb::Hist* _this = new rb::Hist(name, title, param, gate, ndim, tree, set);
-  if(!_this->kConstructorSuccess) return kFALSE;
+void rb::Hist::Initialize(const char* name, const char* title,
+			  const char* param, const char* gate,
+			  UInt_t ndim, TTree* tree, Set_t* set,
+			  Int_t nbinsx, Double_t xlow, Double_t xhigh,
+			  Int_t nbinsy, Double_t ylow, Double_t yhigh,
+			  Int_t nbinsz, Double_t zlow, Double_t zhigh) {
+  LockFreePointer<CriticalElements> critical(fCritical);
+  critical->fHistogram.th1 = 0;
+
+  // Initialize gate
+  fCritical.fGate = new TTreeFormula("fGate", check_gate(gate).c_str(), critical->GetTree(this));
+  if(!fCritical.fGate->GetNdim()) {
+    std::stringstream except_str;
+    except_str << "Invalid gate argument: \"" << gate << "\"";
+    std::invalid_argument exception(except_str.str().c_str());
+    throw exception;
+  }
+  // Initialize parameters
+  vector<string> vPar = tokenize(param, ":");
+  if(vPar.size() != ndim) {
+    std::stringstream except_str;
+    except_str << "Parameter specification \"" << param
+	       << "\" is invalid for a " << ndim <<"-dimensional histogram.";
+    std::invalid_argument exception(except_str.str().c_str());
+    throw exception;
+  }
+
+  for(UInt_t i=0; i< ndim; ++i) {
+    stringstream parname; parname << "param" << i;
+    critical->fParams.push_back(new TTreeFormula(parname.str().c_str(), vPar[i].c_str(), critical->GetTree(this)));
+
+    if(!critical->fParams[i]->GetNdim()) {
+      std::stringstream except_str;
+      except_str << "Invalid parameter: \"" << vPar[i].c_str() << "\"";
+      std::invalid_argument exception(except_str.str().c_str());
+      throw exception;
+      return;
+    }
+  }
+  // Set name & title
+  fName = check_name(name).c_str();
+
+  stringstream sstr;
+  sstr << param << " {" << fCritical.fGate->GetExpFormula().Data() << "}";
+  kDefaultTitle = sstr.str();
+  if(string(title).empty())
+    fTitle = kDefaultTitle.c_str();
+  else
+    fTitle = title;
+  kInitialTitle = fTitle;
 
   // Set internal histogram
-  //! \note The histogram isn't accessable to any other threads until we add it to
-  //! fgList, so it's safe to access the critical elements via a non-locking pointer.
-  LockFreePointer<CriticalElements> unlocked_critical(_this->fCritical);
+  // The histogram isn't accessable to any other threads until we add it to
+  // fgList, so it's safe to access the critical elements via a non-locking pointer.
+  LockFreePointer<CriticalElements> unlocked_critical(this->fCritical);
 
-  Bool_t successfulHistCreation = kTRUE;
   TH1::AddDirectory(kFALSE);
   switch(ndim) {
   case 1:
-    unlocked_critical->fHistogram =
-      new TH1D(_this->fName, _this->fTitle, nbinsx, xlow, xhigh);
-    unlocked_critical->fHistogram->GetXaxis()->SetTitle(unlocked_critical->fParams.at(0)->GetExpFormula());
+    unlocked_critical->fHistogram.th1 =
+      new TH1D(this->fName, this->fTitle, nbinsx, xlow, xhigh);
+    unlocked_critical->fHistogram.th1->GetXaxis()->SetTitle(unlocked_critical->fParams.at(0)->GetExpFormula());
     break;
   case 2:
-    unlocked_critical->fHistogram =
-      new TH2D(_this->fName, _this->fTitle, nbinsx, xlow, xhigh, nbinsy, ylow, yhigh);
-    unlocked_critical->fHistogram->GetXaxis()->SetTitle(unlocked_critical->fParams.at(0)->GetExpFormula());
-    unlocked_critical->fHistogram->GetYaxis()->SetTitle(unlocked_critical->fParams.at(1)->GetExpFormula());
+    unlocked_critical->fHistogram.th1 =
+      new TH2D(this->fName, this->fTitle, nbinsx, xlow, xhigh, nbinsy, ylow, yhigh);
+    unlocked_critical->fHistogram.th1->GetXaxis()->SetTitle(unlocked_critical->fParams.at(0)->GetExpFormula());
+    unlocked_critical->fHistogram.th1->GetYaxis()->SetTitle(unlocked_critical->fParams.at(1)->GetExpFormula());
     break;
   case 3:
-    unlocked_critical->fHistogram =
-      new TH3D(_this->fName, _this->fTitle, nbinsx, xlow, xhigh, nbinsy, ylow, yhigh, nbinsz, zlow, zhigh);
-    unlocked_critical->fHistogram->GetXaxis()->SetTitle(unlocked_critical->fParams.at(0)->GetExpFormula());
-    unlocked_critical->fHistogram->GetYaxis()->SetTitle(unlocked_critical->fParams.at(1)->GetExpFormula());
-    unlocked_critical->fHistogram->GetZaxis()->SetTitle(unlocked_critical->fParams.at(2)->GetExpFormula());
+    unlocked_critical->fHistogram.th1 =
+      new TH3D(this->fName, this->fTitle, nbinsx, xlow, xhigh, nbinsy, ylow, yhigh, nbinsz, zlow, zhigh);
+    unlocked_critical->fHistogram.th1->GetXaxis()->SetTitle(unlocked_critical->fParams.at(0)->GetExpFormula());
+    unlocked_critical->fHistogram.th1->GetYaxis()->SetTitle(unlocked_critical->fParams.at(1)->GetExpFormula());
+    unlocked_critical->fHistogram.th1->GetZaxis()->SetTitle(unlocked_critical->fParams.at(2)->GetExpFormula());
     break;
   default:
-    _this->Error("Initialize", "%d-dimenstional histograms are not supported.", ndim);
-    successfulHistCreation = kFALSE;
+    TH1::AddDirectory(kTRUE);
+    std::stringstream err;
+    err << ndim << "-dimensional histograms are not supported.";
+    std::invalid_argument exception(err.str().c_str());
+    throw exception;
     break;
   }
   TH1::AddDirectory(kTRUE);
-
-  // Add to collections
-  LockingPointer<List_t> hlist(fgList(), fgMutex());
-  if(successfulHistCreation) {
-    hlist->push_back(_this);
-
-    if(gDirectory) {
-      _this->fDirectory = gDirectory;
-      _this->fDirectory->Append(_this, kTRUE);
-    }
+  if(!unlocked_critical->fHistogram.th1) {
+    std::invalid_argument exception("Error allocating internal TH1 histogram");
+    throw exception;
   }
-  return successfulHistCreation;
+  // Add to collections
+  LockingPointer<Set_t> hset(fSet, fgMutex());
+  hset->insert(this);
+  if(gDirectory) {
+    this->fDirectory = gDirectory;
+    this->fDirectory->Append(this, kTRUE);
+  }
 }
-
-// //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-// // static rb::Hist::New (One-dimensional)                //
-// //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-// void rb::Hist::New(const char* name, const char* title,
-// 		   Int_t nbinsx, Double_t xlow, Double_t xhigh,
-// 		   const char* param, const char* gate) {
-//   rb::Hist::Initialize(name, title, param, gate, 1, nbinsx, xlow, xhigh);
-// }
-
-// //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-// // static rb::Hist::New (Two-dimensional)                //
-// //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-// void rb::Hist::New(const char* name, const char* title,
-// 		   Int_t nbinsx, Double_t xlow, Double_t xhigh,
-// 		   Int_t nbinsy, Double_t ylow, Double_t yhigh,
-// 		   const char* param, const char* gate) {
-//   rb::Hist::Initialize(name, title, param, gate, 2, nbinsx, xlow, xhigh, nbinsy, ylow, yhigh);
-// }
-
-// //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-// // static rb::Hist::New (Three-dimensional)              //
-// //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-// void rb::Hist::New(const char* name, const char* title,
-// 		   Int_t nbinsx, Double_t xlow, Double_t xhigh,
-// 		   Int_t nbinsy, Double_t ylow, Double_t yhigh,
-// 		   Int_t nbinsz, Double_t zlow, Double_t zhigh,
-// 		   const char* param, const char* gate) {
-//   rb::Hist::Initialize(name, title, param, gate, 3, nbinsx, xlow, xhigh, nbinsy, ylow, yhigh, nbinsz, zlow, zhigh);
-// }
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // rb::Hist::Regate                                      //
@@ -260,7 +243,7 @@ Int_t rb::Hist::Regate(const char* newgate) {
     newTitle << critical->fParams.at(0)->GetExpFormula().Data();
     newTitle << " {" << critical->fGate->GetExpFormula().Data() << "}";
     fTitle = newTitle.str().c_str();
-    critical->fHistogram->SetTitle(fTitle);
+    critical->fHistogram.th1->SetTitle(fTitle);
   }
 }
 
@@ -285,7 +268,7 @@ TH1* rb::Hist::GetHist() {
   if(fHistogramClone) delete fHistogramClone;
   TH1::AddDirectory(kFALSE);
   fHistogramClone =
-    static_cast<TH1*>(LockingPointer<CriticalElements>(fCritical, fgMutex())->fHistogram->Clone());
+    static_cast<TH1*>(LockingPointer<CriticalElements>(fCritical, fgMutex())->fHistogram.th1->Clone());
   TH1::AddDirectory(kTRUE);
   return fHistogramClone;
 }
@@ -294,28 +277,31 @@ TH1* rb::Hist::GetHist() {
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // rb::Hist::DoFill()                                    //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-Int_t rb::Hist::DoFill(TH1* hst, TTreeFormula* gate, vector<TTreeFormula*>& params) {
+Int_t rb::Hist::DoFill(Types& hst, TTreeFormula* gate, vector<TTreeFormula*>& params) {
    if(!gate->EvalInstance()) return 0;
 
    switch(kDimensions) {
    case 1:
-     return static_cast<TH1D*>(hst)->Fill(params[0]->EvalInstance());
+     //     return static_cast<TH1D*>(hst)->Fill(params[0]->EvalInstance());
+     return hst.th1d->Fill(params[0]->EvalInstance());
      break;
    case 2:
-     return static_cast<TH2D*>(hst)->Fill(params[0]->EvalInstance(),
-					  params[1]->EvalInstance());
+     //     return static_cast<TH2D*>(hst)
+     return hst.th2d->Fill(params[0]->EvalInstance(),
+			   params[1]->EvalInstance());
      break;
    case 3:
-     return static_cast<TH3D*>(hst)->Fill(params[0]->EvalInstance(),
-					  params[1]->EvalInstance(),
-					  params[2]->EvalInstance());
+     // return static_cast<TH3D*>(hst)
+     return hst.th3d->Fill(params[0]->EvalInstance(),
+			   params[1]->EvalInstance(),
+			   params[2]->EvalInstance());
      break;
    default:
      Error("Fill", "Invalid kDimensions %d", kDimensions);
      return -1;
      break;
    }
- }
+}
 
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
@@ -352,7 +338,7 @@ Int_t rb::Hist::Fill() {
 }
 
 
-
+#if 0
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // Class                                                 //
 // rb::SummaryHist                                       //
@@ -497,8 +483,8 @@ Int_t rb::SummaryHist::DoFill(TH1* hst, TTreeFormula* gate, vector<TTreeFormula*
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // rb::GammaHist::GammaHist                              //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-rb::GammaHist::GammaHist(const char* name, const char* title, const char* param, const char* gate, Int_t dimensions, TTree* tree) {
-  fTree = tree;
+rb::GammaHist::GammaHist(const char* name, const char* title, const char* param, const char* gate, Int_t dimensions, TTree* tree, Set_t* set) {
+  fTree = tree; fSet = set;
   kConstructorSuccess = kTRUE; fHistogramClone = 0; kDimensions = dimensions;
 
   LockFreePointer<CriticalElements>  critical(fCritical);
@@ -590,13 +576,13 @@ rb::GammaHist::GammaHist(const char* name, const char* title, const char* param,
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 Bool_t rb::GammaHist::GInitialize(const char* name, const char* title,
 				  const char* paramList, const char* gate,
-				  UInt_t ndim, TTree* tree,
+				  UInt_t ndim, TTree* tree, Set_t* set,
 				  Int_t nbinsx, Double_t xlow, Double_t xhigh,
 				  Int_t nbinsy, Double_t ylow, Double_t yhigh,
 				  Int_t nbinsz, Double_t zlow, Double_t zhigh) {
 
   // Create rb::Hist instance
-  rb::GammaHist* _this = new rb::GammaHist(name, title, paramList, gate, ndim, tree);
+  rb::GammaHist* _this = new rb::GammaHist(name, title, paramList, gate, ndim, tree, set);
   if(!_this->kConstructorSuccess) return kFALSE;
 
   // Set internal histogram
@@ -691,3 +677,4 @@ Int_t rb::GammaHist::DoFill(TH1* hst, TTreeFormula* gate, vector<TTreeFormula*>&
 // 		    const char* param, const char* gate) {
 //   rb::GammaHist::GInitialize(name, title, param, gate, 2, nbinsx, xlow, xhigh, nbinsy, ylow, yhigh);
 // }
+#endif

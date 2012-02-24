@@ -8,6 +8,7 @@
 #include <bitset>
 #include <list>
 #include <set>
+#include <stdexcept>
 #include <TH1D.h>
 #include <TH2D.h>
 #include <TH3D.h>
@@ -45,9 +46,6 @@ namespace rb
     typedef std::set<rb::Hist*> Set_t;
 
   protected:
-    /// Constructor error code: true = success, false = failure.
-    Bool_t kConstructorSuccess;
-
     /// Number of dimensions (axes).
     UInt_t kDimensions;
 
@@ -68,10 +66,15 @@ namespace rb
     /// Directory owning this rb::Hist instance.
     TDirectory* fDirectory;
 
-
-    /// Struct wrapping all of the non-static critical elements in rb::Hist
-
-    //! Any rb::Hist instance member that can be shared between threads is contained
+    union Types
+    {
+      TH1*  th1;
+      TH1D* th1d;
+      TH2D* th2d;
+      TH3D* th3d;
+    };
+    /// \brief Struct wrapping all of the non-static critical elements in rb::Hist
+    //! \details Any rb::Hist instance member that can be shared between threads is contained
     //! inside this struct, and then the whole thing is declared volatile and should
     //! be accessed via a LockingPointer (or, in cases where safe/appropriate, a LockFreePointer).
     //! The struct also provides access to \c static critical members via getter functions.
@@ -82,7 +85,8 @@ namespace rb
       //! This is what is filled with the evaluation of fParams, and what is used for Drawing, etc.
       //! It is cast to the appropriate derived class (TH1D*, TH2D*, or TH3D*) in the constructor, depending
       //! on the number of dimensions.
-      TH1* fHistogram;
+      //      TH1* fHistogram;
+      Types fHistogram;
 
       /// Formula to evaluate the histogram gate condition.
       TTreeFormula* fGate;
@@ -134,27 +138,31 @@ namespace rb
     //!      (e.g. TH1D for 1d, etc)
     //!    - Adding of the rb::Hist object to both ROOT's gDirectory->fList and the static
     //!      rb::Hist::fgList list of all rb::Hist objects.
-  public:
-    static Bool_t Initialize(const char* name, const char* title,
-			     const char* param, const char* gate,
-			     UInt_t ndim, TTree* tree, Set_t* set,
-			     Int_t nbinsx, Double_t xlow, Double_t xhigh,
-			     Int_t nbinsy = 0, Double_t ylow = 0, Double_t yhigh = 0,
-			     Int_t nbinsz = 0, Double_t zlow = 0, Double_t zhigh = 0);
-  protected:
 
     /// Internal function to fill the histogram.
     //! Called from the public Fill() and FillAll(), does not do any mutex locking,
     //! instead relies on being passed already locked components.
-    virtual Int_t DoFill(TH1* hst, TTreeFormula* gate, std::vector<TTreeFormula*>& params);
+    virtual Int_t DoFill(Types& hst, TTreeFormula* gate, std::vector<TTreeFormula*>& params);
 
+    void Initialize(const char* name, const char* title,
+		    const char* param, const char* gate,
+		    UInt_t ndim, TTree* tree, Set_t* set,
+		    Int_t nbinsx, Double_t xlow, Double_t xhigh,
+		    Int_t nbinsy = 0, Double_t ylow = 0, Double_t yhigh = 0,
+		    Int_t nbinsz = 0, Double_t zlow = 0, Double_t zhigh = 0);
+
+  public:
     /// Constructor
     //! Set the internal \c TTree and \c fGate fields.
     //! \note This is made \c private so that CINT users can't create explicit instances of rb::Hist
     //! objects. Instead they use rb::Hist::New and then access via the automatic pointer CINT provides. 
-    Hist(const char* name, const char* title, const char* param, const char* gate, UInt_t npar, TTree* tree, Set_t* set);
+    Hist(const char* name, const char* title,
+	 const char* param, const char* gate,
+	 UInt_t ndim, TTree* tree, Set_t* set,
+	 Int_t nbinsx, Double_t xlow, Double_t xhigh,
+	 Int_t nbinsy = 0, Double_t ylow = 0, Double_t yhigh = 0,
+	 Int_t nbinsz = 0, Double_t zlow = 0, Double_t zhigh = 0);
 
-  public:
     /// Fill the histogram from its internal parameter value(s).
     //! This function first evaluates fGate, and if true, evaluates each index of fParams, then calls
     //! fHistogram->Fill() using the results.
@@ -171,14 +179,14 @@ namespace rb
     //! \Note that this draws fHistogram directly, not a copy (to that it can still continue to be auto-updated
     //! by the rb::canvas functions).
     void Draw(Option_t* option = "") {
-      LockingPointer<CriticalElements>(fCritical, fgMutex())->fHistogram->Draw(option);
+      LockingPointer<CriticalElements>(fCritical, fgMutex())->fHistogram.th1->Draw(option);
     }
 
     /// Clear function.
     //! Zeros-out all axes of fHistogram.
     virtual void Clear() {
       LockingPointer<CriticalElements> critical(fCritical, fgMutex());
-      TH1D* hist = static_cast<TH1D*>(critical->fHistogram);
+      TH1D* hist = critical->fHistogram.th1d; // static_cast<TH1D*>(critical->fHistogram);
       for(Int_t p = 0; p < hist->fN; ++p) hist->fArray[p] = 0.;
     }
 
@@ -211,12 +219,12 @@ namespace rb
 
     /// Set line color.
     void SetLineColor(Color_t lcolor) {
-      LockingPointer<CriticalElements>(fCritical, fgMutex())->fHistogram->SetLineColor(lcolor);
+      LockingPointer<CriticalElements>(fCritical, fgMutex())->fHistogram.th1->SetLineColor(lcolor);
     }
 
     /// Set marker color.
     void SetMarkerColor(Color_t mcolor) {
-      LockingPointer<CriticalElements>(fCritical, fgMutex())->fHistogram->SetMarkerColor(mcolor);
+      LockingPointer<CriticalElements>(fCritical, fgMutex())->fHistogram.th1->SetMarkerColor(mcolor);
     }
 
     /// Function to fill all histograms
@@ -230,22 +238,29 @@ namespace rb
     }
 
     /// Function to access entries of \c Hist::fgList
-    static rb::Hist* Find(const char* name) {
-      LockingPointer<List_t> hlist(fgList(), fgMutex());
-      List_t::iterator it;
-      for(it = hlist->begin(); it != hlist->end(); ++it) {
-	if(!strcmp((*it)->GetName(), name)) return *it;
-      }
-      fprintf(stderr, "Error in <rb::Hist::Find>: %s was not found\n", name);
-      return 0;
-    }
+    // static rb::Hist* Find(const char* name) {
+    //   LockingPointer<Set_t> hlist(fSet, fgMutex());
+    //   Set_t::iterator it;
+    //   for(it = hlist->begin(); it != hlist->end(); ++it) {
+    //   	if(!strcmp((*it)->GetName(), name)) return *it;
+    //   }
+    //   Error("Find", "%s was not found", name);
+    //   return 0;
+    //   //      LockingPointer<List_t> hlist(fgList(), fgMutex());
+    //   // List_t::iterator it;
+    //   // for(it = hlist->begin(); it != hlist->end(); ++it) {
+    //   // 	if(!strcmp((*it)->GetName(), name)) return *it;
+    //   // }
+    //   // fprintf(stderr, "Error in <rb::Hist::Find>: %s was not found\n", name);
+    //   // return 0;
+    // }
 
     /// Deletes all entries of \c Hist::fgList
     static void DeleteAll();
 
     /// Returns the total number of entries in \c fgList
     static UInt_t GetNumber() {
-      return LockingPointer<List_t>(fgList(), fgMutex())->size();
+      return -1;//LockingPointer<List_t>(fgList(), fgMutex())->size();
     }
 
     // /// Set an alias in \c fgTree
@@ -275,6 +290,8 @@ namespace rb
   };
   
 
+} // namespace rb
+#if 0
   /// Summary histogram class.
 
   //! A "summary" histogram is a type of 2d histogram in which each bin along one of the axes ("parameter axis") corresponds
@@ -298,7 +315,7 @@ namespace rb
 
     //! Internal filling function.
     //! Same idea as for rb::Hist, but implemented as needed for a summary histogram.
-    virtual Int_t DoFill(TH1* hst, TTreeFormula* gate, std::vector<TTreeFormula*>& params);
+    virtual Int_t DoFill(Types& hst, TTreeFormula* gate, std::vector<TTreeFormula*>& params);
 
   public:
     //! Public creation function.
@@ -334,14 +351,14 @@ namespace rb
     Int_t nPar;
 
     //! Constructor
-    GammaHist(const char* name, const char* title, const char* params, const char* gate, Int_t ndimensions, TTree* tree);
+    GammaHist(const char* name, const char* title, const char* params, const char* gate, Int_t ndimensions, TTree* tree, Set_t* set);
 
   public:
     //! Initialize function
     //! Helper function called by New().
     static Bool_t GInitialize(const char* name, const char* title,
 			      const char* param, const char* gate,
-			      UInt_t ndim, TTree* tree,
+			      UInt_t ndim, TTree* tree, Set_t* set,
 			      Int_t nbinsx, Double_t xlow, Double_t xhigh,
 			      Int_t nbinsy = 0, Double_t ylow = 0, Double_t yhigh = 0,
 			      Int_t nbinsz = 0, Double_t zlow = 0, Double_t zhigh = 0);
@@ -467,6 +484,7 @@ Bool_t rb::BitHist<NBITS>::BitInitialize(const char* name, const char* title, co
   }
   return successfulHistCreation;
 }
+#endif // #if 0
 #endif // $ifndef __MAKECINT__
 
 

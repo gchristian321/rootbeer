@@ -184,6 +184,9 @@ Bool_t rb::Midas::UnpackBuffer() {
 #endif
 }
 
+void rb::Rint::RegisterEvents() {
+  // Register events here //
+}
 
 #else
 

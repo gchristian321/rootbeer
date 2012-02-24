@@ -40,6 +40,31 @@ namespace rb
     ScopedMutex& operator= (const ScopedMutex& other) {}
   };
 
+  //! Class to lock a mutex upon construction and then unlock it upon destruction.
+  //! \tparam MutexType The type of mutex you want to use, must have a Lock() and UnLock()
+  //! function otherwise you'll get a compile-time error.
+  template <class MutexType>
+  class ScopedLock
+  {
+  private:
+    //! Reference to the mutex you want to lock/unlock.
+    MutexType& fMutex;
+  public:
+    //! Initialize & lock fMutex
+    ScopedLock(MutexType& mutex) : fMutex(mutex) {
+      fMutex.Lock();
+    }
+    //! Unlock fMutex
+    ~ScopedLock() {
+      fMutex.UnLock();
+    }
+  private:
+    //! Prevent copying
+    ScopedLock(const ScopedLock& other) {}
+    //! Prevent assignment
+    ScopedLock& operator= (const ScopedLock& other) {}
+  };
+
   //! \brief Wrapper for TMutex that can optionally check for deadlock conditions.
   //! \details Compile with -DDEBUG to turn on deadlock checking. If deadlock is found,
   //! the applicion will terminate with an error.

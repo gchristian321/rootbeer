@@ -112,8 +112,12 @@ void rb::hist::New(const char* name, const char* title,
 		   Int_t nbinsx, Double_t xlow, Double_t xhigh,
 		   const char* param, const char* gate) {
   TTree* tree = rb::gApp()->fDataGlobals.GetLockedTree().Get();
-  Hist::Set_t* set = LockFreePointer<Hist::Set_t>(rb::gApp()->fDataGlobals.fHistograms).Get();  
-  rb::Hist::Initialize(name, title, param, gate, 1, tree, set, nbinsx, xlow, xhigh);
+  Hist::Set_t* set = LockFreePointer<Hist::Set_t>(rb::gApp()->fDataGlobals.fHistograms).Get();
+  try {
+    rb::Hist * hist = new rb::Hist(name, title, param, gate, 1, tree, set, nbinsx, xlow, xhigh);
+  } catch (std::exception& e) {
+    Error("rb::hist::New", "%s", e.what());
+  }
 }
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
@@ -125,7 +129,11 @@ void rb::hist::New(const char* name, const char* title,
 		   const char* param, const char* gate) {
   TTree* tree = rb::gApp()->fDataGlobals.GetLockedTree().Get();
   Hist::Set_t* set = LockFreePointer<Hist::Set_t>(rb::gApp()->fDataGlobals.fHistograms).Get();  
-  rb::Hist::Initialize(name, title, param, gate, 2, tree, set, nbinsx, xlow, xhigh, nbinsy, ylow, yhigh);
+  try {
+    rb::Hist * hist = new rb::Hist(name, title, param, gate, 2, tree, set, nbinsx, xlow, xhigh, nbinsy, ylow, yhigh);
+  } catch (std::exception& e) {
+    Error("rb::hist::New", "%s", e.what());
+  }
 }
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
@@ -138,7 +146,11 @@ void rb::hist::New(const char* name, const char* title,
 		   const char* param, const char* gate) {
   TTree* tree = rb::gApp()->fDataGlobals.GetLockedTree().Get();
   Hist::Set_t* set = LockFreePointer<Hist::Set_t>(rb::gApp()->fDataGlobals.fHistograms).Get();  
-  rb::Hist::Initialize(name, title, param, gate, 3, tree, set, nbinsx, xlow, xhigh, nbinsy, ylow, yhigh, nbinsz, zlow, zhigh);
+  try {
+    rb::Hist * hist = new rb::Hist(name, title, param, gate, 3, tree, set, nbinsx, xlow, xhigh, nbinsy, ylow, yhigh, nbinsz, zlow, zhigh);
+  } catch (std::exception& e) {
+    Error("rb::hist::New", "%s", e.what());
+  }
 }
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
@@ -196,9 +208,9 @@ void rb::hist::NewSummary(const char* name, const char* title,
 void rb::hist::NewGamma(const char* name, const char* title,
 			Int_t nbinsx, Double_t xlow, Double_t xhigh,
 			const char* param, const char* gate) {
-  TTree* tree = rb::gApp()->fDataGlobals.GetLockedTree().Get();
-  Hist::Set_t* set = LockFreePointer<Hist::Set_t>(rb::gApp()->fDataGlobals.fHistograms).Get();
-  rb::GammaHist::GInitialize(name, title, param, gate, 1, tree, /*set,*/ nbinsx, xlow, xhigh);
+  // TTree* tree = rb::gApp()->fDataGlobals.GetLockedTree().Get();
+  // Hist::Set_t* set = LockFreePointer<Hist::Set_t>(rb::gApp()->fDataGlobals.fHistograms).Get();
+  // rb::GammaHist::GInitialize(name, title, param, gate, 1, tree, set, nbinsx, xlow, xhigh);
 }
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
@@ -208,7 +220,7 @@ void rb::hist::NewGamma(const char* name, const char* title,
 			Int_t nbinsx, Double_t xlow, Double_t xhigh,
 			Int_t nbinsy, Double_t ylow, Double_t yhigh,
 			const char* param, const char* gate) {
-  TTree* tree = rb::gApp()->fDataGlobals.GetLockedTree().Get();
-  Hist::Set_t* set = LockFreePointer<Hist::Set_t>(rb::gApp()->fDataGlobals.fHistograms).Get();
-  rb::GammaHist::GInitialize(name, title, param, gate, 2, tree, /*set,*/ nbinsx, xlow, xhigh, nbinsy, ylow, yhigh);
+  // TTree* tree = rb::gApp()->fDataGlobals.GetLockedTree().Get();
+  // Hist::Set_t* set = LockFreePointer<Hist::Set_t>(rb::gApp()->fDataGlobals.fHistograms).Get();
+  // rb::GammaHist::GInitialize(name, title, param, gate, 2, tree, set, nbinsx, xlow, xhigh, nbinsy, ylow, yhigh);
 }
