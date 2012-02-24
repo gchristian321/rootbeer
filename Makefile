@@ -106,8 +106,8 @@ $(OBJ)/midas/TMidasOnline.o: $(RBLIB)/libRBHist.so $(CINT)/RBDictionary.cxx $(SR
 -o $@  -p $(SRC)/midas/TMidasOnline.cxx \
 
 
-$(CINT)/RBDictionary.cxx: $(HEADERS) $(USER)/UserLinkdef.h $(CINT)/Linkdef.h $(USER)/ImportData.h \
-$(SRC)/utils/Mutex.hxx $(SRC)/utils/LockingPointer.hxx $(SRC)/rb_import_data.h
+$(CINT)/RBDictionary.cxx: $(HEADERS) $(USER)/UserLinkdef.h $(CINT)/Linkdef.h \
+$(SRC)/utils/Mutex.hxx $(SRC)/utils/LockingPointer.hxx
 	rootcint -f $@ -c $(CXXFLAGS)  -p $(HEADERS) $(CINT)/Linkdef.h \
 
 

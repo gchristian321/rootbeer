@@ -4,7 +4,6 @@
 #include <sstream>
 #include <TRint.h>
 #include "Event.hxx"
-#include "rb_import_data.h"
 
 
 typedef std::multimap<Int_t, rb::Event*> EventMap_t;

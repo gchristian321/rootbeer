@@ -35,6 +35,7 @@
 // Definition of a BufferSource class to handle MIDAS data (at TRIUMF). //
 #ifdef MIDAS_BUFFERS
 #include "midas/TMidasFile.h"
+#include "midas/TMidasEvent.h"
 #ifdef MIDAS_ONLINE
 #include "midas/TMidasOnline.h"
 #endif
