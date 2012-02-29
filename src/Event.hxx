@@ -54,6 +54,7 @@ namespace rb
     //! of other members.
     rb::Mutex fMutex;
     //! TTree associated with this event type.
+    TFile fFile;
     volatile std::auto_ptr<TTree> fTree;
   public:
     //! For histogram container management
@@ -64,10 +65,12 @@ namespace rb
     //! Nothing to do in the base class, all data is self-destructing.
     virtual ~Event();
   public:
+    rb::Mutex* GetMutex();
 #ifndef __MAKECINT__
     //! \brief Get a locked pointer to fTree
     CountedLockingPointer<TTree> GetTree();
 #endif
+    TTree* GetTreeUnlocked();
 
     //! \brief Public interface for processing an event.
     //! \details The real work for actually doing something with the event data
@@ -115,7 +118,7 @@ inline event::histogram::Manager::Manager(rb::Mutex& mutex) : fMutex(mutex) {
 }
 namespace {
   struct HistDelete { bool operator() (rb::Hist* const& hist) {
-    delete hist;
+    hist->Delete(); //    delete hist;
   } } delete_hist;
 }
 inline event::histogram::Manager::~Manager() {
@@ -124,17 +127,18 @@ inline event::histogram::Manager::~Manager() {
   pSet->clear();
 }
 inline void event::histogram::Manager::Add(rb::Hist* hist) {
-  LockingPointer<HistContainer_t> pSet(fSet, fMutex);;
+  LockingPointer<HistContainer_t> pSet(fSet, fMutex);
   pSet->insert(hist);
 }
 inline void event::histogram::Manager::Delete(rb::Hist* hist) {
-  LockingPointer<HistContainer_t> pSet(fSet, fMutex);;
-  delete hist;
+  LockingPointer<HistContainer_t> pSet(fSet, fMutex);
+  HistDelete hd; hd(hist); // delete hist;
   pSet->erase(hist);
 }
 inline rb::Event::Event() :
-  fMutex(false), Hists(fMutex),
+  fMutex(false), Hists(fMutex), fFile("TEMP.root","recreate"),
   fTree(new TTree("tree", "Rootbeer event tree")) {
+  GetTree()->SetDirectory(0);
 }
 inline rb::Event::~Event() {
 }
@@ -142,10 +146,17 @@ inline void rb::Event::Destruct(Event*& event) {
   delete event;
   event = 0;
 }
+inline rb::Mutex* rb::Event::GetMutex() {
+  return &fMutex;
+}
 inline CountedLockingPointer<TTree> rb::Event::GetTree() {
   volatile TTree* tree = LockFreePointer<std::auto_ptr<TTree> >(fTree)->get();
   CountedLockingPointer<TTree> p_tree(tree, &fMutex);
   return p_tree;
+}
+inline TTree* rb::Event::GetTreeUnlocked() {
+  TTree* tree = LockFreePointer<std::auto_ptr<TTree> >(fTree)->get();
+  return tree;
 }
 inline void rb::Event::Process(void* event_address, Int_t nchar) {
   ScopedLock<rb::Mutex> lock(fMutex);

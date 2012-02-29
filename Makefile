@@ -57,7 +57,7 @@ OBJECTS=$(OBJ)/midas/TMidasEvent.o $(OBJ)/midas/TMidasFile.o $(MIDASONLINE) \
 $(OBJ)/Data.o $(OBJ)/Buffer.o $(OBJ)/User.o $(OBJ)/Canvas.o $(OBJ)/WriteConfig.o \
 $(OBJ)/Rint.o $(OBJ)/Rootbeer.o
 
-HEADERS=$(SRC)/Rootbeer.hxx $(SRC)/Rint.hxx $(SRC)/Data.hxx $(SRC)/Buffer.hxx $(SRC)/Event.hxx \
+HEADERS=$(SRC)/Rootbeer.hxx $(SRC)/Rint.hxx $(SRC)/Data.hxx $(SRC)/Buffer.hxx $(SRC)/Event.hxx $(USER)/User.hxx\
 $(SRC)/midas/*.h $(SRC)/utils/*.h* $(USER_HEADERS)
 
 
@@ -113,13 +113,24 @@ $(SRC)/utils/Mutex.hxx $(SRC)/utils/LockingPointer.hxx
 
 
 #### COMPILE HISTOGRAM LIBRARY ####
+form: $(OBJ)/Formula.o
+hist: $(RBLIB)/libRBHist.so
+HIST_HEADERS=$(SRC)/Hist.hxx $(SRC)/Formula.hxx $(SRC)/utils/LockingPointer.hxx $(SRC)/utils/Mutex.hxx
+HIST_OBJECTS=$(OBJ)/Hist.o $(OBJ)/Formula.o 
 
-$(RBLIB)/libRBHist.so: $(SRC)/Hist.cxx $(CINT)/HistDictionary.cxx
+$(RBLIB)/libRBHist.so: $(HIST_OBJECTS) $(CINT)/HistDictionary.cxx
 	$(COMPILE) $(DYLIB) $(FPIC) -lTreePlayer \
 -o $@ $(CXXFLAGS) -p $^ \
 
+$(OBJ)/Hist.o: $(CINT)/HistDictionary.cxx $(SRC)/Hist.cxx
+	$(COMPILE) $(FPIC) -c \
+-o $@  -p $(SRC)/Hist.cxx \
 
-$(CINT)/HistDictionary.cxx: $(SRC)/Hist.hxx $(SRC)/utils/LockingPointer.hxx $(SRC)/utils/Mutex.hxx $(CINT)/HistLinkdef.h
+$(OBJ)/Formula.o: $(CINT)/HistDictionary.cxx $(SRC)/Formula.cxx
+	$(COMPILE) $(FPIC) -c \
+-o $@  -p $(SRC)/Formula.cxx \
+
+$(CINT)/HistDictionary.cxx: $(HIST_HEADERS) $(CINT)/HistLinkdef.h
 	rootcint -f $@ -c $(CXXFLAGS) -p $^ \
 
 

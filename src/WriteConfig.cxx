@@ -264,7 +264,7 @@ void rb::ReadConfig(const char* filename, Option_t* option) {
 	line = line.substr(1+line.find("\""));
 	string name = line.substr(0, line.find("\""));
 	rb::Hist* old = dynamic_cast<rb::Hist*> (gDirectory->FindObject(name.c_str()));
-	if(old) delete old;
+	if(old) old->Delete(); //delete old;
 	continue;
       }
     }

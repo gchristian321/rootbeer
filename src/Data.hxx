@@ -13,9 +13,10 @@
 #include <TClass.h>
 #include <TDataMember.h>
 #include "Event.hxx"
+#include "utils/Error.hxx"
 #include "utils/LockingPointer.hxx"
 
-#define RB_DATA_ON_STACK
+// #define RB_DATA_ON_STACK
 namespace rb
 {
   namespace data
@@ -27,7 +28,7 @@ namespace rb
     public:
       typedef std::map<std::string, MBasic*> Map_t;
     protected:
-      //! Maps the base name of each data class to a pointer to its correcponding
+      //! Maps the base name of each data class to a pointer to its corresponding
       //! data::MBasic instance
       static MBasic::Map_t& fgAll();
       //! The type of basic data (int, double, etc.)
@@ -332,10 +333,9 @@ namespace
       data = reinterpret_cast<T*> (gROOT->ProcessLineFast(cmd.str().c_str()));
     }
     if (!data) {
-      Error("Data::Init",
-	    "Couldn't create a new instance of the template class "
-	    "(typeid.name(): %s, constructor arguments: %s).",
-	    typeid(T).name(), args);
+      err::Error("Data::Init") <<
+	"Couldn't create a new instance of the template class " << "(typeid.name(): "<< 
+	typeid(T).name() << ", constructor arguments: " << args << ").";
       data = 0;
     }
     return data;
@@ -376,12 +376,11 @@ void rb::data::Wrapper<T>::CreateBranch(TTree* const tree, Int_t bufsize, Int_t 
 #endif
   if(!v) {
     Error("CreateBranch", "NULL pointer to data");
-    return;
+    //    return;
   }
   TBranch* branch = tree->Branch(kBranchName, clName, &v, bufsize, splitlevel);
-  if(!branch) Error("CreateBranch",
-		    "TTree::Branch returned a null pointer. BranchName: %s, Class Name: %s",
-		    kBranchName, clName);
+  if(!branch) err::Error("CreateBranch") << "TTree::Branch returned a null pointer. " <<
+		"BranchName: " << kBranchName << ", Class Name: " << clName;
 }
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // T* rb::data::Wrapper<T>::Get()                                 //
@@ -437,7 +436,7 @@ void rb::data::Wrapper<T>::Init(Event* event, Bool_t makeVisible, const char* ar
     mapper.MapClass();
   }
   // Add as a branch in the event's internal tree.
-  if(event) CreateBranch(event->GetTree().Get());
+  //  if(event) CreateBranch(event->GetTree().Get());
 }
 #endif // #ifndef __MAKECINT__
 #endif // #ifndef DATA_HXX

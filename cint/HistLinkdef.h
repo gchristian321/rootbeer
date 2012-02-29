@@ -10,8 +10,6 @@
  
 #pragma link C++ namespace rb;
 #pragma link C++ class rb::Hist+;
-#pragma link C++ class std::list<rb::Hist*>;
-#pragma link C++ class std::list<rb::Hist*>::iterator;
 /* #pragma link C++ class rb::SummaryHist+; */
 /* #pragma link C++ class rb::GammaHist+; */
 /* #pragma link C++ class rb::BitHist<1>+; */

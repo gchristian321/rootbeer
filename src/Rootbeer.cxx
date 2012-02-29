@@ -5,7 +5,7 @@
 #include "Buffer.hxx"
 #include "Data.hxx"
 #include "Hist.hxx"
-
+#include "User.hxx"
 
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
@@ -107,12 +107,11 @@ void rb::data::PrintAll() {
 
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-// static rb::Hist::New (One-dimensional)                //
+// rb::hist::New (One-dimensional)                       //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-void rb::hist::New(const char* name, const char* title,
-		   Int_t nbinsx, Double_t xlow, Double_t xhigh,
-		   const char* param, const char* gate, Int_t event_code) {
-  Hist::Set_t set ;
+rb::Hist* rb::hist::New(const char* name, const char* title,
+			Int_t nbinsx, Double_t xlow, Double_t xhigh,
+			const char* param, const char* gate, Int_t event_code) {
   try {
     Events_t events = gApp()->GetEvents(event_code);
     if(events.size() == 0) {
@@ -124,18 +123,17 @@ void rb::hist::New(const char* name, const char* title,
     // Events_t::iterator it = events.begin();
     // while (it != events.end()) (*it++)->Hists.Add(hist);
 
-    rb::Hist * hist = 0;
-    {
-      CountedLockingPointer<TTree> pTree = events.at(0)->GetTree();
-      hist = new rb::Hist(name, title, param, gate, 1, pTree.Get(), &set, nbinsx, xlow, xhigh);
-    }
+    TTree* pTree = events.at(0)->GetTreeUnlocked();
+    rb::Hist* hist = new rb::Hist(name, title, param, gate, pTree, events.at(0)->GetMutex(), nbinsx, xlow, xhigh);
     events.at(0)->Hists.Add(hist);
+    return hist;
   } catch (std::exception& e) {
-    Error("rb::hist::New", "%s", e.what());
+    err::Error("rb::Hist::New") << e.what();
+    //    static_cast<DragonEvent*>(rb::Event::Instance<DragonEvent>())->reset_branch();
   }
 }
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-// static rb::hist::New (Two-dimensional)                //
+//  rb::hist::New (Two-dimensional)                      //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 void rb::hist::New(const char* name, const char* title,
 		   Int_t nbinsx, Double_t xlow, Double_t xhigh,
@@ -152,7 +150,7 @@ void rb::hist::New(const char* name, const char* title,
 }
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-// static rb::hist::New (Three-dimensional)              //
+//  rb::hist::New (Three-dimensional)                    //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 void rb::hist::New(const char* name, const char* title,
 		   Int_t nbinsx, Double_t xlow, Double_t xhigh,
@@ -170,7 +168,7 @@ void rb::hist::New(const char* name, const char* title,
 }
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-// rb::Summaryhist::New()                                //
+// rb::hist::NewSummary()                                //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 void rb::hist::NewSummary(const char* name, const char* title,
 			  Int_t nbins, Double_t low, Double_t high,
@@ -219,7 +217,7 @@ void rb::hist::NewSummary(const char* name, const char* title,
 
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-// static rb::hist::NewGamma (One-dimensional)           //
+//  rb::hist::NewGamma (One-dimensional)                 //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 void rb::hist::NewGamma(const char* name, const char* title,
 			Int_t nbinsx, Double_t xlow, Double_t xhigh,
@@ -230,7 +228,7 @@ void rb::hist::NewGamma(const char* name, const char* title,
 }
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-// static rb::hist::NewGamma (Two-dimensional)           //
+//  rb::hist::NewGamma (Two-dimensional)                 //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 void rb::hist::NewGamma(const char* name, const char* title,
 			Int_t nbinsx, Double_t xlow, Double_t xhigh,

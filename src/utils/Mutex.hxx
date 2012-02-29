@@ -40,23 +40,35 @@ namespace rb
     ScopedMutex& operator= (const ScopedMutex& other) {}
   };
 
+  namespace { template <class M> M* get_mutex(M* mutex, Bool_t recursive) {
+    return mutex != 0 ? mutex : new M(recursive); }
+  }
   //! Class to lock a mutex upon construction and then unlock it upon destruction.
-  //! \tparam MutexType The type of mutex you want to use, must have a Lock() and UnLock()
+  //! \tparam M The type of mutex you want to use, must have a Lock() and UnLock()
   //! function otherwise you'll get a compile-time error.
-  template <class MutexType>
+  template <class M>
   class ScopedLock
   {
   private:
+    //! Is the mutex local (self created) or external?
+    const Bool_t kLocalMutex;
     //! Reference to the mutex you want to lock/unlock.
-    MutexType& fMutex;
+    M* const fMutex;
   public:
     //! Initialize & lock fMutex
-    ScopedLock(MutexType& mutex) : fMutex(mutex) {
-      fMutex.Lock();
+    ScopedLock(M& mutex) : kLocalMutex(false), fMutex(&mutex) {
+      fMutex->Lock();
+    }
+    //! Initialize & lock fMutex, from pointer
+    //! \note Passing NULL causes a local mutex to be created and used.
+    ScopedLock(M* mutex, Bool_t recursive = false) : kLocalMutex(!mutex), fMutex(get_mutex<M>(mutex, recursive)) {
+      fMutex->Lock();
     }
     //! Unlock fMutex
     ~ScopedLock() {
-      fMutex.UnLock();
+      fMutex->UnLock();
+      if(kLocalMutex)
+	delete fMutex;
     }
   private:
     //! Prevent copying
@@ -236,7 +248,6 @@ private:
 };
 
 #endif
-
 
 #endif
 

@@ -11,6 +11,8 @@
 /// Namespace wrapping the \c ROOTBEER objects and user functions.
 namespace rb
 {
+  class Hist;
+
   /// \brief Attach to an online data sorce.
   //! \details
   //! \todo Implement for NSCL data.
@@ -129,7 +131,7 @@ namespace rb
   namespace hist
   {
     /// One-dimensional creation function
-    extern void New(const char* name, const char* title,
+    extern rb::Hist* New(const char* name, const char* title,
 		    Int_t nbinsx, Double_t xlow, Double_t xhigh,
 		    const char* param, const char* gate = "", Int_t event_code = 1);
 
