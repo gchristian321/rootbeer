@@ -11,38 +11,7 @@
 #include "Hist.hxx"
 #include "utils/Mutex.hxx"
 
-typedef std::set<rb::Hist*> HistContainer_t;
 namespace rb { class Event; }
-//! Helper classes
-namespace event
-{
-  //! Helper classes related to histograms
-  namespace histogram
-  {
-    /// \brief Wraps a container of all histograms registered to this event type.
-    //! \details Also takes care of functions for Adding and Deleting histograms.
-    class Manager
-    {
-    private:
-      //! Container of pointers to histograms registered to this event type.
-      volatile HistContainer_t fSet;
-      //! Reference to Event::fMutex
-      rb::Mutex& fMutex;
-      //! Fill all histograms in fSet
-      void FillAll();
-      //! Set fMutex
-      Manager(rb::Mutex& fMutex);
-      //! Deletes all entries in fSet
-      ~Manager();
-    public:
-      //! Add a histogram to fSet
-      void Add(rb::Hist* hist);
-      //! Delete a histogram and remove from fSet
-      void Delete(rb::Hist* hist);
-      friend class rb::Event;
-    };
-  }
-}
 namespace rb
 {
   /// \brief Abstract base class for event processors.
@@ -53,24 +22,25 @@ namespace rb
     //! \warning This should always be the first data member declared since it is used in the destructor
     //! of other members.
     rb::Mutex fMutex;
-    //! TTree associated with this event type.
-    TFile fFile;
     volatile std::auto_ptr<TTree> fTree;
-  public:
+
     //! For histogram container management
-    event::histogram::Manager Hists;
+    hist::Manager fHistManager;
   protected:
     //! Initialize data members
     Event();
     //! Nothing to do in the base class, all data is self-destructing.
     virtual ~Event();
-  public:
+ 
+ public:
     rb::Mutex* GetMutex();
 #ifndef __MAKECINT__
     //! \brief Get a locked pointer to fTree
     CountedLockingPointer<TTree> GetTree();
 #endif
     TTree* GetTreeUnlocked();
+
+    hist::Manager* const GetHistManager() { return &fHistManager; }
 
     //! \brief Public interface for processing an event.
     //! \details The real work for actually doing something with the event data
@@ -107,37 +77,13 @@ namespace rb
 #ifndef __MAKECINT__
 namespace {
   struct HistFill { Int_t operator() (rb::Hist* const& hist) {
-    return hist->Fill();
+    return hist->FillUnlocked();
   } } fill_hist;
 }
-inline void event::histogram::Manager::FillAll() {
-  LockFreePointer<HistContainer_t> pSet(fSet);
-  std::for_each(pSet->begin(), pSet->end(), fill_hist);
-}
-inline event::histogram::Manager::Manager(rb::Mutex& mutex) : fMutex(mutex) {
-}
-namespace {
-  struct HistDelete { bool operator() (rb::Hist* const& hist) {
-    hist->Delete(); //    delete hist;
-  } } delete_hist;
-}
-inline event::histogram::Manager::~Manager() {
-  LockingPointer<HistContainer_t> pSet(fSet, fMutex);
-  std::for_each(pSet->begin(), pSet->end(), delete_hist);
-  pSet->clear();
-}
-inline void event::histogram::Manager::Add(rb::Hist* hist) {
-  LockingPointer<HistContainer_t> pSet(fSet, fMutex);
-  pSet->insert(hist);
-}
-inline void event::histogram::Manager::Delete(rb::Hist* hist) {
-  LockingPointer<HistContainer_t> pSet(fSet, fMutex);
-  HistDelete hd; hd(hist); // delete hist;
-  pSet->erase(hist);
-}
 inline rb::Event::Event() :
-  fMutex(false), Hists(fMutex), fFile("TEMP.root","recreate"),
-  fTree(new TTree("tree", "Rootbeer event tree")) {
+  fMutex(false),
+  fTree(new TTree("tree", "Rootbeer event tree")),
+  fHistManager(GetTreeUnlocked(), fMutex) {
   GetTree()->SetDirectory(0);
 }
 inline rb::Event::~Event() {
@@ -161,7 +107,7 @@ inline TTree* rb::Event::GetTreeUnlocked() {
 inline void rb::Event::Process(void* event_address, Int_t nchar) {
   ScopedLock<rb::Mutex> lock(fMutex);
   Bool_t success = DoProcess(event_address, nchar);
-  if(success) Hists.FillAll();
+  if(success) fHistManager.FillAll();
   else HandleBadEvent();
 }
 template <typename Derived> rb::Event*& rb::Event::Instance() {

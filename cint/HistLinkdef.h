@@ -10,6 +10,7 @@
  
 #pragma link C++ namespace rb;
 #pragma link C++ class rb::Hist+;
+#pragma link C++ class AxisIndices;
 /* #pragma link C++ class rb::SummaryHist+; */
 /* #pragma link C++ class rb::GammaHist+; */
 /* #pragma link C++ class rb::BitHist<1>+; */

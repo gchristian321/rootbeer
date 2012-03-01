@@ -34,19 +34,15 @@ void rb::Rint::Terminate(Int_t status) {
   rb::canvas::StopUpdate();
   rb::Unattach();
   //  gSystem->Sleep(0.5e3);
-  rb::Hist::DeleteAll();
   std::for_each(fEvents.begin(), fEvents.end(), event_destruct);
   TRint::Terminate(status);
 }
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-// Events_t rb::Rint::GetEvents()                        //
+// Events_t rb::Rint::GetEvent()                         //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-Events_t rb::Rint::GetEvents(Int_t code) {
-  Events_t events (0);
-  EventRange_t range = fEvents.equal_range(code);
-  EventMap_t::iterator it = range.first;
-  while(it != range.second) events.push_back((*it++).second);
-  return events;
+rb::Event* rb::Rint::GetEvent(Int_t code) {
+  EventMap_t::iterator itEvent = fEvents.find(code);
+  return itEvent != fEvents.end() ? itEvent->second : NULL;
 }
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // void rb::Rint::PrintLogo()                            //

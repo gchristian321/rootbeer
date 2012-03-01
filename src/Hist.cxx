@@ -41,8 +41,8 @@ namespace
   inline std::string initial_param_arg(Int_t ndimensions, rb::formula::HistWrapper& gate_par) {
     std::stringstream out;
     for(Int_t i = ndimensions-1; i > 0; --i)
-      out << gate_par.Get.OperateUnlocked(i) << ":"; // << NOTE: No Mutex Locking //
-    out << gate_par.Get.OperateUnlocked(0);
+      out << gate_par.Get(i) << ":";
+    out << gate_par.Get(0);
     return out.str();
   }
   /// Set default title
@@ -60,13 +60,6 @@ namespace
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-// Destuctor                                             //
-//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-rb::Hist::~Hist() {
-  rb::ScopedLock<rb::Mutex> lock(fMutex);
-  fDirectory->Remove(this);
-}
-//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // void rb::Hist::Init()                                 //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 void rb::Hist::Init(const char* name, const char* title,  const char* param, const char* gate) {
@@ -75,12 +68,16 @@ void rb::Hist::Init(const char* name, const char* title,  const char* param, con
   kDefaultTitle = default_title(fGateParams.Get(GATE).c_str(), param);
   kUseDefaultTitle = std::string(title).empty();
   fTitle = kUseDefaultTitle ? kDefaultTitle.c_str() : title;
+  visit::hist::DoMember(fHistVariant, &TH1::SetNameTitle, fName.Data(), fTitle.Data());
 
-  // Add to collections
-  ScopedLock<rb::Mutex> lock(fMutex);
+  // Add to ROOT container
   if(gDirectory) {
-    this->fDirectory = gDirectory;
-    this->fDirectory->Append(this, kTRUE);
+    fDirectory = gDirectory;  
+    fDirectory->Append(this, kTRUE);
+  }
+  else {
+    err::Warning("Hist::Init") << "gDirectory == 0; not adding to any ROOT collections.";
+    fDirectory = gDirectory;
   }
 }
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
@@ -92,50 +89,45 @@ Int_t rb::Hist::Regate(const char* newgate) {
 
   // Change title if appropriate
   if(kUseDefaultTitle) {
-    fTitle = default_title(fGateParams.Get(GATE).c_str(), // locks data mutex
-			   initial_param_arg(kDimensions, fGateParams).c_str()).c_str();
-    visit::hist::DoMember(&fMutex, fHistVariant, &TH1::SetTitle, fTitle.Data());
+    fTitle = default_title(fGateParams.Get(GATE).c_str(), initial_param_arg(kDimensions, fGateParams).c_str()).c_str();
+    visit::hist::DoMember(fHistVariant, &TH1::SetTitle, fTitle.Data());
   }
+  return 0;
 }
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // rb::Hist::GetHist()                                   //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 TH1* rb::Hist::GetHist() {
   hist::StopAddDirectory stop_add;
-  visit::hist::Clone::Do(&fMutex, fHistVariant, fHistogramClone);
+  visit::hist::Clone::Do(fHistVariant, fHistogramClone);
   return fHistogramClone.get();
 }
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-// rb::Hist::DoFill()                                    //
+// rb::Hist::DoFill() [virtual]                          //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-Int_t rb::Hist::DoFill(HistVariant& hst, boost::scoped_ptr<TTreeFormula>& gate, boost::scoped_ptr<TTreeFormula>* params) {
-  // if(!(bool)fGateParams.Eval(GATE)) return 0;
-  //  Double_t axes[3] = {0,0,0};
-  //  for(UInt_t u=0; u< kDimensions; ++u)
-  //    axes[u] = 
-  //  visit::hist::Fill::Do(0, hst, axes[0], axes[1], axes[2]);
+Int_t rb::Hist::DoFill(const std::vector<Double_t>& params, Double_t gate) {
+  if(!(Bool_t)gate) return 0;
+  visit::hist::Fill::Do(fHistVariant, params[0], params[1], params[2]);
 }
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-// static rb::Hist::DeleteAll                            //
+// rb::Hist::FillUnlocked()                              //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-void rb::Hist::DeleteAll() {
-  std::cerr << "Info in <rb::Hist::DeleteAll>: Calling...but it doesn't do anything!\n";
-  // rb::Mutex deleteMutex; // create a local mutex to avoid deadlock when calling delete
-  // LockingPointer<List_t> hlist(fgList(), deleteMutex);
-  //  while(1) {
-  //    if(hlist->size() == 0) break;
-  //    delete *hlist->begin();
-  //  }
+Int_t rb::Hist::FillUnlocked() {
+  std::vector<Double_t> axes(3,0);
+  for(UInt_t u=0; u< kDimensions; ++u)
+    axes[u] = fGateParams.Eval.OperateUnlocked(u); // Use OperateUnlocked(), no mutex locking
+  Double_t gate = fGateParams.Eval.OperateUnlocked(GATE); // Use OperateUnlocked(), no mutex locking
+  return DoFill(axes, gate);
 }
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-// rb::Hist::Fill()                                      //
+// rb::Hist::Fill() [locked data]                        //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 Int_t rb::Hist::Fill() {
-  if(!(bool)fGateParams.Eval.OperateUnlocked(GATE)) return 0;
-  Double_t axes[3] = {0,0,0};
+  std::vector<Double_t> axes(3,0);
   for(UInt_t u=0; u< kDimensions; ++u)
-    axes[u] = fGateParams.Eval.OperateUnlocked(u);
-  visit::hist::Fill::Do(0, fHistVariant, axes[0], axes[1], axes[2]);
+    axes[u] = fGateParams.Eval(u); // Use operator(), which locks the mutex
+  Double_t gate = fGateParams.Eval(GATE);  // Use operator(), which locks the mutex
+  return DoFill(axes, gate);
 }
 
 

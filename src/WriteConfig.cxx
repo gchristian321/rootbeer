@@ -7,6 +7,7 @@
 #include <TTimeStamp.h>
 #include <TCutG.h>
 #include "Rootbeer.hxx"
+#include "Rint.hxx"
 #include "Data.hxx"
 #include "Hist.hxx"
 using namespace std;
@@ -271,7 +272,9 @@ void rb::ReadConfig(const char* filename, Option_t* option) {
     ReadConfig(filename, "c");
   }
   else if(!opt.CompareTo("r")) {
-    rb::Hist::DeleteAll();
+    for(Int_t event = 0; event < rb::gApp()->NEvents(); ++event) {
+      rb::gApp()->GetEvent(event)->GetHistManager()->DeleteAll();
+    }
     TSeqCollection* primitives = gROOT->GetListOfSpecials();
     for(Int_t i=0; i< primitives->GetSize(); ++i) {
       TCutG* cut = dynamic_cast<TCutG*>(primitives->At(i));

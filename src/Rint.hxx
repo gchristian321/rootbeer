@@ -6,10 +6,7 @@
 #include "Event.hxx"
 
 
-typedef std::multimap<Int_t, rb::Event*> EventMap_t;
-typedef std::pair<EventMap_t::iterator, EventMap_t::iterator> EventRange_t;
-typedef std::vector<rb::Event*> Events_t;
-
+typedef std::map<Int_t, rb::Event*> EventMap_t;
 namespace rb
 {
   /// \brief Class that runs the interactive ROOT application.
@@ -23,10 +20,15 @@ namespace rb
     //! Map of all event processors, keyed by an integer code.
     EventMap_t fEvents;
   public:
-    //! Find all event processors with a specific code.
+    //! Find the event processors with a specific code.
     //! \param [in] code Event code you're searching for
-    //! \returns a vector containing a pointer to each event with code <i>code</i>.
-    Events_t GetEvents(Int_t code);
+    //! \returns a pointer to the event with code <i>code</i>. In the case of invalid code,
+    //!  return NULL
+    rb::Event* GetEvent(Int_t code);
+
+    //! Return the number of events total
+    Int_t NEvents() { return fEvents.size(); }
+
     /// \brief Constructor
     //! \details Just call the standard \c TRint constructor, plus set the prompt to be
     //! <tt>rootbeer [\%d]</tt>.
@@ -66,7 +68,6 @@ namespace rb
   namespace
   { // Cast of ROOT's global gApplication pointer into an rb::Rint
     inline Rint* gApp() { return static_cast<rb::Rint*>(gApplication); }
-    //    inline Rint* gApplication() { return static_cast<rb::Rint*>(::gApplication); }
   }
 } // namespace rb
 inline rb::Rint::~Rint() {

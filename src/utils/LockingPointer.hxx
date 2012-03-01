@@ -66,10 +66,35 @@ public:
 #endif
   }
 
+  //! Constructor (by reference and mutex pointer).
+  //! Set fObject and fMutex, lock fMutex. If the mutex argument is TTHREAD_GLOBAL_MUTEX,
+  //! Lock the TThread global mutex
+  LockingPointer(volatile T& object, rb::Mutex* mutex) :
+    fObject(const_cast<T*>(&object)), fMutex(mutex) {
+    if(fMutex) fMutex->Lock();
+    else TThread::Lock();
+#ifdef LOCKING_POINTER_VERBOSE
+    Info("LockingPointer", "Locking");
+#endif
+  }
+
+  //! Constructor (by pointer and mutex pointer).
+  //! Set fObject and fMutex, lock fMutex. If the mutex argument is TTHREAD_GLOBAL_MUTEX,
+  //! Lock the TThread global mutex
+  LockingPointer(volatile T* object, rb::Mutex* mutex) :
+    fObject(const_cast<T*>(object)), fMutex(mutex) {
+    if(fMutex) fMutex->Lock();
+    else TThread::Lock();
+#ifdef LOCKING_POINTER_VERBOSE
+    Info("LockingPointer", "Locking");
+#endif
+  }
+
   //! Destructor.
   //! Release the fMutex lock.
   ~LockingPointer() {
-    fMutex->UnLock();
+    if(fMutex) fMutex->UnLock();
+    else TThread::UnLock();
 #ifdef LOCKING_POINTER_VERBOSE
     Info("~LockingPointer", "UnLocking");
 #endif

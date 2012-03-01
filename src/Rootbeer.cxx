@@ -113,19 +113,14 @@ rb::Hist* rb::hist::New(const char* name, const char* title,
 			Int_t nbinsx, Double_t xlow, Double_t xhigh,
 			const char* param, const char* gate, Int_t event_code) {
   try {
-    Events_t events = gApp()->GetEvents(event_code);
-    if(events.size() == 0) {
+    rb::Event* event = gApp()->GetEvent(event_code);
+    if(event == 0) {
       std::stringstream error;
       error << "Invalid event code: " << event_code;
       std::invalid_argument exception(error.str().c_str());
       throw exception;
     }
-    // Events_t::iterator it = events.begin();
-    // while (it != events.end()) (*it++)->Hists.Add(hist);
-
-    TTree* pTree = events.at(0)->GetTreeUnlocked();
-    rb::Hist* hist = new rb::Hist(name, title, param, gate, pTree, events.at(0)->GetMutex(), nbinsx, xlow, xhigh);
-    events.at(0)->Hists.Add(hist);
+    rb::Hist* hist = event->GetHistManager()->Create<rb::Hist>(name, title, param, gate, nbinsx, xlow, xhigh);
     return hist;
   } catch (std::exception& e) {
     err::Error("rb::Hist::New") << e.what();

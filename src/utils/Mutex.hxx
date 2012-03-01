@@ -14,35 +14,9 @@
 #include <TError.h>
 #endif
 
-
+#define TTHREAD_GLOBAL_MUTEX 0
 namespace rb
 {
-  //! Wrapper for TMutex that acquires the lock on initialization and releases
-  //! it when going out of scope.
-  class ScopedMutex
-  {
-  private:
-    //! Internal ROOT mutex.
-    TMutex fMutex;
-  public:
-    //! Initialize & lock fMutex
-    ScopedMutex(Bool_t recursive = kFALSE) : fMutex(recursive) {
-      fMutex.Lock();
-    }
-    //! Unlock fMutex
-    ~ScopedMutex() {
-      fMutex.UnLock();
-    }
-  private:
-    //! Prevent copying
-    ScopedMutex(const ScopedMutex& other) {}
-    //! Prevent assignment
-    ScopedMutex& operator= (const ScopedMutex& other) {}
-  };
-
-  namespace { template <class M> M* get_mutex(M* mutex, Bool_t recursive) {
-    return mutex != 0 ? mutex : new M(recursive); }
-  }
   //! Class to lock a mutex upon construction and then unlock it upon destruction.
   //! \tparam M The type of mutex you want to use, must have a Lock() and UnLock()
   //! function otherwise you'll get a compile-time error.
@@ -50,25 +24,25 @@ namespace rb
   class ScopedLock
   {
   private:
-    //! Is the mutex local (self created) or external?
+    //! Are we locking a local mutex or the global TThread one?
     const Bool_t kLocalMutex;
     //! Reference to the mutex you want to lock/unlock.
-    M* const fMutex;
+    M& fMutex;
   public:
     //! Initialize & lock fMutex
-    ScopedLock(M& mutex) : kLocalMutex(false), fMutex(&mutex) {
-      fMutex->Lock();
+    ScopedLock(M& mutex): kLocalMutex(true), fMutex(mutex) {
+      fMutex.Lock();
     }
     //! Initialize & lock fMutex, from pointer
-    //! \note Passing NULL causes a local mutex to be created and used.
-    ScopedLock(M* mutex, Bool_t recursive = false) : kLocalMutex(!mutex), fMutex(get_mutex<M>(mutex, recursive)) {
-      fMutex->Lock();
+    //! \note Passing NULL (or TTHREAD_GLOBAL) means to use the TThread global mutex
+    ScopedLock(M* mutex): kLocalMutex(mutex != TTHREAD_GLOBAL_MUTEX), fMutex(*mutex) {
+    if(kLocalMutex) fMutex.Lock();
+    else TThread::Lock();
     }
     //! Unlock fMutex
     ~ScopedLock() {
-      fMutex->UnLock();
-      if(kLocalMutex)
-	delete fMutex;
+    if(kLocalMutex) fMutex.UnLock();
+    else TThread::UnLock();
     }
   private:
     //! Prevent copying

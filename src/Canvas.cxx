@@ -8,7 +8,9 @@
 #include "utils/Timer.hxx"
 #include "utils/Thread.hxx"
 #include "utils/LockingPointer.hxx"
+#include "utils/Error.hxx"
 
+#define RB_SCOPED_LOCK // rb::ScopedLock<rb::Mutex> lock (TTHREAD_GLOBAL_MUTEX); ///err::Info("Canvas") << "Locking: line " << __LINE__;
 
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
@@ -24,9 +26,6 @@ namespace
 
   /// The rate at which canvases are updated (in seconds).
   Int_t updateRate = 0;
-
-  /// Mutex for locking threded canvas operations.
-  rb::Mutex gMutex (kFALSE);
 
   /// Run the canvas updating in a separate thread.
   class CanvasUpdate : public rb::Thread
@@ -45,31 +44,41 @@ namespace
       rb::Timer t(fRate);
       while(rb::Thread::IsRunning(fName)) {
 	if(t.Check()) rb::canvas::UpdateAll();
+	// TCanvas * c1 = (TCanvas*)gROOT->GetListOfCanvases()->At(0);
+	// if(c1) {c1->Modified(); c1->Update(); }
       }
     }
   };
 
+  void send_update(TVirtualPad* pad) {
+    //    TThread::UnLock();
+    pad->Update();
+  }
+
   /// Update whatever histograms are on the current canvas/pad,
   /// including any sub-pads owned by this one.
   void UpdatePad(TVirtualPad* pad) {
+    //    TVirtualPad* pad = pad_;
+
+    RB_SCOPED_LOCK;
+
     std::string type = pad->ClassName();
     pad = dynamic_cast<TPad*>(pad);
-    if(!pad) Error("UpdatePad", "Passed an invalid type, %s.", type.c_str());
+    if(!pad) { Error("UpdatePad", "Passed an invalid type, %s.", type.c_str()); return; }
 
-    gMutex.Lock();
     pad->cd();
     TList* primitives = pad->GetListOfPrimitives();
-    gMutex.UnLock();
-
     for(Int_t i=0; i< primitives->GetEntries(); ++i) {
       TVirtualPad* subpad = dynamic_cast<TVirtualPad*>(primitives->At(i));
-      if(subpad) UpdatePad(subpad);
+      if(subpad) {
+	// pad = subpad;
+	// goto start;
+	err::Info("UpdatePad") <<  " recursing";
+	UpdatePad(subpad);
+      }
     }
-
-    gMutex.Lock();
     pad->Modified();
-    pad->Update();
-    gMutex.UnLock();
+    send_update(pad);
   }
 
   /// Clear whatever histograms are on the current canvas/pad,
@@ -77,12 +86,11 @@ namespace
   void ClearPad(TVirtualPad* pad) {
     std::string type = pad->ClassName();
     pad = dynamic_cast<TPad*>(pad);
-    if(!pad) Error("UpdatePad", "Passed an invalid type, %s.", type.c_str());
+    if(!pad) { Error("ClearPad", "Passed an invalid type, %s.", type.c_str()); return; }
 
-    gMutex.Lock();
+    RB_SCOPED_LOCK
     pad->cd();
     TList* primitives = pad->GetListOfPrimitives();
-    gMutex.UnLock();
 
     for(Int_t i=0; i< primitives->GetEntries(); ++i) {
       TVirtualPad* subpad = dynamic_cast<TVirtualPad*>(primitives->At(i));
@@ -90,6 +98,8 @@ namespace
     }
     rb::canvas::ClearCurrent();
   }
+
+
 } // namespace
 
 
@@ -101,12 +111,11 @@ namespace
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 
 void rb::canvas::UpdateCurrent() {
-  gMutex.Lock();
+  RB_SCOPED_LOCK
   if(gPad) {
     gPad->Modified();
-    gPad->Update();
+    send_update(gPad);
   }
-  gMutex.UnLock();
 }
 
 void rb::canvas::UpdateAll() {
@@ -116,9 +125,8 @@ void rb::canvas::UpdateAll() {
     pad = dynamic_cast<TPad*>(gROOT->GetListOfCanvases()->At(i));
     if(pad) UpdatePad(pad);
   }
-  gMutex.Lock();
+  RB_SCOPED_LOCK
   if(pInitial) pInitial->cd();
-  gMutex.UnLock();
 }
 
 Int_t rb::canvas::StopUpdate() {
@@ -147,7 +155,7 @@ Int_t rb::canvas::GetUpdateRate() {
 }
 
 void rb::canvas::ClearCurrent() {
-  gMutex.Lock();
+  RB_SCOPED_LOCK
   if(gPad) {
     for(Int_t i = 0; i < gPad->GetListOfPrimitives()->GetEntries(); ++i) {
       TH1* hst = dynamic_cast<TH1*> (gPad->GetListOfPrimitives()->At(i));
@@ -156,10 +164,9 @@ void rb::canvas::ClearCurrent() {
 	for(UInt_t p = 0; p < hstd->fN; ++p) hstd->fArray[p] = 0.;
       }
       gPad->Modified();
-      gPad->Update();
+      send_update(gPad);
     }
   }
-  gMutex.UnLock();
 }
 
 void rb::canvas::ClearAll() {
@@ -169,7 +176,8 @@ void rb::canvas::ClearAll() {
     pad = dynamic_cast<TPad*>(gROOT->GetListOfCanvases()->At(i));
     if(pad) ClearPad(pad);
   }
-  gMutex.Lock();
+  RB_SCOPED_LOCK
   if(pInitial) pInitial->cd();
-  gMutex.UnLock();
 }
+
+#undef RB_SCOPED_LOCK

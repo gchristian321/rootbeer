@@ -9,6 +9,7 @@
 #include <sstream>
 #include <vector>
 #include <bitset>
+#include <set>
 #include <TFile.h>
 #include <TTree.h>
 #include <TTreeFormula.h>
@@ -20,17 +21,81 @@
 #include "Formula.hxx"
 #include "Visitor.hxx"
 
+
+
 namespace rb
 {
+  class Hist;
   namespace hist
   {
+    typedef std::set<rb::Hist*> Container_t;
     struct StopAddDirectory
     {
       StopAddDirectory() { TH1::AddDirectory(false); }
       void BackOn() { TH1::AddDirectory(true); }
       ~StopAddDirectory() { BackOn(); }
     };
+    struct LockOnConstruction
+    {
+      Bool_t kIsLocked;
+      LockOnConstruction(): kIsLocked(true) { TThread::Lock(); }
+      void Unlock() { TThread::UnLock(); kIsLocked = false; }
+      ~LockOnConstruction() { if(kIsLocked) TThread::UnLock(); }
+    };
+
+    /// \brief Wraps a container of all histograms registered to this event type.
+    //! \details Also takes care of functions for Adding and Deleting histograms.
+    class Manager
+    {
+    public: ////    private:
+      //! Reference to Event::fMutex
+      rb::Mutex& fMutex;
+      TTree* fTree;
+      //! Container of pointers to histograms registered to this event type.
+      volatile Container_t fSet;
+      //! Fill all histograms in fSet
+      void FillAll();
+      //! Add a histogram to fSet
+      void Add(rb::Hist* hist);
+    public:
+      //! Set fMutex
+      Manager(TTree* tree, rb::Mutex& fMutex);
+      //! Deletes all entries in fSet
+      ~Manager();
+      //! Create a new 1d histogram and add to fSet
+      template<typename T>
+      rb::Hist* Create(const char* name, const char* title, const char* param, const char* gate, 
+		  Int_t nbinsx, Double_t xlow, Double_t xhigh) {
+	rb::Hist* hist =
+	  new T(name, title, param, gate, this, nbinsx, xlow, xhigh);
+	Add(hist);
+      }
+      //! Create a new 2d histogram and add to fSet
+      template<typename T>
+      rb::Hist* Create(const char* name, const char* title, const char* param, const char* gate, 
+		  Int_t nbinsx, Double_t xlow, Double_t xhigh,
+		  Int_t nbinsy, Double_t ylow, Double_t yhigh) {
+	rb::Hist* hist =
+	  new T(name, title, param, gate, this, nbinsx, xlow, xhigh, nbinsy, ylow, yhigh);
+	Add(hist);
+      }
+      //! Create a new 3d histogram and add to fSet
+      template<typename T>
+      rb::Hist* Create(const char* name, const char* title, const char* param, const char* gate, 
+		  Int_t nbinsx, Double_t xlow, Double_t xhigh,
+		  Int_t nbinsy, Double_t ylow, Double_t yhigh,
+		  Int_t nbinsz, Double_t zlow, Double_t zhigh) {
+	rb::Hist* hist =
+	  new T(name, title, param, gate, this, nbinsx, xlow, xhigh, nbinsy, ylow, yhigh, nbinsz, zlow, zhigh);
+	Add(hist);
+      }
+      //! Remove a histogram and from fSet
+      void Remove(rb::Hist* hist);
+      //! Delete all histogram instances
+      void DeleteAll();
+    };
   }
+
 
   /// Rootbeer Histogram class.
 
@@ -47,11 +112,14 @@ namespace rb
   //! the wrapped TH1* to the right type in the constructor.
   class Hist : public TNamed
   {
+    /// Locks a mutex before be get to TH1D creation in the constructor
+    hist::LockOnConstruction fLockOnConstruction;
     /// Stops addition of local histogram to gDirectory
     hist::StopAddDirectory fStopAdd;
+
   protected:
-    /// Mutex, protects histogram internals
-    rb::Mutex fMutex;
+    /// The histogram manager responsible for this instance
+    hist::Manager* const fManager;
     /// Number of dimensions (axes).
     const UInt_t kDimensions;
     /// Default title, set from the parameters and gate condition.
@@ -71,49 +139,58 @@ namespace rb
     //! a copy of fHistogram (created within a mutex lock), we ensure that there will never be any
     //! conflicts between the main thread and others that can modify the internal histogram.
     boost::scoped_ptr<TH1> fHistogramClone;
-  public:
+
     /// Constructor (1d)
-    Hist(const char* name, const char* title, const char* param, const char* gate, 
-	 TTree* const tree, rb::Mutex* const data_mutex,
+    Hist(const char* name, const char* title, const char* param, const char* gate,
+	 hist::Manager* manager,
 	 Int_t nbinsx, Double_t xlow, Double_t xhigh) :
-      fMutex(false), kDimensions(1), fHistogramClone(0),
-      fGateParams(tree, data_mutex, 1, param, gate),
+      kDimensions(1), fHistogramClone(0), fManager(manager),
+      fGateParams(fManager->fTree, &fManager->fMutex, 1, param, gate),
       fHistVariant(TH1D(name, title, nbinsx, xlow, xhigh)) {
       Init(name, title, param, gate);
+      fLockOnConstruction.Unlock();
     }
     /// Constructor (2d)
     Hist(const char* name, const char* title, const char* param, const char* gate, 
-	 TTree* const tree, rb::Mutex* const data_mutex,
+	 hist::Manager* manager,
 	 Int_t nbinsx, Double_t xlow, Double_t xhigh,
 	 Int_t nbinsy, Double_t ylow, Double_t yhigh) :
-      fMutex(false), kDimensions(2), fHistogramClone(0),
-      fGateParams(tree, data_mutex, 2, param, gate),
+      kDimensions(2), fHistogramClone(0), fManager(manager),
+      fGateParams(fManager->fTree, &fManager->fMutex, 2, param, gate),
       fHistVariant(TH2D(name, title, nbinsx, xlow, xhigh, nbinsy, ylow, yhigh)) {
       Init(name, title, param, gate);
+      fLockOnConstruction.Unlock();
     }
     /// Constructor (3d)
     Hist(const char* name, const char* title, const char* param, const char* gate, 
-	 TTree* const tree, rb::Mutex* const data_mutex,
+	 hist::Manager* manager,
 	 Int_t nbinsx, Double_t xlow, Double_t xhigh,
 	 Int_t nbinsy, Double_t ylow, Double_t yhigh,
 	 Int_t nbinsz, Double_t zlow, Double_t zhigh) :
-      fMutex(false), kDimensions(3), fHistogramClone(0),
-      fGateParams(tree, data_mutex, 3, param, gate),
+      kDimensions(3), fHistogramClone(0), fManager(manager),
+      fGateParams(fManager->fTree, &fManager->fMutex, 3, param, gate),
       fHistVariant(TH3D(name, title, nbinsx, xlow, xhigh, nbinsy, ylow, yhigh, nbinsz, zlow, zhigh)) {
       Init(name, title, param, gate);
+      fLockOnConstruction.Unlock();
     }
+  public:
     /// Default constructor.
     //! Does nothing, just here to make rootcint happy.
-    Hist() : kDimensions(0) {}
+    Hist() : kDimensions(0), fManager(0) {}
 
-    void Delete(Option_t* option = "") { delete this; }
-  protected:
-    /// Destructor
-    //! Free resorces allocted to TTreeFormulae, remove this from fgList.
-    virtual ~Hist();
+  private:
+    /// Destruction function, acts like a normal dstructor
+    virtual void Destruct() {}
+
   public:
-    /// Deletes all entries of \c Hist::fgList
-    static void DeleteAll();
+    /// Destructor
+    /// \warning Derived classes should not implement a destructor. If additional
+    /// memory de-allocation is needed in addition to what's done here, they should
+    /// instead override the virtual Destruct() member function.
+    virtual ~Hist() {
+      fManager->Remove(this); // locks TTHREAD_GLOBAL_MUTEX while running
+      Destruct();
+    }
 
     /// Function to change the histogram gate.
     //! Updates \c fGate to reflect the new gate formula. Returns 0 if successful,
@@ -122,7 +199,15 @@ namespace rb
     virtual Int_t Regate(const char* newgate);
 
     /// Fill the histogram from its internal parameter value(s).
+    //! \note This function locks the mutex passed to the histogram in the constructor
+    //! (the mutex which protects the data).  If you are calling from an already locked
+    //! section of code, use FillUnlocked() instead.
     Int_t Fill();
+
+#ifndef __MAKECINT__
+    /// Unlocked version of Fill().
+    Int_t FillUnlocked();
+#endif
 
     /// Returns a copy of fHistogram.
     //! This is so that users can get access to the histogram data in CINT, thus allowing higher-order analysis
@@ -132,7 +217,7 @@ namespace rb
     TH1* GetHist();
 
     /// Clear function, zeros-out all axes of the internal histogram
-    virtual void Clear() { visit::hist::Clear::Do(&fMutex, fHistVariant); }
+    virtual void Clear() { visit::hist::Clear::Do(fHistVariant); }
 
     /// Return the number of dimensions.
     UInt_t GetNdimensions() { return kDimensions; }
@@ -148,15 +233,15 @@ namespace rb
     //! \Note that this draws fHistogram directly, not a copy (to that it can still continue to be auto-updated
     //! by the rb::canvas functions).
     void Draw(Option_t* option = "") {
-      visit::hist::DoMember(&fMutex, fHistVariant, &TH1::Draw, option);
+      visit::hist::DoMember(fHistVariant, &TH1::Draw, option);
     }
     /// Set line color.
     void SetLineColor(Color_t lcolor) {
-      visit::hist::DoMember(&fMutex, fHistVariant, &TH1::SetLineColor, lcolor);
+      visit::hist::DoMember(fHistVariant, &TH1::SetLineColor, lcolor);
     }
     /// Set marker color.
     void SetMarkerColor(Color_t mcolor) {
-      visit::hist::DoMember(&fMutex, fHistVariant, &TH1::SetMarkerColor, mcolor);
+      visit::hist::DoMember(fHistVariant, &TH1::SetMarkerColor, mcolor);
     }
     // ******************************* //
   private:
@@ -165,14 +250,48 @@ namespace rb
     /// Prevent assigmnent
     Hist& operator= (const Hist& other) {}
     /// Prevent copying
-    Hist(const Hist& other) : kDimensions(other.kDimensions) {}
+    Hist(const Hist& other) : kDimensions(other.kDimensions), fManager(other.fManager) {}
     /// Internal function to fill the histogram.
     //! Called from the public Fill() and FillAll(), does not do any mutex locking,
     //! instead relies on being passed already locked components.
-    virtual Int_t DoFill(HistVariant& hst, boost::scoped_ptr<TTreeFormula>& gate, boost::scoped_ptr<TTreeFormula>* params);
+    virtual Int_t DoFill(const std::vector<Double_t>& params, Double_t gate);
   public:
+    friend class rb::hist::Manager;
     ClassDef(Hist, 0);
   };
+
+  namespace {
+    struct HistFill { Int_t operator() (rb::Hist* const& hist) {
+      return hist->FillUnlocked();
+    } } fill_hist;
+  }
+  inline void hist::Manager::FillAll() {
+    LockingPointer<hist::Container_t> pSet(fSet, TTHREAD_GLOBAL_MUTEX);
+    std::for_each(pSet->begin(), pSet->end(), fill_hist);
+  }
+  inline hist::Manager::Manager(TTree* tree, rb::Mutex& mutex) : fTree(tree), fMutex(mutex) {
+  }
+  inline hist::Manager::~Manager() {
+    DeleteAll();
+  }
+  inline void hist::Manager::DeleteAll() {
+    LockingPointer<hist::Container_t> pSet(fSet, TTHREAD_GLOBAL_MUTEX);
+    Int_t nhists = pSet->size();
+    std::vector<rb::Hist*> addresses(pSet->begin(), pSet->end());
+    for(Int_t i=0; i< nhists; ++i) delete addresses[i]; // removes from pSet
+  }
+  inline void hist::Manager::Add(rb::Hist* hist) {
+    LockingPointer<hist::Container_t> pSet(fSet, TTHREAD_GLOBAL_MUTEX);
+    pSet->insert(hist);
+  }
+  inline void hist::Manager::Remove(rb::Hist* hist) {
+    LockingPointer<hist::Container_t> pSet(fSet, TTHREAD_GLOBAL_MUTEX);
+    pSet->erase(hist);
+    TDirectory* directory = hist->fDirectory;
+    if(directory) directory->Remove(hist);
+  }
+
+
 
 
 } // namespace rb
