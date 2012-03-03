@@ -1,7 +1,6 @@
 //! \file Rint.cxx
 //! \brief Implements Rint.hxx
 #include "Rint.hxx"
-#include "Hist.hxx"
 #include "Rootbeer.hxx"
 
 
@@ -23,18 +22,15 @@ rb::Rint::Rint(const char* appClassName, int* argc, char** argv,
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // void rb::Rint::Terminate()                            //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-// Helper class for event destruction //
-namespace { struct EventDestructor {
-  bool operator() (const std::pair<Int_t, rb::Event*>& element) {
-    rb::Event* event = element.second;
-    rb::Event::Destruct(event);
-  } } event_destruct;
-}
 void rb::Rint::Terminate(Int_t status) {
   rb::canvas::StopUpdate();
   rb::Unattach();
   //  gSystem->Sleep(0.5e3);
-  std::for_each(fEvents.begin(), fEvents.end(), event_destruct);
+  EventMap_t::iterator it;
+  for(it = fEvents.begin(); it != fEvents.end(); ++it) {
+    rb::Event* event = it->second;
+    rb::Event::Destructor::Operate(event);
+  }
   TRint::Terminate(status);
 }
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//

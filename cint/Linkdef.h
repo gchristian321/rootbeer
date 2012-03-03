@@ -14,6 +14,13 @@
 #pragma link C++ namespace rb::canvas;
 #pragma link C++ class rb::Rint+;
 
+#pragma link C++ class rb::hist::Base+;
+#pragma link C++ class rb::hist::D1+;
+#pragma link C++ class rb::hist::D2+;
+#pragma link C++ class rb::hist::D3+;
+#pragma link C++ class AxisIndices;
+
+
 #pragma link C++ defined_in "user/User.hxx";
 
 #include "../user/UserLinkdef.h"

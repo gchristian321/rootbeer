@@ -19,10 +19,6 @@ namespace rb
     const Int_t kDummy;
 
   protected:
-    //! References to the rb::data::Wrapper objects in rb::Rint::Globals.
-// #define RB_REFERENCE_DECLARE
-// #include "rb_import_data.h"
-
     //! Initializes refeerences to rb::data::Wrapper objects in rb::Rint (gApplication).
     BufferSource();
   public:

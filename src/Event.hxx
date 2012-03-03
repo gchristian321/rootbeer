@@ -7,40 +7,43 @@
 #include <string>
 #include <sstream>
 #include <iostream>
+#include <typeinfo>
 #include <algorithm>
-#include "Hist.hxx"
-#include "utils/Mutex.hxx"
+#include <TClass.h>
+#include <TTree.h>
+#include <TTreeFormula.h>
+#include "hist/Manager.hxx"
+#include "utils/LockingPointer.hxx"
+#include "utils/Error.hxx"
+#include "utils/nocopy.h"
+#ifndef __MAKECINT__
+#include "boost/scoped_ptr.hpp"
+#else
+namespace boost { template <class T> class scoped_ptr; }
+#endif
 
-namespace rb { class Event; }
+
 namespace rb
 {
+  typedef boost::scoped_ptr<volatile TTreeFormula> FormulaPtr_t;
+
+  class Rint;
+  class TreeFormulae;
+  namespace data { template <class T> class Wrapper; }
+
   /// \brief Abstract base class for event processors.
   class Event
   {
+    RB_NOCOPY(Event);
   private:
-    //! Mutex to protect access to critical elements.
-    //! \warning This should always be the first data member declared since it is used in the destructor
-    //! of other members.
-    rb::Mutex fMutex;
-    volatile std::auto_ptr<TTree> fTree;
+    boost::scoped_ptr<volatile TTree> fTree;
 
-    //! For histogram container management
+    //! Manages histograms associated with the event
     hist::Manager fHistManager;
-  protected:
-    //! Initialize data members
-    Event();
-    //! Nothing to do in the base class, all data is self-destructing.
-    virtual ~Event();
- 
- public:
-    rb::Mutex* GetMutex();
-#ifndef __MAKECINT__
-    //! \brief Get a locked pointer to fTree
-    CountedLockingPointer<TTree> GetTree();
-#endif
-    TTree* GetTreeUnlocked();
 
-    hist::Manager* const GetHistManager() { return &fHistManager; }
+  public:
+    //! Return a pointer to fHistManager
+    hist::Manager* const GetHistManager();
 
     //! \brief Public interface for processing an event.
     //! \details The real work for actually doing something with the event data
@@ -57,8 +60,11 @@ namespace rb
     //! \returns Pointer to the single instance of <i>Derived</i>
     template <typename Derived> static Event*& Instance();
 
-    //! Call the destructor on an instance of Event and set the pointer to zero. 
-    static void Destruct(Event*& event);
+  protected:
+    //! Initialize data members
+    Event();
+    //! Nothing to do in the base class, all data is self-destructing.
+    virtual ~Event();
 
   private:
     //! \brief Does the work of processing an event.
@@ -71,49 +77,91 @@ namespace rb
     //! \details Users may want/need to handle bad events differently, e.g. by throwing an exception,
     //!  printing/logging an error message, aborting the program, etc. Since this is pure virtual, they get to choose.
     virtual void HandleBadEvent() = 0;
+
+  public:
+    /// Adds a branch to the event tree.
+    class BranchAdd
+    {
+      /// Perform the branch adding
+      //! \returns true upon successful branch creation, false otherwise
+      template <class T>
+      static Bool_t Operate(rb::Event* const event, const char* name, T* object, Int_t bufsize, Int_t splitlevel);
+    
+      /// Give access to rb::data::Wrapper
+      template <class T> friend class rb::data::Wrapper;
+    };
+
+    /// Deletes an event and sets the pointer to NULL.
+    class Destructor
+    {
+      /// Perform the destruction
+      static void Operate(rb::Event*& event);
+
+      /// Give access to rb::Rint (called from Terminate())
+      friend class rb::Rint;
+      friend class Event;
+    };
+
+    /// Initialize a TTreeFormula
+    class InitFormula
+    {
+      /// Perform the initialization
+      //! \param [in] formula_arg String specifying the formula argument
+      //! \param [out] ttf The smart pointer to the TTreeFormula you want to initialize
+      static Bool_t Operate(rb::Event* const event, const char* formula_arg, FormulaPtr_t& ttf);
+
+      /// Give access to rb::TreeFormulae
+      friend class rb::TreeFormulae;
+    };
+
+#ifndef __MAKECINT__
+    friend void Destructor::Operate(Event*&);
+    friend Bool_t InitFormula::Operate(Event* const, const char*, FormulaPtr_t&);
+    template <class T> friend Bool_t BranchAdd::Operate(Event* const, const char*, T*, Int_t, Int_t);
+#endif
   };
 } // namespace rb
 
+
+
 #ifndef __MAKECINT__
-namespace {
-  struct HistFill { Int_t operator() (rb::Hist* const& hist) {
-    return hist->FillUnlocked();
-  } } fill_hist;
-}
-inline rb::Event::Event() :
-  fMutex(false),
-  fTree(new TTree("tree", "Rootbeer event tree")),
-  fHistManager(GetTreeUnlocked(), fMutex) {
-  GetTree()->SetDirectory(0);
-}
+
+// ======== Inlined Function Implementations ========= //
+
 inline rb::Event::~Event() {
 }
-inline void rb::Event::Destruct(Event*& event) {
+
+inline rb::hist::Manager* const rb::Event::GetHistManager() {
+  return &fHistManager;
+}
+
+inline void rb::Event::Destructor::Operate(rb::Event*& event) {
   delete event;
   event = 0;
 }
-inline rb::Mutex* rb::Event::GetMutex() {
-  return &fMutex;
-}
-inline CountedLockingPointer<TTree> rb::Event::GetTree() {
-  volatile TTree* tree = LockFreePointer<std::auto_ptr<TTree> >(fTree)->get();
-  CountedLockingPointer<TTree> p_tree(tree, &fMutex);
-  return p_tree;
-}
-inline TTree* rb::Event::GetTreeUnlocked() {
-  TTree* tree = LockFreePointer<std::auto_ptr<TTree> >(fTree)->get();
-  return tree;
-}
-inline void rb::Event::Process(void* event_address, Int_t nchar) {
-  ScopedLock<rb::Mutex> lock(fMutex);
-  Bool_t success = DoProcess(event_address, nchar);
-  if(success) fHistManager.FillAll();
-  else HandleBadEvent();
-}
+
 template <typename Derived> rb::Event*& rb::Event::Instance() {
   static Event* event = 0;
   if(!event) event = new Derived();
   return event;  
+}
+
+template <class T>
+Bool_t rb::Event::BranchAdd::Operate(rb::Event* const event, const char* name, T* object, Int_t bufsize, Int_t splitlevel) {
+  void * address = reinterpret_cast<void*> (object);
+  if(!address) {
+    err::Error("Event::AddBranch") << "Passed a null pointer to an object";
+    return false;
+  }
+  TClass* cl = TClass::GetClass(typeid(*object));
+  if(!cl) {
+    err::Error("Event::AddBranch") << "Invalid class for template argument (typeid string: "
+				   << typeid(object).name() << ")";
+    return false;
+  }
+  TBranch* branch =
+    LockingPointer<TTree>(event->fTree.get(), gDataMutex)->Branch(name, cl->GetName(), &address, bufsize, splitlevel);
+  return branch != 0;
 }
 #endif
 

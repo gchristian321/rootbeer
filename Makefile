@@ -48,63 +48,79 @@ COMPILE= g++ $(CXXFLAGS) $(ROOTGLIBS) $(RPATH)
 #### MAIN PROGRAM ####
 all: rootbeer
 
-rootbeer: $(RBLIB)/libRBHist.so $(RBLIB)/libRootbeer.so $(SRC)/main.cc 
+rootbeer: $(RBLIB)/libRootbeer.so $(SRC)/main.cc 
 	$(COMPILE) -lRootbeer $(MIDASLIBS) $(SRC)/main.cc -o rootbeer
 
 
 #### ROOTBEER LIBRARY ####
-OBJECTS=$(OBJ)/midas/TMidasEvent.o $(OBJ)/midas/TMidasFile.o $(MIDASONLINE) \
-$(OBJ)/Data.o $(OBJ)/Buffer.o $(OBJ)/User.o $(OBJ)/Canvas.o $(OBJ)/WriteConfig.o \
-$(OBJ)/Rint.o $(OBJ)/Rootbeer.o
+OBJECTS=$(OBJ)/Hist.o $(OBJ)/Formula.o $(OBJ)/Manager.o $(OBJ)/midas/TMidasEvent.o $(OBJ)/midas/TMidasFile.o $(MIDASONLINE) \
+$(OBJ)/Data.o $(OBJ)/Event.o $(OBJ)/Buffer.o $(OBJ)/User.o $(OBJ)/Canvas.o $(OBJ)/WriteConfig.o \
+$(OBJ)/Rint.o $(OBJ)/Rootbeer.o 
 
-HEADERS=$(SRC)/Rootbeer.hxx $(SRC)/Rint.hxx $(SRC)/Data.hxx $(SRC)/Buffer.hxx $(SRC)/Event.hxx $(USER)/User.hxx\
-$(SRC)/midas/*.h $(SRC)/utils/*.h* $(USER_HEADERS)
+HEADERS=$(SRC)/Rootbeer.hxx $(SRC)/Rint.hxx $(SRC)/Data.hxx $(SRC)/Buffer.hxx $(SRC)/Event.hxx $(USER)/User.hxx \
+$(SRC)/hist/Hist.hxx $(SRC)/Formula.hxx $(SRC)/utils/LockingPointer.hxx $(SRC)/utils/Mutex.hxx $(SRC)/hist/Visitor.hxx \
+$(SRC)/hist/Manager.hxx $(SRC)/midas/*.h $(SRC)/utils/*.h* $(USER_HEADERS)
 
 
-$(RBLIB)/libRootbeer.so: $(RBLIB)/libRBHist.so $(CINT)/RBDictionary.cxx $(USER_SOURCES) $(OBJECTS)
-	$(COMPILE) $(DYLIB) $(FPIC) -o $@ -lRBHist $(MIDASLIBS) $(OBJECTS) $(MOBJ) \
+$(RBLIB)/libRootbeer.so: $(CINT)/RBDictionary.cxx $(USER_SOURCES) $(OBJECTS)
+	$(COMPILE) $(DYLIB) $(FPIC) -o $@ $(MIDASLIBS) $(OBJECTS) $(MOBJ) \
 -p $(CINT)/RBDictionary.cxx $(USER_SOURCES) \
 
-$(OBJ)/Rootbeer.o: $(CINT)/HistDictionary.cxx $(CINT)/RBDictionary.cxx $(SRC)/Rootbeer.cxx
+$(OBJ)/Rootbeer.o: $(CINT)/RBDictionary.cxx $(SRC)/Rootbeer.cxx
 	$(COMPILE) $(FPIC) -c \
 -o $@  -p $(SRC)/Rootbeer.cxx \
 
-$(OBJ)/Rint.o: $(CINT)/HistDictionary.cxx $(CINT)/RBDictionary.cxx $(SRC)/Rint.cxx
+$(OBJ)/Rint.o: $(CINT)/RBDictionary.cxx $(SRC)/Rint.cxx
 	$(COMPILE) $(FPIC) -c \
 -o $@  -p $(SRC)/Rint.cxx \
 
-$(OBJ)/WriteConfig.o: $(CINT)/HistDictionary.cxx $(CINT)/RBDictionary.cxx $(SRC)/WriteConfig.cxx
+$(OBJ)/WriteConfig.o: $(CINT)/RBDictionary.cxx $(SRC)/WriteConfig.cxx
 	$(COMPILE) $(FPIC) -c \
 -o $@  -p $(SRC)/WriteConfig.cxx \
 
-$(OBJ)/Canvas.o: $(CINT)/HistDictionary.cxx $(CINT)/RBDictionary.cxx $(SRC)/Canvas.cxx
+$(OBJ)/Canvas.o: $(CINT)/RBDictionary.cxx $(SRC)/Canvas.cxx
 	$(COMPILE) $(FPIC) -c \
 -o $@  -p $(SRC)/Canvas.cxx \
 
-$(OBJ)/User.o: $(CINT)/HistDictionary.cxx $(CINT)/RBDictionary.cxx $(USER)/User.cxx
+$(OBJ)/User.o: $(CINT)/RBDictionary.cxx $(USER)/User.cxx
 	$(COMPILE) $(FPIC) -c \
 -o $@  -p $(USER)/User.cxx \
 
-$(OBJ)/Buffer.o: $(CINT)/HistDictionary.cxx $(CINT)/RBDictionary.cxx $(SRC)/Buffer.cxx
+$(OBJ)/Buffer.o: $(CINT)/RBDictionary.cxx $(SRC)/Buffer.cxx
 	$(COMPILE) $(FPIC) -c \
 -o $@  -p $(SRC)/Buffer.cxx \
 
-$(OBJ)/Data.o: $(CINT)/HistDictionary.cxx $(CINT)/RBDictionary.cxx $(SRC)/Data.cxx
+$(OBJ)/Event.o: $(CINT)/RBDictionary.cxx $(SRC)/Event.cxx
+	$(COMPILE) $(FPIC) -c \
+-o $@  -p $(SRC)/Event.cxx \
+
+$(OBJ)/Data.o: $(CINT)/RBDictionary.cxx $(SRC)/Data.cxx
 	$(COMPILE) $(FPIC) -c \
 -o $@  -p $(SRC)/Data.cxx \
 
-$(OBJ)/midas/TMidasFile.o: $(CINT)/HistDictionary.cxx $(CINT)/RBDictionary.cxx $(SRC)/midas/TMidasFile.cxx
+$(OBJ)/midas/TMidasFile.o: $(CINT)/RBDictionary.cxx $(SRC)/midas/TMidasFile.cxx
 	$(COMPILE) $(FPIC) -c \
 -o $@  -p $(SRC)/midas/TMidasFile.cxx \
 
-$(OBJ)/midas/TMidasEvent.o: $(CINT)/HistDictionary.cxx $(CINT)/RBDictionary.cxx $(SRC)/midas/TMidasEvent.cxx
+$(OBJ)/midas/TMidasEvent.o: $(CINT)/RBDictionary.cxx $(SRC)/midas/TMidasEvent.cxx
 	$(COMPILE) $(FPIC) -c \
 -o $@  -p $(SRC)/midas/TMidasEvent.cxx \
 
-$(OBJ)/midas/TMidasOnline.o: $(CINT)/HistDictionary.cxx $(CINT)/RBDictionary.cxx $(SRC)/midas/TMidasOnline.cxx
+$(OBJ)/midas/TMidasOnline.o: $(CINT)/RBDictionary.cxx $(SRC)/midas/TMidasOnline.cxx
 	$(COMPILE) $(FPIC) -c \
 -o $@  -p $(SRC)/midas/TMidasOnline.cxx \
 
+$(OBJ)/Hist.o: $(CINT)/RBDictionary.cxx $(SRC)/hist/Hist.cxx
+	$(COMPILE) $(FPIC) -c \
+-o $@  -p $(SRC)/hist/Hist.cxx \
+
+$(OBJ)/Manager.o: $(CINT)/RBDictionary.cxx $(SRC)/hist/Manager.cxx
+	$(COMPILE) $(FPIC) -c \
+-o $@  -p $(SRC)/hist/Manager.cxx \
+
+$(OBJ)/Formula.o: $(CINT)/RBDictionary.cxx $(SRC)/Formula.cxx
+	$(COMPILE) $(FPIC) -c \
+-o $@  -p $(SRC)/Formula.cxx \
 
 $(CINT)/RBDictionary.cxx: $(HEADERS) $(USER)/UserLinkdef.h $(CINT)/Linkdef.h \
 $(SRC)/utils/Mutex.hxx $(SRC)/utils/LockingPointer.hxx
@@ -115,23 +131,16 @@ $(SRC)/utils/Mutex.hxx $(SRC)/utils/LockingPointer.hxx
 #### COMPILE HISTOGRAM LIBRARY ####
 form: $(OBJ)/Formula.o
 hist: $(RBLIB)/libRBHist.so
-HIST_HEADERS=$(SRC)/Hist.hxx $(SRC)/Formula.hxx $(SRC)/utils/LockingPointer.hxx $(SRC)/utils/Mutex.hxx $(SRC)/Visitor.hxx
-HIST_OBJECTS=$(OBJ)/Hist.o $(OBJ)/Formula.o 
+# HIST_HEADERS=$(SRC)/Hist.hxx $(SRC)/Formula.hxx $(SRC)/utils/LockingPointer.hxx $(SRC)/utils/Mutex.hxx $(SRC)/Visitor.hxx \
+# $(SRC)/hist/Manager.hxx
+# HIST_OBJECTS=$(OBJ)/Hist.o $(OBJ)/Formula.o $(OBJ)/Manager.o
 
-$(RBLIB)/libRBHist.so: $(HIST_OBJECTS) $(CINT)/HistDictionary.cxx
-	$(COMPILE) $(DYLIB) $(FPIC) -lTreePlayer \
--o $@ $(CXXFLAGS) -p $^ \
+# $(RBLIB)/libRBHist.so: $(HIST_OBJECTS) $(CINT)/HistDictionary.cxx
+# 	$(COMPILE) $(DYLIB) $(FPIC) -lTreePlayer \
+# -o $@ $(CXXFLAGS) -p $^ \
 
-$(OBJ)/Hist.o: $(CINT)/HistDictionary.cxx $(SRC)/Hist.cxx
-	$(COMPILE) $(FPIC) -c \
--o $@  -p $(SRC)/Hist.cxx \
-
-$(OBJ)/Formula.o: $(CINT)/HistDictionary.cxx $(SRC)/Formula.cxx
-	$(COMPILE) $(FPIC) -c \
--o $@  -p $(SRC)/Formula.cxx \
-
-$(CINT)/HistDictionary.cxx: $(HIST_HEADERS) $(CINT)/HistLinkdef.h
-	rootcint -f $@ -c $(CXXFLAGS) -p $^ \
+# $(CINT)/HistDictionary.cxx: $(HIST_HEADERS) $(CINT)/HistLinkdef.h
+# 	rootcint -f $@ -c $(CXXFLAGS) -p $^ \
 
 
 

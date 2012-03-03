@@ -3,7 +3,8 @@
 #include <algorithm>
 #include <iostream>
 #include <fstream>
-#include "Hist.hxx"
+#include "hist/Hist.hxx"
+#include "Formula.hxx"
 
 typedef std::vector<std::string> StringVector_t;
 
@@ -32,13 +33,13 @@ namespace
 	ret = sstr.str();
 	if(!gROOT->FindObject(ret.c_str())) break;
       }
-      err::Info("rb::Hist::Hist") << "The name " << name <<
+      err::Info("rb::hist::Base") << "The name " << name <<
 	" is already in use, creating " << name << "_" << n-1 << " instead.";
     }
     return ret;
   }
   /// Reconstruct original parameter argument 
-  inline std::string initial_param_arg(Int_t ndimensions, rb::formula::HistWrapper& gate_par) {
+  inline std::string initial_param_arg(Int_t ndimensions, rb::TreeFormulae& gate_par) {
     std::stringstream out;
     for(Int_t i = ndimensions-1; i > 0; --i)
       out << gate_par.Get(i) << ":";
@@ -56,16 +57,55 @@ namespace
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // Class                                                 //
-// rb::Hist                                              //
+// rb::hist::Base                                        //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-// void rb::Hist::Init()                                 //
+// Constructor (1d)                                      //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-void rb::Hist::Init(const char* name, const char* title,  const char* param, const char* gate) {
+rb::hist::Base::Base(const char* name, const char* title, const char* param, const char* gate,
+	       hist::Manager* manager, Int_t event_code,
+	       Int_t nbinsx, Double_t xlow, Double_t xhigh) :
+  kDimensions(1), fHistogramClone(0), fManager(manager),
+  fFormulae(1, param, gate, event_code),
+  fHistVariant(TH1D(name, title, nbinsx, xlow, xhigh)) {
+  Init(name, title, param, gate);
+  fLockOnConstruction.Unlock();
+}
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// Constructor (2d)                                      //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+rb::hist::Base::Base(const char* name, const char* title, const char* param, const char* gate, 
+	       hist::Manager* manager, Int_t event_code,
+	       Int_t nbinsx, Double_t xlow, Double_t xhigh,
+	       Int_t nbinsy, Double_t ylow, Double_t yhigh):
+  kDimensions(2), fHistogramClone(0), fManager(manager),
+  fFormulae(2, param, gate, event_code),
+  fHistVariant(TH2D(name, title, nbinsx, xlow, xhigh, nbinsy, ylow, yhigh)) {
+  Init(name, title, param, gate);
+  fLockOnConstruction.Unlock();
+}
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// Constructor (3d)                                      //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+rb::hist::Base::Base(const char* name, const char* title, const char* param, const char* gate, 
+	       hist::Manager* manager, Int_t event_code,
+	       Int_t nbinsx, Double_t xlow, Double_t xhigh,
+	       Int_t nbinsy, Double_t ylow, Double_t yhigh,
+	       Int_t nbinsz, Double_t zlow, Double_t zhigh) :
+  kDimensions(3), fHistogramClone(0), fManager(manager),
+  fFormulae(3, param, gate, event_code),
+  fHistVariant(TH3D(name, title, nbinsx, xlow, xhigh, nbinsy, ylow, yhigh, nbinsz, zlow, zhigh)) {
+  Init(name, title, param, gate);
+  fLockOnConstruction.Unlock();
+}
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// void rb::hist::Base::Init()                           //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+void rb::hist::Base::Init(const char* name, const char* title,  const char* param, const char* gate) {
   // Set name & title
   fName = check_name(name).c_str();
-  kDefaultTitle = default_title(fGateParams.Get(GATE).c_str(), param);
+  kDefaultTitle = default_title(fFormulae.Get(GATE).c_str(), param);
   kUseDefaultTitle = std::string(title).empty();
   fTitle = kUseDefaultTitle ? kDefaultTitle.c_str() : title;
   visit::hist::DoMember(fHistVariant, &TH1::SetNameTitle, fName.Data(), fTitle.Data());
@@ -81,55 +121,54 @@ void rb::Hist::Init(const char* name, const char* title,  const char* param, con
   }
 }
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-// rb::Hist::Regate                                      //
+// rb::hist::Base::Regate                                //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-Int_t rb::Hist::Regate(const char* newgate) {
-  Bool_t success = fGateParams.Change(GATE, newgate);
+Int_t rb::hist::Base::Regate(const char* newgate) {
+  Bool_t success = fFormulae.Change(GATE, newgate);
   if(!success) return -1;
 
   // Change title if appropriate
   if(kUseDefaultTitle) {
-    fTitle = default_title(fGateParams.Get(GATE).c_str(), initial_param_arg(kDimensions, fGateParams).c_str()).c_str();
+    fTitle = default_title(fFormulae.Get(GATE).c_str(), initial_param_arg(kDimensions, fFormulae).c_str()).c_str();
     visit::hist::DoMember(fHistVariant, &TH1::SetTitle, fTitle.Data());
   }
   return 0;
 }
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-// rb::Hist::GetHist()                                   //
+// rb::hist::Base::GetHist()                             //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-TH1* rb::Hist::GetHist() {
+TH1* rb::hist::Base::GetHist() {
   hist::StopAddDirectory stop_add;
   visit::hist::Clone::Do(fHistVariant, fHistogramClone);
   return fHistogramClone.get();
 }
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-// rb::Hist::DoFill() [virtual]                          //
+// rb::hist::Base::DoFill() [virtual]                    //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-Int_t rb::Hist::DoFill(const std::vector<Double_t>& params, Double_t gate) {
+Int_t rb::hist::Base::DoFill(const std::vector<Double_t>& params, Double_t gate) {
   if(!(Bool_t)gate) return 0;
   visit::hist::Fill::Do(fHistVariant, params[0], params[1], params[2]);
 }
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-// rb::Hist::FillUnlocked()                              //
+// rb::hist::Base::FillUnlocked()                        //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-Int_t rb::Hist::FillUnlocked() {
+Int_t rb::hist::Base::FillUnlocked() {
   std::vector<Double_t> axes(3,0);
   for(UInt_t u=0; u< kDimensions; ++u)
-    axes[u] = fGateParams.Eval.OperateUnlocked(u); // Use OperateUnlocked(), no mutex locking
-  Double_t gate = fGateParams.Eval.OperateUnlocked(GATE); // Use OperateUnlocked(), no mutex locking
+    axes[u] = fFormulae.EvalUnlocked(u); // Use OperateUnlocked(), no mutex locking
+  Double_t gate = fFormulae.EvalUnlocked(GATE); // Use OperateUnlocked(), no mutex locking
   return DoFill(axes, gate);
 }
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-// rb::Hist::Fill() [locked data]                        //
+// rb::hist::Base::Fill() [locked data]                  //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-Int_t rb::Hist::Fill() {
+Int_t rb::hist::Base::Fill() {
   std::vector<Double_t> axes(3,0);
   for(UInt_t u=0; u< kDimensions; ++u)
-    axes[u] = fGateParams.Eval(u); // Use operator(), which locks the mutex
-  Double_t gate = fGateParams.Eval(GATE);  // Use operator(), which locks the mutex
+    axes[u] = fFormulae.Eval(u); // Use operator(), which locks the mutex
+  Double_t gate = fFormulae.Eval(GATE);  // Use operator(), which locks the mutex
   return DoFill(axes, gate);
 }
-
 
 
 

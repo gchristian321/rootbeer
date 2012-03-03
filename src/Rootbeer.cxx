@@ -4,8 +4,7 @@
 #include "Rootbeer.hxx"
 #include "Buffer.hxx"
 #include "Data.hxx"
-#include "Hist.hxx"
-#include "User.hxx"
+#include "hist/Hist.hxx"
 
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
@@ -103,133 +102,93 @@ void rb::data::PrintAll() {
 }
 
 
-
-
-
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// Histogram Creation Helper Function                    //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+namespace { rb::hist::Manager* const find_manager(Int_t code) {
+  rb::Event* event = rb::gApp()->GetEvent(code);
+  if(event == 0) {
+    std::stringstream error;
+    error << "Invalid event code: " << code;
+    std::invalid_argument exception(error.str().c_str());
+    throw exception;
+  }
+  else return event->GetHistManager();
+} }
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // rb::hist::New (One-dimensional)                       //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-rb::Hist* rb::hist::New(const char* name, const char* title,
-			Int_t nbinsx, Double_t xlow, Double_t xhigh,
-			const char* param, const char* gate, Int_t event_code) {
+rb::hist::Base* rb::hist::New(const char* name, const char* title,
+			      Int_t bx, Double_t xl, Double_t xh,
+			      const char* param, const char* gate, Int_t event_code) {
   try {
-    rb::Event* event = gApp()->GetEvent(event_code);
-    if(event == 0) {
-      std::stringstream error;
-      error << "Invalid event code: " << event_code;
-      std::invalid_argument exception(error.str().c_str());
-      throw exception;
-    }
-    rb::Hist* hist = event->GetHistManager()->Create<rb::Hist>(name, title, param, gate, nbinsx, xlow, xhigh);
+    rb::hist::Base* hist =
+      find_manager(event_code)->Create<rb::hist::D1>(name, title, param, gate, event_code, bx, xl, xh);
     return hist;
-  } catch (std::exception& e) {
-    err::Error("rb::Hist::New") << e.what();
-    //    static_cast<DragonEvent*>(rb::Event::Instance<DragonEvent>())->reset_branch();
+  }
+  catch (std::exception& e) {
+    err::Error("rb::hist::New") << e.what();
   }
 }
+
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 //  rb::hist::New (Two-dimensional)                      //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-void rb::hist::New(const char* name, const char* title,
-		   Int_t nbinsx, Double_t xlow, Double_t xhigh,
-		   Int_t nbinsy, Double_t ylow, Double_t yhigh,
-		   const char* param, const char* gate) {
-  /*
-  Hist::Set_t set ;
+rb::hist::Base* rb::hist::New(const char* name, const char* title,
+			      Int_t bx, Double_t xl, Double_t xh,
+			      Int_t by, Double_t yl, Double_t yh,
+			      const char* param, const char* gate, Int_t event_code) {
   try {
-    rb::Hist * hist = new rb::Hist(name, title, param, gate, 2, tree, &set, nbinsx, xlow, xhigh, nbinsy, ylow, yhigh);
-  } catch (std::exception& e) {
-    Error("rb::hist::New", "%s", e.what());
+    rb::hist::Base* hist =
+      find_manager(event_code)->Create<rb::hist::D2>(name, title, param, gate, event_code, bx, xl, xh, by, yl, yh);
+    return hist;
   }
-  */
+  catch (std::exception& e) {
+    err::Error("rb::hist::New") << e.what();
+  }
 }
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 //  rb::hist::New (Three-dimensional)                    //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-void rb::hist::New(const char* name, const char* title,
-		   Int_t nbinsx, Double_t xlow, Double_t xhigh,
-		   Int_t nbinsy, Double_t ylow, Double_t yhigh,
-		   Int_t nbinsz, Double_t zlow, Double_t zhigh,
-		   const char* param, const char* gate) {
-  /*
-  Hist::Set_t set ;
+rb::hist::Base* rb::hist::New(const char* name, const char* title,
+			      Int_t bx, Double_t xl, Double_t xh,
+			      Int_t by, Double_t yl, Double_t yh,
+			      Int_t bz, Double_t zl, Double_t zh,
+			      const char* param, const char* gate, Int_t event_code) {
   try {
-    rb::Hist * hist = new rb::Hist(name, title, param, gate, 3, tree, &set, nbinsx, xlow, xhigh, nbinsy, ylow, yhigh, nbinsz, zlow, zhigh);
-  } catch (std::exception& e) {
-    Error("rb::hist::New", "%s", e.what());
+    rb::hist::Base* hist =
+      find_manager(event_code)->Create<rb::hist::D3>(name, title, param, gate, event_code, bx, xl, xh, by, yl, yh, bz, zl, zh);
+    return hist;
   }
-  */
+  catch (std::exception& e) {
+    err::Error("rb::hist::New") << e.what();
+  }
 }
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // rb::hist::NewSummary()                                //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-void rb::hist::NewSummary(const char* name, const char* title,
-			  Int_t nbins, Double_t low, Double_t high,
-			  const char* paramList,  const char* gate,
-			  const char* orientation) {
-  return;
-  // // Create rb::Hist instance
-  // rb::SummaryHist* _this = new rb::SummaryHist(name, title, paramList, gate, orientation);
-  // if(!_this->kConstructorSuccess) return;
-
-  // // Set internal histogram
-  // //! \note The histogram isn't accessable to any other threads until we add it to
-  // //! fgList, so it's safe to access the critical elements via a non-locking pointer.
-  // LockFreePointer<CriticalElements> unlocked_critical(_this->fCritical);
-
-  // Bool_t successfulHistCreation = kTRUE;
-  // TH1::AddDirectory(kFALSE);
-
-  // Int_t npar = unlocked_critical->fParams.size();
-
-  // if(!_this->kOrient) { // vertical
-  //   unlocked_critical->fHistogram =
-  //     new TH2D(_this->fName, _this->fTitle, npar, 0, npar, nbins, low, high);
-  //   unlocked_critical->fHistogram->GetXaxis()->SetTitle(paramList);
-  //   unlocked_critical->fHistogram->GetYaxis()->SetTitle("");
-  // }
-  // else { // horizontal
-  //   unlocked_critical->fHistogram =
-  //     new TH2D(_this->fName, _this->fTitle, nbins, low, high, npar, 0, npar);
-  //   unlocked_critical->fHistogram->GetXaxis()->SetTitle("");
-  //   unlocked_critical->fHistogram->GetYaxis()->SetTitle(paramList);
-  // }
-  // TH1::AddDirectory(kTRUE);
-
-  // // Add to collections
-  // LockingPointer<List_t> hlist(fgList(), fgMutex());
-  // if(successfulHistCreation) {
-  //   hlist->push_back(_this);
-
-  //   if(gDirectory) {
-  //     _this->fDirectory = gDirectory;
-  //     _this->fDirectory->Append(_this, kTRUE);
-  //   }
-  // }
+rb::hist::Base* rb::hist::NewSummary(const char* name, const char* title,
+				     Int_t nbins, Double_t low, Double_t high,
+				     const char* paramList,  const char* gate, Int_t event_code,
+				     const char* orientation) {
 }
 
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 //  rb::hist::NewGamma (One-dimensional)                 //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-void rb::hist::NewGamma(const char* name, const char* title,
-			Int_t nbinsx, Double_t xlow, Double_t xhigh,
-			const char* param, const char* gate) {
-  // TTree* tree = rb::gApp()->fDataGlobals.GetLockedTree().Get();
-  // Hist::Set_t* set = LockFreePointer<Hist::Set_t>(rb::gApp()->fDataGlobals.fHistograms).Get();
-  // rb::GammaHist::GInitialize(name, title, param, gate, 1, tree, set, nbinsx, xlow, xhigh);
+rb::hist::Base* rb::hist::NewGamma(const char* name, const char* title,
+				   Int_t nbinsx, Double_t xlow, Double_t xhigh,
+				   const char* param, const char* gate, Int_t event_code) {
 }
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 //  rb::hist::NewGamma (Two-dimensional)                 //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-void rb::hist::NewGamma(const char* name, const char* title,
-			Int_t nbinsx, Double_t xlow, Double_t xhigh,
-			Int_t nbinsy, Double_t ylow, Double_t yhigh,
-			const char* param, const char* gate) {
-  // TTree* tree = rb::gApp()->fDataGlobals.GetLockedTree().Get();
-  // Hist::Set_t* set = LockFreePointer<Hist::Set_t>(rb::gApp()->fDataGlobals.fHistograms).Get();
-  // rb::GammaHist::GInitialize(name, title, param, gate, 2, tree, set, nbinsx, xlow, xhigh, nbinsy, ylow, yhigh);
+rb::hist::Base* rb::hist::NewGamma(const char* name, const char* title,
+				   Int_t nbinsx, Double_t xlow, Double_t xhigh,
+				   Int_t nbinsy, Double_t ylow, Double_t yhigh,
+				   const char* param, const char* gate, Int_t event_code) {
 }

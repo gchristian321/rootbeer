@@ -5,10 +5,12 @@
 #include <TRint.h>
 #include "Event.hxx"
 
-
-typedef std::map<Int_t, rb::Event*> EventMap_t;
 namespace rb
 {
+  //========== Typedefs ===========//
+  typedef std::map<Int_t, rb::Event*> EventMap_t;
+
+  //========== Class Definitions ===========//
   /// \brief Class that runs the interactive ROOT application.
   //! \details We can essentially use the normal <tt>TRint</tt>, except
   //!  we need to override the Terminate() method to stop threaded processes.
@@ -52,10 +54,8 @@ namespace rb
   private:
     /// Adds an instance of an event processor to fEvents.
     //! \tparam T The type of the instance you want to register.
-    template <typename T>
-    void RegisterEvent(Int_t code) {
-      fEvents.insert(std::make_pair<Int_t, rb::Event*>(code, rb::Event::Instance<T>()));
-    }
+    template <typename T> void RegisterEvent(Int_t code);
+
     /// \brief Registers all event processors in the program.
     //! \details This needs to be implemented by users to account for
     //! the different event processors they want to use in the program.
@@ -63,18 +63,28 @@ namespace rb
     void RegisterEvents();
   public:
     ClassDef(rb::Rint, 0);
-  };
+  }; // class Rint
 
+  //========== Globals ===========//
   namespace
   { // Cast of ROOT's global gApplication pointer into an rb::Rint
     inline Rint* gApp() { return static_cast<rb::Rint*>(gApplication); }
   }
-} // namespace rb
+} // namesapce rb
+
+
+  //========== Inlined Functions ===========//
+#ifndef __MAKECINT__
 inline rb::Rint::~Rint() {
   Terminate(1);
 }
 inline void rb::Rint::AddMessage(const std::string& str) {
   fMessage << str;
 }
+template <typename T>
+void rb::Rint::RegisterEvent(Int_t code) {
+  fEvents.insert(std::make_pair<Int_t, rb::Event*>(code, rb::Event::Instance<T>()));
+}
+#endif
 
 #endif

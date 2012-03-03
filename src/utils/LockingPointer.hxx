@@ -5,6 +5,7 @@
 #ifndef LOCKING_POINTER_HXX
 #define LOCKING_POINTER_HXX
 #include "utils/Mutex.hxx"
+#include "utils/nocopy.h"
 // #define LOCKING_POINTER_VERBOSE
 
 //! RAII mutex-locking pointer class.
@@ -33,7 +34,7 @@
 //! us from screwing up. For more information: http://drdobbs.com/cpp/184403766
 //!
 //! Similar functionality (casting away volatile) but without the mutex locking can be had using 
-//! LockFreePointer (but use with care...). 
+//! LockFreePointer
 template <typename T>
 class LockingPointer
 {
@@ -146,6 +147,7 @@ private:
 template <typename T>
 class LockFreePointer
 {
+  RB_NOCOPY(LockFreePointer);
 private:
   //! Pointer to the critical object we want to access.
   T* fObject;
@@ -180,13 +182,6 @@ public:
   T& operator* () {
     return *fObject;
   }
-
-private:
-  //! Copy constructor, does nothing.
-  LockFreePointer(const LockFreePointer& other) { };
-
-  //! Assignment operator, does nothing.
-  LockFreePointer& operator= (const LockFreePointer& other) { };
 };
 
 

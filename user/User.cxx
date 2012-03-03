@@ -79,17 +79,11 @@ Bool_t rb::Midas::UnpackBuffer() {
   Short_t eventId = fBuffer.GetEventId();
   //  fBgo->reset();
 
-  //  CountedLockingPointer<Bgo> pBgo = fBgo.GetPointer();
-  //  pBgo->test();
-
   switch(eventId) {
   case DRAGON_EVENT: // event
     {
       rb::Event* event = rb::Event::Instance<DragonEvent>();
       event->Process(&fBuffer, 0);
-      //     fBgo->unpack(fBuffer);
-      // fBgo->q[0] = 1000; ///fBgo2->q[0]; //1000;
-	   //             printf("q[0]: %i\n", fBgo->q[0]);
     break;
     }
   case DRAGON_SCALER: // scaler
@@ -108,22 +102,6 @@ Bool_t DragonEvent::DoProcess(void* addr, Int_t nchar) {
   TMidasEvent* fEvent = Cast(addr);
   if(fEvent) {
     fBgo->unpack(*fEvent);
-    //      err::Info("DoProcess") << fBgo->qraw[0] << " <<< qraw[0]";
-    // TTreeFormula test("test", "bgo.evt_count"/*qraw[0]"*/, GetTreeUnlocked());
-    // GetTreeUnlocked()->LoadTree(GetTreeUnlocked()->GetEntries()-1);
-    // test.SetQuickLoad(true);
-    // test.UpdateFormulaLeaves();
-    // static int n=0;
-    //    GetTreeUnlocked()->Fill();
-    // int S = GetTreeUnlocked()->Draw("bgo.qraw[0]","","goff",1,n);
-    // if(S) {
-    //   double d = GetTreeUnlocked()->GetV1()[0];
-    //   err::Info("DoProcess") << " d = " << d;
-    // }
-    // GetTreeUnlocked()->GetEntry(0);
-    // err::Info("DoProcess") << "EvalInstance: " << test.EvalInstance() << ", actual: " << fBgo->evt_count//qraw[0]
-    // 			   << ", GetNData() " << test.GetNdata() << ", GetEntries(): " << GetTreeUnlocked()->GetEntries();
-
     return true;
   }
   else return false;

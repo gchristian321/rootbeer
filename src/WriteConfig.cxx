@@ -9,7 +9,7 @@
 #include "Rootbeer.hxx"
 #include "Rint.hxx"
 #include "Data.hxx"
-#include "Hist.hxx"
+#include "hist/Hist.hxx"
 using namespace std;
 
 
@@ -31,13 +31,13 @@ TAxis* get_axis(TH1* hst, UInt_t n) {
 
 /// Write a histogram constructor format to a stream.
 void write_hist(TObject* object, ostream& ofs) {
-  rb::Hist* rbhst = dynamic_cast<rb::Hist*>(object);
+  rb::hist::Base* rbhst = dynamic_cast<rb::hist::Base*>(object);
   if(!rbhst) return;
   TH1* hst = rbhst->GetHist();
   if(!hst) return;
 
   for(int i=0; i< ntabs; ++i) ofs << "    ";
-  ofs << "  rb::Hist::New(\"" << rbhst->GetName() << "\", \"" << rbhst->GetTitle() << "\", ";
+  ofs << "  rb::hist::Base::New(\"" << rbhst->GetName() << "\", \"" << rbhst->GetTitle() << "\", ";
   string param = "";
   for(UInt_t i=0; i< rbhst->GetNdimensions(); ++i) {
     param.insert(0, rbhst->GetParam(i));
@@ -258,13 +258,13 @@ void rb::ReadConfig(const char* filename, Option_t* option) {
       pos = line.find("cd()");
       if(pos < line.size()) gROOT->ProcessLine(line.c_str());
 
-      pos = line.find("rb::Hist::New");
+      pos = line.find("rb::hist::New");
       if(pos < line.size()) {
 	line = line.substr(pos);
 	line = line.substr(1+line.find("("));
 	line = line.substr(1+line.find("\""));
 	string name = line.substr(0, line.find("\""));
-	rb::Hist* old = dynamic_cast<rb::Hist*> (gDirectory->FindObject(name.c_str()));
+	rb::hist::Base* old = dynamic_cast<rb::hist::Base*> (gDirectory->FindObject(name.c_str()));
 	if(old) old->Delete(); //delete old;
 	continue;
       }

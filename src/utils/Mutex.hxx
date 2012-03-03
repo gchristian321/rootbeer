@@ -97,6 +97,7 @@ namespace rb
     //! Prevent assignment
     Mutex& operator= (const Mutex& other) {}
   };
+  namespace { rb::Mutex gDataMutex; }
 }
 
 #ifndef __MAKECINT__ // Implemenation

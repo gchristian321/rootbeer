@@ -11,8 +11,6 @@
 /// Namespace wrapping the \c ROOTBEER objects and user functions.
 namespace rb
 {
-  class Hist;
-
   /// \brief Attach to an online data sorce.
   //! \details
   //! \todo Implement for NSCL data.
@@ -130,40 +128,42 @@ namespace rb
   /// Creation functions for histograms
   namespace hist
   {
+    class Base;
+
     /// One-dimensional creation function
-    extern rb::Hist* New(const char* name, const char* title,
-		    Int_t nbinsx, Double_t xlow, Double_t xhigh,
-		    const char* param, const char* gate = "", Int_t event_code = 1);
+    extern rb::hist::Base* New(const char* name, const char* title,
+			       Int_t nbinsx, Double_t xlow, Double_t xhigh,
+			       const char* param, const char* gate = "", Int_t event_code = 1);
 
     /// Two-dimensional creation function
-    extern void New(const char* name, const char* title,
-		    Int_t nbinsx, Double_t xlow, Double_t xhigh,
-		    Int_t nbinsy, Double_t ylow, Double_t yhigh,
-		    const char* param, const char* gate = "");
+    extern rb::hist::Base* New(const char* name, const char* title,
+			       Int_t nbinsx, Double_t xlow, Double_t xhigh,
+			       Int_t nbinsy, Double_t ylow, Double_t yhigh,
+			       const char* param, const char* gate = "", Int_t event_code = 1);
 
     /// Three-dimensional creation function
-    extern void New(const char* name, const char* title,
-		    Int_t nbinsx, Double_t xlow, Double_t xhigh,
-		    Int_t nbinsy, Double_t ylow, Double_t yhigh,
-		    Int_t nbinsz, Double_t zlow, Double_t zhigh,
-		    const char* param, const char* gate = "");
+    extern rb::hist::Base* New(const char* name, const char* title,
+			       Int_t nbinsx, Double_t xlow, Double_t xhigh,
+			       Int_t nbinsy, Double_t ylow, Double_t yhigh,
+			       Int_t nbinsz, Double_t zlow, Double_t zhigh,
+			       const char* param, const char* gate = "", Int_t event_code = 1);
 
     /// Summary histogram creation
-    extern void NewSummary(const char* name, const char* title,
-			   Int_t nbins, Double_t low, Double_t high,
-			   const char* paramList,  const char* gate = "",
-			   const char* orientation = "v");
+    extern rb::hist::Base* NewSummary(const char* name, const char* title,
+				      Int_t nbins, Double_t low, Double_t high,
+				      const char* paramList,  const char* gate = "", Int_t event_code = 1,
+				      const char* orientation = "v");
 
     /// Gamma hist creation (1d)
-    extern void NewGamma(const char* name, const char* title,
-			 Int_t nbinsx, Double_t xlow, Double_t xhigh,
-			 const char* params,  const char* gate = "");
+    extern rb::hist::Base* NewGamma(const char* name, const char* title,
+				    Int_t nbinsx, Double_t xlow, Double_t xhigh,
+				    const char* params,  const char* gate = "", Int_t event_code = 1);
 
     /// Gamma hist creation (2d)
-    extern void NewGamma(const char* name, const char* title,
-			 Int_t nbinsx, Double_t xlow, Double_t xhigh,
-			 Int_t nbinsy, Double_t ylow, Double_t yhigh,
-			 const char* params,  const char* gate = "");
+    extern rb::hist::Base* NewGamma(const char* name, const char* title,
+				    Int_t nbinsx, Double_t xlow, Double_t xhigh,
+				    Int_t nbinsy, Double_t ylow, Double_t yhigh,
+				    const char* params,  const char* gate = "", Int_t event_code = 1);
 
     /// Bit hist creation
     // template <Int_t NBITS>

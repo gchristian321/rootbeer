@@ -8,14 +8,16 @@
 #include <TString.h>
 #include <TTreeFormula.h>
 #include "Formula.hxx"
+#include "Rint.hxx"
+#include "utils/Mutex.hxx"
+#include "utils/Error.hxx"
 
-
-namespace form = rb::formula;
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // Helper Functions                                      //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-namespace {
+namespace
+{
   inline Bool_t is_valid_index(Int_t index) {
     Bool_t ret = index >= 0 && index <= GATE;
     if(!ret) err::Error("Formula") << "Invalid index: " << index;
@@ -35,31 +37,34 @@ namespace {
     for(int i = out.size(); i < 3; ++i) out.push_back("");
     return out;
   }
-  inline Bool_t init_formula(boost::scoped_ptr<TTreeFormula>& formula, TTree* tree, const std::string& formula_arg) {
-    if(formula_arg != "") {
-      formula.reset(new TTreeFormula(formula_arg.c_str(), formula_arg.c_str(), tree));
-      return formula->GetNdim() != 0;
-    } else {
-      formula.reset(0);
-      return true;
+  inline void modify_formula_arg(Int_t index, std::string& formula) {
+    assert(is_valid_index(index));
+    if(index == GATE) {
+      std::string gate = TString(formula).ReplaceAll(" ","").Data();
+      if     (gate ==  "") formula = "1";  // Null field means no gate, i.e. always true.
+      else if(gate == "0") formula ="!1";  // Somehow "0" evaluates to true, should be false.
+      else;                                // don't modify
+    }
+    else {
+      if(formula == "0") formula = "!1";
     }
   }
 }
  
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // Class                                                 //
-// HistWrapper                                           //
+// rb::TreeFormulae                                      //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // Constructor                                           //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-form::HistWrapper::HistWrapper(TTree* tree, rb::Mutex* mutex, Int_t npar, const char* params, const char* gate) :
-  fMutex(mutex), Eval(this, mutex), EvalMultiple(this, mutex), Change(this, mutex), Init(this, mutex) {
+rb::TreeFormulae::TreeFormulae(Int_t npar, const char* params, const char* gate, Int_t event_code):
+  kEventCode(event_code) {
   // Initialize gate
   fFormulaArgs[GATE] = gate;
-  GateModifier gm; gm(fFormulaArgs[GATE]);
-  bool good_gate = Init(GATE, fFormulaArgs[GATE], tree);
+  modify_formula_arg(GATE, fFormulaArgs[GATE]);
+  bool good_gate = Init(GATE, fFormulaArgs[GATE]);
   if(!good_gate) ThrowBad(gate, GATE);
   
   // Initialize parameters
@@ -72,67 +77,78 @@ form::HistWrapper::HistWrapper(TTree* tree, rb::Mutex* mutex, Int_t npar, const 
   }
   for(Int_t I = 0; I < 3; ++I) {
     fFormulaArgs[I] = pars[I].c_str();
-    ParamModifier pm; pm(fFormulaArgs[I]);
-    bool good_param = Init(I, fFormulaArgs[I].c_str(), tree);
+    modify_formula_arg(I, fFormulaArgs[I]);
+    bool good_param = Init(I, fFormulaArgs[I].c_str());
     if(!good_param) ThrowBad(pars[I].c_str(), I);
   }
 }
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // void ThrowBad()                                       //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-void form::HistWrapper::ThrowBad(const char* formula, Int_t index) {
+void rb::TreeFormulae::ThrowBad(const char* formula, Int_t index) {
   std::stringstream message;
   message << "Bad TTreeFormula: \"" << formula << "\" (index: " << index << ")";
   std::invalid_argument exception(message.str().c_str());
   throw exception;
 }
-
-
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-// Functor Classes                                       //
+// Bool_t rb::TreeFormulae::Init()                       //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-
-//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-// GateModifier::operator() () <void>                    //
-//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-void form::GateModifier::operator() (std::string& formula) {
-  std::string gate = TString(formula).ReplaceAll(" ","").Data();
-  if     (gate ==  "") formula = "1";  // Null field means no gate, i.e. always true.
-  else if(gate == "0") formula ="!1";  // Somehow "0" evaluates to true, should be false.
-  else;                                // don't modify
-}
-//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-// rb::formula::Init <bool>                              //
-//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-Bool_t form::InitFunctor::DoOperation(Int_t index, std::string formula_arg, TTree* tree) {
+Bool_t rb::TreeFormulae::Init(Int_t index, std::string formula_arg) {
   assert(is_valid_index(index));
-  boost::scoped_ptr<TTreeFormula>& formula = fOwner->fTreeFormulae[index];
-  return init_formula(formula, tree, formula_arg);
+  return Init(fTreeFormulae[index], formula_arg);
 }
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-// rb::formula::Change <bool>                            //
+// Bool_t rb::TreeFormulae::Init()                       //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-Bool_t form::ChangeFunctor::DoOperation(Int_t index, std::string new_formula) {
-  if(!is_valid_index(index)) return false;
-
-  // Modify formula if necessary
-  TTree* tree = fOwner->fTreeFormulae[index]->GetTree();
-  boost::scoped_ptr<Modifier> modifier(new GateModifier());
-  if(index != GATE) modifier.reset(new ParamModifier());
-  modifier->operator()(new_formula);
-
-  // check that new gate formula is valid
-  boost::scoped_ptr<TTreeFormula> temp;
-  if(!init_formula(temp, tree, new_formula))
-    return false;
-  else {
-    fOwner->fFormulaArgs[index] = new_formula;
-    return init_formula(fOwner->fTreeFormulae[index], tree, new_formula);
+Bool_t rb::TreeFormulae::Init(boost::scoped_ptr<volatile TTreeFormula>& formula, const std::string& formula_arg) {
+  if(formula_arg != "") {
+    rb::Event::InitFormula::Operate(rb::gApp()->GetEvent(kEventCode), formula_arg.c_str(), formula);
+  } else {
+    formula.reset(0);
+    return true;
   }
 }
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-// rb::formula::Eval <Double_t>                          //
+// Bool_t rb::TreeFormulae::Change()                     //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-Double_t rb::formula::EvalFunctor::DoOperation(Int_t index) {
-  return is_valid_index(index) ? fOwner->fTreeFormulae[index]->EvalInstance(0) : -1.;
+Bool_t rb::TreeFormulae::Change(Int_t index, std::string new_formula) {
+  if(!is_valid_index(index)) return false;
+
+  // Modify formula if necessary
+  modify_formula_arg(index, new_formula);
+
+  // check that new gate formula is valid
+  boost::scoped_ptr<volatile TTreeFormula> temp;
+  if(!Init(temp, new_formula))
+    return false;
+  else {
+    Bool_t success = Init(fTreeFormulae[index], new_formula);
+    fFormulaArgs[index] = new_formula;
+    return success;
+  }
+}
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// std::string rb::TreeFormulae::Get()                   //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+std::string rb::TreeFormulae::Get(Int_t index) {
+  if(index < 0 || index > GATE) {
+    err::Info("Formula::Get") << "Invalid index: " << index;
+    return "NULL";
+  }
+  return fFormulaArgs[index];
+}
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// Double_t rb::TreeFormulae::Eval()                     //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+Double_t rb::TreeFormulae::Eval(Int_t index) {
+  return is_valid_index(index) ?
+    LockingPointer<TTreeFormula>(*fTreeFormulae[index], gDataMutex)->EvalInstance(0) : -1.;
+}
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// Double_t rb::TreeFormulae::EvalUnlocked()             //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+Double_t rb::TreeFormulae::EvalUnlocked(Int_t index) {
+  return is_valid_index(index) ?
+    LockFreePointer<TTreeFormula>(*fTreeFormulae[index])->EvalInstance(0) : -1.;
 }

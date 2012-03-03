@@ -15,6 +15,11 @@
 #include "Event.hxx"
 #include "utils/Error.hxx"
 #include "utils/LockingPointer.hxx"
+#ifndef __MAKECINT__
+#include "boost/scoped_ptr.hpp"
+#else
+namspace boost { template <class T> class scoped_ptr; }
+#endif
 
 // #define RB_DATA_ON_STACK
 namespace rb
@@ -215,12 +220,10 @@ namespace rb
       T fData;
 #else
       /// Pointer to the user data class.
-      std::auto_ptr<T> fData;
+      boost::scoped_ptr<T> fData;
 #endif
       /// Does most of the work for the constructor.
-      void Init(Event* event, Bool_t makeVisible, const char* args = "");
-      /// Add as a branch in a TTree.
-      void CreateBranch(TTree* const tree, Int_t bufsize = 32000, Int_t splitlevel = 99);
+      void Init(Event* event, Bool_t makeVisible, const char* args, Int_t bufsize, Int_t splitlevel);
     public:
       /// \details Allocates memory to the user data class and sets internal variables.
       //!
@@ -256,7 +259,7 @@ namespace rb
       //! \endcode
       //! If this argument is left as the default (empty string), the user class is constructed
       //! without any arguments, i.e. <tt>new MyClass()</tt>.
-      Wrapper(const char* name, Event* event = 0, Bool_t makeVisible = true, const char* args = "");
+      Wrapper(const char* name, Event* event = 0, Bool_t makeVisible = true, const char* args = "", Int_t bufsize = 32000, Int_t splitlevel = 99);
 
       /// \details Frees memory allocated to the user class.
       virtual ~Wrapper();
@@ -302,8 +305,7 @@ inline rb::data::Basic<T>::~Basic() {
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 template <class T>
 inline Double_t rb::data::Basic<T>::GetValue() {
-  rb::Mutex mutex;
-  LockingPointer<T> p(fAddress, mutex);
+  LockingPointer<T> p(fAddress, gDataMutex);
   return *p;
 }
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
@@ -311,8 +313,7 @@ inline Double_t rb::data::Basic<T>::GetValue() {
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 template <class T>
 inline void rb::data::Basic<T>::SetValue(Double_t newval) {
-  rb::Mutex mutex;
-  LockingPointer<T> p(fAddress, mutex);
+  LockingPointer<T> p(fAddress, gDataMutex);
   *p = T(newval);
 }
 
@@ -347,7 +348,7 @@ namespace
 // Constructor                //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 template <class T>
-inline rb::data::Wrapper<T>::Wrapper(const char* name, Event* event, Bool_t makeVisible, const char* args) :
+inline rb::data::Wrapper<T>::Wrapper(const char* name, Event* event, Bool_t makeVisible, const char* args, Int_t bufsize, Int_t splitlevel) :
   kBranchName(name),
 #ifdef RB_DATA_ON_STACK
   fData()
@@ -355,32 +356,13 @@ inline rb::data::Wrapper<T>::Wrapper(const char* name, Event* event, Bool_t make
   fData(Construct<T>(args))
 #endif
 {
-  Init(event, makeVisible, args);
+  Init(event, makeVisible, args, bufsize, splitlevel);
 }
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // Destructor                 //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 template <class T>
 inline rb::data::Wrapper<T>::~Wrapper() {
-}
-//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-// void rb::data::Wrapper<T>::CreateBranch()                      //
-//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-template <class T>
-void rb::data::Wrapper<T>::CreateBranch(TTree* const tree, Int_t bufsize, Int_t splitlevel) {
-  const char* const clName = TClass::GetClass(typeid(T))->GetName();
-#ifdef RB_DATA_ON_STACK
-  void* v = reinterpret_cast<void*>(&fData);
-#else
-  void* v = reinterpret_cast<void*>(fData.get());
-#endif
-  if(!v) {
-    Error("CreateBranch", "NULL pointer to data");
-    //    return;
-  }
-  TBranch* branch = tree->Branch(kBranchName, clName, &v, bufsize, splitlevel);
-  if(!branch) err::Error("CreateBranch") << "TTree::Branch returned a null pointer. " <<
-		"BranchName: " << kBranchName << ", Class Name: " << clName;
 }
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // T* rb::data::Wrapper<T>::Get()                                 //
@@ -415,7 +397,7 @@ inline T& rb::data::Wrapper<T>::operator* () {
 // void rb::data::Wrapper<T>::Init()                               //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 template <class T>
-void rb::data::Wrapper<T>::Init(Event* event, Bool_t makeVisible, const char* args) {
+void rb::data::Wrapper<T>::Init(Event* event, Bool_t makeVisible, const char* args, Int_t bufsize, Int_t splitlevel) {
   // Figure out class name
   TClass* cl = TClass::GetClass(typeid(T));
   if(!cl) {
@@ -436,7 +418,8 @@ void rb::data::Wrapper<T>::Init(Event* event, Bool_t makeVisible, const char* ar
     mapper.MapClass();
   }
   // Add as a branch in the event's internal tree.
-  //  if(event) CreateBranch(event->GetTree().Get());
+  if(event) Event::BranchAdd::Operate(event, kBranchName, this->Get(), bufsize, splitlevel);
 }
+
 #endif // #ifndef __MAKECINT__
 #endif // #ifndef DATA_HXX
