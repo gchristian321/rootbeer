@@ -68,7 +68,8 @@ rb::hist::Base::Base(const char* name, const char* title, const char* param, con
 	       Int_t nbinsx, Double_t xlow, Double_t xhigh) :
   kDimensions(1), fHistogramClone(0), fManager(manager),
   fFormulae(1, param, gate, event_code),
-  fHistVariant(TH1D(name, title, nbinsx, xlow, xhigh)) {
+  fHistVariant(TH1D(name, title, nbinsx, xlow, xhigh))
+{
   Init(name, title, param, gate);
   fLockOnConstruction.Unlock();
 }
@@ -81,7 +82,8 @@ rb::hist::Base::Base(const char* name, const char* title, const char* param, con
 	       Int_t nbinsy, Double_t ylow, Double_t yhigh):
   kDimensions(2), fHistogramClone(0), fManager(manager),
   fFormulae(2, param, gate, event_code),
-  fHistVariant(TH2D(name, title, nbinsx, xlow, xhigh, nbinsy, ylow, yhigh)) {
+  fHistVariant(TH2D(name, title, nbinsx, xlow, xhigh, nbinsy, ylow, yhigh))
+{
   Init(name, title, param, gate);
   fLockOnConstruction.Unlock();
 }
@@ -89,13 +91,14 @@ rb::hist::Base::Base(const char* name, const char* title, const char* param, con
 // Constructor (3d)                                      //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 rb::hist::Base::Base(const char* name, const char* title, const char* param, const char* gate, 
-	       hist::Manager* manager, Int_t event_code,
-	       Int_t nbinsx, Double_t xlow, Double_t xhigh,
-	       Int_t nbinsy, Double_t ylow, Double_t yhigh,
-	       Int_t nbinsz, Double_t zlow, Double_t zhigh) :
+		     hist::Manager* manager, Int_t event_code,
+		     Int_t nbinsx, Double_t xlow, Double_t xhigh,
+		     Int_t nbinsy, Double_t ylow, Double_t yhigh,
+		     Int_t nbinsz, Double_t zlow, Double_t zhigh) :
   kDimensions(3), fHistogramClone(0), fManager(manager),
   fFormulae(3, param, gate, event_code),
-  fHistVariant(TH3D(name, title, nbinsx, xlow, xhigh, nbinsy, ylow, yhigh, nbinsz, zlow, zhigh)) {
+  fHistVariant(TH3D(name, title, nbinsx, xlow, xhigh, nbinsy, ylow, yhigh, nbinsz, zlow, zhigh))
+{
   Init(name, title, param, gate);
   fLockOnConstruction.Unlock();
 }
@@ -153,7 +156,7 @@ Int_t rb::hist::Base::DoFill(const std::vector<Double_t>& params, Double_t gate)
 // rb::hist::Base::FillUnlocked()                        //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 Int_t rb::hist::Base::FillUnlocked() {
-  std::vector<Double_t> axes(3,0);
+  std::vector<Double_t> axes(3,0);  
   for(UInt_t u=0; u< kDimensions; ++u)
     axes[u] = fFormulae.EvalUnlocked(u); // Use OperateUnlocked(), no mutex locking
   Double_t gate = fFormulae.EvalUnlocked(GATE); // Use OperateUnlocked(), no mutex locking

@@ -24,6 +24,6 @@
 //! (note that the '+' at the end is required except in special cases).
 
 
-#pragma link C++ defined_in /home/dragon/gc/dragon/analyzer/src/vme/vme.hxx;
-#pragma link C++ defined_in /home/dragon/gc/rootbeer/user/ExampleData.hh;
+#pragma link C++ defined_in /user/gchristian/soft/develop/dragon/analyzer/src/vme/vme.hxx;
+#pragma link C++ defined_in /user/gchristian/soft/develop/rootbeer/user/ExampleData.hh;
 

@@ -35,7 +35,7 @@ namespace rb
   class Event
   {
     RB_NOCOPY(Event);
-  private:
+    private:
     boost::scoped_ptr<volatile TTree> fTree;
 
     //! Manages histograms associated with the event
@@ -84,8 +84,7 @@ namespace rb
     {
       /// Perform the branch adding
       //! \returns true upon successful branch creation, false otherwise
-      template <class T>
-      static Bool_t Operate(rb::Event* const event, const char* name, T* object, Int_t bufsize, Int_t splitlevel);
+      static Bool_t Operate(rb::Event* const event, const char* name, const char* classname, void** address, Int_t bufsize);
     
       /// Give access to rb::data::Wrapper
       template <class T> friend class rb::data::Wrapper;
@@ -117,7 +116,7 @@ namespace rb
 #ifndef __MAKECINT__
     friend void Destructor::Operate(Event*&);
     friend Bool_t InitFormula::Operate(Event* const, const char*, FormulaPtr_t&);
-    template <class T> friend Bool_t BranchAdd::Operate(Event* const, const char*, T*, Int_t, Int_t);
+    friend Bool_t BranchAdd::Operate(Event* const, const char*, const char*, void**, Int_t);
 #endif
   };
 } // namespace rb
@@ -146,23 +145,6 @@ template <typename Derived> rb::Event*& rb::Event::Instance() {
   return event;  
 }
 
-template <class T>
-Bool_t rb::Event::BranchAdd::Operate(rb::Event* const event, const char* name, T* object, Int_t bufsize, Int_t splitlevel) {
-  void * address = reinterpret_cast<void*> (object);
-  if(!address) {
-    err::Error("Event::AddBranch") << "Passed a null pointer to an object";
-    return false;
-  }
-  TClass* cl = TClass::GetClass(typeid(*object));
-  if(!cl) {
-    err::Error("Event::AddBranch") << "Invalid class for template argument (typeid string: "
-				   << typeid(object).name() << ")";
-    return false;
-  }
-  TBranch* branch =
-    LockingPointer<TTree>(event->fTree.get(), gDataMutex)->Branch(name, cl->GetName(), &address, bufsize, 1);////splitlevel);
-  return branch != 0;
-}
 #endif
 
 #endif

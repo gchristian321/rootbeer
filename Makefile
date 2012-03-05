@@ -21,6 +21,8 @@ CXXFLAGS=$(DEBUG) $(INCFLAGS) -L$(PWD)/lib $(STOCK_BUFFERS) -DBUFFER_TYPE=$(USER
 ifdef ROOTSYS
 ROOTGLIBS = -L$(ROOTSYS)/lib $(shell $(ROOTSYS)/bin/root-config --glibs) -lXMLParser -lThread -lTreePlayer
 CXXFLAGS += -L$(ROOTSYS)/lib $(shell $(ROOTSYS)/bin/root-config --cflags) -I$(ROOTSYS)/include
+else
+ROOTGLIBS = $(shell root-config --glibs --cflags) -lXMLParser -lThread -lTreePlayer
 endif
 
 # optional MIDAS libraries
@@ -41,15 +43,15 @@ FPIC=
 RPATH=
 endif
 
-COMPILE= g++ $(CXXFLAGS) $(ROOTGLIBS) $(RPATH)
-
+COMPILE=g++ $(CXXFLAGS) $(RPATH)
+LINK=g++ $(CXXFLAGS) $(ROOTGLIBS) $(RPATH)
 
 
 #### MAIN PROGRAM ####
 all: rootbeer
 
 rootbeer: $(RBLIB)/libRootbeer.so $(SRC)/main.cc 
-	$(COMPILE) -lRootbeer $(MIDASLIBS) $(SRC)/main.cc -o rootbeer
+	$(LINK) -lRootbeer $(MIDASLIBS) $(SRC)/main.cc -o rootbeer
 
 
 #### ROOTBEER LIBRARY ####
@@ -65,7 +67,7 @@ $(SRC)/hist/Manager.hxx $(SRC)/midas/*.h $(SRC)/utils/*.h* $(USER_HEADERS)
 
 RBlib: $(RBLIB)/libRootbeer.so
 $(RBLIB)/libRootbeer.so: $(CINT)/RBDictionary.cxx $(USER_SOURCES) $(OBJECTS)
-	$(COMPILE) $(DYLIB) $(FPIC) -o $@ $(MIDASLIBS) $(OBJECTS) $(MOBJ) \
+	$(LINK) $(DYLIB) $(FPIC) -o $@ $(MIDASLIBS) $(OBJECTS) $(MOBJ) \
 -p $(CINT)/RBDictionary.cxx $(USER_SOURCES) \
 
 Rootbeer: $(OBJ)/Rootbeer.o

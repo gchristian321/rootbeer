@@ -222,8 +222,15 @@ namespace rb
       /// Pointer to the user data class.
       boost::scoped_ptr<T> fData;
 #endif
+      /// \brief Pointer-to-pointer of the data.
+      //! \details Used for TBranch creation.
+      //! \note The void** pointer passed to TTree::Branch needs to stay in scope for the lifetime
+      //! of the Branch. This is why we include this here as a class member rather than just assigning
+      //! a temporary when creating branches.
+      void * fDataVoidPtr;
+
       /// Does most of the work for the constructor.
-      void Init(Event* event, Bool_t makeVisible, const char* args, Int_t bufsize, Int_t splitlevel);
+      void Init(Event* event, Bool_t makeVisible, const char* args, Int_t bufsize);
     public:
       /// \details Allocates memory to the user data class and sets internal variables.
       //!
@@ -259,7 +266,7 @@ namespace rb
       //! \endcode
       //! If this argument is left as the default (empty string), the user class is constructed
       //! without any arguments, i.e. <tt>new MyClass()</tt>.
-      Wrapper(const char* name, Event* event = 0, Bool_t makeVisible = true, const char* args = "", Int_t bufsize = 32000, Int_t splitlevel = 99);
+      Wrapper(const char* name, Event* event = 0, Bool_t makeVisible = true, const char* args = "", Int_t bufsize = 32000);
 
       /// \details Frees memory allocated to the user class.
       virtual ~Wrapper();
@@ -267,6 +274,10 @@ namespace rb
       /// Pointer access to the internal data.
       //! \returns Pointer to fData.
       T* Get();
+
+      /// Identical to Get()
+      //! Included for syntactic compatability with smart pointers (auto_ptr, etc.)
+      T* get();
 
       /// Indirection operator
       //! \returns Pointer to fData.
@@ -348,15 +359,15 @@ namespace
 // Constructor                //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 template <class T>
-inline rb::data::Wrapper<T>::Wrapper(const char* name, Event* event, Bool_t makeVisible, const char* args, Int_t bufsize, Int_t splitlevel) :
+inline rb::data::Wrapper<T>::Wrapper(const char* name, Event* event, Bool_t makeVisible, const char* args, Int_t bufsize):
   kBranchName(name),
 #ifdef RB_DATA_ON_STACK
-  fData()
+  fData(),  fDataVoidPtr(&fData)
 #else
-  fData(Construct<T>(args))
+  fData(Construct<T>(args)),  fDataVoidPtr(fData.get())
 #endif
 {
-  Init(event, makeVisible, args, bufsize, splitlevel);
+  Init(event, makeVisible, args, bufsize);
 }
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // Destructor                 //
@@ -374,6 +385,13 @@ inline T* rb::data::Wrapper<T>::Get() {
 #else
   return fData.get();
 #endif
+}
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// T* rb::data::Wrapper<T>::operator-> ()                         //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+template <class T>
+inline T* rb::data::Wrapper<T>::get() {
+  return Get();
 }
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // T* rb::data::Wrapper<T>::operator-> ()                         //
@@ -397,7 +415,7 @@ inline T& rb::data::Wrapper<T>::operator* () {
 // void rb::data::Wrapper<T>::Init()                               //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 template <class T>
-void rb::data::Wrapper<T>::Init(Event* event, Bool_t makeVisible, const char* args, Int_t bufsize, Int_t splitlevel) {
+void rb::data::Wrapper<T>::Init(Event* event, Bool_t makeVisible, const char* args, Int_t bufsize) {
   // Figure out class name
   TClass* cl = TClass::GetClass(typeid(T));
   if(!cl) {
@@ -418,7 +436,11 @@ void rb::data::Wrapper<T>::Init(Event* event, Bool_t makeVisible, const char* ar
     mapper.MapClass();
   }
   // Add as a branch in the event's internal tree.
-  if(event) Event::BranchAdd::Operate(event, kBranchName, this->Get(), bufsize, splitlevel);
+  if(event) {
+    Bool_t add_success = Event::BranchAdd::Operate(event, kBranchName, cl->GetName(), &fDataVoidPtr, bufsize);
+    if(!add_success) err::Error("data::Wrapper::Init") << "Unsuccessful attempt to add the branch " << kBranchName;
+  }
+  else err::Error("data::Wrapper::Init") << "Event pointer == 0";
 }
 
 #endif // #ifndef __MAKECINT__

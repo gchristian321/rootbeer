@@ -88,10 +88,7 @@ class DragonEvent : public rb::Event
 private:
   rb::data::Wrapper<Bgo> fBgo;
 public:
-  DragonEvent() : fBgo("bgo", this, true, "") {
-    // void * v = (void*)fBgo.Get();
-    // AddBranch("bgo", fBgo.Get());
-  }
+  DragonEvent();
   ~DragonEvent() {}
 private:
   TMidasEvent* Cast(void* addr) {return reinterpret_cast<TMidasEvent*>(addr);}
