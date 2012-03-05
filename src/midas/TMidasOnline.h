@@ -8,7 +8,8 @@
   $Id: TMidasOnline.h 77 2011-06-22 16:26:33Z  $
 
 \********************************************************************/
-
+#ifndef TMIDASONLINE_H
+#define TMIDASONLINE_H
 #include <stdio.h>
 #include <string>
 
@@ -116,3 +117,4 @@ public:
 };
 
 //end
+#endif

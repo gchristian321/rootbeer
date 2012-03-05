@@ -1,19 +1,21 @@
-VPATH = $(PWD)/cint:$(PWD)/src:$(PWD)/lib:$(PWD)/rbgui
-
 ### Include the user-defined portion of the makefile
 include $(PWD)/user/Makefile.user
 
 ### Variable definitions
 SRC=$(PWD)/src
+OBJ=$(PWD)/obj
 CINT=$(PWD)/cint
 USER=$(PWD)/user
+RBLIB=$(PWD)/lib
+
 ROOTGLIBS = $(shell root-config --glibs) -lXMLParser -lThread -lTreePlayer
 RPATH    += -Wl,-rpath,$(ROOTSYS)/lib -Wl,-rpath,$(PWD)/lib
-DYLIB=-shared -fPIC
+DYLIB=-shared
+FPIC=-fPIC
 INCFLAGS=-I$(SRC) -I$(CINT) -I$(USER) $(USER_INCLUDES)
-DEBUG=
-#-ggdb -O0
-CXXFLAGS=$(INCFLAGS) -L$(PWD)/lib $(STOCK_BUFFERS) -DBUFFER_TYPE=$(USER_BUFFER_TYPE) $(DEBUG)
+DEBUG=-ggdb -O0
+##-DDEBUG
+CXXFLAGS=$(DEBUG) $(INCFLAGS) -L$(PWD)/lib $(STOCK_BUFFERS) -DBUFFER_TYPE=$(USER_BUFFER_TYPE)
 
 
 ifdef ROOTSYS
@@ -24,8 +26,8 @@ endif
 # optional MIDAS libraries
 ifdef MIDASSYS
 MIDASLIBS = $(MIDASSYS)/linux/lib/libmidas.a -lutil -lrt
-CXXFLAGS += -DHAVE_MIDAS -DOS_LINUX -Dextname -I$(MIDASSYS)/include
-MIDASONLINE=$(SRC)/midas/TMidasOnline.cxx
+CXXFLAGS += -DMIDAS_ONLINE -DOS_LINUX -Dextname -I$(MIDASSYS)/include
+MIDASONLINE=$(OBJ)/midas/TMidasOnline.o
 endif
 
 UNAME=$(shell uname)
@@ -35,49 +37,118 @@ ifdef MIDASSYS
 MIDASLIBS = $(MIDASSYS)/darwin/lib/libmidas.a
 endif
 DYLIB=-dynamiclib -single_module -undefined dynamic_lookup 
+FPIC=
 RPATH=
 endif
 
+COMPILE= g++ $(CXXFLAGS) $(ROOTGLIBS) $(RPATH)
 
 
 
 #### MAIN PROGRAM ####
 all: rootbeer
 
-rootbeer: libRBHist.so libRootbeer.so $(SRC)/main.cc 
-	g++ $(CXXFLAGS) $(INCFLAGS) -lRootbeer $(SRC)/main.cc -o rootbeer $(MIDASLIBS) $(ROOTGLIBS) -lm -lz -lpthread $(RPATH) -I$(ROOTSYS)/include ; echo ""
+rootbeer: $(RBLIB)/libRootbeer.so $(SRC)/main.cc 
+	$(COMPILE) -lRootbeer $(MIDASLIBS) $(SRC)/main.cc -o rootbeer
 
 
 #### ROOTBEER LIBRARY ####
-SOURCES= $(USER_SOURCES) $(MIDASONLINE) $(SRC)/Data.cxx $(SRC)/Rootbeer.cxx $(PWD)/user/Skeleton.cxx $(SRC)/Attach.cxx $(SRC)/Canvas.cxx $(SRC)/WriteConfig.cxx \
-$(SRC)/midas/TMidasEvent.cxx $(SRC)/midas/rbMidasEvent.cxx
+OBJECTS=$(OBJ)/hist/Hist.o $(OBJ)/hist/Manager.o \
+$(OBJ)/Formula.o $(OBJ)/midas/TMidasEvent.o $(OBJ)/midas/TMidasFile.o $(MIDASONLINE) \
+$(OBJ)/Data.o $(OBJ)/Event.o $(OBJ)/Buffer.o $(OBJ)/User.o $(OBJ)/Canvas.o $(OBJ)/WriteConfig.o \
+$(OBJ)/Rint.o $(OBJ)/Rootbeer.o 
 
-HEADERS=$(SRC)/Rootbeer.hxx $(SRC)/Data.hxx $(SRC)/midas/rbMidasEvent.h $(USER_HEADERS)
-
-libRootbeer.so: libRBHist.so cint/RBDictionary.cxx $(SOURCES)
-	g++ $(DYLIB) -o $(PWD)/lib/$@ -lRBHist $(CXXFLAGS) $(MIDASLIBS) $(ROOTGLIBS) $(RPATH)  -p cint/RBDictionary.cxx $(SOURCES)  ; echo ""
-
-
-cint/RBDictionary.cxx: $(HEADERS) Linkdef.h
-	rootcint -f $@ -c $(CXXFLAGS)  -p $^ ; echo ""
+HEADERS=$(SRC)/Rootbeer.hxx $(SRC)/Rint.hxx $(SRC)/Data.hxx $(SRC)/Buffer.hxx $(SRC)/Event.hxx $(USER)/User.hxx \
+$(SRC)/hist/Hist.hxx $(SRC)/Formula.hxx $(SRC)/utils/LockingPointer.hxx $(SRC)/utils/Mutex.hxx $(SRC)/hist/Visitor.hxx \
+$(SRC)/hist/Manager.hxx $(SRC)/midas/*.h $(SRC)/utils/*.h* $(USER_HEADERS)
 
 
+RBlib: $(RBLIB)/libRootbeer.so
+$(RBLIB)/libRootbeer.so: $(CINT)/RBDictionary.cxx $(USER_SOURCES) $(OBJECTS)
+	$(COMPILE) $(DYLIB) $(FPIC) -o $@ $(MIDASLIBS) $(OBJECTS) $(MOBJ) \
+-p $(CINT)/RBDictionary.cxx $(USER_SOURCES) \
 
-#### COMPILE HISTOGRAM LIBRARY ####
+Rootbeer: $(OBJ)/Rootbeer.o
+$(OBJ)/Rootbeer.o: $(CINT)/RBDictionary.cxx $(SRC)/Rootbeer.cxx
+	$(COMPILE) $(FPIC) -c \
+-o $@  -p $(SRC)/Rootbeer.cxx \
 
-libRBHist.so: Hist.cxx cint/HistDictionary.cxx
-	g++ $(DYLIB) -o $(PWD)/lib/$@ $(CXXFLAGS) -lTreePlayer  -p $^   $(ROOTGLIBS) $(RPATH) ; echo ""
+Rint: $(OBJ)/Rint.o
+$(OBJ)/Rint.o: $(CINT)/RBDictionary.cxx $(SRC)/Rint.cxx
+	$(COMPILE) $(FPIC) -c \
+-o $@  -p $(SRC)/Rint.cxx \
 
+WriteCOnfig: $(OBJ)/WriteConfig.o
+$(OBJ)/WriteConfig.o: $(CINT)/RBDictionary.cxx $(SRC)/WriteConfig.cxx
+	$(COMPILE) $(FPIC) -c \
+-o $@  -p $(SRC)/WriteConfig.cxx \
 
-cint/HistDictionary.cxx: Hist.hxx LockingPointer.hxx HistLinkdef.h
-	rootcint -f $@ -c $(CXXFLAGS) -p $^ ; echo ""
+Canvas: $(OBJ)/Canvas.o
+$(OBJ)/Canvas.o: $(CINT)/RBDictionary.cxx $(SRC)/Canvas.cxx
+	$(COMPILE) $(FPIC) -c \
+-o $@  -p $(SRC)/Canvas.cxx \
+
+User: $(OBJ)/User.o
+$(OBJ)/User.o: $(CINT)/RBDictionary.cxx $(USER)/User.cxx
+	$(COMPILE) $(FPIC) -c \
+-o $@  -p $(USER)/User.cxx \
+
+Buffer: $(OBJ)/Buffer.o
+$(OBJ)/Buffer.o: $(CINT)/RBDictionary.cxx $(SRC)/Buffer.cxx
+	$(COMPILE) $(FPIC) -c \
+-o $@  -p $(SRC)/Buffer.cxx \
+
+Event: $(OBJ)/Event.o
+$(OBJ)/Event.o: $(CINT)/RBDictionary.cxx $(SRC)/Event.cxx
+	$(COMPILE) $(FPIC) -c \
+-o $@  -p $(SRC)/Event.cxx \
+
+Data: $(OBJ)/Data.o
+$(OBJ)/Data.o: $(CINT)/RBDictionary.cxx $(SRC)/Data.cxx
+	$(COMPILE) $(FPIC) -c \
+-o $@  -p $(SRC)/Data.cxx \
+
+TMidasFile: $(OBJ)/midas/TMidasFile.o
+$(OBJ)/midas/TMidasFile.o: $(CINT)/RBDictionary.cxx $(SRC)/midas/TMidasFile.cxx
+	$(COMPILE) $(FPIC) -c \
+-o $@  -p $(SRC)/midas/TMidasFile.cxx \
+
+TMidasEvent: $(OBJ)/midas/TMidasEvent.o
+$(OBJ)/midas/TMidasEvent.o: $(CINT)/RBDictionary.cxx $(SRC)/midas/TMidasEvent.cxx
+	$(COMPILE) $(FPIC) -c \
+-o $@  -p $(SRC)/midas/TMidasEvent.cxx \
+
+TMidasOnline: $(OBJ)/midas/TMidasOnline.o
+$(OBJ)/midas/TMidasOnline.o: $(CINT)/RBDictionary.cxx $(SRC)/midas/TMidasOnline.cxx
+	$(COMPILE) $(FPIC) -c \
+-o $@  -p $(SRC)/midas/TMidasOnline.cxx \
+
+Hist: $(OBJ)/hist/Hist.o
+$(OBJ)/hist/Hist.o: $(CINT)/RBDictionary.cxx $(SRC)/hist/Hist.cxx
+	$(COMPILE) $(FPIC) -c \
+-o $@  -p $(SRC)/hist/Hist.cxx \
+
+Manager: $(OBJ)/hist/Manager.o
+$(OBJ)/hist/Manager.o: $(CINT)/RBDictionary.cxx $(SRC)/hist/Manager.cxx
+	$(COMPILE) $(FPIC) -c \
+-o $@  -p $(SRC)/hist/Manager.cxx \
+
+Formula: $(OBJ)/Formula.o
+$(OBJ)/Formula.o: $(CINT)/RBDictionary.cxx $(SRC)/Formula.cxx
+	$(COMPILE) $(FPIC) -c \
+-o $@  -p $(SRC)/Formula.cxx \
+
+RBdict: $(CINT)/RBDictionary.cxx
+$(CINT)/RBDictionary.cxx: $(HEADERS) $(USER)/UserLinkdef.h $(CINT)/Linkdef.h \
+$(SRC)/utils/Mutex.hxx $(SRC)/utils/LockingPointer.hxx
+	rootcint -f $@ -c $(CXXFLAGS)  -p $(HEADERS) $(CINT)/Linkdef.h \
 
 
 
 #### REMOVE EVERYTHING GENERATED BY MAKE ####
 
 clean:
-	rm -f lib/*.so rootbeer cint/RBDictionary.* cint/HistDictionary.* rbgui/HistDict.*
+	rm -f $(RBLIB)/*.so rootbeer $(CINT)/RBDictionary.* $(CINT)/HistDictionary.* rbgui/HistDict.* $(OBJ)/*.o $(OBJ)/*/*.o
 
 
 
@@ -85,11 +156,6 @@ clean:
 
 doc:
 	cd $(PWD)/doxygen ; doxygen Doxyfile ; cd latex; make; cd $(PWD)
-
-doccopy:
-	cd $(PWD)/doxygen ; doxygen Doxyfile ; cd latex; make; cd $(PWD) ; \
-	$(PWD)/doxygen/copydoc.sh
-
 
 
 
@@ -102,11 +168,11 @@ GUISOURCES=$(GUI)/HistViewer.cc $(GUI)/HistMaker.cc $(GUI)/TH2D_SF.cc $(GUI)/TH1
 
 GUIROOTFLAGS=-dynamiclib -single_module -undefined dynamic_lookup `root-config --cflags --libs` -lTreePlayer
 
-GUICXXFLAGS=-fPIC
+GUICXXFLAGS=$(FPIC)
 
 gui: librbgui.so
 
-librbgui.so: libRBHist.so HistDict.cxx $(GUISOURCES)
+librbgui.so: $(RBLIB)/libRBHist.so HistDict.cxx $(GUISOURCES)
 	g++ -L$(PWD)/lib -lRBHist -shared -o $(PWD)/lib/$@ $(GUICXXFLAGS) -I/opt/local/include/root $(GUI)/HistDict.cxx $(GUISOURCES) $(GUIROOTFLAGS) -I$(PWD)/src
 
 HistDict.cxx: $(GUIHEADERS) rbgui/Linkdef.h

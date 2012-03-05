@@ -1,19 +1,12 @@
-//! \file rootbeer.hxx
+//! \file Rootbeer.hxx
 //! \brief Define the \c CINT user interface to <tt>ROOTBEER</tt>
 //! \details The user interface to anything \c ROOTBEER specific is done via functions
 //! in the \c rb namespace. So, to do any action specific to \c ROOTBEER (as opposed
 //! to just plain <tt>ROOT</tt>), the user will call <tt>rb::DoWhatever()</tt>.  All
 //! of the available user functions and their descriptions can be found in this Doxygen file.
-#ifndef __ROOTBEER__
-#define __ROOTBEER__
-#include <stdlib.h>
-#include <vector>
-#include <string>
-#include <TCutG.h>
-#include <TRint.h>
-#include "Hist.hxx"
-
-
+#ifndef ROOTBEER_HXX
+#define ROOTBEER_HXX
+#include <Rtypes.h>
 
 /// Namespace wrapping the \c ROOTBEER objects and user functions.
 namespace rb
@@ -21,7 +14,7 @@ namespace rb
   /// \brief Attach to an online data sorce.
   //! \details
   //! \todo Implement for NSCL data.
-  extern void AttachOnline(const char* host, const char* expt = "", const std::vector<std::string>* others = NULL);
+  extern void AttachOnline(const char* host, const char* other_arg = "", char** others = 0, int n_others = 0);
 
   /// \brief Attach to an offline data source.
   //! \param filename Path of the file to which you want to attach.
@@ -37,10 +30,6 @@ namespace rb
   /// \brief Disconnect from a data source.
   //! Stops all reading of data andl closes out the relevant threads.
   extern void Unattach();
-
-  /// \brief Display the \c ROOTBEER logo.
-  //! \details ASCII art of naturally clumsy man stumbling while carrying two full mugs of root beer.
-  extern void Logo();
 
   /// \brief Write configuration file
   //! \details The configureation file is CINT code that reproduces things you've defined in ROOTBEER
@@ -76,7 +65,7 @@ namespace rb
   extern Int_t WriteCanvases(const char* filename, Bool_t prompt = kTRUE);
 
   /// Contains user functions relevant to updating canvases and other graphics.
-  namespace Canvas
+  namespace canvas
   {
     /// \brief Update every open canvas.
     //! \details
@@ -108,49 +97,81 @@ namespace rb
     extern Int_t GetUpdateRate();
 
   }
-
-  /// Wraps a custom constructor-like function for TCutG.
-  namespace CutG {
-
-    /// \brief Custom constructor-like function for TCutG.
-    //! \details Allows construction of a TCutG using std::vectors instead of plain arrays.
-    extern TCutG* New(const char* name, const char* title, const char* varx, const char* vary,
-		      const std::vector<Double_t>& xpoints, const std::vector<Double_t>& ypoints,
-		      Color_t fillColor = kWhite, Color_t LineColor = kBlack,
-		      Int_t lineWidth = 2, Bool_t overwrite = kFALSE);
-  }
-    
-  /// \brief Class that runs the interactive ROOT application.
-  //! \details We can essentially use the normal <tt>TRint</tt>, except
-  //!  we need to override the Terminate()  method to stop threaded processes.
-  class Rint : public TRint
+  /// Wraps classes and functions relevant to the access of data and methods of user classes.
+  namespace data
   {
-  public:
-    /// \brief Constructor
-    //! \details Just call the standard \c TRint constructor, plus set the prompt to be
-    //! <tt>rootbeer [\%d]</tt>.
-    //! \note The \c \%d means that the number of commands entered in the session is
-    //! what's present.
-    Rint(const char* appClassName, int* argc, char** argv,
-	 void* options = 0, int numOptions = 0, Bool_t noLogo = kFALSE) :
-      TRint(appClassName, argc, argv, options, numOptions, noLogo) {
-      SetPrompt("rootbeer [%d] ");
-    }
+    /// Get the value of a user class data member.
+    //! \param [in] name The full name (TTree leaf) of the data member. For example:
+    //! \code
+    //! struct AStruct {
+    //!   int a;
+    //! } mine;
+    //! \endcode
+    //! would be accessed by
+    //! \code
+    //! rb::data::GetValue("mine.a");
+    //! \endcode
+    //! \returns The value of the basic data member keyed by <i>name</i>, casted
+    //! to a Double_t.
+    extern Double_t GetValue(const char* name);
 
-    /// \brief Terminate the application.
-    //! \details Stops any running threads and frees any memory that was allocated during
-    //! the CINT session.
-    void Terminate(Int_t status = 0);
+    /// Set the value of a user class data member.
+    //! \param [in] name The full name (TTree leaf) of the data member (see data::GetValue() for
+    //! an example).
+    //! \param [in] newvalue What you want to set the data keyed by <i>name</i> to.
+    extern void SetValue(const char* name, Double_t newvalue);
 
-    /// \brief Destructor
-    //! \details Calls Terminate() with error code.
-    ~Rint() {
-      Terminate(EXIT_FAILURE);
-    }
-  };
 
+    /// Print the fill name and current value of every data member in every listed class.
+    extern void PrintAll();
+  }
+  /// Creation functions for histograms
+  namespace hist
+  {
+    class Base;
+
+    /// One-dimensional creation function
+    extern rb::hist::Base* New(const char* name, const char* title,
+			       Int_t nbinsx, Double_t xlow, Double_t xhigh,
+			       const char* param, const char* gate = "", Int_t event_code = 1);
+
+    /// Two-dimensional creation function
+    extern rb::hist::Base* New(const char* name, const char* title,
+			       Int_t nbinsx, Double_t xlow, Double_t xhigh,
+			       Int_t nbinsy, Double_t ylow, Double_t yhigh,
+			       const char* param, const char* gate = "", Int_t event_code = 1);
+
+    /// Three-dimensional creation function
+    extern rb::hist::Base* New(const char* name, const char* title,
+			       Int_t nbinsx, Double_t xlow, Double_t xhigh,
+			       Int_t nbinsy, Double_t ylow, Double_t yhigh,
+			       Int_t nbinsz, Double_t zlow, Double_t zhigh,
+			       const char* param, const char* gate = "", Int_t event_code = 1);
+
+    /// Summary histogram creation
+    extern rb::hist::Base* NewSummary(const char* name, const char* title,
+				      Int_t nbins, Double_t low, Double_t high,
+				      const char* paramList,  const char* gate = "", Int_t event_code = 1,
+				      const char* orientation = "v");
+
+    /// Gamma hist creation (1d)
+    extern rb::hist::Base* NewGamma(const char* name, const char* title,
+				    Int_t nbinsx, Double_t xlow, Double_t xhigh,
+				    const char* params,  const char* gate = "", Int_t event_code = 1);
+
+    /// Gamma hist creation (2d)
+    extern rb::hist::Base* NewGamma(const char* name, const char* title,
+				    Int_t nbinsx, Double_t xlow, Double_t xhigh,
+				    Int_t nbinsy, Double_t ylow, Double_t yhigh,
+				    const char* params,  const char* gate = "", Int_t event_code = 1);
+
+    /// Bit hist creation
+    // template <Int_t NBITS>
+    //  void rb::hist::NewBits<NBITS>(const char* name, const char* title, const char* param, const char* gate) {
+    //   rb::BitHist<NBITS>::BitInitialize(name, title, param, gate);
+    // }
+  }
 }
-
 
 
 #endif

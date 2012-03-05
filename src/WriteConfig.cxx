@@ -1,14 +1,15 @@
-/*! \file WriteConfig.cxx
- *  \brief Implements methods related to saving configuration files.
- *  Put in a separate file because they're verbose and we want to avoid cluttering
- *  Rootbeer.cxx
- */
+//! \file WriteConfig.cxx
+//! \brief Implements methods related to saving configuration files.
+//!  \details Put in a separate file because they're verbose and we want to avoid cluttering
+//!  Rootbeer.cxx
 #include <iostream>
 #include <fstream>
-#include "TTimeStamp.h"
-#include "TCutG.h"
+#include <TTimeStamp.h>
+#include <TCutG.h>
 #include "Rootbeer.hxx"
+#include "Rint.hxx"
 #include "Data.hxx"
+#include "hist/Hist.hxx"
 using namespace std;
 
 
@@ -30,13 +31,13 @@ TAxis* get_axis(TH1* hst, UInt_t n) {
 
 /// Write a histogram constructor format to a stream.
 void write_hist(TObject* object, ostream& ofs) {
-  rb::Hist* rbhst = dynamic_cast<rb::Hist*>(object);
+  rb::hist::Base* rbhst = dynamic_cast<rb::hist::Base*>(object);
   if(!rbhst) return;
   TH1* hst = rbhst->GetHist();
   if(!hst) return;
 
   for(int i=0; i< ntabs; ++i) ofs << "    ";
-  ofs << "  rb::Hist::New(\"" << rbhst->GetName() << "\", \"" << rbhst->GetTitle() << "\", ";
+  ofs << "  rb::hist::Base::New(\"" << rbhst->GetName() << "\", \"" << rbhst->GetTitle() << "\", ";
   string param = "";
   for(UInt_t i=0; i< rbhst->GetNdimensions(); ++i) {
     param.insert(0, rbhst->GetParam(i));
@@ -103,18 +104,30 @@ void write_cut(TObject* obj, ostream& ofs)
   const char* vary  = cut->GetVarY();
   const Width_t www = cut->GetLineWidth();
   const Color_t ccc = cut->GetLineColor();
+  Int_t np = cut->GetN();
 
-  int np = cut->GetN();
-  ofs << "     vector<double> vx(" << np << "), vy(" << np << ");\n";
-  for(int i(0); i<np; ++i) {
-    double xx, yy;
+  Double_t xx, yy;
+  stringstream sX, sY;
+  sX << "     Double_t px[] = { " ;
+  sY << "     Double_t py[] = { " ;
+  for(Int_t i=0; i< np; ++i) {
     cut->GetPoint(i, xx, yy);
-    ofs << "     vx[" << i << "] = " << xx << ";\tvy[" << i << "] = " << yy << ";\n";
+    if(i < np-1) {
+      sX << xx << ", ";
+      sY << yy << ", ";
+    } else {
+      sX << xx << " };\n";
+      sY << yy << " };\n";
+    }
   }
-
-  ofs << "     TCutG* " << nme << " = rb::CutG::New(\"" << nme << "\", \"" << ttl << "\", \""
-      << varx << "\", \"" << vary << "\", " << "vx, vy, kWhite, " << ccc << ", " << www << ", kFALSE);\n";
+  ofs << sX.str() << sY.str();
+  ofs << "     TCutG* " << nme << " = new TCutG(\"" << nme << "\", " << np << ", px, py);\n";
+  ofs << nme << "->SetVarX(\"" << varx << "\");\n";
+  ofs << nme << "->SetVarY(\"" << vary << "\");\n";
+  ofs << nme << "->SetLineWidth(" << www <<");\n";
+  ofs << nme << "->SetLineColor(" << ccc <<");\n";
 }
+
 
 /// Ask user to overwrite a file or not.
 Bool_t overwrite(const char* fname) {
@@ -155,7 +168,8 @@ Int_t rb::WriteConfig(const char* fname, Bool_t prompt) {
   write_hists_and_directories(ofs);
 
   ofs << "\n\n" << "  // VARIABLES //\n";
-  rb::Data::SavePrimitive(ofs);
+  data::MBasic::Printer p;
+  p.SavePrimitive(ofs);
 
   ofs << "\n}";
   return 0;
@@ -199,44 +213,13 @@ Int_t rb::WriteVariables(const char* fname, Bool_t prompt) {
 
 
   ofs << "\n\n" << "  // VARIABLES //\n";
-  rb::Data::SavePrimitive(ofs);
+  data::MBasic::Printer p;
+  p.SavePrimitive(ofs);
 
   ofs << "\n}";
   return 0;
 }
 
-
-TCutG* rb::CutG::New(const char* name, const char* title, const char* varx, const char* vary,
-		     const std::vector<Double_t>& xpoints, const std::vector<Double_t>& ypoints,
-		     Color_t fillColor, Color_t lineColor, Int_t lineWidth, Bool_t overwrite) {
-
-  string setName(name);
-  TObject* oldObject = gROOT->GetListOfSpecials()->FindObject(name);
-  if(oldObject) {
-    if(overwrite) {
-      TCutG* old = dynamic_cast<TCutG*>(oldObject);
-      if(old) delete old;
-    }
-    else {
-      Int_t n = 1;
-      while(1) {
-	std::stringstream sstr;
-	sstr << name << "_" << n++;
-	setName = sstr.str();
-	if(!dynamic_cast<TCutG*>(gROOT->GetListOfSpecials()->FindObject(setName.c_str()))) break;
-      }
-    }
-  }
-
-  TCutG* ret = new TCutG(setName.c_str(), xpoints.size(), &xpoints[0], &ypoints[0]);
-  ret->SetTitle(title);
-  ret->SetVarX(varx);
-  ret->SetVarY(vary);
-  ret->SetFillColor(fillColor);
-  ret->SetLineColor(lineColor);
-  ret->SetLineWidth(lineWidth);
-  return ret;
-}
 
 void rb::ReadConfig(const char* filename, Option_t* option) {
   ifstream ifs(filename);
@@ -261,7 +244,7 @@ void rb::ReadConfig(const char* filename, Option_t* option) {
     while(1) {
       getline(ifs, line);
       if(!ifs.good()) break;
-      int pos = line.find("rb::CutG::New"); 
+      int pos = line.find("TCutG*");
       if(pos < line.size()) {
 	line = line.substr(pos);
 	line = line.substr(1+line.find("("));
@@ -275,21 +258,23 @@ void rb::ReadConfig(const char* filename, Option_t* option) {
       pos = line.find("cd()");
       if(pos < line.size()) gROOT->ProcessLine(line.c_str());
 
-      pos = line.find("rb::Hist::New");
+      pos = line.find("rb::hist::New");
       if(pos < line.size()) {
 	line = line.substr(pos);
 	line = line.substr(1+line.find("("));
 	line = line.substr(1+line.find("\""));
 	string name = line.substr(0, line.find("\""));
-	rb::Hist* old = dynamic_cast<rb::Hist*> (gDirectory->FindObject(name.c_str()));
-	if(old) delete old;
+	rb::hist::Base* old = dynamic_cast<rb::hist::Base*> (gDirectory->FindObject(name.c_str()));
+	if(old) old->Delete(); //delete old;
 	continue;
       }
     }
     ReadConfig(filename, "c");
   }
   else if(!opt.CompareTo("r")) {
-    rb::Hist::DeleteAll();
+    for(Int_t event = 0; event < rb::gApp()->NEvents(); ++event) {
+      rb::gApp()->GetEvent(event)->GetHistManager()->DeleteAll();
+    }
     TSeqCollection* primitives = gROOT->GetListOfSpecials();
     for(Int_t i=0; i< primitives->GetSize(); ++i) {
       TCutG* cut = dynamic_cast<TCutG*>(primitives->At(i));

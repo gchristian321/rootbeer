@@ -1,4 +1,3 @@
-
 ############################
 ### Define any variables you might want to use later here, like the directory
 ### paths of your sources. Example:
@@ -6,11 +5,7 @@
 ### Note that the present directory (where this makefile segment is located)
 ### has already been defined as USER
 
-<<<<<<< HEAD
 DRAGON_SRC=$(HOME)/soft/develop/dragon/analyzer/src
-=======
-DRAGON_SRC=$(HOME)/gc/dragon/analyzer/src
->>>>>>> cb47c9010ce624285663fd9d704b137db730c8b3
 
 
 ############################
@@ -27,35 +22,20 @@ USER_INCLUDES=-I$(DRAGON_SRC)
 ### Specify the full path for each header. Example:
 ### USER_HEADERS=/path/to/headers/header1.hxx /path/to/headers/header2.hxx
 
-USER_HEADERS=$(USER)/ExampleData.hh \
-$(DRAGON_SRC)/vme/vme.hxx 
+USER_HEADERS=$(USER)/ExampleData.hh $(DRAGON_SRC)/vme/vme.hxx 
 
 ############################
 ### Use the USER_SOURCES variable to tell the compiler where all of your source (compile) files are located.
 ### Specify the full path for each file. Example:
 ### USER_HEADERS=/path/to/sources/source1.cxx /path/to/sources/source2.cxx
-USER_SOURCES= \
-$(DRAGON_SRC)/VariableDefaults.cxx $(DRAGON_SRC)/vme/vme.cxx \
-
-
-##### TODO:::: Move midas stuff to permanent makefile!!!
-
+USER_SOURCES= $(DRAGON_SRC)/vme/vme.cxx
 
 
 ############################
-### Specify the type of data packed into your event files by setting the DATATYPE variable.
-### (Note: NSCL and MIDAS are both 16-bit unsigned integers)
-
 ### If you want to use the stock routines for extracting MIDAS data buffers, uncomment the following
-### two lines and make sure all others are commented.
-STOCK_BUFFERS=-D_MIDAS_
-USER_BUFFER_TYPE=rb::MidasEvent
+### line and make sure all other STOCK_BUFFER lines are commented.
+STOCK_BUFFERS=-DMIDAS_BUFFERS
 
 ### If you want to use the stock routines for extracting NSCL data buffers, uncomment the following
-### two lines and make sure all others are commented.
-#STOCK_BUFFERS=-D_NSCL_
-#USER_BUFFER_TYPE=std::vector<uint16_t>
-
-### If you want (or need) to define your own routines to extract data buffers, define the buffer type
-### below.
-#USER_BUFFER_TYPE=
+### line and make sure all other STOCK_BUFFER lines are commented.
+#STOCK_BUFFERS=-DNSCL_BUFFERS
