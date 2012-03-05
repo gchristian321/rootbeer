@@ -160,7 +160,7 @@ Bool_t rb::Event::BranchAdd::Operate(rb::Event* const event, const char* name, T
     return false;
   }
   TBranch* branch =
-    LockingPointer<TTree>(event->fTree.get(), gDataMutex)->Branch(name, cl->GetName(), &address, bufsize, splitlevel);
+    LockingPointer<TTree>(event->fTree.get(), gDataMutex)->Branch(name, cl->GetName(), &address, bufsize, 1);////splitlevel);
   return branch != 0;
 }
 #endif

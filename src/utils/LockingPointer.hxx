@@ -67,6 +67,18 @@ public:
 #endif
   }
 
+  //! Constructor (by shared_pointer).
+  //! Set fObject and fMutex, lock fMutex. Included for convenience
+  //! so we don't have to call get() on smart pointers.
+  template <class PTR>
+  LockingPointer(PTR& p_object, rb::Mutex& mutex) :
+    fObject(const_cast<T*>(p_object.get())), fMutex(&mutex) {
+    fMutex->Lock();
+#ifdef LOCKING_POINTER_VERBOSE
+    Info("LockingPointer", "Locking");
+#endif
+  }
+
   //! Constructor (by reference and mutex pointer).
   //! Set fObject and fMutex, lock fMutex. If the mutex argument is TTHREAD_GLOBAL_MUTEX,
   //! Lock the TThread global mutex
@@ -162,6 +174,12 @@ public:
   //! Set fObject.
   LockFreePointer(volatile T* object) :
     fObject(const_cast<T*>(object)) {  }
+
+  //! Constructor (by smart pointer).
+  //! Set fObject
+  template <class PTR>
+  LockFreePointer(PTR& p_object) :
+    fObject(const_cast<T*>(p_object.get())) {  }
 
   //! Descructor.
   //! Nothing to do.

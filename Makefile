@@ -53,7 +53,8 @@ rootbeer: $(RBLIB)/libRootbeer.so $(SRC)/main.cc
 
 
 #### ROOTBEER LIBRARY ####
-OBJECTS=$(OBJ)/Hist.o $(OBJ)/Formula.o $(OBJ)/Manager.o $(OBJ)/midas/TMidasEvent.o $(OBJ)/midas/TMidasFile.o $(MIDASONLINE) \
+OBJECTS=$(OBJ)/hist/Hist.o $(OBJ)/hist/Manager.o \
+$(OBJ)/Formula.o $(OBJ)/midas/TMidasEvent.o $(OBJ)/midas/TMidasFile.o $(MIDASONLINE) \
 $(OBJ)/Data.o $(OBJ)/Event.o $(OBJ)/Buffer.o $(OBJ)/User.o $(OBJ)/Canvas.o $(OBJ)/WriteConfig.o \
 $(OBJ)/Rint.o $(OBJ)/Rootbeer.o 
 
