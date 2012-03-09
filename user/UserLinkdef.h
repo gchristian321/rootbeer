@@ -25,5 +25,3 @@
 
 
 #pragma link C++ defined_in /user/gchristian/soft/develop/dragon/analyzer/src/vme/vme.hxx;
-#pragma link C++ defined_in /user/gchristian/soft/develop/rootbeer/user/ExampleData.hh;
-

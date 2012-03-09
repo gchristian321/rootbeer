@@ -61,10 +61,10 @@ rootbeer: $(RBLIB)/libRootbeer.so $(SRC)/main.cc
 #### ROOTBEER LIBRARY ####
 OBJECTS=$(OBJ)/hist/Hist.o $(OBJ)/hist/Manager.o \
 $(OBJ)/Formula.o $(OBJ)/midas/TMidasEvent.o $(OBJ)/midas/TMidasFile.o $(MIDASONLINE) \
-$(OBJ)/Data.o $(OBJ)/Event.o $(OBJ)/Buffer.o $(OBJ)/User.o $(OBJ)/Canvas.o $(OBJ)/WriteConfig.o \
+$(OBJ)/Data.o $(OBJ)/Event.o $(OBJ)/Buffer.o $(OBJ)/user/User.o $(OBJ)/Canvas.o $(OBJ)/WriteConfig.o \
 $(OBJ)/Rint.o $(OBJ)/Rootbeer.o 
 
-HEADERS=$(SRC)/Rootbeer.hxx $(SRC)/Rint.hxx $(SRC)/Data.hxx $(SRC)/Buffer.hxx $(SRC)/Event.hxx $(USER)/User.hxx \
+HEADERS=$(SRC)/Rootbeer.hxx $(SRC)/Rint.hxx $(SRC)/Data.hxx $(SRC)/Buffer.hxx $(SRC)/Event.hxx $(SRC)/user/User.hxx \
 $(SRC)/hist/Hist.hxx $(SRC)/Formula.hxx $(SRC)/utils/LockingPointer.hxx $(SRC)/utils/Mutex.hxx $(SRC)/hist/Visitor.hxx \
 $(SRC)/hist/Manager.hxx $(SRC)/midas/*.h $(SRC)/utils/*.h* $(USER_HEADERS)
 
@@ -94,10 +94,10 @@ $(OBJ)/Canvas.o: $(CINT)/RBDictionary.cxx $(SRC)/Canvas.cxx
 	$(COMPILE) $(FPIC) -c \
 -o $@  -p $(SRC)/Canvas.cxx \
 
-User: $(OBJ)/User.o
-$(OBJ)/User.o: $(CINT)/RBDictionary.cxx $(USER)/User.cxx
+User: $(OBJ)/user/User.o
+$(OBJ)/user/User.o: $(CINT)/RBDictionary.cxx $(SRC)/user/User.cxx
 	$(COMPILE) $(FPIC) -c \
--o $@  -p $(USER)/User.cxx \
+-o $@  -p $(SRC)/user/User.cxx \
 
 Buffer: $(OBJ)/Buffer.o
 $(OBJ)/Buffer.o: $(CINT)/RBDictionary.cxx $(SRC)/Buffer.cxx

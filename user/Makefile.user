@@ -22,7 +22,7 @@ USER_INCLUDES=-I$(DRAGON_SRC)
 ### Specify the full path for each header. Example:
 ### USER_HEADERS=/path/to/headers/header1.hxx /path/to/headers/header2.hxx
 
-USER_HEADERS=$(USER)/ExampleData.hh $(DRAGON_SRC)/vme/vme.hxx 
+USER_HEADERS= $(DRAGON_SRC)/vme/vme.hxx 
 
 ############################
 ### Use the USER_SOURCES variable to tell the compiler where all of your source (compile) files are located.
