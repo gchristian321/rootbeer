@@ -8,4 +8,4 @@
 #define RB_NOCOPY(class)			\
   private:					\
   class (const class& other) {};		\
-  class& operator= (const class& other) {};
+  class& operator= (const class& other) { return *this; };

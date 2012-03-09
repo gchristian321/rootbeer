@@ -16,11 +16,7 @@
 #include "utils/LockingPointer.hxx"
 #include "utils/Error.hxx"
 #include "utils/nocopy.h"
-#ifndef __MAKECINT__
-#include "boost/scoped_ptr.hpp"
-#else
-namespace boost { template <class T> class scoped_ptr; }
-#endif
+#include "utils/boost_scoped_ptr.h"
 
 
 namespace rb
@@ -35,7 +31,7 @@ namespace rb
   class Event
   {
     RB_NOCOPY(Event);
-    private:
+  private:
     boost::scoped_ptr<volatile TTree> fTree;
 
     //! Manages histograms associated with the event

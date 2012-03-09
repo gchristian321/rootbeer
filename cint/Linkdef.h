@@ -20,7 +20,6 @@
 #pragma link C++ class rb::hist::D3+;
 #pragma link C++ class AxisIndices;
 
-
 #pragma link C++ defined_in "user/User.hxx";
 
 #include "../user/UserLinkdef.h"

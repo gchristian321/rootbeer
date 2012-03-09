@@ -64,9 +64,9 @@ namespace
 // Constructor (1d)                                      //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 rb::hist::Base::Base(const char* name, const char* title, const char* param, const char* gate,
-	       hist::Manager* manager, Int_t event_code,
-	       Int_t nbinsx, Double_t xlow, Double_t xhigh) :
-  kDimensions(1), fHistogramClone(0), fManager(manager),
+		     hist::Manager* manager, Int_t event_code,
+		     Int_t nbinsx, Double_t xlow, Double_t xhigh):
+  kDimensions(1), fManager(manager), fHistogramClone(0),
   fFormulae(1, param, gate, event_code),
   fHistVariant(TH1D(name, title, nbinsx, xlow, xhigh))
 {
@@ -77,10 +77,10 @@ rb::hist::Base::Base(const char* name, const char* title, const char* param, con
 // Constructor (2d)                                      //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 rb::hist::Base::Base(const char* name, const char* title, const char* param, const char* gate, 
-	       hist::Manager* manager, Int_t event_code,
-	       Int_t nbinsx, Double_t xlow, Double_t xhigh,
-	       Int_t nbinsy, Double_t ylow, Double_t yhigh):
-  kDimensions(2), fHistogramClone(0), fManager(manager),
+		     hist::Manager* manager, Int_t event_code,
+		     Int_t nbinsx, Double_t xlow, Double_t xhigh,
+		     Int_t nbinsy, Double_t ylow, Double_t yhigh):
+  kDimensions(2), fManager(manager), fHistogramClone(0),
   fFormulae(2, param, gate, event_code),
   fHistVariant(TH2D(name, title, nbinsx, xlow, xhigh, nbinsy, ylow, yhigh))
 {
@@ -94,8 +94,8 @@ rb::hist::Base::Base(const char* name, const char* title, const char* param, con
 		     hist::Manager* manager, Int_t event_code,
 		     Int_t nbinsx, Double_t xlow, Double_t xhigh,
 		     Int_t nbinsy, Double_t ylow, Double_t yhigh,
-		     Int_t nbinsz, Double_t zlow, Double_t zhigh) :
-  kDimensions(3), fHistogramClone(0), fManager(manager),
+		     Int_t nbinsz, Double_t zlow, Double_t zhigh):
+  kDimensions(3), fManager(manager), fHistogramClone(0), 
   fFormulae(3, param, gate, event_code),
   fHistVariant(TH3D(name, title, nbinsx, xlow, xhigh, nbinsy, ylow, yhigh, nbinsz, zlow, zhigh))
 {
@@ -105,7 +105,7 @@ rb::hist::Base::Base(const char* name, const char* title, const char* param, con
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // void rb::hist::Base::Init()                           //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-void rb::hist::Base::Init(const char* name, const char* title,  const char* param, const char* gate) {
+void rb::hist::Base::Init(const char* name, const char* title, const char* param, const char* gate) {
   // Set name & title
   fName = check_name(name).c_str();
   kDefaultTitle = default_title(fFormulae.Get(GATE).c_str(), param);
@@ -150,7 +150,7 @@ TH1* rb::hist::Base::GetHist() {
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 Int_t rb::hist::Base::DoFill(const std::vector<Double_t>& params, Double_t gate) {
   if(!(Bool_t)gate) return 0;
-  visit::hist::Fill::Do(fHistVariant, params[0], params[1], params[2]);
+  return visit::hist::Fill::Do(fHistVariant, params[0], params[1], params[2]);
 }
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // rb::hist::Base::FillUnlocked()                        //

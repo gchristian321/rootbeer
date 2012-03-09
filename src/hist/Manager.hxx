@@ -3,7 +3,7 @@
 //! and storage in a container.
 #ifndef HIST_MANAGER_HXX
 #define HIST_MANAGER_HXX
-
+#include "utils/Mutex.hxx"
 
 namespace rb
 {
@@ -22,6 +22,11 @@ namespace rb
     private:
       //! Container of pointers to histograms registered to this event type.
       volatile Container_t fSet;
+
+      //! Mutex to protect access to fSet
+    public:
+      rb::Mutex fSetMutex;
+
     public:
       //! Fill all histograms in fSet
       void FillAll();
@@ -71,12 +76,11 @@ namespace rb
 
 
 // ========= Inlined Functions ========= //
-inline rb::hist::Manager::Manager() {
+inline rb::hist::Manager::Manager(): fSetMutex("SetMutex", true) {
 }
 
 inline rb::hist::Manager::~Manager() {
   DeleteAll();
 }
-
 
 #endif

@@ -15,8 +15,9 @@
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 void rb::data::MBasic::New(const char* name, volatile void* addr, TDataMember* d) {
 #define CHECK_TYPE(type)						\
-  else if (!strcmp(d->GetTrueTypeName(), #type))			\
-    rb::data::MBasic* m = new rb::data::Basic<type> (name, addr, d);
+  else if (!strcmp(d->GetTrueTypeName(), #type)) {			\
+    rb::data::MBasic* m = new rb::data::Basic<type> (name, addr, d);	\
+    if(!m) err::Error("data::MBasic::New") << "Constructor returned a NULL pointer"; }
   if(0);
   CHECK_TYPE(double)
   CHECK_TYPE(float)
@@ -85,7 +86,7 @@ void rb::data::MBasic::Printer::PrintAll() {
 
   printf("\n%-*s\t%s\n", maxName, "Name", "Value [type]");
   printf("%-*s\t%s\n", maxName, "----", "-------------");
-  for(Int_t i=0; i< names.size(); ++i) {
+  for(UInt_t i=0; i< names.size(); ++i) {
     if(atoi(values.at(i).c_str()) < 0)
       printf("%-*s\t%s [%s]\n", maxName, names.at(i).c_str(), values.at(i).c_str(), classes.at(i).c_str());
     else
@@ -195,7 +196,7 @@ ArrayConverter::ArrayConverter(TDataMember* d) : fElement(d), fArrayLength(0) {
 
   std::stringstream sstr;
   Int_t ndim = fElement->GetArrayDim();
-  std::vector<UInt_t> index(4, 0);
+  std::vector<Int_t> index(4, 0);
 
   // Lazy way of "flattening" the array, just use nested for loops.  TStreamerElement
   // only supports up to 4-dimensional arrays anyway so there's no loss. Though really this

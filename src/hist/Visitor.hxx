@@ -29,9 +29,9 @@ namespace rb
     struct Locked: public boost::static_visitor<T>
     {
       /// Lock TThread global mutex
-      Locked() { TThread::Lock(); } //err::Info("visitor::Locked") << "Locking"; }
+      Locked() { Lock_TThread(); } //err::Info("visitor::Locked") << "Locking"; }
       /// Unlock TThread global mutex
-      ~Locked() { TThread::UnLock(); } //err::Info("visitor::~Locked") << "UnLocking"; }
+      ~Locked() { UnLock_TThread(); } //err::Info("visitor::~Locked") << "UnLocking"; }
     };
     /// encloses "visitor" functions to be preformed on the histograms
     namespace hist

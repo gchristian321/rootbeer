@@ -4,8 +4,9 @@
 //! <a href = "http://drdobbs.com/cpp/184403766">here</a>.
 #ifndef LOCKING_POINTER_HXX
 #define LOCKING_POINTER_HXX
-#include "utils/Mutex.hxx"
-#include "utils/nocopy.h"
+#include <TError.h>
+#include "Mutex.hxx"
+#include "nocopy.h"
 // #define LOCKING_POINTER_VERBOSE
 
 //! RAII mutex-locking pointer class.
@@ -52,7 +53,7 @@ public:
     fObject(const_cast<T*>(&object)), fMutex(&mutex) {
     fMutex->Lock();
 #ifdef LOCKING_POINTER_VERBOSE
-    Info("LockingPointer", "Locking");
+    Info("LockingPointer", "Locking: SelfId = %li", TThread::SelfId());
 #endif
   }
 
@@ -63,7 +64,7 @@ public:
     fObject(const_cast<T*>(object)), fMutex(&mutex) {
     fMutex->Lock();
 #ifdef LOCKING_POINTER_VERBOSE
-    Info("LockingPointer", "Locking");
+    Info("LockingPointer", "Locking: SelfId = %li", TThread::SelfId());
 #endif
   }
 
@@ -75,7 +76,20 @@ public:
     fObject(const_cast<T*>(p_object.get())), fMutex(&mutex) {
     fMutex->Lock();
 #ifdef LOCKING_POINTER_VERBOSE
-    Info("LockingPointer", "Locking");
+    Info("LockingPointer", "Locking: SelfId = %li", TThread::SelfId());
+#endif
+  }
+
+  //! Constructor (by shared_pointer).
+  //! Set fObject and fMutex, lock fMutex. Included for convenience
+  //! so we don't have to call get() on smart pointers.
+  template <class PTR>
+  LockingPointer(PTR& p_object, rb::Mutex* mutex) :
+    fObject(const_cast<T*>(p_object.get())), fMutex(mutex) {
+    if(fMutex) fMutex->Lock();
+    else Lock_TThread();
+#ifdef LOCKING_POINTER_VERBOSE
+    Info("LockingPointer", "Locking: SelfId = %li", TThread::SelfId());
 #endif
   }
 
@@ -85,9 +99,9 @@ public:
   LockingPointer(volatile T& object, rb::Mutex* mutex) :
     fObject(const_cast<T*>(&object)), fMutex(mutex) {
     if(fMutex) fMutex->Lock();
-    else TThread::Lock();
+    else Lock_TThread();
 #ifdef LOCKING_POINTER_VERBOSE
-    Info("LockingPointer", "Locking");
+    Info("LockingPointer", "Locking: SelfId = %li", TThread::SelfId());
 #endif
   }
 
@@ -97,9 +111,9 @@ public:
   LockingPointer(volatile T* object, rb::Mutex* mutex) :
     fObject(const_cast<T*>(object)), fMutex(mutex) {
     if(fMutex) fMutex->Lock();
-    else TThread::Lock();
+    else Lock_TThread();
 #ifdef LOCKING_POINTER_VERBOSE
-    Info("LockingPointer", "Locking");
+    Info("LockingPointer", "Locking: SelfId = %li", TThread::SelfId());
 #endif
   }
 
@@ -107,9 +121,9 @@ public:
   //! Release the fMutex lock.
   ~LockingPointer() {
     if(fMutex) fMutex->UnLock();
-    else TThread::UnLock();
+    else UnLock_TThread();
 #ifdef LOCKING_POINTER_VERBOSE
-    Info("~LockingPointer", "UnLocking");
+    Info("~LockingPointer", "UnLocking: SelfId = %li", TThread::SelfId());
 #endif
   }
 

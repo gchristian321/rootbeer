@@ -38,9 +38,19 @@ namespace rb
     struct LockOnConstruction
     {
       Bool_t kIsLocked;
-      LockOnConstruction(): kIsLocked(true) { TThread::Lock(); }
-      void Unlock() { TThread::UnLock(); kIsLocked = false; }
-      ~LockOnConstruction() { if(kIsLocked) TThread::UnLock(); }
+      rb::Mutex* fMutex;
+      LockOnConstruction(rb::Mutex* mutex = 0): kIsLocked(true), fMutex(mutex) {
+	if(!fMutex) Lock_TThread();
+	else        fMutex->Lock();
+      }
+      void Unlock() {
+	if(!fMutex) UnLock_TThread();
+	else        fMutex->UnLock();
+	kIsLocked = false;
+      }
+      ~LockOnConstruction() {
+	if(kIsLocked) Unlock();
+      }
     };
 
     /// Rootbeer Base histogram class.
@@ -64,27 +74,34 @@ namespace rb
       hist::StopAddDirectory fStopAdd;
 
     protected:
-      /// The histogram manager responsible for this instance
-      hist::Manager* const fManager;
       /// Number of dimensions (axes).
       const UInt_t kDimensions;
-      /// Default title, set from the parameters and gate condition.
-      std::string kDefaultTitle;
-      /// Use the default title as the actual title?
-      Bool_t kUseDefaultTitle;
-      /// Directory owning this rb::hist::Base instance.
-      TDirectory* fDirectory;
-      /// Wrapper for the TTreeFormulae to evaluate the parameter and gate values.
-      rb::TreeFormulae fFormulae;
-      /// \brief Internal histogram variant.
-      //! \details Variant class covers all possible dimensions from 1-3 in one object.
-      HistVariant fHistVariant;
+
+      /// The histogram manager responsible for this instance
+      hist::Manager* const fManager;
+
       /// Clone of the internal histogram.
       //! This is basically the only thing that CINT users can access, via the GetHist() function.
       //! The reason for doing it this way is thread safety. By only allowing CINT users access to
       //! a copy of fHistogram (created within a mutex lock), we ensure that there will never be any
       //! conflicts between the main thread and others that can modify the internal histogram.
       boost::scoped_ptr<TH1> fHistogramClone;
+
+      /// Default title, set from the parameters and gate condition.
+      std::string kDefaultTitle;
+
+      /// Use the default title as the actual title?
+      Bool_t kUseDefaultTitle;
+
+      /// Directory owning this rb::hist::Base instance.
+      TDirectory* fDirectory;
+
+      /// Wrapper for the TTreeFormulae to evaluate the parameter and gate values.
+      rb::TreeFormulae fFormulae;
+
+      /// \brief Internal histogram variant.
+      //! \details Variant class covers all possible dimensions from 1-3 in one object.
+      HistVariant fHistVariant;
 
       /// Constructor (1d)
       Base(const char* name, const char* title, const char* param, const char* gate,
@@ -179,7 +196,7 @@ namespace rb
       /// Set name and title
       virtual void Init(const char* name, const char* title, const char* param, const char* gate);
       /// Prevent assigmnent
-      Base& operator= (const Base& other) {}
+      Base& operator= (const Base& other) { return *this; }
       /// Prevent copying
       Base(const Base& other) : kDimensions(other.kDimensions), fManager(other.fManager) {}
       /// Internal function to fill the histogram.

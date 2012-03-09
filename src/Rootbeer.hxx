@@ -28,7 +28,7 @@ namespace rb
   extern void AttachList(const char* filename);
 
   /// \brief Disconnect from a data source.
-  //! Stops all reading of data andl closes out the relevant threads.
+  //! Stops all reading of data and closes out the relevant threads.
   extern void Unattach();
 
   /// \brief Write configuration file
@@ -171,7 +171,6 @@ namespace rb
     //   rb::BitHist<NBITS>::BitInitialize(name, title, param, gate);
     // }
   }
+
 }
-
-
 #endif

@@ -15,9 +15,6 @@ namespace rb
   //! documentation of individual functions for an explanation of what each should do.
   class BufferSource
   {
-  private:
-    const Int_t kDummy;
-
   protected:
     //! Initializes refeerences to rb::data::Wrapper objects in rb::Rint (gApplication).
     BufferSource();
@@ -71,6 +68,7 @@ namespace rb
     static BufferSource* New();
   };
 
+  inline BufferSource::BufferSource() {}
   inline BufferSource::~BufferSource() {}
 
 

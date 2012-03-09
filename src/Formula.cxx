@@ -149,25 +149,6 @@ Double_t rb::TreeFormulae::Eval(Int_t index) {
 // Double_t rb::TreeFormulae::EvalUnlocked()             //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 Double_t rb::TreeFormulae::EvalUnlocked(Int_t index) {
-  // if(!is_valid_index(index)) return -1.;
-
-  // LockFreePointer<TTreeFormula> pFormula(*fTreeFormulae[index]);
-
-  // Double_t ret = -1001.;
-  // if(pFormula->GetMultiplicity() != 0) {
-  //   std::cerr << "Getndata() " << pFormula->GetNdata() << "\n";
-  //   ret = pFormula->EvalInstance();
-  //   std::cerr << "Index: " << index << ": " << ret << "\n";
-  // }
-  // else {
-  //   std::cerr << "GetMultiplicity() == 0: index << " << index << "\n";
-  // }
-  // return ret;
-
-
-  // if(LockFreePointer<TTreeFormula>(*fTreeFormulae[index])->GetMultiplicity() != 0) {
   return is_valid_index(index) ?
     LockFreePointer<TTreeFormula>(*fTreeFormulae[index])->EvalInstance(0) : -1.;
-  //  }
-  // else { std::cerr << "mmmm==0\n"; return -1001.; }
 }

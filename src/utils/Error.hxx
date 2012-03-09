@@ -5,6 +5,7 @@
 #define ERROR_HXX
 #include <iostream>
 #include <string>
+#include "Logger.hxx"
 
 #define OP__(CLASS, ARGTYPE) CLASS& operator<< (ARGTYPE arg) {	\
     std::cerr << arg; return *this;				\

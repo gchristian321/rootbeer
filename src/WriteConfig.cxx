@@ -99,7 +99,6 @@ void write_cut(TObject* obj, ostream& ofs)
   TCutG* cut = dynamic_cast<TCutG*>(obj);
   if(!cut) return;
   const char* nme   = cut->GetName();
-  const char* ttl   = cut->GetTitle();
   const char* varx  = cut->GetVarX();
   const char* vary  = cut->GetVarY();
   const Width_t www = cut->GetLineWidth();
@@ -244,7 +243,7 @@ void rb::ReadConfig(const char* filename, Option_t* option) {
     while(1) {
       getline(ifs, line);
       if(!ifs.good()) break;
-      int pos = line.find("TCutG*");
+      UInt_t pos = line.find("TCutG*");
       if(pos < line.size()) {
 	line = line.substr(pos);
 	line = line.substr(1+line.find("("));
@@ -270,6 +269,7 @@ void rb::ReadConfig(const char* filename, Option_t* option) {
       }
     }
     ReadConfig(filename, "c");
+    dirInitial->cd();
   }
   else if(!opt.CompareTo("r")) {
     for(Int_t event = 0; event < rb::gApp()->NEvents(); ++event) {

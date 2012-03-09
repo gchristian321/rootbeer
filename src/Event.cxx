@@ -2,15 +2,9 @@
 //! \brief Implements Event.hxx
 #include "Event.hxx"
 #include "hist/Hist.hxx"
+#include "utils/Logger.hxx"
 
-
-
-//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-// Helper Functions & Classes                            //
-//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-namespace { struct HistFill { Int_t operator() (rb::hist::Base* const& hist) {
-    return hist->FillUnlocked();
-  } } fill_hist; }
+namespace rb { rb::Mutex gDataMutex("gDataMutex"); }
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // Class                                                 //
@@ -20,27 +14,26 @@ namespace { struct HistFill { Int_t operator() (rb::hist::Base* const& hist) {
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // Constructor                                           //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-rb::Event::Event():
-  fTree(new TTree("tree", "Rootbeer event tree")),
-  fHistManager() {
+rb::Event::Event(): fTree(new TTree("tree", "Rootbeer event tree")),
+		    fHistManager() {
   LockingPointer<TTree> pTree(fTree, gDataMutex);
-  //  pTree->SetDirectory(0);a
-  pTree->SetCircular(1); // Allows storage of only one event <<<<<<<<<
-  err::Info("Event") ;
+  pTree->SetDirectory(0);
+  pTree->SetCircular(1); // Allows storage of only one event
 }
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // void rb::Event::Process()                             //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 void rb::Event::Process(void* event_address, Int_t nchar) {
   Bool_t success = false;
-  { // Artificial { } block to limit the scope of pTree
+  {
+    rb::ScopedLock<TVirtualMutex> cint_lock (gCINTMutex);
     LockingPointer<TTree> pTree(fTree, gDataMutex);
     success = DoProcess(event_address, nchar);
     if(success) {
       pTree->Fill();
       pTree->LoadTree(0);
     }
-  }
+  } // Locks go out of scope & unlock
   if(success) fHistManager.FillAll();
   else HandleBadEvent();
 }

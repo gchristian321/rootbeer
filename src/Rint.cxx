@@ -25,7 +25,6 @@ rb::Rint::Rint(const char* appClassName, int* argc, char** argv,
 void rb::Rint::Terminate(Int_t status) {
   rb::canvas::StopUpdate();
   rb::Unattach();
-  //  gSystem->Sleep(0.5e3);
   EventMap_t::iterator it;
   for(it = fEvents.begin(); it != fEvents.end(); ++it) {
     rb::Event* event = it->second;

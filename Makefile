@@ -14,7 +14,8 @@ DYLIB=-shared
 FPIC=-fPIC
 INCFLAGS=-I$(SRC) -I$(CINT) -I$(USER) $(USER_INCLUDES)
 DEBUG=-ggdb -O0
-##-DDEBUG
+#-DRB_LOGGING
+#-DDEBUG
 CXXFLAGS=$(DEBUG) $(INCFLAGS) -L$(PWD)/lib $(STOCK_BUFFERS) -DBUFFER_TYPE=$(USER_BUFFER_TYPE)
 
 
@@ -43,8 +44,11 @@ FPIC=
 RPATH=
 endif
 
-COMPILE=g++ $(CXXFLAGS) $(RPATH)
-LINK=g++ $(CXXFLAGS) $(ROOTGLIBS) $(RPATH)
+COMPILER=g++ -Wall
+#COMPILER=clang++ -I/opt/local/include/ -I/opt/local/include/root
+
+COMPILE=$(COMPILER) $(CXXFLAGS) $(RPATH)
+LINK=$(COMPILER) $(CXXFLAGS) $(ROOTGLIBS) $(RPATH)
 
 
 #### MAIN PROGRAM ####
@@ -141,7 +145,7 @@ $(OBJ)/Formula.o: $(CINT)/RBDictionary.cxx $(SRC)/Formula.cxx
 -o $@  -p $(SRC)/Formula.cxx \
 
 RBdict: $(CINT)/RBDictionary.cxx
-$(CINT)/RBDictionary.cxx: $(HEADERS) $(USER)/UserLinkdef.h $(CINT)/Linkdef.h \
+$(CINT)/RBDictionary.cxx:  $(HEADERS) $(USER)/UserLinkdef.h $(CINT)/Linkdef.h \
 $(SRC)/utils/Mutex.hxx $(SRC)/utils/LockingPointer.hxx
 	rootcint -f $@ -c $(CXXFLAGS)  -p $(HEADERS) $(CINT)/Linkdef.h \
 

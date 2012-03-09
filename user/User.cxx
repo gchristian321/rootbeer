@@ -98,7 +98,7 @@ Bool_t rb::Midas::UnpackBuffer() {
 #endif
 }
 
-DragonEvent::DragonEvent(): fBgo("bgo", this, true, "", 32000) { }
+DragonEvent::DragonEvent(): fBgo("bgo", this, true, "") { }
 
 Bool_t DragonEvent::DoProcess(void* addr, Int_t nchar) {
   TMidasEvent* fEvent = Cast(addr);

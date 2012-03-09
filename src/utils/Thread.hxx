@@ -4,11 +4,10 @@
 #define THREAD_HXX
 #include <cassert>
 #include <string>
-#include <list>
-#include <algorithm>
+#include <set>
 #include <TThread.h>
-
-
+#include "Mutex.hxx"
+#include "nocopy.h"
 
 namespace rb
 {
@@ -31,8 +30,9 @@ namespace rb
   //! instance on the heap and also calls Run()).
   class Thread
   {
+    RB_NOCOPY(Thread);
   public:
-    typedef std::list<std::string> List_t;
+    typedef std::set<std::string> Set_t;
 
   protected:
     //! Name of the thread
@@ -41,8 +41,8 @@ namespace rb
 
   private:
     //! Keeps track of all presently <it>running</it> threads.
-    static Thread::List_t& fgList() {
-      static Thread::List_t* out = new Thread::List_t();
+    static Thread::Set_t& fgSet() {
+      static Thread::Set_t* out = new Thread::Set_t();
       return *out;
     }
 
@@ -68,6 +68,7 @@ namespace rb
     virtual ~Thread() {
       Stop(fName);
       if(fThread) {
+	fThread->Join();
 	delete fThread;
       }
     }
@@ -81,14 +82,14 @@ namespace rb
     //! \brief Start running the thread.
     Int_t Run() {
       fThread = new TThread(fName, Thread::FRun);
-      fgList().push_back(fName);
+      fgSet().insert(fName);
       return fThread->Run(reinterpret_cast<void*>(this));
     }
 
     //! \brief Checks if a specific thread is running (see Stop() for more details).
     static Bool_t IsRunning(const char* name) {
-      List_t::iterator pos = std::find(fgList().begin(), fgList().end(), name);
-      return pos != fgList().end();
+      Set_t::iterator pos = fgSet().find(name);
+      return pos != fgSet().end();
     }
 
     //! Stop running a specific thread.
@@ -105,10 +106,7 @@ namespace rb
     //! if (whatever) TThread::Stop("MyThreadName") // breaks out of the DoInThread() loop.
     //! \endcode
     static void Stop(const char* name) {
-      fgList().remove(name);
-      if(TThread::GetThread(name)) {
-	TThread::GetThread(name)->Join();
-      }
+      fgSet().erase(name);
     }
 
   private:
@@ -122,13 +120,8 @@ namespace rb
       Thread * this_ =  reinterpret_cast<Thread*> (args);
       this_->DoInThread();
       delete this_;
+      return 0;
     }
-
-    //! Copy constructor (prevent copying)
-    Thread(const Thread& other) { }
-
-    //! Prevent equivalency.
-    Thread& operator= (const Thread& other) { }
   };
 }
 
