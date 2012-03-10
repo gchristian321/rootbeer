@@ -22,7 +22,9 @@
 #include "utils/Error.hxx"
 #include "utils/LockingPointer.hxx"
 #include "utils/nocopy.h"
-
+#include <TF1.h>
+#include <TFitResultPtr.h>
+#include <TVirtualHistPainter.h>
 
 namespace rb
 {
@@ -180,17 +182,17 @@ namespace rb
       /// Draw function.
       //! \Note that this draws fHistogram directly, not a copy (to that it can still continue to be auto-updated
       //! by the rb::canvas functions).
-      void Draw(Option_t* option = "") {
-	visit::hist::DoMember(fHistVariant, &TH1::Draw, option);
-      }
-      /// Set line color.
-      void SetLineColor(Color_t lcolor) {
-	visit::hist::DoMember(fHistVariant, &TH1::SetLineColor, lcolor);
-      }
-      /// Set marker color.
-      void SetMarkerColor(Color_t mcolor) {
-	visit::hist::DoMember(fHistVariant, &TH1::SetMarkerColor, mcolor);
-      }
+      // void Draw(Option_t* option = "") {
+      // 	return visit::hist::DoMember(fHistVariant, &TH1::Draw, option);
+      // }
+      // /// Set line color.
+      // void SetLineColor(Color_t lcolor) {
+      // 	visit::hist::DoMember(fHistVariant, &TH1::SetLineColor, lcolor);
+      // }
+      // /// Set marker color.
+      // void SetMarkerColor(Color_t mcolor) {
+      // 	visit::hist::DoMember(fHistVariant, &TH1::SetMarkerColor, mcolor);
+      // }
       // ******************************* //
     private:
       /// Set name and title
@@ -204,6 +206,7 @@ namespace rb
       //! instead relies on being passed already locked components.
       virtual Int_t DoFill(const std::vector<Double_t>& params, Double_t gate);
     public:
+#include "WrapTH1.hxx"
       friend class rb::hist::Manager;
       ClassDef(rb::hist::Base, 0);
     };

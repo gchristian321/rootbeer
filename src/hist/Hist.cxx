@@ -3,7 +3,7 @@
 #include <algorithm>
 #include <iostream>
 #include <fstream>
-#include "hist/Hist.hxx"
+#include "Hist.hxx"
 #include "Formula.hxx"
 
 typedef std::vector<std::string> StringVector_t;

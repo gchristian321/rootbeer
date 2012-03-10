@@ -65,8 +65,9 @@ $(OBJ)/Data.o $(OBJ)/Event.o $(OBJ)/Buffer.o $(OBJ)/user/User.o $(OBJ)/Canvas.o 
 $(OBJ)/Rint.o $(OBJ)/Rootbeer.o 
 
 HEADERS=$(SRC)/Rootbeer.hxx $(SRC)/Rint.hxx $(SRC)/Data.hxx $(SRC)/Buffer.hxx $(SRC)/Event.hxx $(SRC)/user/User.hxx \
-$(SRC)/hist/Hist.hxx $(SRC)/Formula.hxx $(SRC)/utils/LockingPointer.hxx $(SRC)/utils/Mutex.hxx $(SRC)/hist/Visitor.hxx \
-$(SRC)/hist/Manager.hxx $(SRC)/midas/*.h $(SRC)/utils/*.h* $(USER_HEADERS)
+$(SRC)/Formula.hxx $(SRC)/utils/LockingPointer.hxx $(SRC)/utils/Mutex.hxx \
+$(SRC)/hist/Hist.hxx $(SRC)/hist/Visitor.hxx $(SRC)/hist/Manager.hxx \
+$(SRC)/midas/*.h $(SRC)/utils/*.h* $(USER_HEADERS)
 
 
 RBlib: $(RBLIB)/libRootbeer.so
@@ -129,7 +130,7 @@ $(OBJ)/midas/TMidasOnline.o: $(CINT)/RBDictionary.cxx $(SRC)/midas/TMidasOnline.
 	$(COMPILE) $(FPIC) -c \
 -o $@  -p $(SRC)/midas/TMidasOnline.cxx \
 
-Hist: $(OBJ)/hist/Hist.o
+Hist: $(OBJ)/hist/Hist.o $(SRC)/hist/WrapTH1.hxx 
 $(OBJ)/hist/Hist.o: $(CINT)/RBDictionary.cxx $(SRC)/hist/Hist.cxx
 	$(COMPILE) $(FPIC) -c \
 -o $@  -p $(SRC)/hist/Hist.cxx \

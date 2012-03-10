@@ -46,6 +46,7 @@ namespace rb
 	  boost::apply_visitor(Clear(), hist);
 	}
       };
+
       /// Clones the histogram into a TH1* pointer.
       struct Clone : public rb::visit::Locked<void>
       {
@@ -60,11 +61,35 @@ namespace rb
       private:
 	boost::scoped_ptr<TH1>& fResultHist;
       };
+
+      /// Returns a cast to const TH1*
+      /// \warning Does not perform any mutex locking
+      struct ConstCast : public boost::static_visitor<const TH1*>
+      {
+	template <class T> const TH1* operator() (T& t) const {
+	  return static_cast<const TH1*> (&t);
+	}
+      };
+      /// Returns a cast to TH1*
+      /// \warning Does not perform any mutex locking
+      struct Cast : public boost::static_visitor<TH1*>
+      {
+	template <class T> TH1* operator() (T& t) const {
+	  return static_cast<TH1*> (&t);
+	}
+	static TH1* Do(HistVariant& hist) {
+	  return boost::apply_visitor(Cast(), hist);
+	}
+	static const TH1* Do(const HistVariant& hist) {
+	  return boost::apply_visitor(ConstCast(), hist);
+	}
+      };
+
       /// Create visitors for any TH1 member function
       //! \note Example
       //! \code
-      //! visit::hist::DoConstMember(fMutex, fHistVariant, &TH1::GetName); //< Calls const member function TH1::GetName()
-      //! visit::hist::DoMember(fMutex, fHistVariant, &TH1::SetNameTitle, "name", "title"); //< Calls non-const member function TH1::SetName("name", "title")
+      //! visit::hist::DoConstMember(fHistVariant, &TH1::GetName); //< Calls const member function TH1::GetName()
+      //! visit::hist::DoMember(fHistVariant, &TH1::SetNameTitle, "name", "title"); //< Calls non-const member function TH1::SetName("name", "title")
       //! \endcode
 #define MAX_MEMBER_FN_ARGUMENTS 9
 #define BOOST_VARIANT_VISITATION
@@ -101,8 +126,8 @@ namespace rb
 
 #define BOOST_PP_LOCAL_LIMITS (0, MAX_MEMBER_FN_ARGUMENTS)
 #include BOOST_PP_LOCAL_ITERATE()
-*/
-      
+      */
+
       /// Performs the Fill() function
       struct Fill : public rb::visit::Locked<Int_t>
       {
