@@ -124,6 +124,8 @@ def print_method(method) :
     if(type(static) == str):
         if(static == "1"):
             return
+    to_print += "/// <a href = \"http://root.cern.ch/root/html/TH1.html#TH1:" + method.get("name") + "\">"
+    to_print += "*** TH1 Member Function ***</a>\n"
     to_print += get_return(method) + " " + method.get("name")
     args = arguments(method)
     global ngeneric
@@ -164,7 +166,7 @@ def print_method(method) :
 if __name__ == '__main__' :
     global filename
     global classname
-    filename = "TH1.xml"
+    filename = "/Users/gchristian/soft/develop/rootbeer/src/hist/TH1.xml"
     classname = "TH1"
     methods = class_methods()
     print "//! \\file WrapTH1.hxx"
