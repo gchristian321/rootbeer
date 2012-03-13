@@ -6,209 +6,124 @@
 #include <string>
 #include <TMutex.h>
 #include "Error.hxx"
-#ifdef DEBUG
-#include <cassert>
-#include <cstdlib>
-#include <list>
-#include <utility>
-#include <algorithm>
-#include <TApplication.h>
-#include <TError.h>
-#endif
-
-extern TVirtualMutex* gCINTMutex;
-
-/*
-namespace {
-  inline Int_t gCINTMutex_Lock() {
-    if(gCINTMutex) return gCINTMutex->Lock();
-    return -1;
-  }
-  inline Int_t gCINTMutex_UnLock() {
-    if(gCINTMutex) return gCINTMutex->UnLock();
-  }
-}
-*/
-
 
 
 namespace rb
 {
-  //! Class to lock a mutex upon construction and then unlock it upon destruction.
-  //! \tparam M The type of mutex you want to use, must have a Lock() and UnLock()
-  //! function otherwise you'll get a compile-time error.
-  template <class M>
-  class ScopedLock
+  /// Simple derived class of TMutex that also allows users to check
+  /// whether the current thred holds a lock on the mutex.
+  class Mutex: public TMutex
   {
-  private:
-    //! Are we locking a local mutex or the global TThread one?
-    const Bool_t kLocalMutex;
-    //! Reference to the mutex you want to lock/unlock.
-    M& fMutex;
   public:
-    //! Initialize & lock fMutex
-    ScopedLock(M& mutex): kLocalMutex(true), fMutex(mutex) {
-      fMutex.Lock();
-    }
-    //! Initialize & lock fMutex, from pointer
-    //! \note Passing NULL (or TTHREAD_GLOBAL) means to use the TThread global mutex
-    ScopedLock(M* mutex): kLocalMutex(mutex != NULL), fMutex(*mutex) {
-      if(kLocalMutex) fMutex.Lock();
-      else {
-	TThread::Lock();
-	RB_LOG << "  TThread::Lock()" << std::endl;
-      }
-    }
-    //! Unlock fMutex
-    ~ScopedLock() {
-      if(kLocalMutex) fMutex.UnLock();
-      else {
-	TThread::UnLock();
-      	RB_LOG << "TThread::UnLock()" << std::endl;
-      }
-    }
-  private:
-    //! Prevent copying
-    ScopedLock(const ScopedLock& other) {}
-    //! Prevent assignment
-    ScopedLock& operator= (const ScopedLock& other) {}
-  };
-
-  //! \brief Wrapper for TMutex that can optionally check for deadlock conditions.
-  //! \details Compile with -DDEBUG to turn on deadlock checking. If deadlock is found,
-  //! the applicion will terminate with an error.
-  //! \note Use the LOCK_MUTEX macro for more useful debugging messages (including file
-  //! and line from where the lock was attempted).
-  class Mutex
-  {
-  private:
+    static const Int_t kIsUnlocked = -1001;
+  protected:
+    //! Name associated with the mutex
     const std::string kName;
-    //! Internal ROOT mutex class.
-    TMutex* fRootMutex;
-#ifdef DEBUG
+    //! Id of the thread holding the lock on this mutex
     Long_t fId;
-#endif
   public:
-    //! Allocates fRootMutex
+    //! Sets name, recursive
     Mutex(const char* name = "", Bool_t recursive = kFALSE);
-    //! Deallocates fRootMutex
-    ~Mutex();
+    //! Nothing to do explicitly
+    virtual ~Mutex();
     //! \brief Locks fRootMutex
-    //! \details If DEBUG is defined, checks first to see if the mutex
-    //! is locked; adds <code>this</code> to fgLocked() when locking.
-    Int_t Lock();
+    virtual Int_t Lock();
     //! Mutex TryLock
-    Int_t TryLock();
-    //! Unlock the mutex, (optionally) removes from fgLocked().
-    Int_t UnLock();
-#ifdef DEBUG
-    //! Is the mutex recursive or not?
-    const Bool_t kRecursive;
-    //! Check if a particular mutex is locked.
-    Bool_t IsLocked();
+    virtual Int_t TryLock();
+    //! Unlock the mutex
+    virtual Int_t UnLock();
+    //! check if the mutex is locked by the current thread
+    virtual Bool_t IsLocked();
     //! \returns fId
     Long_t GetId();
-#endif
   private:
     //! Prevent copying
-    Mutex(const Mutex& other)
-#ifdef DEBUG
-      : kRecursive(0)
-#endif
-    {}
+    Mutex(const Mutex& other) {}
     //! Prevent assignment
     Mutex& operator= (const Mutex& other) { return *this; }
   };
 
-#ifndef __MAKECINT__
-  extern rb::Mutex gDataMutex;
-#endif
-}
-namespace { rb::Mutex* const TTHREAD_GLOBAL_MUTEX (0); }
+  /// Locks/unlocks the TThread global mutex [TThread::(Un)Lock]
+  class TThreadMutex : public rb::Mutex
+  {
+  protected:
+    //! Sets name
+    TThreadMutex();
+  public:
+    //! Singleton instance function
+    static TThreadMutex* Instance();
+    //! Nothing to do
+    virtual ~TThreadMutex();
+    //! \brief TThread::Lock()
+    virtual Int_t Lock();
+    //! TThread::TryLock
+    virtual Int_t TryLock();
+    //! Unlock the mutex
+    virtual Int_t UnLock();
+  };   
 
-namespace
-{
-#ifdef DEBUG
-  Long_t gLockedId = -1001;
-  inline Bool_t IsLocked_TThread() {
-    //    std::cout << gLockedId << " << gId : Self >> " << TThread::SelfId() << "\n";
-    return gLockedId == TThread::SelfId();
-  }
-#endif
-
-  inline Int_t Lock_TThread() {
-#ifdef DEBUG
-    assert(!rb::gDataMutex.IsLocked());
-    assert(!IsLocked_TThread());
-#endif
-    Int_t ret = TThread::Lock();
-#ifdef DEBUG
-    gLockedId = TThread::SelfId();
-#endif
-    RB_LOG << std::endl;
-    return ret;
-  }
-
-  inline Int_t UnLock_TThread() {
-    Int_t ret = TThread::UnLock();
-#ifdef DEBUG
-    gLockedId = -1001;
-#endif
-    RB_LOG << std::endl;
-    return ret;
-  }
-}
-
-
-#ifndef __MAKECINT__ // Implemenation
-
-inline rb::Mutex::Mutex(const char* name, Bool_t recursive) : kName(name)
-#ifdef DEBUG
-  , kRecursive(recursive), fId(-1001)
-#endif
-{
-  RB_LOG << "Creating Mutex: name: " << kName << std::endl;
-  fRootMutex = new TMutex(recursive);
+  /// Class to lock a mutex upon construction and then unlock it upon destruction.
+  /// \tparam M The type of mutex you want to use, must have a Lock() and UnLock()
+  /// function otherwise you'll get a compile-time error.
+  template <class M = rb::Mutex>
+  class ScopedLock
+  {
+  private:
+    //! Reference to the mutex you want to lock/unlock.
+    M& fMutex;
+  public:
+    //! Initialize & lock fMutex
+    ScopedLock(M& mutex);
+    //! Initialize & lock fMutex, from pointer
+    ScopedLock(M* mutex);
+    //! Unlock fMutex
+    ~ScopedLock();
+  private:
+    //! Prevent copying
+    ScopedLock(const ScopedLock& other) {}
+    //! Prevent assignment
+    ScopedLock& operator= (const ScopedLock& other) { return *this; }
+  };
 }
 
-inline rb::Mutex::~Mutex() {
-  delete fRootMutex;
-}
 
-#ifndef DEBUG
+
+// ======== Inline Function Implementations ========= //
+
+// ======== Class rb::Mutex ========= //
+
+inline rb::Mutex::Mutex(const char* name, Bool_t recursive):
+  TMutex(recursive), kName(name), fId(kIsUnlocked) { }
+
+inline rb::Mutex::~Mutex() { }
+
 inline Int_t rb::Mutex::Lock() {
-  Int_t ret = fRootMutex->Lock();
-  RB_LOG << "  Locked:   " << kName << ", Thread ID: " << TThread::SelfId() << std::endl;
-  return ret;
-}
-
-inline Int_t rb::Mutex::TryLock() {
-  return fRootMutex->TryLock();
-}
-
-inline Int_t rb::Mutex::UnLock() {
-  Int_t ret = fRootMutex->UnLock();
-  RB_LOG << "UnLocked: " << kName << ", Thread ID: " << TThread::SelfId() << std::endl;
-  return ret; 
-}
-
-#else
-inline Int_t rb::Mutex::Lock() {
-  assert(!IsLocked());
-  assert(!IsLocked_TThread());
-  Int_t ret = fRootMutex->Lock();
+  Int_t ret = TMutex::Lock();
   fId = TThread::SelfId();
+#ifdef RB_LOGGING
+  RB_LOG << "  Locked:   " << kName << ", Thread ID: " << TThread::SelfId() << std::endl;
+#endif
   return ret;
 }
 
 inline Int_t rb::Mutex::TryLock() {
-  return fRootMutex->TryLock();
+  Int_t ret = TMutex::TryLock();
+  if(ret == 0) {
+    fId = TThread::SelfId();
+#ifdef RB_LOGGING
+  RB_LOG << "  Locked:   " << kName << ", Thread ID: " << TThread::SelfId() << std::endl;
+#endif
+  }
+  return ret;
 }
 
 inline Int_t rb::Mutex::UnLock() {
-  fId = -1001;
-  Int_t ret = fRootMutex->UnLock();
-  return ret;
+  fId = kIsUnlocked;
+#ifdef RB_LOGGING
+    RB_LOG << "UnLocked: " << kName << ", Thread ID: " << TThread::SelfId() << std::endl;
+#endif
+  Int_t ret = TMutex::UnLock();
+  return ret; 
 }
 
 inline Bool_t rb::Mutex::IsLocked() {
@@ -218,8 +133,83 @@ inline Bool_t rb::Mutex::IsLocked() {
 inline Long_t rb::Mutex::GetId() {
   return fId;
 }
-#endif // #ifdef DEBUG
   
-#endif // #ifdef __MAKECINT__
+// ======== Class rb::TThreadMutex ========= //
+
+inline rb::TThreadMutex::TThreadMutex():
+  rb::Mutex("TThreadGlobal", true) { }
+
+inline rb::TThreadMutex::~TThreadMutex() {}
+
+inline Int_t rb::TThreadMutex::Lock() {
+  Int_t ret = TThread::Lock();
+  fId = TThread::SelfId();
+#ifdef RB_LOGGING
+  RB_LOG << "  Locked:   " << kName << ", Thread ID: " << TThread::SelfId() << std::endl;
+#endif
+  return ret;
+}
+
+inline Int_t rb::TThreadMutex::TryLock() {
+  Int_t ret = TThread::TryLock();
+  if(ret == 0) {
+    fId = TThread::SelfId();
+#ifdef RB_LOGGING
+    RB_LOG << "  Locked:   " << kName << ", Thread ID: " << TThread::SelfId() << std::endl;
+#endif
+  }
+  return ret;
+}
+
+inline Int_t rb::TThreadMutex::UnLock() {
+  fId = kIsUnlocked;
+#ifdef RB_LOGGING
+  RB_LOG << "UnLocked: " << kName << ", Thread ID: " << TThread::SelfId() << std::endl;
+#endif
+  Int_t ret = TThread::UnLock();
+  return ret; 
+}
+
+inline rb::TThreadMutex* rb::TThreadMutex::Instance() {
+  static rb::TThreadMutex* m = 0;
+  if(!m) m = new rb::TThreadMutex();
+  return m;
+}
+
+// ======= Class rb::ScopedLock ======= //
+
+template <class M>
+rb::ScopedLock<M>::ScopedLock(M& mutex): fMutex(mutex) {
+  fMutex.Lock();
+}
+
+template <class M>
+rb::ScopedLock<M>::ScopedLock(M* mutex): fMutex(*mutex) {
+  fMutex.Lock();
+}
+
+template <class M>
+rb::ScopedLock<M>::~ScopedLock() {
+  fMutex.UnLock();
+}
+
+
+
+// ======= Globals ======= //
+
+/// CINT Mutex
+extern TVirtualMutex* gCINTMutex;
+
+namespace rb {
+  /// Data Mutex
+  extern rb::Mutex gDataMutex;
+}
+namespace {
+  /// TThread Mutex
+  rb::Mutex* TTHREAD_GLOBAL_MUTEX = rb::TThreadMutex::Instance();
+}
+
+#define RB_LOCKGUARD(mutex)			\
+  rb::ScopedLock<rb::Mutex> rb__lock(mutex)
 
 #endif

@@ -5,27 +5,28 @@
 #define ERROR_HXX
 #include <iostream>
 #include <string>
-#include "Logger.hxx"
+#include <sstream>
+#include <stdexcept>
 
-#define OP__(CLASS, ARGTYPE) CLASS& operator<< (ARGTYPE arg) {	\
-    std::cerr << arg; return *this;				\
+#define OP__(STRM, CLASS, ARGTYPE) CLASS& operator<< (ARGTYPE arg) {	\
+    STRM << arg; return *this;						\
   }
-#define OPS__(CL)				\
-  OP__(CL, const char*)				\
-  OP__(CL, long long)				\
-  OP__(CL, long)				\
-  OP__(CL, int)					\
-  OP__(CL, short)				\
-  OP__(CL, char)				\
-  OP__(CL, unsigned long long)			\
-  OP__(CL, unsigned long)			\
-  OP__(CL, unsigned int)			\
-  OP__(CL, unsigned short)			\
-  OP__(CL, unsigned char)			\
-  OP__(CL, bool)				\
-  OP__(CL, double)				\
-  OP__(CL, float)				\
-  OP__(CL, const std::string&)
+#define OPS__(STRM, CL)				\
+  OP__(STRM, CL, const char*)				\
+  OP__(STRM, CL, long long)				\
+  OP__(STRM, CL, long)				\
+  OP__(STRM, CL, int)					\
+  OP__(STRM, CL, short)				\
+  OP__(STRM, CL, char)				\
+  OP__(STRM, CL, unsigned long long)			\
+  OP__(STRM, CL, unsigned long)			\
+  OP__(STRM, CL, unsigned int)			\
+  OP__(STRM, CL, unsigned short)			\
+  OP__(STRM, CL, unsigned char)			\
+  OP__(STRM, CL, bool)				\
+  OP__(STRM, CL, double)				\
+  OP__(STRM, CL, float)				\
+  OP__(STRM, CL, const std::string&)
 
 namespace err
 {
@@ -38,7 +39,7 @@ namespace err
     Strm(const char* what, const char* where) {
       std::cerr << what << " in <" << where << ">: ";
     }
-    OPS__(Strm)
+    OPS__(std::cerr, Strm)
     Strm& operator<<(StandardEndLine manip) {
         manip(std::cerr);
         return *this;
@@ -48,6 +49,24 @@ namespace err
   struct Info: public Strm { Info(const char* where) : Strm("Info", where) {} };
   struct Error: public Strm { Error(const char* where) : Strm("Error", where) {} };
   struct Warning: public Strm { Warning(const char* where) : Strm("Warning", where) {} };
+
+  struct Throw
+  {
+  protected:
+    typedef std::basic_ostream<char, std::char_traits<char> > CoutType;
+    typedef CoutType& (*StandardEndLine)(CoutType&);
+    std::stringstream fStrm;
+  public:
+    Throw() { }
+    OPS__(fStrm, Throw);
+    Throw& operator<<(StandardEndLine manip) {
+        manip(fStrm);
+        return *this;
+    }
+    virtual ~Throw() {
+      throw(std::invalid_argument(fStrm.str().c_str()));
+    }
+  };
 }
 
 

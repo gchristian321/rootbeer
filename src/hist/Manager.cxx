@@ -10,7 +10,7 @@
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 namespace {
   struct HistFill { Int_t operator() (rb::hist::Base* const& hist) {
-    return hist->FillUnlocked();
+    return hist->Fill();
   } } fill_hist;
 }
 

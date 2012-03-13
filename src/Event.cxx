@@ -40,18 +40,11 @@ void rb::Event::Process(void* event_address, Int_t nchar) {
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // Bool_t rb::Event::InitFormula::Operate()              //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-Bool_t rb::Event::InitFormula::Operate(rb::Event* const event, const char* formula_arg, FormulaPtr_t& ttf) {
-  LockingPointer<TTree> pTree(event->fTree, gDataMutex);
-  ttf.reset(new TTreeFormula(formula_arg, formula_arg, pTree.Get())); // Allocate new formula
-
-  LockFreePointer<TTreeFormula> pFormula(ttf.get());
-  if(pFormula->GetNdim() == 0)
-    return false; // Invalid formula
-  else {
-    pFormula->SetQuickLoad(true);
-    return true;
-  }
-} 
+TTreeFormula* rb::Event::InitFormula::Operate(rb::Event* const event, const char* formula_arg) {
+  //  LockingPointer<TTree> pTree(event->fTree, gDataMutex);
+  LockFreePointer<TTree> pTree(event->fTree);
+  return new TTreeFormula(formula_arg, formula_arg, pTree.Get());
+}
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // Bool_t rb::Event::BranchAdd::Operate()                //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//

@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <iostream>
 #include <fstream>
+#include "boost/dynamic_bitset.hpp"
 #include "Hist.hxx"
 #include "Formula.hxx"
 
@@ -13,16 +14,7 @@ typedef std::vector<std::string> StringVector_t;
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 namespace
 {
-  /// Divides a string into tokens
-  inline StringVector_t tokenize(const char* str, char token) {
-    std::istringstream iss(str);
-    std::string entry;
-    StringVector_t out;
-    while(std::getline(iss, entry, token))
-      out.push_back(entry);
-    return out;
-  }
-  /// Name checking function
+  // Name checking function
   inline std::string check_name(const char* name) {
     std::string ret = name;
     if(gROOT->FindObject(name)) {
@@ -38,19 +30,35 @@ namespace
     }
     return ret;
   }
-  /// Reconstruct original parameter argument 
-  inline std::string initial_param_arg(Int_t ndimensions, rb::TreeFormulae& gate_par) {
-    std::stringstream out;
-    for(Int_t i = ndimensions-1; i > 0; --i)
-      out << gate_par.Get(i) << ":";
-    out << gate_par.Get(0);
-    return out.str();
+  // Reverset the order of a vector
+  template <typename T>
+  void reverse_vector(std::vector<T>& vect) {
+    std::vector<T> temp(vect.rbegin(), vect.rend());
+    vect.clear();
+    vect.assign(temp.begin(), temp.end());
   }
-  /// Set default title
+  // Set default title
   inline std::string default_title(const char* gate, const char* params) {
     std::stringstream out;
     out << params << " { " << gate << " }";
     return out.str();
+  }
+  // Break a string into tokens
+  inline std::vector<std::string> tokenize(const char* str, char token) {
+    std::istringstream iss(str);
+    std::string entry;
+    std::vector<std::string> out;
+    while(std::getline(iss, entry, token))
+      out.push_back(entry);
+    return out;
+  }
+  inline StringVector_t parse_params(const char* param, UInt_t ndimensions) {
+    StringVector_t par = tokenize(param, ':');
+    reverse_vector(par);
+    if(par.size() != ndimensions)
+      err::Throw() << "Invalid parameter specificaton: \"" << param << "\" for a(n) "
+		   << ndimensions << " dimensional histogram.";
+    return par;
   }
 }
 
@@ -66,56 +74,48 @@ namespace
 rb::hist::Base::Base(const char* name, const char* title, const char* param, const char* gate,
 		     hist::Manager* manager, Int_t event_code,
 		     Int_t nbinsx, Double_t xlow, Double_t xhigh):
-  kDimensions(1), fManager(manager), fHistogramClone(0),
-  fFormulae(1, param, gate, event_code),
+  kDimensions(1), fManager(manager), fHistogramClone(0), kInitialParams(param), fParams(0), fGate(0),
   fHistVariant(TH1D(name, title, nbinsx, xlow, xhigh))
-{
-  Init(name, title, param, gate);
-  fLockOnConstruction.Unlock();
-}
+{ }
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // Constructor (2d)                                      //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-rb::hist::Base::Base(const char* name, const char* title, const char* param, const char* gate, 
+rb::hist::Base::Base(const char* name, const char* title, const char* param, const char* gate,
 		     hist::Manager* manager, Int_t event_code,
 		     Int_t nbinsx, Double_t xlow, Double_t xhigh,
 		     Int_t nbinsy, Double_t ylow, Double_t yhigh):
-  kDimensions(2), fManager(manager), fHistogramClone(0),
-  fFormulae(2, param, gate, event_code),
+  kDimensions(2), fManager(manager), fHistogramClone(0), kInitialParams(param), fParams(0), fGate(0),
   fHistVariant(TH2D(name, title, nbinsx, xlow, xhigh, nbinsy, ylow, yhigh))
-{
-  Init(name, title, param, gate);
-  fLockOnConstruction.Unlock();
-}
+{ }
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // Constructor (3d)                                      //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-rb::hist::Base::Base(const char* name, const char* title, const char* param, const char* gate, 
+rb::hist::Base::Base(const char* name, const char* title, const char* param, const char* gate,
 		     hist::Manager* manager, Int_t event_code,
 		     Int_t nbinsx, Double_t xlow, Double_t xhigh,
 		     Int_t nbinsy, Double_t ylow, Double_t yhigh,
 		     Int_t nbinsz, Double_t zlow, Double_t zhigh):
-  kDimensions(3), fManager(manager), fHistogramClone(0), 
-  fFormulae(3, param, gate, event_code),
+  kDimensions(3), fManager(manager), fHistogramClone(0), kInitialParams(param), fParams(0), fGate(0),
   fHistVariant(TH3D(name, title, nbinsx, xlow, xhigh, nbinsy, ylow, yhigh, nbinsz, zlow, zhigh))
-{
-  Init(name, title, param, gate);
-  fLockOnConstruction.Unlock();
-}
+{ }
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // void rb::hist::Base::Init()                           //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-void rb::hist::Base::Init(const char* name, const char* title, const char* param, const char* gate) {
+void rb::hist::Base::Init(const char* name, const char* title, const char* param, const char* gate, Int_t event_code) {
   // Set name & title
   fName = check_name(name).c_str();
-  kDefaultTitle = default_title(fFormulae.Get(GATE).c_str(), param);
+  kDefaultTitle = default_title(gate, param);
   kUseDefaultTitle = std::string(title).empty();
   fTitle = kUseDefaultTitle ? kDefaultTitle.c_str() : title;
   visit::hist::DoMember(fHistVariant, &TH1::SetNameTitle, fName.Data(), fTitle.Data());
 
+  // Set gate and parameters
+  InitParams(param, event_code);
+  InitGate(gate, event_code);
+
   // Add to ROOT container
   if(gDirectory) {
-    fDirectory = gDirectory;  
+    fDirectory = gDirectory;
     fDirectory->Append(this, kTRUE);
   }
   else {
@@ -124,15 +124,29 @@ void rb::hist::Base::Init(const char* name, const char* title, const char* param
   }
 }
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// void rb::hist::Base::InitParams()                     //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+void rb::hist::Base::InitParams(const char* param, Int_t event_code) {
+  StringVector_t par = parse_params(param, kDimensions);
+  fParams.reset(new rb::TreeFormulae(par, event_code));
+}
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// void rb::hist::Base::InitGate()                       //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+void rb::hist::Base::InitGate(const char* gate, Int_t event_code) {
+  StringVector_t gate_(1, gate);
+  fGate.reset(new rb::TreeFormulae(gate_, event_code));
+}
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // rb::hist::Base::Regate                                //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 Int_t rb::hist::Base::Regate(const char* newgate) {
-  Bool_t success = fFormulae.Change(GATE, newgate);
+  Bool_t success = fGate->Change(0, newgate);
   if(!success) return -1;
 
   // Change title if appropriate
   if(kUseDefaultTitle) {
-    fTitle = default_title(fFormulae.Get(GATE).c_str(), initial_param_arg(kDimensions, fFormulae).c_str()).c_str();
+    fTitle = default_title(fGate->Get(0).c_str(), kInitialParams.c_str()).c_str();
     visit::hist::DoMember(fHistVariant, &TH1::SetTitle, fTitle.Data());
   }
   return 0;
@@ -148,389 +162,252 @@ TH1* rb::hist::Base::GetHist() {
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // rb::hist::Base::DoFill() [virtual]                    //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-Int_t rb::hist::Base::DoFill(const std::vector<Double_t>& params, Double_t gate) {
-  if(!(Bool_t)gate) return 0;
-  return visit::hist::Fill::Do(fHistVariant, params[0], params[1], params[2]);
+Int_t rb::hist::Base::DoFill(const std::vector<Double_t>& params) {
+  std::vector<Double_t> axes(params.begin(), params.end());
+  for(Int_t i=axes.size(); i< 3; ++i) axes.push_back(0);
+  return visit::hist::Fill::Do(fHistVariant, axes[0], axes[1], axes[2]);
 }
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // rb::hist::Base::FillUnlocked()                        //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 Int_t rb::hist::Base::FillUnlocked() {
-  std::vector<Double_t> axes(3,0);  
-  for(UInt_t u=0; u< kDimensions; ++u)
-    axes[u] = fFormulae.EvalUnlocked(u); // Use OperateUnlocked(), no mutex locking
-  Double_t gate = fFormulae.EvalUnlocked(GATE); // Use OperateUnlocked(), no mutex locking
-  return DoFill(axes, gate);
+  Double_t gate = fGate->EvalUnlocked(0);
+  if(!Bool_t(gate)) return 0;
+  std::vector<Double_t> axes;
+  fParams->EvalAllUnlocked(axes);
+  return DoFill(axes);
 }
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // rb::hist::Base::Fill() [locked data]                  //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 Int_t rb::hist::Base::Fill() {
-  std::vector<Double_t> axes(3,0);
-  for(UInt_t u=0; u< kDimensions; ++u)
-    axes[u] = fFormulae.Eval(u); // Use operator(), which locks the mutex
-  Double_t gate = fFormulae.Eval(GATE);  // Use operator(), which locks the mutex
-  return DoFill(axes, gate);
+  Double_t gate = fGate->Eval(0);
+  if(!Bool_t(gate)) return 0;
+  std::vector<Double_t> axes;
+  fParams->EvalAll(axes);
+  return DoFill(axes);
 }
 
 
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// Class                                                 //
+// rb::hist::Summary                                     //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// Constructor                                           //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+rb::hist::Summary::Summary (const char* name, const char* title, const char* param, const char* gate,
+			    hist::Manager* manager, Int_t event_code,
+			    Int_t nbins, Double_t low, Double_t high, Option_t* orientation):
+  Base(name, title, param, gate, manager, event_code, 1, 0, 1, 1, 0, 1),
+  fBins(nbins), fLow(low), fHigh(high)
+{
+  SetOrientation(orientation);
+  Init(name, title, param, gate, event_code);
+  fLockOnConstruction.Unlock();
+}
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// void rb::hist::Summary::SetOrientation()              //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+void rb::hist::Summary::SetOrientation(Option_t* orientation) {
+  TString orient(orientation);
+  orient.ToLower();
+  if(orient == "v") kOrientation = VERTICAL;
+  else if(orient == "h") kOrientation = HORIZONTAL;
+  else {
+    err::Warning("rb::hist::Summary::Summary")
+      << "Orientation specification " << orientation
+      << " is not understood. Defaulting to vertical.";
+    kOrientation = VERTICAL;
+  }
+}
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// void rb::hist::Summary::InitParams() [virtual]        //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+namespace
+{ // ==== Helper Functions ===== //
+  inline Bool_t is_range(StringVector_t::iterator& it, long* pos) {
+    pos[0] = it->find("["); pos[1] = it->find("-"), pos[2] = it->find("]");
+    return (pos[0] < pos[1] && pos[1] < pos[2]);
+  }
+  inline Int_t str2int(const std::string& str) {
+    std::stringstream sstr; sstr << str;
+    Int_t out; sstr >> out; return out;
+  }
+  inline std::string subrange(long begin, long end, const std::string& str) {
+    return str.substr(begin, end-begin);
+  }
+  inline void add_range(long* pos, StringVector_t::iterator& it, StringVector_t& pars) {
+    Int_t lower = str2int(subrange(pos[0]+1, pos[1], *it));
+    Int_t upper = str2int(subrange(pos[1]+1, pos[2], *it));
+    if(lower > upper)	err::Throw() << "Invalid parameter specification: lower index ("
+				     << lower << ") > upper index (" << upper << ").";
+    std::string base = subrange(0, pos[0], *it);
+    for(Int_t i=lower; i <= upper; ++i) {
+      std::stringstream param;
+      param << base << "[" << i << "]";
+      pars.push_back(param.str());
+    }
+  }
+  inline StringVector_t parse_multiple_params(const char* param) {
+    StringVector_t pars0 = tokenize(param, ';'), pars;
+    for(StringVector_t::iterator it = pars0.begin(); it != pars0.end(); ++it) {
+      long pos[3];
+      if(is_range(it, pos)) add_range(pos, it, pars);
+      else pars.push_back(*it);
+    }
+    return pars;
+  }
+}
+// ===== InitParams ===== //
+void rb::hist::Summary::InitParams(const char* param, Int_t event_code) {
+  StringVector_t pars = parse_multiple_params(param);
+  fParams.reset(new rb::TreeFormulae(pars, event_code));
+
+  Int_t npar = pars.size();
+  TAxis* paxis = 0;
+  if(kOrientation == VERTICAL) {
+    visit::hist::DoMember<void, HistVariant, TH1, Int_t, Double_t, Double_t, Int_t, Double_t, Double_t>
+      (fHistVariant, &TH1::SetBins, npar, 0, npar, fBins, fLow, fHigh);
+    paxis = visit::hist::DoConstMember(fHistVariant, &TH1::GetXaxis);
+  }
+  else {
+    visit::hist::DoMember<void, HistVariant, TH1, Int_t, Double_t, Double_t, Int_t, Double_t, Double_t>
+      (fHistVariant, &TH1::SetBins, fBins, fLow, fHigh, npar, 0, npar);
+    paxis = visit::hist::DoConstMember(fHistVariant, &TH1::GetYaxis);
+  }
+  if(paxis) paxis->SetNdivisions(119);
+}
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// rb::hist::Summary::DoFill() [virtual]                 //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+Int_t rb::hist::Summary::DoFill(const std::vector<Double_t>& params) {
+  Int_t ret = 0;
+  for(UInt_t i=0; i< params.size(); ++i) {
+    if(kOrientation == VERTICAL)
+      ret += visit::hist::Fill::Do(fHistVariant, i, params[i], 0);
+    else
+      ret += visit::hist::Fill::Do(fHistVariant, params[i], i, 0);
+  }
+  return ret;
+}
 
 
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// Class                                                 //
+// rb::hist::Gamma                                       //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// Constructor (1d)                                      //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+rb::hist::Gamma::Gamma (const char* name, const char* title, const char* param, const char* gate,
+			hist::Manager* manager, Int_t event_code,
+			Int_t nbins, Double_t low, Double_t high):
+  Base(name, title, param, gate, manager, event_code, nbins, low, high)
+{
+  Init(name, title, param, gate, event_code);
+  fLockOnConstruction.Unlock();
+}
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// Constructor (2d)                                      //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+rb::hist::Gamma::Gamma (const char* name, const char* title, const char* param, const char* gate,
+			hist::Manager* manager, Int_t event_code,
+			Int_t nbinsx, Double_t xlow, Double_t xhigh,
+			Int_t nbinsy, Double_t ylow, Double_t yhigh,
+			Int_t nbinsz, Double_t zlow, Double_t zhigh):
+  Base(name, title, param, gate, manager, event_code, nbinsx, xlow, xhigh, nbinsy, ylow, yhigh, nbinsz, zlow, zhigh)
+{
+  Init(name, title, param, gate, event_code);
+  fLockOnConstruction.Unlock();
+}
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// Constructor (2d)                                      //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+rb::hist::Gamma::Gamma (const char* name, const char* title, const char* param, const char* gate,
+			hist::Manager* manager, Int_t event_code,
+			Int_t nbinsx, Double_t xlow, Double_t xhigh,
+			Int_t nbinsy, Double_t ylow, Double_t yhigh):
+  Base(name, title, param, gate, manager, event_code, nbinsx, xlow, xhigh, nbinsy, ylow, yhigh)
+{
+  Init(name, title, param, gate, event_code);
+  fLockOnConstruction.Unlock();
+}
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// void rb::hist::Summary::InitParams() [virtual]        //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+void rb::hist::Gamma::InitParams(const char* params, Int_t event_code) {
+  StringVector_t par0 = parse_params(params, kDimensions);
+  StringVector_t pars;
+  for(UInt_t i=0; i< kDimensions; ++i) {
+    StringVector_t temp = parse_multiple_params(par0[i].c_str());
+    pars.insert(pars.end(), temp.begin(), temp.end());
+    fStops.push_back(temp.size());
+    if(kDimensions > 0) {
+      if(*(fStops.end()-1) != *(fStops.begin()))
+	err::Throw() << "Invalid parameter specification (\"" << params << "\").\n"
+		     << "Multiple dimensional gamma histograms must consist of ordered pairs of parameters\n"
+		     << "(i.e. you need to specify the same number of paramaters for each side of the ':').\n";
+    }
+  }
+  fParams.reset(new rb::TreeFormulae(pars, event_code));
+}
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// Int_t rb::hist::Summary::DoFill() [virtual]           //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+Int_t rb::hist::Gamma::DoFill(const std::vector<Double_t>& params) {
+  Int_t ret = 0;
+  Double_t axes[3] = {0,0,0};
+  for(Int_t i=0; i< fStops[0]; ++i) {
+    for(UInt_t j=0; j< kDimensions; ++j) {
+      axes[j] = params.at(i+fStops[0]*j);
+    }
+    ret += visit::hist::Fill::Do(fHistVariant, axes[0], axes[1], axes[2]);
+  }
+  return ret;
+}
 
 
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// Class                                                 //
+// rb::hist::Bit                                         //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// Constructor (1d)                                      //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+rb::hist::Bit::Bit(const char* name, const char* title, const char* param, const char* gate,
+		   hist::Manager* manager, Int_t event_code,
+		   Int_t n_bits, Double_t ignored1, Double_t ignored2):
+  Base(name, title, param, gate, manager, event_code, n_bits, 0, n_bits), kNumBits(n_bits)
+{
+  Init(name, title, param, gate, event_code);
+  fLockOnConstruction.Unlock();
+}
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// void rb::hist::Summary::InitParams() [virtual]        //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+void rb::hist::Bit::InitParams(const char* params, Int_t event_code) {
+  std::vector<std::string> par(1, params);
+  fParams.reset(new rb::TreeFormulae(par, event_code));
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-// #if 0
-// //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-// // Class                                                 //
-// // rb::SummaryHist                                       //
-// //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-
-// //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-// // rb::SummaryHist::SummaryHist                          //
-// //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-// rb::SummaryHist::SummaryHist(const char* name, const char* title, const char* param, const char* gate, const char* orient, TTree* tree) {
-//   fTree = tree;
-//   kConstructorSuccess = kTRUE; kDimensions = 2; fHistogramClone = 0;
-//   TString sOrient(orient);
-//   sOrient.ToLower();
-//   kOrient = 0; // vertical
-//   if (!sOrient.CompareTo("h")) kOrient = 1;
-//   else if (sOrient.CompareTo("v"))
-//     Warning("SummaryHist", "Orientation option %s ws not recognzed. Defaulting to vertical", orient);
-//   else ;
-
-//   LockFreePointer<CriticalElements>  critical(fCritical);
-//   critical->fHistogram = 0;
-
-//   // Initialize gate
-//   fCritical.fGate = new TTreeFormula("fGate", check_gate(gate).c_str(), critical->GetTree(this));
-//   if(!fCritical.fGate->GetNdim()) {
-//     kConstructorSuccess = kFALSE;
-//     return;
-//   }
-
-//   // Initialize parameters
-//   StringVector_t vPar = tokenize(param, ';');
-//   for(Int_t i = vPar.size()-1; i >= 0; --i) {
-//     stringstream parname; parname << "param" << i-vPar.size();
-
-//     string param = vPar[i];
-//     ULong_t brktPos = param.find("["), dashPos = param.find("-"), brktPosLast = param.find("]");
-//     if(brktPos > param.size() || dashPos > param.size()) {
-//       critical->fParams.push_back(new TTreeFormula(parname.str().c_str(), param.c_str(), critical->GetTree(this)));
-//       if(!critical->fParams[critical->fParams.size()-1]->GetNdim()) {
-// 	kConstructorSuccess = kFALSE;
-// 	return;
-//       }
-//     }
-//     else {
-//       string sFirst = param.substr(brktPos + 1, dashPos - brktPos - 1);
-//       string sLast  = param.substr(dashPos + 1, brktPosLast - dashPos - 1);
-//       string sBase  = param.substr(0, brktPos);
-//       UInt_t first = atoi(sFirst.c_str()), last = atoi(sLast.c_str());
-//       for(UInt_t indx = first; indx <= last; ++indx) {
-// 	stringstream sstrParam;
-// 	sstrParam << sBase << "[" << indx << "]";
-// 	parname << "_" << indx;
-// 	critical->fParams.push_back(new TTreeFormula(parname.str().c_str(), sstrParam.str().c_str(), critical->GetTree(this)));
-// 	if(!critical->fParams[critical->fParams.size()-1]->GetNdim()) {
-// 	  kConstructorSuccess = kFALSE;
-// 	  return;
-// 	}
-//       }
-//     }
-//     nPar = critical->fParams.size();
-//   }
-
-//   // Set name & title
-//   fName  = check_name(name).c_str();
-
-//   stringstream sstr;
-//   sstr << param << " {" << fCritical.fGate->GetExpFormula().Data() << "}";
-//   kDefaultTitle = sstr.str();
-//   if(string(title).empty())
-//     fTitle = kDefaultTitle.c_str();
-//   else
-//     fTitle = title;
-//   kInitialTitle = fTitle;
-// }
-
-// //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-// // rb::SummaryHist::New()                                //
-// //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-// // void rb::SummaryHist::New(const char* name, const char* title,
-// // 		    Int_t nbins, Double_t low, Double_t high,
-// // 		    const char* paramList,  const char* gate,
-// // 		    const char* orientation) {
-// //   // Create rb::Hist instance
-// //   rb::SummaryHist* _this = new rb::SummaryHist(name, title, paramList, gate, orientation);
-// //   if(!_this->kConstructorSuccess) return;
-
-// //   // Set internal histogram
-// //   //! \note The histogram isn't accessable to any other threads until we add it to
-// //   //! fgList, so it's safe to access the critical elements via a non-locking pointer.
-// //   LockFreePointer<CriticalElements> unlocked_critical(_this->fCritical);
-
-// //   Bool_t successfulHistCreation = kTRUE;
-// //   TH1::AddDirectory(kFALSE);
-
-// //   Int_t npar = unlocked_critical->fParams.size();
-
-// //   if(!_this->kOrient) { // vertical
-// //     unlocked_critical->fHistogram =
-// //       new TH2D(_this->fName, _this->fTitle, npar, 0, npar, nbins, low, high);
-// //     unlocked_critical->fHistogram->GetXaxis()->SetTitle(paramList);
-// //     unlocked_critical->fHistogram->GetYaxis()->SetTitle("");
-// //   }
-// //   else { // horizontal
-// //     unlocked_critical->fHistogram =
-// //       new TH2D(_this->fName, _this->fTitle, nbins, low, high, npar, 0, npar);
-// //     unlocked_critical->fHistogram->GetXaxis()->SetTitle("");
-// //     unlocked_critical->fHistogram->GetYaxis()->SetTitle(paramList);
-// //   }
-// //   TH1::AddDirectory(kTRUE);
-
-// //   // Add to collections
-// //   LockingPointer<List_t> hlist(fgList(), fMutex);
-// //   if(successfulHistCreation) {
-// //     hlist->push_back(_this);
-
-// //     if(gDirectory) {
-// //       _this->fDirectory = gDirectory;
-// //       _this->fDirectory->Append(_this, kTRUE);
-// //     }
-// //   }
-// // }
-
-// //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-// // rb::Hist::DoFill()                                    //
-// //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-// Int_t rb::SummaryHist::DoFill(TH1* hst, TTreeFormula* gate, vector<TTreeFormula*>& params) {
-//   if(!gate->EvalInstance()) return 0;
-//   TH2D* h2d = static_cast<TH2D*>(hst);
-//   for(Int_t i = 0; i< GetNPar(); ++i) {
-//     Double_t parVal = params[i]->EvalInstance();
-//     kOrient ?  h2d->Fill(parVal, i): h2d->Fill(i, parVal);
-//   }
-//   return 0;
-// }
-
-
-// //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-// // Class                                                 //
-// // rb::GammaHist                                         //
-// //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-
-// //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-// // rb::GammaHist::GammaHist                              //
-// //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-// rb::GammaHist::GammaHist(const char* name, const char* title, const char* param, const char* gate, Int_t dimensions, TTree* tree, Set_t* set) {
-//   fTree = tree; fSet = set;
-//   kConstructorSuccess = kTRUE; fHistogramClone = 0; kDimensions = dimensions;
-
-//   LockFreePointer<CriticalElements>  critical(fCritical);
-//   critical->fHistogram = 0;
-
-//   // Initialize gate
-//   fCritical.fGate = new TTreeFormula("fGate", check_gate(gate).c_str(), critical->GetTree(this));
-//   if(!fCritical.fGate->GetNdim()) {
-//     kConstructorSuccess = kFALSE;
-//     return;
-//   }
-
-//   // Initialize parameters
-//   StringVector_t vPar1 = tokenize(param, ':');
-//   if(kDimensions != vPar1.size()) {
-//     Error("GammaHist", "Invalid parameter argument for a %d-dimensional hist (%s)", dimensions, param);
-//     kConstructorSuccess = kFALSE;
-//     return;
-//   }
-//   vector<Int_t> nParams;
-//   for(UInt_t j=0; j< vPar1.size(); ++j) {
-//     StringVector_t vPar = tokenize(vPar1[j].c_str(), ';');
-//     nParams.push_back(vPar.size());
-
-//     for(Int_t i = vPar.size()-1; i >= 0; --i) {
-//       stringstream parname; parname << "param" << j << "_" << i-vPar.size();
-//       string param = vPar[i];
-//       ULong_t brktPos = param.find("["), dashPos = param.find("-"), brktPosLast = param.find("]");
-//       if(brktPos > param.size() || dashPos > param.size()) {
-// 	critical->fParams.push_back(new TTreeFormula(parname.str().c_str(), param.c_str(), critical->GetTree(this)));
-// 	if(!critical->fParams[critical->fParams.size()-1]->GetNdim()) {
-// 	  kConstructorSuccess = kFALSE;
-// 	  return;
-// 	}
-//       }
-//       else {
-// 	string sFirst = param.substr(brktPos + 1, dashPos - brktPos - 1);
-// 	string sLast  = param.substr(dashPos + 1, brktPosLast - dashPos - 1);
-// 	string sBase  = param.substr(0, brktPos);
-// 	UInt_t first = atoi(sFirst.c_str()), last = atoi(sLast.c_str());
-// 	for(UInt_t indx = first; indx <= last; ++indx) {
-// 	  stringstream sstrParam;
-// 	  sstrParam << sBase << "[" << indx << "]";
-// 	  parname << "_" << indx;
-// 	  critical->fParams.push_back(new TTreeFormula(parname.str().c_str(), sstrParam.str().c_str(), critical->GetTree(this)));
-// 	  if(!critical->fParams[critical->fParams.size()-1]->GetNdim()) {
-// 	    kConstructorSuccess = kFALSE;
-// 	    return;
-// 	  }
-// 	}
-//       }
-//       nPar = critical->fParams.size();
-//     }
-//   }
-
-//   if(nParams.size() == 0) {
-//     Error("GammaHist", "Invalid parameter argument %s", param);
-//     kConstructorSuccess = kFALSE;
-//     return;
-//   }
-//   else if (nParams.size() > 1) {
-//     Int_t nParams0 = nParams[0];
-//     for(UInt_t k=1; k< nParams.size(); ++k) {
-//       if(nParams[k] != nParams0) {
-// 	Error("GammaHist", "Invalid parameter argument %s", param);
-// 	kConstructorSuccess = kFALSE;
-// 	return;
-//       }
-//     }
-//   }
-//   else ;	
-
-//   // Set name & title
-//   fName  = check_name(name).c_str();
-
-//   stringstream sstr;
-//   sstr << param << " {" << fCritical.fGate->GetExpFormula().Data() << "}";
-//   kDefaultTitle = sstr.str();
-//   if(string(title).empty())
-//     fTitle = kDefaultTitle.c_str();
-//   else
-//     fTitle = title;
-//   kInitialTitle = fTitle;
-// }
-
-
-// //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-// // static rb::GammaHist::Initialize                      //
-// //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-// Bool_t rb::GammaHist::GInitialize(const char* name, const char* title,
-// 				  const char* paramList, const char* gate,
-// 				  UInt_t ndim, TTree* tree, Set_t* set,
-// 				  Int_t nbinsx, Double_t xlow, Double_t xhigh,
-// 				  Int_t nbinsy, Double_t ylow, Double_t yhigh,
-// 				  Int_t nbinsz, Double_t zlow, Double_t zhigh) {
-
-//   // Create rb::Hist instance
-//   rb::GammaHist* _this = new rb::GammaHist(name, title, paramList, gate, ndim, tree, set);
-//   if(!_this->kConstructorSuccess) return kFALSE;
-
-//   // Set internal histogram
-//   //! \note The histogram isn't accessable to any other threads until we add it to
-//   //! fgList, so it's safe to access the critical elements via a non-locking pointer.
-//   LockFreePointer<CriticalElements> unlocked_critical(_this->fCritical);
-
-//   Bool_t successfulHistCreation = kTRUE;
-//   TH1::AddDirectory(kFALSE);
-
-//   Int_t npar = unlocked_critical->fParams.size();
-
-//   switch(_this->kDimensions) {
-//   case 1: {
-//     unlocked_critical->fHistogram =
-//       new TH1D(_this->fName, _this->fTitle, nbinsx, xlow, xhigh);
-//     unlocked_critical->fHistogram->GetXaxis()->SetTitle(paramList);
-//     unlocked_critical->fHistogram->GetYaxis()->SetTitle("");
-//     break;
-//   }
-//   case 2: {
-//     unlocked_critical->fHistogram =
-//       new TH2D(_this->fName, _this->fTitle, nbinsx, xlow, xhigh, nbinsy, ylow, yhigh);
-//     StringVector_t pars = tokenize(paramList, ':');
-//     unlocked_critical->fHistogram->GetXaxis()->SetTitle(pars[1].c_str());
-//     unlocked_critical->fHistogram->GetYaxis()->SetTitle(pars[0].c_str());
-//     break;
-//   }
-//   default:
-//     fprintf(stderr, "Error in <GInitialize>: %d-dimensional Gamma Histograms are not yet supported", _this->kDimensions);
-//     TH1::AddDirectory(kTRUE);
-//     return kFALSE;
-//     break;
-//   }
-
-//   TH1::AddDirectory(kTRUE);
-
-//   // Add to collections
-//   LockingPointer<List_t> hlist(fgList(), fMutex);
-//   if(successfulHistCreation) {
-//     hlist->push_back(_this);
-
-//     if(gDirectory) {
-//       _this->fDirectory = gDirectory;
-//       _this->fDirectory->Append(_this, kTRUE);
-//     }
-//   }
-//   return kTRUE;
-// }
-
-// //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-// // rb::GammaHist::DoFill()                               //
-// //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-// Int_t rb::GammaHist::DoFill(TH1* hst, TTreeFormula* gate, vector<TTreeFormula*>& params) {
-//   if(!gate->EvalInstance()) return 0;
-
-//   Int_t ret = -1;
-//   switch(kDimensions) {
-//   case 1:
-//     for(Int_t i=0; i< params.size(); ++i)
-//       static_cast<TH1D*>(hst)->Fill(params[i]->EvalInstance());
-//     ret = 1;
-//     break;
-//   case 2:
-//     for(Int_t i=0; i< params.size() / 2; ++i)
-//       static_cast<TH2D*>(hst)->Fill(params[i]->EvalInstance(), params[i+params.size()/2]->EvalInstance());
-//     ret = 1;
-//     break;
-//   default:
-//     Error("DoFill", "Invalid kDimensions %d", kDimensions);
-//     ret = -1;
-//     break;
-//   }
-//   return ret;
-// }
-
-// // //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-// // // static rb::GammaHist::New (One-dimensional)           //
-// // //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-// // void rb::GammaHist::New(const char* name, const char* title,
-// // 		    Int_t nbinsx, Double_t xlow, Double_t xhigh,
-// // 		    const char* param, const char* gate) {
-// //   rb::GammaHist::GInitialize(name, title, param, gate, 1, nbinsx, xlow, xhigh);
-// // }
-
-// // //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-// // // static rb::GammaHist::New (Two-dimensional)           //
-// // //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-// // void rb::GammaHist::New(const char* name, const char* title,
-// // 		    Int_t nbinsx, Double_t xlow, Double_t xhigh,
-// // 		    Int_t nbinsy, Double_t ylow, Double_t yhigh,
-// // 		    const char* param, const char* gate) {
-// //   rb::GammaHist::GInitialize(name, title, param, gate, 2, nbinsx, xlow, xhigh, nbinsy, ylow, yhigh);
-// // }
-// #endif
+  TAxis* paxis = visit::hist::DoConstMember(fHistVariant, &TH1::GetXaxis);
+  if(paxis) paxis->SetNdivisions(119);
+}
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// Int_t rb::hist::Summary::DoFill() [virtual]           //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+Int_t rb::hist::Bit::DoFill(const std::vector<Double_t>& params) {
+  Int_t ret = 0;
+  boost::dynamic_bitset<> bits(kNumBits, (unsigned long)params[0]);
+  for(Int_t i=0; i< kNumBits; ++i) {
+    if(bits[i]) {
+      visit::hist::Fill::Do(fHistVariant, i, 0, 0);
+      ++ret;
+    }
+  }
+  return ret;
+}
 

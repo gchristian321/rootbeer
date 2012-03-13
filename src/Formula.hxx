@@ -4,6 +4,12 @@
 #define FORMULA_HXX
 #include <string>
 #include "utils/boost_scoped_ptr.h"
+#ifndef __MAKECINT__
+#include "boost/ptr_container/ptr_vector.hpp"
+#else
+namespace boost { template <class T> class ptr_vector<T>; }
+#endif
+#include "utils/Critical.hxx"
 
 // =========== Forward Declarations =========== //
 class TTree;
@@ -22,21 +28,21 @@ namespace rb
   {
   private:
     const Int_t kEventCode;
-    boost::scoped_ptr<volatile TTreeFormula> fTreeFormulae[4];
-    std::string fFormulaArgs[4];
+    rb::Critical<boost::ptr_vector<TTreeFormula> > fTreeFormulae;
+    std::vector<std::string> fFormulaArgs;
   public:
-    TreeFormulae(): kEventCode(-1001) {}
-    TreeFormulae(Int_t npar, const char* params, const char* gate, Int_t event_code);
-    /// Get parameter values
+    TreeFormulae(): kEventCode(-1001), fTreeFormulae(0, gDataMutex) {}
+    TreeFormulae(std::vector<std::string>& params, Int_t event_code);
+    Int_t GetN() { return fTreeFormulae->size(); }
     std::string Get(Int_t index);
     Double_t Eval(Int_t index);
     Double_t EvalUnlocked(Int_t index);
+    void EvalAll(std::vector<Double_t>& out);
+    void EvalAllUnlocked(std::vector<Double_t>& out);
     Bool_t Change(Int_t index, std::string new_formula);
   private:
     void ThrowBad(const char* formula, Int_t index);
-    Bool_t Init(Int_t index, std::string new_formula);
-    Bool_t Init(boost::scoped_ptr<volatile TTreeFormula>& formula, const std::string& formula_arg);
-    TreeFormulae(const TreeFormulae& other): kEventCode(-1001) {}
+    TreeFormulae(const TreeFormulae& other): kEventCode(-1001), fTreeFormulae(0, gDataMutex) {}
     TreeFormulae& operator= (const TreeFormulae& other) { return *this; }
   };
 }

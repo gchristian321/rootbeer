@@ -102,8 +102,7 @@ namespace rb
     {
       /// Perform the initialization
       //! \param [in] formula_arg String specifying the formula argument
-      //! \param [out] ttf The smart pointer to the TTreeFormula you want to initialize
-      static Bool_t Operate(rb::Event* const event, const char* formula_arg, FormulaPtr_t& ttf);
+      static TTreeFormula* Operate(rb::Event* const event, const char* formula_arg);
 
       /// Give access to rb::TreeFormulae
       friend class rb::TreeFormulae;
@@ -111,7 +110,7 @@ namespace rb
 
 #ifndef __MAKECINT__
     friend void Destructor::Operate(Event*&);
-    friend Bool_t InitFormula::Operate(Event* const, const char*, FormulaPtr_t&);
+    friend TTreeFormula* InitFormula::Operate(Event* const, const char*);
     friend Bool_t BranchAdd::Operate(Event* const, const char*, const char*, void**, Int_t);
 #endif
   };

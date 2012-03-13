@@ -18,39 +18,13 @@
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 namespace
 {
-  inline Bool_t is_valid_index(Int_t index) {
-    Bool_t ret = index >= 0 && index <= GATE;
-    if(!ret) err::Error("Formula") << "Invalid index: " << index;
-    return ret;
-  }
-  inline std::vector<std::string> tokenize(const char* str, char token) {
-    std::istringstream iss(str);
-    std::string entry;
-    std::vector<std::string> out;
-    while(std::getline(iss, entry, token))
-      out.push_back(entry);
-    return out;
-  }
-  inline std::vector<std::string> get_param_vector(const char* str, int& ntokens) {
-    std::vector<std::string> out = tokenize(str, ':');
-    ntokens = out.size();
-    for(int i = out.size(); i < 3; ++i) out.push_back("");
-    return out;
-  }
-  inline void modify_formula_arg(Int_t index, std::string& formula) {
-    assert(is_valid_index(index));
-    if(index == GATE) {
-      std::string gate = TString(formula).ReplaceAll(" ","").Data();
-      if     (gate ==  "") formula = "1";  // Null field means no gate, i.e. always true.
-      else if(gate == "0") formula ="!1";  // Somehow "0" evaluates to true, should be false.
-      else;                                // don't modify
-    }
-    else {
-      if(formula == "0") formula = "!1";
-    }
+  inline void modify_formula_arg(std::string& formula) {
+    std::string f = TString(formula).ReplaceAll(" ","").Data();
+    if      (f ==  "") formula = "1";  // Null field means no gate, i.e. always true.
+    else if (f == "0") formula ="!1";  // Somehow "0" evaluates to true, should be false.
+    else;                              // don't modify
   }
 }
- 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // Class                                                 //
 // rb::TreeFormulae                                      //
@@ -59,14 +33,25 @@ namespace
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // Constructor                                           //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-rb::TreeFormulae::TreeFormulae(Int_t npar, const char* params, const char* gate, Int_t event_code):
-  kEventCode(event_code) {
-  // Initialize gate
-  fFormulaArgs[GATE] = gate;
-  modify_formula_arg(GATE, fFormulaArgs[GATE]);
-  bool good_gate = Init(GATE, fFormulaArgs[GATE]);
-  if(!good_gate) ThrowBad(gate, GATE);
-  
+rb::TreeFormulae::TreeFormulae(std::vector<std::string>& params, Int_t event_code):
+  kEventCode(event_code), fTreeFormulae(new boost::ptr_vector<TTreeFormula>(), gDataMutex) {
+
+  RB_LOCKGUARD(gDataMutex);
+  std::vector<std::string>::iterator it;
+  for(it = params.begin(); it != params.end(); ++it) {
+    modify_formula_arg(*it);
+    fFormulaArgs.push_back(*it);
+    TTreeFormula* formula = 
+      rb::Event::InitFormula::Operate(rb::gApp()->GetEvent(kEventCode), it->c_str());
+
+    if(!formula->GetNdim()) ThrowBad(it->c_str(), it-params.begin());
+    else fTreeFormulae->push_back(formula);
+  }
+}
+    
+						    
+
+    /*
   // Initialize parameters
   Int_t npar_found;
   std::vector<std::string> pars = get_param_vector(params, npar_found);
@@ -76,12 +61,30 @@ rb::TreeFormulae::TreeFormulae(Int_t npar, const char* params, const char* gate,
     throw(std::invalid_argument(err.str().c_str()));
   }
   for(Int_t I = 0; I < 3; ++I) {
-    fFormulaArgs[I] = pars[I].c_str();
+    fFormulaArgs.push_back(pars[I]);
     modify_formula_arg(I, fFormulaArgs[I]);
-    bool good_param = Init(I, fFormulaArgs[I].c_str());
+    TTreeFormula* formula = 0;
+    bool good_param = Init(formula, fFormulaArgs[I].c_str());
     if(!good_param) ThrowBad(pars[I].c_str(), I);
+    else {
+      fFormulae->push_back(formula);
+    }
   }
-}
+    */
+  /*
+  // Initialize gate
+  fFormulaArgs.push_back(gate);
+  modify_formula_arg(GATE, fFormulaArgs.at(GATE));
+  boost::scoped_ptr<volatile TTreeFormula> formula(0);
+  bool good_gate = Init(formula, fFormulaArgs.at(GATE));
+  if(!good_gate) ThrowBad(gate, GATE);
+  else {
+    LockingPointer<TTreeFormula> pFormula(formula, gDataMutex);
+    fTreeFormulae->push_back(pFormula.Get());
+  }
+  */
+//};
+
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // void ThrowBad()                                       //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
@@ -92,40 +95,28 @@ void rb::TreeFormulae::ThrowBad(const char* formula, Int_t index) {
   throw exception;
 }
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-// Bool_t rb::TreeFormulae::Init()                       //
-//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-Bool_t rb::TreeFormulae::Init(Int_t index, std::string formula_arg) {
-  assert(is_valid_index(index));
-  return Init(fTreeFormulae[index], formula_arg);
-}
-//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-// Bool_t rb::TreeFormulae::Init()                       //
-//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-Bool_t rb::TreeFormulae::Init(boost::scoped_ptr<volatile TTreeFormula>& formula, const std::string& formula_arg) {
-  if(formula_arg != "") {
-    return rb::Event::InitFormula::Operate(rb::gApp()->GetEvent(kEventCode), formula_arg.c_str(), formula);
-  } else {
-    formula.reset(0);
-    return true;
-  }
-}
-//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // Bool_t rb::TreeFormulae::Change()                     //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 Bool_t rb::TreeFormulae::Change(Int_t index, std::string new_formula) {
-  if(!is_valid_index(index)) return false;
 
   // Modify formula if necessary
-  modify_formula_arg(index, new_formula);
+  modify_formula_arg(new_formula);
 
   // check that new gate formula is valid
-  boost::scoped_ptr<volatile TTreeFormula> temp;
-  if(!Init(temp, new_formula))
+  boost::scoped_ptr<TTreeFormula>
+    temp (rb::Event::InitFormula::Operate(rb::gApp()->GetEvent(kEventCode), new_formula.c_str()));
+
+  if(!temp->GetNdim())
     return false;
   else {
-    Bool_t success = Init(fTreeFormulae[index], new_formula);
-    fFormulaArgs[index] = new_formula;
-    return success;
+    try {
+      RB_LOCKGUARD(gDataMutex);
+      fTreeFormulae->replace(index, rb::Event::InitFormula::Operate(rb::gApp()->GetEvent(kEventCode), new_formula.c_str()));
+      fFormulaArgs.at(index) = new_formula;
+    } catch(std::exception& e) {
+      err::Error("rb::TreeFormulae::Change()") << "Invalid index " << index;
+    }
+    return true;
   }
 }
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
@@ -142,13 +133,34 @@ std::string rb::TreeFormulae::Get(Int_t index) {
 // Double_t rb::TreeFormulae::Eval()                     //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 Double_t rb::TreeFormulae::Eval(Int_t index) {
-  return is_valid_index(index) ?
-    LockingPointer<TTreeFormula>(*fTreeFormulae[index], gDataMutex)->EvalInstance(0) : -1.;
+  rb::ScopedLock<rb::Mutex> LOCK(gDataMutex);
+  return EvalUnlocked(index);
 }
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // Double_t rb::TreeFormulae::EvalUnlocked()             //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 Double_t rb::TreeFormulae::EvalUnlocked(Int_t index) {
-  return is_valid_index(index) ?
-    LockFreePointer<TTreeFormula>(*fTreeFormulae[index])->EvalInstance(0) : -1.;
+  Double_t ret = -1;
+  try { ret = fTreeFormulae->at(index).EvalInstance(0); }
+  catch (std::exception& e) {
+    err::Error("rb::TreeFormulae::Eval") << "Invalid index " << index;
+    ret = -1;
+  }
+  return ret;
+}
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// void rb::TreeFormulae::EvalAll()                      //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+void rb::TreeFormulae::EvalAll(std::vector<Double_t>& out) {
+  rb::ScopedLock<rb::Mutex> LOCK(gDataMutex);
+  EvalAllUnlocked(out);
+}
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// void rb::TreeFormulae::EvalAllUnlocked()              //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+void rb::TreeFormulae::EvalAllUnlocked(std::vector<Double_t>& out) {
+  boost::ptr_vector<TTreeFormula>::iterator it;
+  out.clear();
+  for(it = fTreeFormulae->begin(); it != fTreeFormulae->end(); ++it)
+    out.push_back(it->EvalInstance(0));
 }

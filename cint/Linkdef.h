@@ -1,7 +1,6 @@
 //! \file Linkdef.h
 //! \brief Tells CINT to generate dictionaries for our classes.
  
- 
 #ifdef __CINT__ 
 #pragma link off all globals; 
 #pragma link off all classes; 
@@ -18,6 +17,9 @@
 #pragma link C++ class rb::hist::D1+;
 #pragma link C++ class rb::hist::D2+;
 #pragma link C++ class rb::hist::D3+;
+#pragma link C++ class rb::hist::Summary+;
+#pragma link C++ class rb::hist::Gamma+;
+#pragma link C++ class rb::hist::Bit+;
 #pragma link C++ class AxisIndices;
 
 #pragma link C++ defined_in "user/User.hxx";

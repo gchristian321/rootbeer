@@ -936,7 +936,7 @@ void SetBins(Int_t nx, const Double_t* xBins, Int_t ny, const Double_t* yBins, I
   return AS_TH1->SetBins(nx, xBins, ny, yBins, nz, zBins);
 }
 /// <a href = "http://root.cern.ch/root/html/TH1.html#TH1:SetBinsLength">*** TH1 Member Function ***</a>
-void SetBinsLength(Int_t arg0 = -0x00000000000000001)
+void SetBinsLength(Int_t arg0 = -1)
 {
   rb::ScopedLock<rb::Mutex> LOCK (TTHREAD_GLOBAL_MUTEX);
   return AS_TH1->SetBinsLength(arg0);
@@ -1020,13 +1020,13 @@ void SetLabelSize(Float_t size = 2e-2, Option_t* axis = "X")
   return AS_TH1->SetLabelSize(size, axis);
 }
 /// <a href = "http://root.cern.ch/root/html/TH1.html#TH1:SetMaximum">*** TH1 Member Function ***</a>
-void SetMaximum(Double_t maximum = -0x00000000000000457)
+void SetMaximum(Double_t maximum = -1111)
 {
   rb::ScopedLock<rb::Mutex> LOCK (TTHREAD_GLOBAL_MUTEX);
   return AS_TH1->SetMaximum(maximum);
 }
 /// <a href = "http://root.cern.ch/root/html/TH1.html#TH1:SetMinimum">*** TH1 Member Function ***</a>
-void SetMinimum(Double_t minimum = -0x00000000000000457)
+void SetMinimum(Double_t minimum = -1111)
 {
   rb::ScopedLock<rb::Mutex> LOCK (TTHREAD_GLOBAL_MUTEX);
   return AS_TH1->SetMinimum(minimum);

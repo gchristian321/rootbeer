@@ -165,12 +165,18 @@ namespace rb
 				    Int_t nbinsy, Double_t ylow, Double_t yhigh,
 				    const char* params,  const char* gate = "", Int_t event_code = 1);
 
-    /// Bit hist creation
-    // template <Int_t NBITS>
-    //  void rb::hist::NewBits<NBITS>(const char* name, const char* title, const char* param, const char* gate) {
-    //   rb::BitHist<NBITS>::BitInitialize(name, title, param, gate);
-    // }
-  }
+    /// Gamma hist creation (3d)
+    extern rb::hist::Base* NewGamma(const char* name, const char* title,
+				    Int_t nbinsx, Double_t xlow, Double_t xhigh,
+				    Int_t nbinsy, Double_t ylow, Double_t yhigh,
+				    Int_t nbinsz, Double_t zlow, Double_t zhigh,
+				    const char* params,  const char* gate = "", Int_t event_code = 1);
 
+    /// Bit hist creation
+    rb::hist::Base* NewBit (const char* name, const char* title, Int_t nbits, const char* param,
+			    const char* gate = "", Int_t event_code = 1);
+
+  }
 }
+
 #endif

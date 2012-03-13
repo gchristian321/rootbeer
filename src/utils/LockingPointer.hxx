@@ -87,7 +87,7 @@ public:
   LockingPointer(PTR& p_object, rb::Mutex* mutex) :
     fObject(const_cast<T*>(p_object.get())), fMutex(mutex) {
     if(fMutex) fMutex->Lock();
-    else Lock_TThread();
+    else rb::TThreadMutex::Instance()->Lock();
 #ifdef LOCKING_POINTER_VERBOSE
     Info("LockingPointer", "Locking: SelfId = %li", TThread::SelfId());
 #endif
@@ -99,7 +99,7 @@ public:
   LockingPointer(volatile T& object, rb::Mutex* mutex) :
     fObject(const_cast<T*>(&object)), fMutex(mutex) {
     if(fMutex) fMutex->Lock();
-    else Lock_TThread();
+    else rb::TThreadMutex::Instance()->Lock();
 #ifdef LOCKING_POINTER_VERBOSE
     Info("LockingPointer", "Locking: SelfId = %li", TThread::SelfId());
 #endif
@@ -111,7 +111,7 @@ public:
   LockingPointer(volatile T* object, rb::Mutex* mutex) :
     fObject(const_cast<T*>(object)), fMutex(mutex) {
     if(fMutex) fMutex->Lock();
-    else Lock_TThread();
+    else rb::TThreadMutex::Instance()->Lock();
 #ifdef LOCKING_POINTER_VERBOSE
     Info("LockingPointer", "Locking: SelfId = %li", TThread::SelfId());
 #endif
@@ -121,7 +121,7 @@ public:
   //! Release the fMutex lock.
   ~LockingPointer() {
     if(fMutex) fMutex->UnLock();
-    else UnLock_TThread();
+    else rb::TThreadMutex::Instance()->UnLock();
 #ifdef LOCKING_POINTER_VERBOSE
     Info("~LockingPointer", "UnLocking: SelfId = %li", TThread::SelfId());
 #endif
