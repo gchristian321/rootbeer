@@ -319,8 +319,6 @@ namespace rb
 
     //! \details A bitmask histogram displays the true bits in a parameter.  For each event,
     //! the bin corresponding to a given bit in a word increments if that bit is set to 1.
-    //! This is a template class, with the template argument being the number of bits to
-    //! display (maximum of 64).
     class Bit: public Base
     {
     private:
