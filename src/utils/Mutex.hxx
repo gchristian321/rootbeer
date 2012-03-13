@@ -6,7 +6,7 @@
 #include <string>
 #include <TMutex.h>
 #include "Error.hxx"
-
+#include "Logger.hxx"
 
 namespace rb
 {
