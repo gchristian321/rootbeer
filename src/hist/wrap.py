@@ -124,8 +124,15 @@ def print_method(method) :
     if(type(static) == str):
         if(static == "1"):
             return
-    to_print += "/// <a href = \"http://root.cern.ch/root/html/TH1.html#TH1:" + method.get("name") + "\">"
-    to_print += "*** TH1 Member Function ***</a>\n"
+    m_virtual = method.get("virtual")
+    virtual = 0
+    if(type(m_virtual) == str):
+        if(m_virtual == "1"):
+            virtual = 1 
+    to_print += "/// <a href = \"http://root.cern.ch/root/html/" + classname + ".html#" + classname +":" + method.get("name") + "\">"
+    to_print += "*** " + classname + " Member Function ***</a>\n"
+    if(virtual):
+        to_print += "virtual "
     to_print += get_return(method) + " " + method.get("name")
     args = arguments(method)
     global ngeneric
@@ -185,3 +192,90 @@ if __name__ == '__main__' :
         if(is_public(method) and method.get("file") == "f35"):
             print_method(method)
     print "\n#undef AS_TH1"
+
+
+'''
+/// <a href = "http://root.cern.ch/root/html/TAttLine.html#TAttLine:ResetAttLine">*** TAttLine Member Function ***</a>
+virtual void ResetAttLine(Option_t* option = "")
+{
+  rb::ScopedLock<rb::Mutex> LOCK (TTHREAD_GLOBAL_MUTEX);
+  return AS_TH1->ResetAttLine(option);
+}
+/// <a href = "http://root.cern.ch/root/html/TAttLine.html#TAttLine:SaveLineAttributes">*** TAttLine Member Function ***</a>
+virtual void SaveLineAttributes(ostream& out, const char* name, Int_t coldef = 1, Int_t stydef = 1, Int_t widdef = 1)
+{
+  rb::ScopedLock<rb::Mutex> LOCK (TTHREAD_GLOBAL_MUTEX);
+  return AS_TH1->SaveLineAttributes(out, name, coldef, stydef, widdef);
+}
+/// <a href = "http://root.cern.ch/root/html/TAttLine.html#TAttLine:SetLineColor">*** TAttLine Member Function ***</a>
+virtual void SetLineColor(Color_t lcolor)
+{
+  rb::ScopedLock<rb::Mutex> LOCK (TTHREAD_GLOBAL_MUTEX);
+  return AS_TH1->SetLineColor(lcolor);
+} 
+/// <a href = "http://root.cern.ch/root/html/TAttLine.html#TAttLine:SetLineStyle">*** TAttLine Member Function ***</a>
+virtual void SetLineStyle(Style_t lstyle)
+{
+  rb::ScopedLock<rb::Mutex> LOCK (TTHREAD_GLOBAL_MUTEX);
+  return AS_TH1->SetLineStyle(lstyle);
+}
+/// <a href = "http://root.cern.ch/root/html/TAttLine.html#TAttLine:SetLineWidth">*** TAttLine Member Function ***</a>
+virtual void SetLineWidth(Width_t lwidth)
+{
+  rb::ScopedLock<rb::Mutex> LOCK (TTHREAD_GLOBAL_MUTEX);
+  return AS_TH1->SetLineWidth(lwidth);
+}
+/// <a href = "http://root.cern.ch/root/html/TAttFill.html#TAttFill:ResetAttFill">*** TAttFill Member Function ***</a>
+virtual void ResetAttFill(Option_t* option = "")
+{
+  rb::ScopedLock<rb::Mutex> LOCK (TTHREAD_GLOBAL_MUTEX);
+  return AS_TH1->ResetAttFill(option);
+}
+/// <a href = "http://root.cern.ch/root/html/TAttFill.html#TAttFill:SaveFillAttributes">*** TAttFill Member Function ***</a>
+virtual void SaveFillAttributes(ostream& out, const char* name, Int_t coldef = 1, Int_t stydef = 1001)
+{
+  rb::ScopedLock<rb::Mutex> LOCK (TTHREAD_GLOBAL_MUTEX);
+  return AS_TH1->SaveFillAttributes(out, name, coldef, stydef, stydef);
+}
+/// <a href = "http://root.cern.ch/root/html/TAttFill.html#TAttFill:SetFillColor">*** TAttFill Member Function ***</a>
+virtual void SetFillColor(Color_t fcolor)
+{
+  rb::ScopedLock<rb::Mutex> LOCK (TTHREAD_GLOBAL_MUTEX);
+  return AS_TH1->SetFillColor(fcolor);
+}
+/// <a href = "http://root.cern.ch/root/html/TAttFill.html#TAttFill:SetFillStyle">*** TAttFill Member Function ***</a>
+virtual void SetFillStyle(Style_t fstyle)
+{
+  rb::ScopedLock<rb::Mutex> LOCK (TTHREAD_GLOBAL_MUTEX);
+  return AS_TH1->SetFillStyle(fstyle);
+}
+/// <a href = "http://root.cern.ch/root/html/TAttMarker.html#TAttMarker:ResetAttMarker">*** TAttMarker Member Function ***</a>
+virtual void ResetAttMarker(Option_t* toption = "")
+{
+  rb::ScopedLock<rb::Mutex> LOCK (TTHREAD_GLOBAL_MUTEX);
+  return AS_TH1->ResetAttMarker(toption);
+}
+/// <a href = "http://root.cern.ch/root/html/TAttMarker.html#TAttMarker:SaveMarkerAttributes">*** TAttMarker Member Function ***</a>
+virtual void SaveMarkerAttributes(ostream& out, const char* name, Int_t coldef = 1, Int_t stydef = 1, Int_t sizdef = 1)
+{
+  rb::ScopedLock<rb::Mutex> LOCK (TTHREAD_GLOBAL_MUTEX);
+  return AS_TH1->SaveMarkerttributes(out, name, coldef, stydef, sizdef);
+/// <a href = "http://root.cern.ch/root/html/TAttMarker.html#TAttMarker:SetMarkerColor">*** TAttMarker Member Function ***</a>
+virtual void SetMarkerColor(Color_t tcolor = 1)
+{
+  rb::ScopedLock<rb::Mutex> LOCK (TTHREAD_GLOBAL_MUTEX);
+  return AS_TH1->SetMarkerColor(tcolor);
+}
+/// <a href = "http://root.cern.ch/root/html/TAttMarker.html#TAttMarker:SetMarkerSize">*** TAttMarker Member Function ***</a>
+virtual void SetMarkerSize(Size_t msize = 1)
+{
+  rb::ScopedLock<rb::Mutex> LOCK (TTHREAD_GLOBAL_MUTEX);
+  return AS_TH1->SetMarkerSize(msize);
+}
+/// <a href = "http://root.cern.ch/root/html/TAttMarker.html#TAttMarker:SetMarkerStyle">*** TAttMarker Member Function ***</a>
+virtual void SetMarkerStyle(Style_t mstyle = 1)
+{
+  rb::ScopedLock<rb::Mutex> LOCK (TTHREAD_GLOBAL_MUTEX);
+  return AS_TH1->SetMarkerStyle(mstyle);
+}
+'''

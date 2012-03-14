@@ -5,6 +5,7 @@
 #include "Rint.hxx"
 #include "Rootbeer.hxx"
 
+
 /// \brief The \c main ROOTBEER function.
 //! \details Creates an instance of \c rb::Rint and runs it.
 Int_t main(Int_t argc, Char_t** argv)

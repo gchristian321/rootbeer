@@ -29,6 +29,7 @@ rb::attach::File::File(const char* filename, Bool_t stopAtEnd) :
 // void rb::attach::File::DoInThread()                   //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 void rb::attach::File::DoInThread() {
+
   Bool_t open = fBuffer->OpenFile(kFileName);
   if(!open) {
     Error("AttachFile", "File %s not readable.", kFileName);
@@ -48,7 +49,6 @@ void rb::attach::File::DoInThread() {
     if(!ListAttached())  // told to stop externally
       Info("AttachFile", "Connection to %s aborted.", kFileName);
   }
-
   fBuffer->CloseFile();
 }
 

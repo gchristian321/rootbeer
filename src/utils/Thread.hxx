@@ -5,7 +5,10 @@
 #include <cassert>
 #include <string>
 #include <set>
+#include <map>
+#include <TCint.h>
 #include <TThread.h>
+#include <TCondition.h>
 #include "Mutex.hxx"
 #include "nocopy.h"
 
@@ -32,7 +35,7 @@ namespace rb
   {
     RB_NOCOPY(Thread);
   public:
-    typedef std::set<std::string> Set_t;
+    typedef std::map<std::string, rb::Thread*> Set_t;
 
   protected:
     //! Name of the thread
@@ -58,9 +61,12 @@ namespace rb
       return name;
     }
 
+    Bool_t kInLoop;
+    TCondition fInLoop;
+
   public:
     //! \details Sets fName, initializes fThread to 0, checks for duplicate names.
-    Thread(const char* name) : fName(name), fThread(0) {
+    Thread(const char* name) : fName(name), fThread(0), kInLoop(false) {
       NameCheck(name);
     }
 
@@ -68,10 +74,13 @@ namespace rb
     virtual ~Thread() {
       Stop(fName);
       if(fThread) {
-	fThread->Join();
+	//	fThread->Join();
 	delete fThread;
       }
     }
+
+    //! Returns the thread name
+    std::string GetName() { return std::string(fName); }
 
     //! \brief Function that we want to run in a threaded environment.
     //! \details As this is pure virtual, it must be implemented in derived
@@ -82,14 +91,17 @@ namespace rb
     //! \brief Start running the thread.
     Int_t Run() {
       fThread = new TThread(fName, Thread::FRun);
-      fgSet().insert(fName);
+      fgSet().insert(std::make_pair<std::string, rb::Thread*> (fName, this));
       return fThread->Run(reinterpret_cast<void*>(this));
     }
 
     //! \brief Checks if a specific thread is running (see Stop() for more details).
     static Bool_t IsRunning(const char* name) {
-      Set_t::iterator pos = fgSet().find(name);
-      return pos != fgSet().end();
+      return fgSet().count(name);
+    }
+
+    static rb::Thread* GetThread(const char* name) {
+      return IsRunning(name) ? fgSet().find(name)->second : 0;
     }
 
     //! Stop running a specific thread.
@@ -102,11 +114,21 @@ namespace rb
     //! // In MyThread::DoInThread()
     //! while TThread::IsRuning("MyThreadName") // do something
     //! // .... //
-    //! // Now in some externalfunction
+    //! // Now in some external function
     //! if (whatever) TThread::Stop("MyThreadName") // breaks out of the DoInThread() loop.
     //! \endcode
     static void Stop(const char* name) {
-      fgSet().erase(name);
+      if(IsRunning(name)) {
+	rb::Thread* this_ = rb::Thread::GetThread(name);
+	fgSet().erase(name);
+	TThread* th = TThread::GetThread(name);
+       	if(th) {
+      	  Int_t unlock = gCINTMutex->UnLock();
+	  th->Join();
+	  if(!unlock) gCINTMutex->Lock();
+	  delete this_;
+	}
+      }
     }
 
   private:
@@ -119,7 +141,7 @@ namespace rb
     static void * FRun(void * args) {
       Thread * this_ =  reinterpret_cast<Thread*> (args);
       this_->DoInThread();
-      delete this_;
+      Stop(this_->fName);
       return 0;
     }
   };

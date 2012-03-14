@@ -53,3 +53,5 @@ Bool_t rb::Event::BranchAdd::Operate(rb::Event* const event, const char* name, c
     LockingPointer<TTree>(event->fTree, gDataMutex)->Branch(name, classname, address, bufsize, 0);
   return branch != 0;
 }
+
+

@@ -10,7 +10,7 @@
 #include "utils/LockingPointer.hxx"
 #include "utils/Error.hxx"
 
-#define RB_SCOPED_LOCK // rb::ScopedLock<rb::Mutex> lock (TTHREAD_GLOBAL_MUTEX); ///err::Info("Canvas") << "Locking: line " << __LINE__;
+#define CANVAS_LOCKGUARD rb::ScopedLock<rb::Mutex> LOCK__ (TTHREAD_GLOBAL_MUTEX);
 
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
@@ -22,7 +22,7 @@ namespace
   const Int_t MAX_RATE = 1;
 
   /// Name of the thread
-  const char* THREAD_NAME = "CanvasUpdate";
+  const char* CanvasThreadName = "CanvasUpdate";
 
   /// The rate at which canvases are updated (in seconds).
   Int_t updateRate = 0;
@@ -44,23 +44,19 @@ namespace
       rb::Timer t(fRate);
       while(rb::Thread::IsRunning(fName)) {
 	if(t.Check()) rb::canvas::UpdateAll();
-	// TCanvas * c1 = (TCanvas*)gROOT->GetListOfCanvases()->At(0);
-	// if(c1) {c1->Modified(); c1->Update(); }
       }
     }
   };
 
-  void send_update(TVirtualPad* pad) {
-    //    TThread::UnLock();
+  inline void SendUpdate(TVirtualPad* pad) {
     pad->Update();
   }
 
   /// Update whatever histograms are on the current canvas/pad,
   /// including any sub-pads owned by this one.
   void UpdatePad(TVirtualPad* pad) {
-    //    TVirtualPad* pad = pad_;
 
-    RB_SCOPED_LOCK;
+    CANVAS_LOCKGUARD;
 
     std::string type = pad->ClassName();
     pad = dynamic_cast<TPad*>(pad);
@@ -71,14 +67,11 @@ namespace
     for(Int_t i=0; i< primitives->GetEntries(); ++i) {
       TVirtualPad* subpad = dynamic_cast<TVirtualPad*>(primitives->At(i));
       if(subpad) {
-	// pad = subpad;
-	// goto start;
-	err::Info("UpdatePad") <<  " recursing";
 	UpdatePad(subpad);
       }
     }
     pad->Modified();
-    send_update(pad);
+    SendUpdate(pad);
   }
 
   /// Clear whatever histograms are on the current canvas/pad,
@@ -88,7 +81,7 @@ namespace
     pad = dynamic_cast<TPad*>(pad);
     if(!pad) { Error("ClearPad", "Passed an invalid type, %s.", type.c_str()); return; }
 
-    RB_SCOPED_LOCK
+    CANVAS_LOCKGUARD;
     pad->cd();
     TList* primitives = pad->GetListOfPrimitives();
 
@@ -98,8 +91,6 @@ namespace
     }
     rb::canvas::ClearCurrent();
   }
-
-
 } // namespace
 
 
@@ -111,10 +102,10 @@ namespace
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 
 void rb::canvas::UpdateCurrent() {
-  RB_SCOPED_LOCK
+  CANVAS_LOCKGUARD;
   if(gPad) {
     gPad->Modified();
-    send_update(gPad);
+    SendUpdate(gPad);
   }
 }
 
@@ -125,12 +116,12 @@ void rb::canvas::UpdateAll() {
     pad = dynamic_cast<TPad*>(gROOT->GetListOfCanvases()->At(i));
     if(pad) UpdatePad(pad);
   }
-  RB_SCOPED_LOCK
+  CANVAS_LOCKGUARD;
   if(pInitial) pInitial->cd();
 }
 
 Int_t rb::canvas::StopUpdate() {
-  rb::Thread::Stop(THREAD_NAME);
+  rb::Thread::Stop(CanvasThreadName);
   updateRate = 0;
   return updateRate;
 }
@@ -145,7 +136,7 @@ Int_t rb::canvas::StartUpdate(Int_t rate) {
   else {
     StopUpdate();
     updateRate = rate;
-    CanvasUpdate::CreateAndRun(THREAD_NAME, rate);
+    CanvasUpdate::CreateAndRun(CanvasThreadName, rate);
     return 0;
   }  
 }
@@ -155,16 +146,16 @@ Int_t rb::canvas::GetUpdateRate() {
 }
 
 void rb::canvas::ClearCurrent() {
-  RB_SCOPED_LOCK
+  CANVAS_LOCKGUARD;
   if(gPad) {
     for(Int_t i = 0; i < gPad->GetListOfPrimitives()->GetEntries(); ++i) {
       TH1* hst = dynamic_cast<TH1*> (gPad->GetListOfPrimitives()->At(i));
       if(hst) {
 	LockFreePointer<TH1D> hstd (static_cast<TH1D*>(hst));
-	for(UInt_t p = 0; p < hstd->fN; ++p) hstd->fArray[p] = 0.;
+	for(Int_t p = 0; p < hstd->fN; ++p) hstd->fArray[p] = 0.;
       }
       gPad->Modified();
-      send_update(gPad);
+      SendUpdate(gPad);
     }
   }
 }
@@ -176,8 +167,7 @@ void rb::canvas::ClearAll() {
     pad = dynamic_cast<TPad*>(gROOT->GetListOfCanvases()->At(i));
     if(pad) ClearPad(pad);
   }
-  RB_SCOPED_LOCK
+  CANVAS_LOCKGUARD;
   if(pInitial) pInitial->cd();
 }
 
-#undef RB_SCOPED_LOCK

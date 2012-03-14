@@ -96,37 +96,6 @@ namespace rb
 #include "hist/Member.hxx"
 #undef  BOOST_VARIANT_VISITATION
 #undef  MAX_MEMBER_FN_ARGUMENTS
-      /*
-#include "boost/preprocessor.hpp"
-#define REPEAT_ARGS(Z, N, text) \
-      BOOST_PP_COMMA_IF(N) BOOST_PP_CAT(text, BOOST_PP_INC(N))
-#define REPEAT_ARGS2(Z, N, text) \
-      BOOST_PP_COMMA_IF(N) BOOST_PP_CAT(A, BOOST_PP_INC(N)) BOOST_PP_CAT(a, BOOST_PP_INC(N))
-#define REPEAT_ARGS3(Z, N, text) \
-      BOOST_PP_COMMA_IF(N) BOOST_PP_CAT(fA, BOOST_PP_INC(N)) (BOOST_PP_CAT(a, BOOST_PP_INC(N)))
-#define REPEAT_ARGS4(Z, N, text) \
-      BOOST_PP_CAT(A, BOOST_PP_INC(N)) BOOST_PP_CAT(fA, BOOST_PP_INC(N)) ;
-
-#define REP(arg) BOOST_PP_REPEAT(N, REPEAT_ARGS, arg)
-#define REP2 BOOST_PP_REPEAT(N, REPEAT_ARGS2, )
-
-#define COMMA_0 BOOST_PP_COMMA_IF(N)
-#define BOOST_PP_LOCAL_MACRO(N)						\
-      template < class R, class TT, class T  COMMA_0  REP(class A) >	\
-      struct DoMember : public rb::visit::Locked<R> {			\
-      template <class TT> R operator() (TT& t) {			\
-	return boost::bind(fFun, &t COMMA_0 REP(_)) (REP(fA));		\
-      }									\
-	DoMember(R (T::* fun)(REP(A)) COMMA_0 REP2) :			\
-	  fFun(fun), BOOST_PP_REPEAT(N, REPEAT_ARGS3, ) {}		\
-    private:								\
-    BOOST_PP_REPEAT(N, REPEAT_ARGS4, )					\
-    R (T::* fFun)(REP(A))						\
-      };
-
-#define BOOST_PP_LOCAL_LIMITS (0, MAX_MEMBER_FN_ARGUMENTS)
-#include BOOST_PP_LOCAL_ITERATE()
-      */
 
       /// Performs the Fill() function
       struct Fill : public rb::visit::Locked<Int_t>
