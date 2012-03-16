@@ -3,12 +3,7 @@
 #ifndef FORMULA_HXX
 #define FORMULA_HXX
 #include <string>
-#include "utils/boost_scoped_ptr.h"
-#ifndef __MAKECINT__
-#include "boost/ptr_container/ptr_vector.hpp"
-#else
-namespace boost { template <class T> class ptr_vector<T>; }
-#endif
+#include "utils/boost_ptr_vector.h"
 #include "utils/Critical.hxx"
 
 // =========== Forward Declarations =========== //

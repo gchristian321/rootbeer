@@ -2,15 +2,17 @@
 #define WIDGET_HXX
 #include <cassert>
 #include <iostream>
+#include <string>
 #include <sstream>
 #include <vector>
 #include <TROOT.h>
+#include <TGLabel.h>
 #include <TGClient.h>
 #include <TGButton.h>
 #include <TGComboBox.h>
 #include <TGNumberEntry.h>
-#include "../src/utils/boost_ptr_vector.h"
-#include "../src/utils/boost_scoped_ptr.h"
+#include "utils/Error.hxx"
+#include "utils/boost_scoped_ptr.h"
 
 namespace pix { enum Color_t {
 	White  = 0xffffff,
@@ -42,20 +44,30 @@ typedef std::vector<AWidget*> WidgetVector_t;
 
 class AWidget
 {
+private:
+	 const std::string fWidgetName;
 public:
-	 AWidget() { }
+	 AWidget(): fWidgetName("") { }
+	 AWidget(const char* name): fWidgetName(name) { }
 	 virtual ~AWidget() { }
+	 std::string GetWidgetName() { return fWidgetName; }
 	 virtual void operator() () = 0;
 };
 
 template <class OWNER>
 class TWidget: public AWidget
 {
-private:
+public:
+	 typedef void (OWNER::* MemFn_t)() ;
+protected:
 	 OWNER* fOwner;
+	 MemFn_t fFunction;
 public:
 	 TWidget(OWNER* owner): fOwner(owner) { }
+	 TWidget(OWNER* owner, MemFn_t function, const char* name):
+		 AWidget(name), fOwner(owner), fFunction(function) { }
 	 virtual ~TWidget() { }
+	 virtual void operator() ();
 };
 
 class WidgetFactory
@@ -75,6 +87,34 @@ public:
 			 assert(button != 0); 
 	 		 mainframe->AddFrame(button, layout.get());
 	 	 }
+	 }
+	 AWidget* At(Int_t index) {
+		 try {
+			 return fVector.at(index);
+		 } catch (std::exception& e) {
+			 std::cerr << "Error: Invalid index " << index << "\n";
+		 }
+	 }
+	 AWidget* Find(const char* name) {
+		 AWidget* out = 0;
+		 for(UInt_t i=0; i< fVector.size(); ++i) {
+			 if(fVector[i]->GetWidgetName() == std::string(name)) {
+				 out = fVector[i]; break;
+			 }
+		 }
+		 if(!out) err::Error("WidgetFactory::Find") << name << " wasn't found!\n";
+		 return out;
+	 }
+	 template <class T> T* Find(const char* name) {
+		 T* out = 0;
+		 for(UInt_t i=0; i< fVector.size(); ++i) {
+			 if(fVector[i]->GetWidgetName() == std::string(name)) {
+				 out = dynamic_cast<T*>(fVector[i]);
+				 break;
+			 }
+		 }
+		 if(!out) err::Error("WidgetFactory::Find") << name << " wasn't found!\n";
+		 return out;
 	 }
 	 void operator() (Int_t index) {
 		 try {
@@ -103,10 +143,114 @@ public:
 		 AWidget* widget = new DER(mainframe, fVector.size(), a1, a2, a3);
 		 fVector.push_back(widget);
 	 }
+	 template <class DER, class A1, class A2, class A3, class A4>
+	 void Add(DER* der, TGMainFrame* mainframe, A1 a1, A2 a2, A3 a3, A4 a4) {
+		 AWidget* widget = new DER(mainframe, fVector.size(), a1, a2, a3, a4);
+		 fVector.push_back(widget);
+	 }
+	 template <class DER, class A1, class A2, class A3, class A4, class A5>
+	 void Add(DER* der, TGMainFrame* mainframe, A1 a1, A2 a2, A3 a3, A4 a4, A5 a5) {
+		 AWidget* widget = new DER(mainframe, fVector.size(), a1, a2, a3, a4, a5);
+		 fVector.push_back(widget);
+	 }
+	 template <class DER, class A1, class A2, class A3, class A4, class A5, class A6>
+	 void Add(DER* der, TGMainFrame* mainframe, A1 a1, A2 a2, A3 a3, A4 a4, A5 a5, A6 a6) {
+		 AWidget* widget = new DER(mainframe, fVector.size(), a1, a2, a3, a4, a5, a6);
+		 fVector.push_back(widget);
+	 }
+	 template <class DER, class A1, class A2, class A3, class A4, class A5, class A6, class A7>
+	 void Add(DER* der, TGMainFrame* mainframe, A1 a1, A2 a2, A3 a3, A4 a4, A5 a5, A6 a6, A7 a7) {
+		 AWidget* widget = new DER(mainframe, fVector.size(), a1, a2, a3, a4, a5, a6, a7);
+		 fVector.push_back(widget);
+	 }
+	 template <class DER, class A1, class A2, class A3, class A4, class A5, class A6, class A7, class A8>
+	 void Add(DER* der, TGMainFrame* mainframe, A1 a1, A2 a2, A3 a3, A4 a4, A5 a5, A6 a6, A7 a7, A8 a8) {
+		 AWidget* widget = new DER(mainframe, fVector.size(), a1, a2, a3, a4, a5, a6, a7, a8);
+		 fVector.push_back(widget);
+	 }
+	 template <class DER, class A1, class A2, class A3, class A4, class A5, class A6, class A7, class A8, class A9>
+	 void Add(DER* der, TGMainFrame* mainframe, A1 a1, A2 a2, A3 a3, A4 a4, A5 a5, A6 a6, A7 a7, A8 a8, A9 a9) {
+		 AWidget* widget = new DER(mainframe, fVector.size(), a1, a2, a3, a4, a5, a6, a7, a8, a9);
+		 fVector.push_back(widget);
+	 }
+	 template <class DER, class A1, class A2, class A3, class A4, class A5, class A6, class A7, class A8, class A9, class A10>
+	 void Add(DER* der, TGMainFrame* mainframe, A1 a1, A2 a2, A3 a3, A4 a4, A5 a5, A6 a6, A7 a7, A8 a8, A9 a9, A10 a10) {
+		 AWidget* widget = new DER(mainframe, fVector.size(), a1, a2, a3, a4, a5, a6, a7, a8, a9, a10);
+		 fVector.push_back(widget);
+	 }
+};
+
+
+template <class T>
+class TextButton: public TWidget<T>, public TGTextButton
+{
+public:
+	 TextButton(TGMainFrame* mainframe, Int_t id, T* owner, void (T::* f)(),
+							const char* name, const char* text, Pixel_t color = pix::White, Pixel_t text_color = pix::Black):
+		 TWidget<T> (owner, f, name), TGTextButton(mainframe, text, id) {
+		 SetBackgroundColor(color);
+		 SetTextColor(text_color);
+		 SetFont(kDefaultFont);
+	 }
+};
+
+template <class T>
+class Label: public TWidget<T>, public TGLabel
+{
+public:
+	 Label(TGMainFrame* mainframe, Int_t id, T* owner, const char* name, const char* text):
+		 TWidget<T> (owner, &T::Null, name), TGLabel(mainframe, text) {
+		 SetTextFont(kDefaultFont);
+		 SetBackgroundColor(pix::White);
+	 }
+};
+
+template <class T>
+class TextEntry: public TWidget<T>, public TGTextEntry
+{
+public:
+	 TextEntry(TGMainFrame* mainframe, Int_t id, T* owner, void(T::* f)(), const char* name, const char* init):
+		 TWidget<T> (owner, f, name), TGTextEntry(mainframe, init, id) { }
+};
+
+template <class T>
+class NumberEntry: public TWidget<T>, public TGNumberEntry
+{
+public:
+	 NumberEntry(TGMainFrame* mainframe, Int_t id, T* owner, void(T::* f)(),
+							 const char* name, Int_t init, Int_t low = -1, Int_t high = -1, Int_t digitwidth = 5,
+							 TGNumberFormat::EStyle style = TGNumberFormat::kNESReal,
+							 TGNumberFormat::EAttribute attr =TGNumberFormat::kNEAAnyNumber):
+		 TWidget<T> (owner, f, name),
+		 TGNumberEntry(mainframe, init, digitwidth, id, style, attr) {
+		 if(low < high) SetLimits(TGNumberFormat::kNELLimitMinMax, low, high);
+	 }
+};
+
+template <class T>
+class NumberEntryField: public TWidget<T>, public TGNumberEntryField
+{
+public:
+	 NumberEntryField(TGMainFrame* mainframe, Int_t id, T* owner, void (T::*f)(),
+										const char* name, Int_t init, Int_t low = -1, Int_t high = -1,
+										TGNumberFormat::EStyle style = TGNumberFormat::kNESReal,
+										TGNumberFormat::EAttribute attr =TGNumberFormat::kNEAAnyNumber):
+		 TWidget<T> (owner, f, name),
+		 TGNumberEntryField(mainframe, id, init, style, attr) {
+		 if(low < high) SetLimits(TGNumberFormat::kNELLimitMinMax, low, high);
+	 }
 };
 
 } }
 
+
+#ifndef __MAKECINT__
+#include "boost/bind.hpp"
+template <class OWNER>
+void rb::gui::TWidget<OWNER>::operator() () {
+	boost::bind(fFunction, fOwner)();
+}
+#endif
 
 
 #endif

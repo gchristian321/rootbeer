@@ -1,17 +1,17 @@
 //! \file main.cc
 //! \brief Implements the \c main program and Doxygen documentation.
-#include <algorithm>
+#include <set>
 #include <TROOT.h>
 #include "Rint.hxx"
 #include "Rootbeer.hxx"
-
+//#include "gui/CanvasGui.hxx"
 
 /// \brief The \c main ROOTBEER function.
 //! \details Creates an instance of \c rb::Rint and runs it.
 Int_t main(Int_t argc, Char_t** argv)
 {
-  bool lite(false);
-  for(int i=1; i<argc; ++i) if(!strcmp(argv[i],"-l")) lite = true;
+	std::set<std::string> args(argv, argv+argc);
+	Bool_t lite = args.count("-l");
   rb::Rint rbApp("RootBeer", &argc, argv, 0, 0, lite);
   gROOT->ProcessLine("gStyle->SetOptTitle(kTRUE)");
   rbApp.Run();

@@ -3,6 +3,7 @@
 //! \details Also defines a number of internal functions to be called by the
 //! user ones.
 #include <TCanvas.h>
+#include "Rint.hxx"
 #include "Rootbeer.hxx"
 #include "hist/Hist.hxx"
 #include "utils/Timer.hxx"
@@ -123,6 +124,7 @@ void rb::canvas::UpdateAll() {
 Int_t rb::canvas::StopUpdate() {
   rb::Thread::Stop(CanvasThreadName);
   updateRate = 0;
+	gApp()->SyncAll();
   return updateRate;
 }
 
@@ -137,6 +139,7 @@ Int_t rb::canvas::StartUpdate(Int_t rate) {
     StopUpdate();
     updateRate = rate;
     CanvasUpdate::CreateAndRun(CanvasThreadName, rate);
+		gApp()->SyncAll();
     return 0;
   }  
 }

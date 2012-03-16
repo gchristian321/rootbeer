@@ -1,8 +1,9 @@
 //! \file Rint.cxx
 //! \brief Implements Rint.hxx
+#include <set>
 #include "Rint.hxx"
 #include "Rootbeer.hxx"
-
+#include "gui/CanvasGui.hxx"
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // Class rb::Rint Implementation                         //
@@ -18,6 +19,10 @@ rb::Rint::Rint(const char* appClassName, int* argc, char** argv,
   SetPrompt("rootbeer [%d] ");
   PrintLogo(liteLogo);
   std::cout << fMessage.str() << std::endl;
+
+	std::set<std::string> flags(argv, argv + *argc);
+	if(flags.count("-ng")) fFrames = 0;
+	else { fFrames = new rb::gui::FrameFactory(); InitGui(); }
 }
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // void rb::Rint::Terminate()                            //
@@ -25,12 +30,26 @@ rb::Rint::Rint(const char* appClassName, int* argc, char** argv,
 void rb::Rint::Terminate(Int_t status) {
   rb::canvas::StopUpdate();
   rb::Unattach();
+	if(fFrames) delete fFrames;
   EventMap_t::iterator it;
   for(it = fEvents.begin(); it != fEvents.end(); ++it) {
     rb::Event* event = it->second;
     rb::Event::Destructor::Operate(event);
   }
   TRint::Terminate(status);
+}
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// void rb::Rint::Terminate()                            //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+void rb::Rint::InitGui() {
+	fFrames->Add (new gui::Canvas(200, 400) );
+}
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// Frame* rb::Rint::GetGuiFrame()                        //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+void rb::Rint::SyncAll() {
+	for(UInt_t i=0; i< fFrames->Size(); ++i)
+		 fFrames->Get(i)->Sync();
 }
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // Events_t rb::Rint::GetEvent()                         //
