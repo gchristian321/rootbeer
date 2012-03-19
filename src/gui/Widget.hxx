@@ -1,10 +1,11 @@
 #ifndef WIDGET_HXX
 #define WIDGET_HXX
 #include <cassert>
-#include <iostream>
+#include <set>
+#include <vector>
 #include <string>
 #include <sstream>
-#include <vector>
+#include <iostream>
 #include <TROOT.h>
 #include <TGLabel.h>
 #include <TGClient.h>
@@ -37,17 +38,20 @@ namespace pix { enum Color_t {
 
 namespace rb { namespace gui {
 
-namespace { const char* const kDefaultFont = "Arial 10 bold"; }
+namespace {
+const Pixel_t kDefaultBackground = pix::White;
+const char* const kDefaultFont = "Arial 10 bold";
+}
 
 class AWidget;
 typedef std::vector<AWidget*> WidgetVector_t;
+typedef std::set<TGCompositeFrame*> FrameSet_t;
 
 class AWidget
 {
 private:
 	 const std::string fWidgetName;
 public:
-	 AWidget(): fWidgetName("") { }
 	 AWidget(const char* name): fWidgetName(name) { }
 	 virtual ~AWidget() { }
 	 std::string GetWidgetName() { return fWidgetName; }
@@ -63,7 +67,6 @@ protected:
 	 OWNER* fOwner;
 	 MemFn_t fFunction;
 public:
-	 TWidget(OWNER* owner): fOwner(owner) { }
 	 TWidget(OWNER* owner, MemFn_t function, const char* name):
 		 AWidget(name), fOwner(owner), fFunction(function) { }
 	 virtual ~TWidget() { }
@@ -73,33 +76,38 @@ public:
 class WidgetFactory
 {
 private:
-	 WidgetVector_t fVector;
+	 FrameSet_t fFrames;
+	 WidgetVector_t fWidgets;
 public:
 	 WidgetFactory() { }
 	 ~WidgetFactory () {
-		 for(UInt_t i=0; i< fVector.size(); ++i) {
-			 delete fVector[i];
+		 for(UInt_t i=0; i< fWidgets.size(); ++i) {
+			 delete fWidgets[i];
+		 }
+		 for(FrameSet_t::iterator it = fFrames.begin(); it != fFrames.end(); ++it) {
+			 delete *it;
 		 }
 	 }
-	 void AddFrames(TGMainFrame* mainframe, boost::scoped_ptr<TGLayoutHints>& layout) {
-	 	 for(UInt_t i=0; i< fVector.size(); ++i) {
-			 TGFrame* button = dynamic_cast<TGFrame*>(fVector[i]);
-			 assert(button != 0); 
-	 		 mainframe->AddFrame(button, layout.get());
-	 	 }
+	 void AddFrame(TGCompositeFrame* frame) {
+		 fFrames.insert(frame);
+	 }
+	 void AddToMainframe(TGMainFrame* mainframe, TGLayoutHints& layout) {
+		 for(FrameSet_t::iterator it = fFrames.begin(); it != fFrames.end(); ++it) {
+			 mainframe->AddFrame(*it, &layout);
+		 }
 	 }
 	 AWidget* At(Int_t index) {
 		 try {
-			 return fVector.at(index);
+			 return fWidgets.at(index);
 		 } catch (std::exception& e) {
 			 std::cerr << "Error: Invalid index " << index << "\n";
 		 }
 	 }
 	 AWidget* Find(const char* name) {
 		 AWidget* out = 0;
-		 for(UInt_t i=0; i< fVector.size(); ++i) {
-			 if(fVector[i]->GetWidgetName() == std::string(name)) {
-				 out = fVector[i]; break;
+		 for(UInt_t i=0; i< fWidgets.size(); ++i) {
+			 if(fWidgets[i]->GetWidgetName() == std::string(name)) {
+				 out = fWidgets[i]; break;
 			 }
 		 }
 		 if(!out) err::Error("WidgetFactory::Find") << name << " wasn't found!\n";
@@ -107,9 +115,9 @@ public:
 	 }
 	 template <class T> T* Find(const char* name) {
 		 T* out = 0;
-		 for(UInt_t i=0; i< fVector.size(); ++i) {
-			 if(fVector[i]->GetWidgetName() == std::string(name)) {
-				 out = dynamic_cast<T*>(fVector[i]);
+		 for(UInt_t i=0; i< fWidgets.size(); ++i) {
+			 if(fWidgets[i]->GetWidgetName() == std::string(name)) {
+				 out = dynamic_cast<T*>(fWidgets[i]);
 				 break;
 			 }
 		 }
@@ -118,65 +126,142 @@ public:
 	 }
 	 void operator() (Int_t index) {
 		 try {
-			 fVector.at(index)->operator() ();
+			 fWidgets.at(index)->operator() ();
 		 } catch (std::exception& e) {
 			 std::cerr << "Error: Invalid index " << index << "\n";
 		 }
 	 }
 	 template <class DER>
-	 void Add(DER* der, TGMainFrame* mainframe) {
-		 AWidget* widget = new DER(mainframe, fVector.size());
-		 fVector.push_back(widget);
+	 void Add(DER* der, TGWindow* mainframe) {
+		 AWidget* widget = new DER(mainframe, fWidgets.size());
+		 fWidgets.push_back(widget);
 	 }
 	 template <class DER, class A1>
-	 void Add(DER* der, TGMainFrame* mainframe, A1 a1) {
-		 AWidget* widget = new DER(mainframe, fVector.size(), a1);
-		 fVector.push_back(widget);
+	 void Add(DER* der, TGWindow* mainframe, A1 a1) {
+		 AWidget* widget = new DER(mainframe, fWidgets.size(), a1);
+		 fWidgets.push_back(widget);
 	 }
 	 template <class DER, class A1, class A2>
-	 void Add(DER* der, TGMainFrame* mainframe, A1 a1, A2 a2) {
-		 AWidget* widget = new DER(mainframe, fVector.size(), a1, a2);
-		 fVector.push_back(widget);
+	 void Add(DER* der, TGWindow* mainframe, A1 a1, A2 a2) {
+		 AWidget* widget = new DER(mainframe, fWidgets.size(), a1, a2);
+		 fWidgets.push_back(widget);
 	 }
 	 template <class DER, class A1, class A2, class A3>
-	 void Add(DER* der, TGMainFrame* mainframe, A1 a1, A2 a2, A3 a3) {
-		 AWidget* widget = new DER(mainframe, fVector.size(), a1, a2, a3);
-		 fVector.push_back(widget);
+	 void Add(DER* der, TGWindow* mainframe, A1 a1, A2 a2, A3 a3) {
+		 AWidget* widget = new DER(mainframe, fWidgets.size(), a1, a2, a3);
+		 fWidgets.push_back(widget);
 	 }
 	 template <class DER, class A1, class A2, class A3, class A4>
-	 void Add(DER* der, TGMainFrame* mainframe, A1 a1, A2 a2, A3 a3, A4 a4) {
-		 AWidget* widget = new DER(mainframe, fVector.size(), a1, a2, a3, a4);
-		 fVector.push_back(widget);
+	 void Add(DER* der, TGWindow* mainframe, A1 a1, A2 a2, A3 a3, A4 a4) {
+		 AWidget* widget = new DER(mainframe, fWidgets.size(), a1, a2, a3, a4);
+		 fWidgets.push_back(widget);
 	 }
 	 template <class DER, class A1, class A2, class A3, class A4, class A5>
-	 void Add(DER* der, TGMainFrame* mainframe, A1 a1, A2 a2, A3 a3, A4 a4, A5 a5) {
-		 AWidget* widget = new DER(mainframe, fVector.size(), a1, a2, a3, a4, a5);
-		 fVector.push_back(widget);
+	 void Add(DER* der, TGWindow* mainframe, A1 a1, A2 a2, A3 a3, A4 a4, A5 a5) {
+		 AWidget* widget = new DER(mainframe, fWidgets.size(), a1, a2, a3, a4, a5);
+		 fWidgets.push_back(widget);
 	 }
 	 template <class DER, class A1, class A2, class A3, class A4, class A5, class A6>
-	 void Add(DER* der, TGMainFrame* mainframe, A1 a1, A2 a2, A3 a3, A4 a4, A5 a5, A6 a6) {
-		 AWidget* widget = new DER(mainframe, fVector.size(), a1, a2, a3, a4, a5, a6);
-		 fVector.push_back(widget);
+	 void Add(DER* der, TGWindow* mainframe, A1 a1, A2 a2, A3 a3, A4 a4, A5 a5, A6 a6) {
+		 AWidget* widget = new DER(mainframe, fWidgets.size(), a1, a2, a3, a4, a5, a6);
+		 fWidgets.push_back(widget);
 	 }
 	 template <class DER, class A1, class A2, class A3, class A4, class A5, class A6, class A7>
-	 void Add(DER* der, TGMainFrame* mainframe, A1 a1, A2 a2, A3 a3, A4 a4, A5 a5, A6 a6, A7 a7) {
-		 AWidget* widget = new DER(mainframe, fVector.size(), a1, a2, a3, a4, a5, a6, a7);
-		 fVector.push_back(widget);
+	 void Add(DER* der, TGWindow* mainframe, A1 a1, A2 a2, A3 a3, A4 a4, A5 a5, A6 a6, A7 a7) {
+		 AWidget* widget = new DER(mainframe, fWidgets.size(), a1, a2, a3, a4, a5, a6, a7);
+		 fWidgets.push_back(widget);
 	 }
 	 template <class DER, class A1, class A2, class A3, class A4, class A5, class A6, class A7, class A8>
-	 void Add(DER* der, TGMainFrame* mainframe, A1 a1, A2 a2, A3 a3, A4 a4, A5 a5, A6 a6, A7 a7, A8 a8) {
-		 AWidget* widget = new DER(mainframe, fVector.size(), a1, a2, a3, a4, a5, a6, a7, a8);
-		 fVector.push_back(widget);
+	 void Add(DER* der, TGWindow* mainframe, A1 a1, A2 a2, A3 a3, A4 a4, A5 a5, A6 a6, A7 a7, A8 a8) {
+		 AWidget* widget = new DER(mainframe, fWidgets.size(), a1, a2, a3, a4, a5, a6, a7, a8);
+		 fWidgets.push_back(widget);
 	 }
 	 template <class DER, class A1, class A2, class A3, class A4, class A5, class A6, class A7, class A8, class A9>
-	 void Add(DER* der, TGMainFrame* mainframe, A1 a1, A2 a2, A3 a3, A4 a4, A5 a5, A6 a6, A7 a7, A8 a8, A9 a9) {
-		 AWidget* widget = new DER(mainframe, fVector.size(), a1, a2, a3, a4, a5, a6, a7, a8, a9);
-		 fVector.push_back(widget);
+	 void Add(DER* der, TGWindow* mainframe, A1 a1, A2 a2, A3 a3, A4 a4, A5 a5, A6 a6, A7 a7, A8 a8, A9 a9) {
+		 AWidget* widget = new DER(mainframe, fWidgets.size(), a1, a2, a3, a4, a5, a6, a7, a8, a9);
+		 fWidgets.push_back(widget);
 	 }
 	 template <class DER, class A1, class A2, class A3, class A4, class A5, class A6, class A7, class A8, class A9, class A10>
-	 void Add(DER* der, TGMainFrame* mainframe, A1 a1, A2 a2, A3 a3, A4 a4, A5 a5, A6 a6, A7 a7, A8 a8, A9 a9, A10 a10) {
-		 AWidget* widget = new DER(mainframe, fVector.size(), a1, a2, a3, a4, a5, a6, a7, a8, a9, a10);
-		 fVector.push_back(widget);
+	 void Add(DER* der, TGWindow* mainframe, A1 a1, A2 a2, A3 a3, A4 a4, A5 a5, A6 a6, A7 a7, A8 a8, A9 a9, A10 a10) {
+		 AWidget* widget = new DER(mainframe, fWidgets.size(), a1, a2, a3, a4, a5, a6, a7, a8, a9, a10);
+		 fWidgets.push_back(widget);
+	 }
+	 template <class DER>
+	 void Add(DER* der, TGCompositeFrame* frame, TGLayoutHints* layout) {
+		 assert(fFrames.count(frame));
+		 AWidget* widget = new DER(frame, fWidgets.size());
+		 frame->AddFrame(&dynamic_cast<TGFrame&>(*widget), layout);
+		 fWidgets.push_back(widget);
+	 }
+	 template <class DER, class A1>
+	 void Add(DER* der, TGCompositeFrame* frame, TGLayoutHints* layout, A1 a1) {
+		 assert(fFrames.count(frame));
+		 AWidget* widget = new DER(frame, fWidgets.size(), a1);
+		 frame->AddFrame(&dynamic_cast<TGFrame&>(*widget), layout);
+		 fWidgets.push_back(widget);
+	 }
+	 template <class DER, class A1, class A2>
+	 void Add(DER* der, TGCompositeFrame* frame, TGLayoutHints* layout, A1 a1, A2 a2) {
+		 assert(fFrames.count(frame));
+		 AWidget* widget = new DER(frame, fWidgets.size(), a1, a2);
+		 frame->AddFrame(&dynamic_cast<TGFrame&>(*widget), layout);
+		 fWidgets.push_back(widget);
+	 }
+	 template <class DER, class A1, class A2, class A3>
+	 void Add(DER* der, TGCompositeFrame* frame, TGLayoutHints* layout, A1 a1, A2 a2, A3 a3) {
+		 assert(fFrames.count(frame));
+		 AWidget* widget = new DER(frame, fWidgets.size(), a1, a2, a3);
+		 frame->AddFrame(&dynamic_cast<TGFrame&>(*widget), layout);
+		 fWidgets.push_back(widget);
+	 }
+	 template <class DER, class A1, class A2, class A3, class A4>
+	 void Add(DER* der, TGCompositeFrame* frame, TGLayoutHints* layout, A1 a1, A2 a2, A3 a3, A4 a4) {
+		 assert(fFrames.count(frame));
+		 AWidget* widget = new DER(frame, fWidgets.size(), a1, a2, a3, a4);
+		 frame->AddFrame(&dynamic_cast<TGFrame&>(*widget), layout);
+		 fWidgets.push_back(widget);
+	 }
+	 template <class DER, class A1, class A2, class A3, class A4, class A5>
+	 void Add(DER* der, TGCompositeFrame* frame, TGLayoutHints* layout, A1 a1, A2 a2, A3 a3, A4 a4, A5 a5) {
+		 assert(fFrames.count(frame));
+		 AWidget* widget = new DER(frame, fWidgets.size(), a1, a2, a3, a4, a5);
+		 frame->AddFrame(&dynamic_cast<TGFrame&>(*widget), layout);
+		 fWidgets.push_back(widget);
+	 }
+	 template <class DER, class A1, class A2, class A3, class A4, class A5, class A6>
+	 void Add(DER* der, TGCompositeFrame* frame, TGLayoutHints* layout, A1 a1, A2 a2, A3 a3, A4 a4, A5 a5, A6 a6) {
+		 assert(fFrames.count(frame));
+		 AWidget* widget = new DER(frame, fWidgets.size(), a1, a2, a3, a4, a5, a6);
+		 frame->AddFrame(&dynamic_cast<TGFrame&>(*widget), layout);
+		 fWidgets.push_back(widget);
+	 }
+	 template <class DER, class A1, class A2, class A3, class A4, class A5, class A6, class A7>
+	 void Add(DER* der, TGCompositeFrame* frame, TGLayoutHints* layout, A1 a1, A2 a2, A3 a3, A4 a4, A5 a5, A6 a6, A7 a7) {
+		 assert(fFrames.count(frame));
+		 AWidget* widget = new DER(frame, fWidgets.size(), a1, a2, a3, a4, a5, a6, a7);
+		 frame->AddFrame(&dynamic_cast<TGFrame&>(*widget), layout);
+		 fWidgets.push_back(widget);
+	 }
+	 template <class DER, class A1, class A2, class A3, class A4, class A5, class A6, class A7, class A8>
+	 void Add(DER* der, TGCompositeFrame* frame, TGLayoutHints* layout, A1 a1, A2 a2, A3 a3, A4 a4, A5 a5, A6 a6, A7 a7, A8 a8) {
+		 assert(fFrames.count(frame));
+		 AWidget* widget = new DER(frame, fWidgets.size(), a1, a2, a3, a4, a5, a6, a7, a8);
+		 frame->AddFrame(&dynamic_cast<TGFrame&>(*widget), layout);
+		 fWidgets.push_back(widget);
+	 }
+	 template <class DER, class A1, class A2, class A3, class A4, class A5, class A6, class A7, class A8, class A9>
+	 void Add(DER* der, TGCompositeFrame* frame, TGLayoutHints* layout, A1 a1, A2 a2, A3 a3, A4 a4, A5 a5, A6 a6, A7 a7, A8 a8, A9 a9) {
+		 assert(fFrames.count(frame));
+		 AWidget* widget = new DER(frame, fWidgets.size(), a1, a2, a3, a4, a5, a6, a7, a8, a9);
+		 frame->AddFrame(&dynamic_cast<TGFrame&>(*widget), layout);
+		 fWidgets.push_back(widget);
+	 }
+	 template <class DER, class A1, class A2, class A3, class A4, class A5, class A6, class A7, class A8, class A9, class A10>
+	 void Add(DER* der, TGCompositeFrame* frame, TGLayoutHints* layout, A1 a1, A2 a2, A3 a3, A4 a4, A5 a5, A6 a6, A7 a7, A8 a8, A9 a9, A10 a10) {
+		 assert(fFrames.count(frame));
+		 AWidget* widget = new DER(frame, fWidgets.size(), a1, a2, a3, a4, a5, a6, a7, a8, a9, a10);
+		 frame->AddFrame(&dynamic_cast<TGFrame&>(*widget), layout);
+		 fWidgets.push_back(widget);
 	 }
 };
 
@@ -185,7 +270,7 @@ template <class T>
 class TextButton: public TWidget<T>, public TGTextButton
 {
 public:
-	 TextButton(TGMainFrame* mainframe, Int_t id, T* owner, void (T::* f)(),
+	 TextButton(TGWindow* mainframe, Int_t id, T* owner, void (T::* f)(),
 							const char* name, const char* text, Pixel_t color = pix::White, Pixel_t text_color = pix::Black):
 		 TWidget<T> (owner, f, name), TGTextButton(mainframe, text, id) {
 		 SetBackgroundColor(color);
@@ -198,7 +283,7 @@ template <class T>
 class Label: public TWidget<T>, public TGLabel
 {
 public:
-	 Label(TGMainFrame* mainframe, Int_t id, T* owner, const char* name, const char* text):
+	 Label(TGWindow* mainframe, Int_t id, T* owner, const char* name, const char* text):
 		 TWidget<T> (owner, &T::Null, name), TGLabel(mainframe, text) {
 		 SetTextFont(kDefaultFont);
 		 SetBackgroundColor(pix::White);
@@ -209,7 +294,7 @@ template <class T>
 class TextEntry: public TWidget<T>, public TGTextEntry
 {
 public:
-	 TextEntry(TGMainFrame* mainframe, Int_t id, T* owner, void(T::* f)(), const char* name, const char* init):
+	 TextEntry(TGWindow* mainframe, Int_t id, T* owner, void(T::* f)(), const char* name, const char* init):
 		 TWidget<T> (owner, f, name), TGTextEntry(mainframe, init, id) { }
 };
 
@@ -217,7 +302,7 @@ template <class T>
 class NumberEntry: public TWidget<T>, public TGNumberEntry
 {
 public:
-	 NumberEntry(TGMainFrame* mainframe, Int_t id, T* owner, void(T::* f)(),
+	 NumberEntry(TGWindow* mainframe, Int_t id, T* owner, void(T::* f)(),
 							 const char* name, Int_t init, Int_t low = -1, Int_t high = -1, Int_t digitwidth = 5,
 							 TGNumberFormat::EStyle style = TGNumberFormat::kNESReal,
 							 TGNumberFormat::EAttribute attr =TGNumberFormat::kNEAAnyNumber):
@@ -231,7 +316,7 @@ template <class T>
 class NumberEntryField: public TWidget<T>, public TGNumberEntryField
 {
 public:
-	 NumberEntryField(TGMainFrame* mainframe, Int_t id, T* owner, void (T::*f)(),
+	 NumberEntryField(TGWindow* mainframe, Int_t id, T* owner, void (T::*f)(),
 										const char* name, Int_t init, Int_t low = -1, Int_t high = -1,
 										TGNumberFormat::EStyle style = TGNumberFormat::kNESReal,
 										TGNumberFormat::EAttribute attr =TGNumberFormat::kNEAAnyNumber):

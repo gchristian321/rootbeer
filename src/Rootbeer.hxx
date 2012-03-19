@@ -90,7 +90,7 @@ namespace rb
 
     /// \brief Stop updating canvases.
     //! \details
-    extern Int_t StopUpdate();
+	extern Int_t StopUpdate();
 
     /// Return the canvas update rate.
     //! \brief

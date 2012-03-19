@@ -1,17 +1,17 @@
 #ifndef CANVAS_GUI_HXX
 #define CANVAS_GUI_HXX
-#include "Frame.hxx"
+#include "MainFrame.hxx"
 
 
 namespace rb { namespace gui {
 
-class Canvas: public Frame
+class Canvas: public MainFrame
 {
 private:
 	 Int_t fUpdateRate;
 	 Bool_t kIsUpdating;
 public:
-	 Canvas(Int_t w = 200, Int_t h = 400);
+	 Canvas();
 	 virtual ~Canvas() { }
 	 virtual void Sync();
 private:

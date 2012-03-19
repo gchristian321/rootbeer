@@ -5,9 +5,10 @@
 #include <TError.h>
 #include <TString.h>
 #include <TSystem.h>
+#include "Rint.hxx"
 #include "Buffer.hxx"
 
-
+extern void attach_sync();
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // Class                                                 //
@@ -23,6 +24,15 @@ rb::attach::File::File(const char* filename, Bool_t stopAtEnd) :
   kStopAtEnd(stopAtEnd) {
 
   fBuffer = BufferSource::New();
+	if(!ListAttached()) gApp()->GetSignals()->Attaching(); // signal to gui
+}
+
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// Destructor                                            //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+rb::attach::File::~File() {
+	if(!ListAttached()) gApp()->GetSignals()->Unattaching(); // signal to gui
+	delete fBuffer;
 }
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
@@ -43,11 +53,13 @@ void rb::attach::File::DoInThread() {
     else gSystem->Sleep(10e3); // wait 10 sec. for more data
   }
 
-  if(FileAttached()) // read the complete file
+  if(FileAttached()) { // read the complete file
     Info("AttachFile", "Done reading %s", kFileName);
+	}
   else {
-    if(!ListAttached())  // told to stop externally
+    if(!ListAttached()) { // told to stop externally
       Info("AttachFile", "Connection to %s aborted.", kFileName);
+		}
   }
   fBuffer->CloseFile();
 }
@@ -67,6 +79,15 @@ rb::attach::List::List(const char* filename) :
   kListFileName(gSystem->ExpandPathName(filename)) {
 
   fBuffer = BufferSource::New();
+	gApp()->GetSignals()->Attaching();
+}
+
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// Destructor                                            //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+rb::attach::List::~List() {
+	gApp()->GetSignals()->Unattaching();
+	delete fBuffer;
 }
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
@@ -115,7 +136,17 @@ rb::attach::Online::Online(const char* source, const char* other, char** others,
   fNumOthers(nothers) {
 
   fBuffer = BufferSource::New();  
+	gApp()->GetSignals()->Attaching();
 }
+
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// Destructor                                            //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+rb::attach::Online::~Online() {
+	delete fBuffer;
+	gApp()->GetSignals()->Unattaching();
+}
+
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // void rb::attach::Online::DoInThread()                 //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//

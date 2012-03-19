@@ -2,6 +2,7 @@
 //! \brief Implements the user interface functions.
 #include <iostream>
 #include "Rootbeer.hxx"
+#include "Rint.hxx"
 #include "Buffer.hxx"
 #include "Data.hxx"
 #include "hist/Hist.hxx"

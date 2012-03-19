@@ -3,6 +3,7 @@
 #include <map>
 #include <sstream>
 #include <TRint.h>
+#include "Signals.hxx"
 #include "Event.hxx"
 
 namespace rb
@@ -10,13 +11,13 @@ namespace rb
 //========== Typedefs ===========//
 typedef std::map<Int_t, rb::Event*> EventMap_t;
 
-namespace gui { class FrameFactory; class Frame; }
+namespace gui { class MainFrameFactory; class MainFrame; }
 
 //========== Class Definitions ===========//
 /// \brief Class that runs the interactive ROOT application.
 //! \details We can essentially use the normal <tt>TRint</tt>, except
 //!  we need to override the Terminate() method to stop threaded processes.
-class Rint : public TRint
+class Rint: public TRint
 {
 private:
 	 //! Messages to be printed at program startup
@@ -24,11 +25,15 @@ private:
 	 //! Map of all event processors, keyed by an integer code.
 	 EventMap_t fEvents;
 	 //! Manages construction & destruction of gui objects
-	 gui::FrameFactory* fFrames;
-
+	 gui::MainFrameFactory* fFrames;
+  //! Signal emitter
+	 Signals fSignals;
 public:
    //! Call Sync() on all gui frames
 	 void SyncAll();
+
+   //! Returns a pointer to fSignals
+	 rb::Signals* GetSignals();
 
 	 //! Find the event processors with a specific code.
 	 //! \param [in] code Event code you're searching for
@@ -97,6 +102,9 @@ inline void rb::Rint::AddMessage(const std::string& str) {
 template <typename T>
 void rb::Rint::RegisterEvent(Int_t code) {
   fEvents.insert(std::make_pair<Int_t, rb::Event*>(code, rb::Event::Instance<T>()));
+}
+inline rb::Signals* rb::Rint::GetSignals() {
+	return &fSignals;
 }
 #endif
 

@@ -63,10 +63,10 @@ rootbeer: $(RBLIB)/libRootbeer.so $(SRC)/main.cc
 OBJECTS=$(OBJ)/hist/Hist.o $(OBJ)/hist/Manager.o \
 $(OBJ)/Formula.o $(OBJ)/midas/TMidasEvent.o $(OBJ)/midas/TMidasFile.o $(MIDASONLINE) \
 $(OBJ)/Data.o $(OBJ)/Event.o $(OBJ)/Buffer.o $(OBJ)/user/User.o $(OBJ)/Canvas.o $(OBJ)/WriteConfig.o \
-$(OBJ)/Rint.o $(OBJ)/Rootbeer.o 
+$(OBJ)/Rint.o $(OBJ)/Signals.o $(OBJ)/Rootbeer.o $(OBJ)/Gui.o
 
 HEADERS=$(SRC)/Rootbeer.hxx $(SRC)/Rint.hxx $(SRC)/Data.hxx $(SRC)/Buffer.hxx $(SRC)/Event.hxx $(SRC)/user/User.hxx \
-$(SRC)/Formula.hxx $(SRC)/utils/LockingPointer.hxx $(SRC)/utils/Mutex.hxx \
+$(SRC)/Signals.hxx $(SRC)/Formula.hxx $(SRC)/utils/LockingPointer.hxx $(SRC)/utils/Mutex.hxx \
 $(SRC)/hist/Hist.hxx $(SRC)/hist/Visitor.hxx $(SRC)/hist/Manager.hxx \
 $(SRC)/midas/*.h $(SRC)/utils/*.h* $(USER_HEADERS)
 
@@ -82,9 +82,20 @@ $(OBJ)/Rootbeer.o: $(CINT)/RBDictionary.cxx $(SRC)/Rootbeer.cxx
 -o $@  -p $(SRC)/Rootbeer.cxx \
 
 Rint: $(OBJ)/Rint.o
-$(OBJ)/Rint.o: $(CINT)/RBDictionary.cxx $(SRC)/Rint.cxx
+$(OBJ)/Rint.o: $(CINT)/RBDictionary.cxx $(SRC)/Rint.cxx $(CINT)/RBGuiDictionary.cxx $(OBJ)/Gui.o
 	$(COMPILE) $(FPIC) -c \
 -o $@  -p $(SRC)/Rint.cxx \
+
+Signals: $(OBJ)/Signals.o
+$(OBJ)/Signals.o: $(CINT)/RBDictionary.cxx $(SRC)/Signals.cxx $(CINT)/RBGuiDictionary.cxx
+	$(COMPILE) $(FPIC) -c \
+-o $@  -p $(SRC)/Signals.cxx \
+
+Gui: $(OBJ)/Gui.o
+$(OBJ)/Gui.o: $(CINT)/RBDictionary.cxx $(SRC)/GuiLayout.cxx $(SRC)/MakeConnections.hxx $(CINT)/RBGuiDictionary.cxx
+	python gui_edit.py src/GuiLayout.cxx
+	$(COMPILE) $(FPIC) -c \
+-o $@  -p $(SRC)/Gui.cxx \
 
 WriteConfig: $(OBJ)/WriteConfig.o
 $(OBJ)/WriteConfig.o: $(CINT)/RBDictionary.cxx $(SRC)/WriteConfig.cxx
@@ -153,7 +164,7 @@ $(SRC)/utils/Mutex.hxx $(SRC)/utils/LockingPointer.hxx
 
 
 ### GUI ###
-GUI_HEADERS=$(GUI)/Widget.hxx $(GUI)/Frame.hxx $(GUI)/CanvasGui.hxx
+GUI_HEADERS=$(GUI)/Widget.hxx $(GUI)/MainFrame.hxx $(GUI)/CanvasGui.hxx
 GUI_OBJECTS=$(OBJ)/gui/CanvasGui.o
 
 RBGuilib: $(RBLIB)/libRBGui.so

@@ -109,10 +109,6 @@ namespace rb
       static void CreateAndRun(const char* filename, Bool_t stopAtEnd);
     };
 
-    inline File::~File() {
-      delete fBuffer;
-    }
-
     inline File* File::New(const char* filename, Bool_t stopAtEnd) {
       return new File(filename, stopAtEnd);
     }
@@ -152,10 +148,6 @@ namespace rb
       //! \brief Conststructs a \c new instance of rb::attach::List and calls rb::Thread::Run().
       static void CreateAndRun(const char* filename);
     };
-
-    inline List::~List() {
-      delete fBuffer;
-    }
 
     inline List* List::New(const char* filename) {
       return new List(filename);
@@ -214,10 +206,6 @@ namespace rb
       //! \brief Conststructs a \c new instance of rb::attach::Online and calls rb::Thread::Run().
       static void CreateAndRun(const char* source, const char* other, char** others, int nothers);
     };
-
-    inline Online::~Online() {
-      delete fBuffer;
-    }
 
     inline Online* Online::New(const char* source, const char* other, char** others, int nothers) {
       return new Online(source, other, others, nothers);

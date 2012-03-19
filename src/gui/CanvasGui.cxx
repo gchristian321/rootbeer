@@ -7,30 +7,63 @@
 #define ADD_WIDGET(CLASS, ...)					\
 	fWidgets.Add((CLASS*)0, this, this, __VA_ARGS__)
 
+#define ADD_WIDGET_FRAME(CLASS, FRAME, LAYOUT_TYPE, ...)								\
+	fWidgets.Add((CLASS*)0, FRAME, new TGLayoutHints(LAYOUT_TYPE, 2, 2, 2, 2), this, __VA_ARGS__)
+
+#define ADD_FRAME(NAME, CLASS, W, H, TYPE)													\
+	fWidgets.AddFrame(NAME, new CLASS (this, W, H, TYPE, pix::Pink));
+
 namespace {
 const Pixel_t kStartColor = pix::Blue;
 const Pixel_t kStopColor  = pix::Red;
+
 }
+/*
+enum ELayoutHints {
+   kLHintsNoHints = 0,
+   kLHintsLeft    = BIT(0),
+   kLHintsCenterX = BIT(1),
+   kLHintsRight   = BIT(2),
+   kLHintsTop     = BIT(3),
+   kLHintsCenterY = BIT(4),
+   kLHintsBottom  = BIT(5),
+   kLHintsExpandX = BIT(6),
+   kLHintsExpandY = BIT(7),
+   kLHintsNormal  = (kLHintsLeft | kLHintsTop)
+};
+*/
+rb::gui::Canvas::Canvas():
+	MainFrame(800, 400) , fUpdateRate(5), kIsUpdating(false) {
 
-rb::gui::Canvas::Canvas(Int_t w, Int_t h):
-	Frame(w, h) , fUpdateRate(5), kIsUpdating(false) {
+	fLayout.reset(new TGLayoutHints(kLHintsCenterX | kLHintsCenterY | kLHintsExpandX));
 
-	ADD_WIDGET(TextEntry<Canvas>,  &Canvas::Null, "CanvasName", "c1");
+	const Int_t WWW = 400;
+	const Int_t HHH = 50;
 
-	ADD_WIDGET(TextButton<Canvas>, &Canvas::CreateCanvas, "CreateCanvas", "New Canvas");
-	ADD_WIDGET(TextButton<Canvas>, &Canvas::DivideCanvas, "DivideCanvas", "Divide Current");
-	ADD_WIDGET(TextButton<Canvas>, &Canvas::ClearCurrent, "ClearCurrent", "Clear Current");
-	ADD_WIDGET(TextButton<Canvas>, &Canvas::ClearAll, "ClearAll", "Clear All");
-	ADD_WIDGET(TextButton<Canvas>, &Canvas::UpdateCurrent, "UpdateCurrent", "Update Current");
-	ADD_WIDGET(TextButton<Canvas>, &Canvas::UpdateAll, "UpdateAll", "Update All");
+	TGCompositeFrame* newCanvas = AddFrame<Composite<TGHorizontalFrame> > (WWW, HHH, kFixedWidth);
+ 	ADD_WIDGET_FRAME(TextEntry<Canvas>,  newCanvas, kLHintsNormal, &Canvas::Null, "CanvasName", "c1");
+	ADD_WIDGET_FRAME(TextButton<Canvas>, newCanvas, kLHintsNormal, &Canvas::CreateCanvas, "CreateCanvas", "New Canvas");
+	ADD_WIDGET_FRAME(Label<Canvas>,      newCanvas, kLHintsLeft | kLHintsBottom, "CanvasNameLabel", "   Name:");
 
-	ADD_WIDGET(Label<Canvas>, "UpdateRateLabel", "Update Rate");
 
-	ADD_WIDGET(NumberEntry<Canvas>, &Canvas::SetUpdateRate, "SetUpdateRate", 5, 1, 600, 5 /*digitwidth*/ );
+	TGCompositeFrame* allCanvas = AddFrame<Composite<TGHorizontalFrame> > (WWW, HHH, kFixedWidth);
+	ADD_WIDGET_FRAME(TextButton<Canvas>, allCanvas, kLHintsExpandX, &Canvas::ClearCurrent, "ClearCurrent", "Clear Current");
+	ADD_WIDGET_FRAME(TextButton<Canvas>, allCanvas, kLHintsExpandX, &Canvas::ClearAll, "ClearAll", "Clear All");
 
-	ADD_WIDGET(TextButton<Canvas>,  &Canvas::StartStop, "StartStop", "Start Update", kStartColor, pix::White);
+	TGCompositeFrame* currentCanvas = AddFrame<Composite<TGHorizontalFrame> > (WWW, HHH, kFixedWidth);
+	ADD_WIDGET_FRAME(TextButton<Canvas>, currentCanvas, kLHintsExpandX, &Canvas::UpdateCurrent, "UpdateCurrent", "Update Current");
+	ADD_WIDGET_FRAME(TextButton<Canvas>, currentCanvas, kLHintsExpandX, &Canvas::UpdateAll, "UpdateAll", "Update All");
 
-	InitFrames();
+	TGCompositeFrame* changeCanvas = AddFrame<Composite<TGHorizontalFrame> > (WWW, HHH, kFixedWidth);
+	ADD_WIDGET_FRAME(TextButton<Canvas>, changeCanvas, kLHintsExpandX, &Canvas::DivideCanvas, "DivideCanvas", "Divide Current");
+	ADD_WIDGET_FRAME(TextButton<Canvas>, changeCanvas, kLHintsExpandX, &Canvas::ToDo, "ChangeCanvas", "Change Canvas");
+
+	TGCompositeFrame* updateRate = AddFrame<Composite<TGHorizontalFrame> > (WWW, HHH, kFixedWidth);
+	ADD_WIDGET_FRAME(TextButton<Canvas>, updateRate, kLHintsNormal, &Canvas::StartStop, "StartStop", "Start Update", kStartColor, pix::White);
+	ADD_WIDGET_FRAME(Label<Canvas>, updateRate, kLHintsLeft | kLHintsBottom,"UpdateRateLabel", "    Rate (s): ");
+	ADD_WIDGET_FRAME(NumberEntry<Canvas>, updateRate, kLHintsNormal, &Canvas::SetUpdateRate, "SetUpdateRate", 5, 1, 600, 5);
+
+	InitFrames(80,80,600,600,1,1);
 	Sync();
 }
 
@@ -110,39 +143,55 @@ void rb::gui::Canvas::CreateCanvas() {
 	}
 }
 
-namespace {
-class DividePopUp: public rb::gui::Frame
+namespace rb { namespace gui { namespace {
+class DividePopup: public rb::gui::Popup
 {
 public:
-	 DividePopUp();
-	 ~DividePopUp() { }
+	 DividePopup();
+	 ~DividePopup() { }
 	 void DoAction();
-	 void Erase();
 };
-void DividePopUp::Erase() { delete this; }
-DividePopUp::DividePopUp(): rb::gui::Frame(50, 150) {
-	ADD_WIDGET(rb::gui::NumberEntryField<DividePopUp>, &DividePopUp::Null, "Width", 2, 1, 100);
-	ADD_WIDGET(rb::gui::NumberEntryField<DividePopUp>, &DividePopUp::Null, "Height", 2, 1, 100);
-	ADD_WIDGET(rb::gui::TextButton<DividePopUp>, &DividePopUp::Erase, "Cancel", "Cancel");
-	ADD_WIDGET(rb::gui::TextButton<DividePopUp>, &DividePopUp::DoAction, "OK", "OK");
+DividePopup::DividePopup(): Popup(100, 150) {
 
-	Find<rb::gui::NumberEntryField<DividePopUp> >("Width")->SetDefaultSize(30,20);
-	Find<rb::gui::NumberEntryField<DividePopUp> >("Height")->SetDefaultSize(30,20);
+	TGCompositeFrame* size = AddFrame<Composite<TGHorizontalFrame> > (100, 50, kFixedWidth);
+	ADD_WIDGET_FRAME(NumberEntryField<DividePopup>, size, kLHintsCenterX,  &DividePopup::Null, "Horiz", 2, 1, 100);
+	ADD_WIDGET_FRAME(Label<DividePopup>, size, kLHintsCenterX, "hLabel", " x ");
+	ADD_WIDGET_FRAME(NumberEntryField<DividePopup>, size, kLHintsCenterX,  &DividePopup::Null, "Vert", 2, 1, 100);
 
-	InitFrames();
-} }
+	TGCompositeFrame* okc = AddFrame<Composite<TGHorizontalFrame> > (100, 50, kFixedWidth);
+	ADD_WIDGET_FRAME(TextButton<DividePopup>, okc, kLHintsCenterX, &DividePopup::Okay, "OK", "OK");           
+	ADD_WIDGET_FRAME(TextButton<DividePopup>, okc, kLHintsCenterX, &DividePopup::Cancel, "Cancel", "Cancel");
 
-void DividePopUp::DoAction() {
+	Find<NumberEntryField<DividePopup> >("Horiz")->SetDefaultSize(30,20);
+	Find<NumberEntryField<DividePopup> >("Vert")->SetDefaultSize(30,20);
+	InitFrames(80,80,320,320,1,1);
+}
+void DividePopup::DoAction() {
 	if(gPad) {
 		gPad->Clear();
-		Int_t w = Find<rb::gui::NumberEntryField<DividePopUp> >("Width")->GetIntNumber(),
-			 h = Find<rb::gui::NumberEntryField<DividePopUp> >("Height")->GetIntNumber();
+		Int_t w = Find<NumberEntryField<DividePopup> >("Horiz")->GetIntNumber(),
+			 h = Find<NumberEntryField<DividePopup> >("Vert")->GetIntNumber();
 		gPad->Divide(w, h);
 	}
-	Erase();
 }
 
+class SelectCanvas: public rb::gui::Popup
+{
+public:
+	 SelectCanvas();
+	 ~SelectCanvas() { }
+	 void DoAction();
+};
+SelectCanvas::SelectCanvas(): Popup(100,150) {
+	
+}
+void SelectCanvas::DoAction() {
+}
+
+} } }
+
+
 void rb::gui::Canvas::DivideCanvas() {
-	DividePopUp * pop_up = new DividePopUp();
+	DividePopup * pop_up = new DividePopup();
 	if(pop_up);
 }
