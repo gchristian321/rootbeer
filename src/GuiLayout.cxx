@@ -124,7 +124,7 @@
 
 #include "Riostream.h"
 
-void StartGui()
+void GuiLayout()
 {
 
    // main frame

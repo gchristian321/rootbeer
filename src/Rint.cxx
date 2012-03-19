@@ -44,12 +44,7 @@ void rb::Rint::Terminate(Int_t status) {
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 void rb::Rint::InitGui() {
 //	fFrames->Add (new gui::Canvas() );
-	StartGui();
-	// fSignals.Connect("Unattaching()", "TGTextButton", fUnattach, "ChangeBackground(=0xff0000)");	
-	// fSignals.Connect("Unattaching()", "TGTextButton", fIsContinuous, "SetEnabled(=true)");
-	// fSignals.Connect("Attaching()", "TGTextButton", fUnattach, "ChangeBackground(=0x00ff00)");
-	// fSignals.Connect("Attaching()", "TGTextButton", fIsContinuous, "SetEnabled(=false)");
-
+	GuiLayout();
 }
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // Frame* rb::Rint::GetGuiFrame()                        //
