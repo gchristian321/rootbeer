@@ -1,5 +1,5 @@
 // Mainframe macro generated from application: root.exe
-// By ROOT version 5.32/01 on 2012-03-19 14:54:42
+// By ROOT version 5.32/01 on 2012-03-19 16:19:39
 
 #ifndef ROOT_TGDockableFrame
 #include "TGDockableFrame.h"
@@ -94,20 +94,14 @@
 #ifndef ROOT_TGListView
 #include "TGListView.h"
 #endif
-#ifndef ROOT_TGSplitter
-#include "TGSplitter.h"
-#endif
 #ifndef ROOT_TGStatusBar
 #include "TGStatusBar.h"
 #endif
-#ifndef ROOT_TGListTree
-#include "TGListTree.h"
+#ifndef ROOT_TGView
+#include "TGView.h"
 #endif
 #ifndef ROOT_TGuiBldGeometryFrame
 #include "TGuiBldGeometryFrame.h"
-#endif
-#ifndef ROOT_TGToolTip
-#include "TGToolTip.h"
 #endif
 #ifndef ROOT_TGToolBar
 #include "TGToolBar.h"
@@ -121,6 +115,9 @@
 #ifndef ROOT_TGuiBldDragManager
 #include "TGuiBldDragManager.h"
 #endif
+#ifndef ROOT_TGObject
+#include "TGObject.h"
+#endif
 
 #include "Riostream.h"
 
@@ -128,7 +125,12 @@ void GuiLayout()
 {
 
    // main frame
-   TGMainFrame *fMainFrame1027 = new TGMainFrame(gClient->GetRoot(),10,10,kMainFrame | kVerticalFrame);
+   TGMainFrame *fMainFrame1053 = new TGMainFrame(gClient->GetRoot(),10,10,kMainFrame | kVerticalFrame);
+   fMainFrame1053->SetName("fMainFrame1053");
+   fMainFrame1053->SetLayoutBroken(kTRUE);
+
+   // composite frame
+   TGCompositeFrame *fMainFrame1027 = new TGCompositeFrame(fMainFrame1053,490,372,kVerticalFrame);
    fMainFrame1027->SetName("fMainFrame1027");
    fMainFrame1027->SetLayoutBroken(kTRUE);
 
@@ -215,7 +217,7 @@ void GuiLayout()
 
    fAttachFile->ChangeBackground(ucolor);
    fRbeerFrame->AddFrame(fAttachFile, new TGLayoutHints(kLHintsLeft | kLHintsTop,2,2,2,2));
-   fAttachFile->MoveResize(16,56,91,24);
+   fAttachFile->MoveResize(16,48,91,24);
 
    ufont = gClient->GetFont("-*-helvetica-medium-r-*-*-12-*-*-*-*-*-iso8859-1");
 
@@ -237,7 +239,7 @@ void GuiLayout()
 
    fAttachList->ChangeBackground(ucolor);
    fRbeerFrame->AddFrame(fAttachList, new TGLayoutHints(kLHintsLeft | kLHintsTop,2,2,2,2));
-   fAttachList->MoveResize(16,96,91,24);
+   fAttachList->MoveResize(16,80,91,24);
 
    ufont = gClient->GetFont("-*-helvetica-medium-r-*-*-12-*-*-*-*-*-iso8859-1");
 
@@ -257,29 +259,6 @@ void GuiLayout()
    fSelectHost->Resize(84,fSelectHost->GetDefaultHeight());
    fRbeerFrame->AddFrame(fSelectHost, new TGLayoutHints(kLHintsLeft | kLHintsTop,2,2,2,2));
    fSelectHost->MoveResize(112,16,84,22);
-
-   ufont = gClient->GetFont("-*-helvetica-medium-r-*-*-12-*-*-*-*-*-iso8859-1");
-
-   // graphics context changes
-   GCValues_t valtach;
-   valtach.fMask = kGCForeground | kGCBackground | kGCFillStyle | kGCFont | kGCGraphicsExposures;
-   gClient->GetColorByName("#000000",valtach.fForeground);
-   gClient->GetColorByName("#ff0000",valtach.fBackground);
-   valtach.fFillStyle = kFillSolid;
-   valtach.fFont = ufont->GetFontHandle();
-   valtach.fGraphicsExposures = kFALSE;
-   uGC = gClient->GetGC(&valtach, kTRUE);
-
-   gClient->GetColorByName("#ff0000",ucolor);
-   TGTextButton *fUnattach = new TGTextButton(fRbeerFrame,"Unattach",-1,uGC->GetGC());
-   fUnattach->SetTextJustify(36);
-   fUnattach->SetMargins(0,0,0,0);
-   fUnattach->SetWrapLength(-1);
-   fUnattach->Resize(91,24);
-
-   fUnattach->ChangeBackground(ucolor);
-   fRbeerFrame->AddFrame(fUnattach, new TGLayoutHints(kLHintsLeft | kLHintsTop,2,2,2,2));
-   fUnattach->MoveResize(16,136,91,24);
    TGCheckButton *fIsContinuous = new TGCheckButton(fRbeerFrame,"Continuous");
 
    gClient->GetColorByName("#ffffff",ucolor);
@@ -288,7 +267,14 @@ void GuiLayout()
    fIsContinuous->SetMargins(0,0,0,0);
    fIsContinuous->SetWrapLength(-1);
    fRbeerFrame->AddFrame(fIsContinuous, new TGLayoutHints(kLHintsLeft | kLHintsTop,2,2,2,2));
-   fIsContinuous->MoveResize(112,64,88,19);
+   fIsContinuous->MoveResize(112,56,88,19);
+   TGTextButton *fUnattach = new TGTextButton(fRbeerFrame,"Unattach");
+   fUnattach->SetTextJustify(36);
+   fUnattach->SetMargins(0,0,0,0);
+   fUnattach->SetWrapLength(-1);
+   fUnattach->Resize(91,24);
+   fRbeerFrame->AddFrame(fUnattach, new TGLayoutHints(kLHintsLeft | kLHintsTop,2,2,2,2));
+   fUnattach->MoveResize(16,112,91,24);
 
    fMainFrame1525->AddFrame(fRbeerFrame, new TGLayoutHints(kLHintsExpandX | kLHintsExpandY));
    fRbeerFrame->MoveResize(8,0,421,368);
@@ -311,12 +297,15 @@ void GuiLayout()
    fMainFrame1027->AddFrame(fMainFrame959, new TGLayoutHints(kLHintsExpandX | kLHintsExpandY));
    fMainFrame959->MoveResize(0,0,490,372);
 
-   fMainFrame1027->SetMWMHints(kMWMDecorAll,
+   fMainFrame1053->AddFrame(fMainFrame1027, new TGLayoutHints(kLHintsExpandX | kLHintsExpandY));
+   fMainFrame1027->MoveResize(0,0,490,372);
+
+   fMainFrame1053->SetMWMHints(kMWMDecorAll,
                         kMWMFuncAll,
                         kMWMInputModeless);
-   fMainFrame1027->MapSubwindows();
+   fMainFrame1053->MapSubwindows();
 
-   fMainFrame1027->Resize(fMainFrame1027->GetDefaultSize());
-   fMainFrame1027->MapWindow();
-   fMainFrame1027->Resize(490,372);
+   fMainFrame1053->Resize(fMainFrame1053->GetDefaultSize());
+   fMainFrame1053->MapWindow();
+   fMainFrame1053->Resize(490,372);
 }  
