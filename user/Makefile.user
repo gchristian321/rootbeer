@@ -39,3 +39,7 @@ STOCK_BUFFERS=-DMIDAS_BUFFERS
 ### If you want to use the stock routines for extracting NSCL data buffers, uncomment the following
 ### line and make sure all other STOCK_BUFFER lines are commented.
 #STOCK_BUFFERS=-DNSCL_BUFFERS
+
+
+## DEF_EXT=-DRB_DEFAULT_FILE_EXTENSION=.mid
+DEF_DIR=-DRB_DEFAULT_FILE_DIRECTORY=\"/user/gchristian/soft/develop/dragon/analyzer\"

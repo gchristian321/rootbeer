@@ -48,8 +48,8 @@ endif
 COMPILER=g++ -Wall
 #COMPILER=clang++ -I/opt/local/include/ -I/opt/local/include/root
 
-COMPILE=$(COMPILER) $(CXXFLAGS) $(RPATH)
-LINK=$(COMPILER) $(CXXFLAGS) $(ROOTGLIBS) $(RPATH)
+COMPILE=$(COMPILER) $(CXXFLAGS) $(RPATH) $(DEF_EXT) $(DEF_DIR)
+LINK=$(COMPILER) $(CXXFLAGS) $(ROOTGLIBS) $(RPATH) $(DEF_DIR)
 
 
 #### MAIN PROGRAM ####
