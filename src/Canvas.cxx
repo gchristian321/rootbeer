@@ -124,7 +124,8 @@ void rb::canvas::UpdateAll() {
 Int_t rb::canvas::StopUpdate() {
   rb::Thread::Stop(CanvasThreadName);
   updateRate = 0;
-	gApp()->SyncAll();
+//	gApp()->SyncAll();
+	gApp()->GetSignals()->StoppingUpdate();
   return updateRate;
 }
 
@@ -139,7 +140,8 @@ Int_t rb::canvas::StartUpdate(Int_t rate) {
     StopUpdate();
     updateRate = rate;
     CanvasUpdate::CreateAndRun(CanvasThreadName, rate);
-		gApp()->SyncAll();
+//		gApp()->SyncAll();
+		gApp()->GetSignals()->StartingUpdate(rate);
     return 0;
   }  
 }

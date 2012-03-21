@@ -25,6 +25,10 @@ rb::attach::File::File(const char* filename, Bool_t stopAtEnd) :
 
   fBuffer = BufferSource::New();
 	if(!ListAttached()) gApp()->GetSignals()->Attaching(); // signal to gui
+	std::string fname(kFileName);
+	if(fname.find_last_of("/") < fname.size())
+		 fname = fname.substr(fname.find_last_of("/")+1);
+	gApp()->GetSignals()->AttachedFile(fname.c_str());
 }
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
@@ -153,6 +157,7 @@ rb::attach::Online::~Online() {
 void rb::attach::Online::DoInThread() {
   Bool_t connected = fBuffer->ConnectOnline(fSourceArg, fOtherArg, fOtherArgs, fNumOthers);
   if (!connected) return;
+	gApp()->GetSignals()->AttachedOnline(fSourceArg);
   while (OnlineAttached()) {
     Bool_t readSuccess = fBuffer->ReadBufferOnline();
     if(!readSuccess) break;

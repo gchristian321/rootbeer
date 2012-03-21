@@ -1,4 +1,26 @@
+/*namespace pix { enum Color_t {
+	White  = 0xffffff,
+	Maroon = 0x800000,
+	Red    = 0xff0000,
+	Yellow = 0xffff00,
+	Green  = 0x008000,
+	Lime   = 0x00ff00,
+	Teal   = 0x008080,
+	Aqua   = 0x00ffff,
+	Navy   = 0x000080,
+	Blue   = 0x0000ff,
+	Purple = 0x800080,
+	Pink   = 0xff00ff,
+	Orange = 0xff6600,
+	Black  = 0x000000,
+	Gray60 = 0x666666,
+	Gray40 = 0x999999,
+	Gray20 = 0xcccccc
+	};
+	B.G. Color = 0xd4cf87
+	}*/
 #define RB_SIGNALS static_cast<rb::Rint*>(gApplication)->GetSignals()
+#define RB_BUTTON_CONNECT(button, function) fRbeerFrame->Connect(button, "Pressed()", "rb::Signals", RB_SIGNALS, function);
 
 void MakeConnections() {
    // Define actions to take when buttons are pressed:
@@ -6,11 +28,19 @@ void MakeConnections() {
 
 
 	fUnattach->SetEnabled(false);
+	fUpdateRate->SetLimits(TGNumberFormat::kNELLimitMinMax, 1, 600);
 
-	fRbeerFrame->Connect(fAttachOnline, "Pressed()", "rb::Signals", RB_SIGNALS, "AttachOnline()");
-	fRbeerFrame->Connect(fAttachFile, "Pressed()", "rb::Signals", RB_SIGNALS, "AttachFile()");
-	fRbeerFrame->Connect(fAttachList, "Pressed()", "rb::Signals", RB_SIGNALS, "AttachList()");
-	fRbeerFrame->Connect(fUnattach, "Pressed()", "rb::Signals", RB_SIGNALS, "Unattach()");
+	RB_BUTTON_CONNECT(fAttachOnline, "AttachOnline()");
+	RB_BUTTON_CONNECT(fAttachFile, "AttachFile()");
+	RB_BUTTON_CONNECT(fAttachList, "AttachList()");
+	RB_BUTTON_CONNECT(fUnattach, "Unattach()");
+	RB_BUTTON_CONNECT(fRefreshAll, "UpdateAll()");
+	RB_BUTTON_CONNECT(fRefreshCurrent, "UpdateCurrent()");
+	RB_BUTTON_CONNECT(fZeroAll, "ClearAll()");
+	RB_BUTTON_CONNECT(fZeroCurrent, "ClearCurrent()");
+	RB_BUTTON_CONNECT(fCreateNew, "CreateNew()");
+	RB_BUTTON_CONNECT(fDivideCurrent, "DivideCurrent()");
+	RB_BUTTON_CONNECT(fStartRefresh, "Update()");
 
 	RB_SIGNALS->Connect("Unattaching()", "TGTextButton", fUnattach, "ChangeBackground(=0xe0e0e0)");	
 	RB_SIGNALS->Connect("Unattaching()", "TGTextButton", fUnattach, "SetEnabled(=false)");
@@ -18,6 +48,24 @@ void MakeConnections() {
 	RB_SIGNALS->Connect("Attaching()", "TGTextButton", fUnattach, "ChangeBackground(=0x00ff00)");
 	RB_SIGNALS->Connect("Attaching()", "TGTextButton", fUnattach, "SetEnabled(=true)");
 	RB_SIGNALS->Connect("Attaching()", "TGTextButton", fIsContinuous, "SetEnabled(=false)");
+
+	RB_SIGNALS->Connect("StartingUpdate()", "TGTextButton", fStartRefresh, "ChangeBackground(=0xff0000)");
+	RB_SIGNALS->Connect("StartingUpdate()", "TGTextButton", fStartRefresh, "ChangeText(=\"Stop Refresh\")");
+	RB_SIGNALS->Connect("StoppingUpdate()", "TGTextButton", fStartRefresh, "ChangeBackground(=0x00ff00)");
+	RB_SIGNALS->Connect("StoppingUpdate()", "TGTextButton", fStartRefresh, "ChangeText(=\"Start Refresh\")");
+
+	RB_SIGNALS->Connect("StartingUpdate(Int_t)", "TGNumberEntry", fUpdateRate, "SetNumber(Int_t)");
+  fUpdateRate->Connect("ValueSet(Long_t)", "rb::Signals", RB_SIGNALS, "ChangeUpdateRate(Long_t)");
+
+	RB_SIGNALS->Connect("AttachedFile(const char*)", "TGLabel", fLabelSource, "SetText(const char*)");   
+	RB_SIGNALS->Connect("AttachedOnline(const char*)", "TGLabel", fLabelSource, "SetText(const char*)");
+	RB_SIGNALS->Connect("Unattaching()", "TGLabel", fLabelSource, "SetText(=\"[none]\")");
+
+	fSelectCanvas->Connect("Selected(char*)", "rb::Signals", RB_SIGNALS, "CdCanvas(char*)");
+	TQObject::Connect("TCanvas", "Closed()", "rb::Signals", RB_SIGNALS, "SyncCanvases()");
+	TQObject::Connect("TCanvas", "Modified()", "rb::Signals", RB_SIGNALS, "SyncCanvases()");
+
 }
 
 #undef RB_SIGNALS
+#undef RB_BUTTON_CONNECT
