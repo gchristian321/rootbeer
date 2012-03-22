@@ -31,7 +31,8 @@ public:
 	 void CreateNew();
 	 void Update();
 	 void SyncCanvases();
-	 void CdCanvas(const char* which);
+	 void CdCanvas();
+	 void Quit();
 	 ClassDef(rb::Signals, 0);
 };
 

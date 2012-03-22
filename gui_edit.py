@@ -35,6 +35,8 @@ if __name__ == "__main__":
             srcout = "   /* " + tok[0] + "* */ " + tok[1][1:]
             for i in range(2, len(tok)):
                 srcout += " " + tok[i]
+            if(tok[0] == "TGTextButton"):
+                srcout += "\n" + tok[1][1:] + "->SetFont(ufont->GetFontStruct());\n"
             headerout = "extern " + tok[0] + " " +tok[1] + ";"
             if(line.find("\"") != -1):
                 headerout += " // " + line[line.find("\""):(line.find("\"", line.find("\"")+1)+1)]

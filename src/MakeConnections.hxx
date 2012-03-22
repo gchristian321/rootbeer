@@ -41,6 +41,8 @@ void MakeConnections() {
 	RB_BUTTON_CONNECT(fCreateNew, "CreateNew()");
 	RB_BUTTON_CONNECT(fDivideCurrent, "DivideCurrent()");
 	RB_BUTTON_CONNECT(fStartRefresh, "Update()");
+	RB_BUTTON_CONNECT(fSelectCanvas, "CdCanvas()");
+	RB_BUTTON_CONNECT(fQuit, "Quit()");
 
 	RB_SIGNALS->Connect("Unattaching()", "TGTextButton", fUnattach, "ChangeBackground(=0xe0e0e0)");	
 	RB_SIGNALS->Connect("Unattaching()", "TGTextButton", fUnattach, "SetEnabled(=false)");
@@ -60,10 +62,6 @@ void MakeConnections() {
 	RB_SIGNALS->Connect("AttachedFile(const char*)", "TGLabel", fLabelSource, "SetText(const char*)");   
 	RB_SIGNALS->Connect("AttachedOnline(const char*)", "TGLabel", fLabelSource, "SetText(const char*)");
 	RB_SIGNALS->Connect("Unattaching()", "TGLabel", fLabelSource, "SetText(=\"[none]\")");
-
-	fSelectCanvas->Connect("Selected(char*)", "rb::Signals", RB_SIGNALS, "CdCanvas(char*)");
-	TQObject::Connect("TCanvas", "Closed()", "rb::Signals", RB_SIGNALS, "SyncCanvases()");
-	TQObject::Connect("TCanvas", "Modified()", "rb::Signals", RB_SIGNALS, "SyncCanvases()");
 
 }
 

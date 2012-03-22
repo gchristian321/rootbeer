@@ -3,6 +3,7 @@
 #include <TROOT.h>
 #include <TString.h>
 #include <TGFileDialog.h>
+#include "TGSelectDialog.h"
 #include "Signals.hxx"
 #include "Rootbeer.hxx"
 #include "Gui.hxx"
@@ -54,7 +55,10 @@ void rb::Signals::AttachList() {
 		 rb::AttachList(fileInfo.fFilename);
 	fAttachList->SetDown(false);
 }
-
+void rb::Signals::Quit() {
+	std::cout << "\n";
+	gApp()->Terminate(0);
+}
 void rb::Signals::Unattach() {
 	rb::Unattach();
 }
@@ -69,9 +73,6 @@ void rb::Signals::ClearAll() {
 }
 void rb::Signals::ClearCurrent() {
 	rb::canvas::ClearCurrent();
-}
-void rb::Signals::DivideCurrent() {
-	printf("todo\n");
 }
 void rb::Signals::CreateNew() {
 	std::string name = fEntryName->GetText();
@@ -120,21 +121,33 @@ void get_end_pads(TPad* canvas) {
 } }
 void rb::Signals::SyncCanvases() {
 	pads.clear();
-	fSelectCanvas->RemoveAll();
 	for(int i=0; i< gROOT->GetListOfCanvases()->GetEntries(); ++i) {
 		TPad* pad = dynamic_cast<TPad*>(gROOT->GetListOfCanvases()->At(i));
 		if(!is_divided(pad)) pads.insert(std::make_pair<std::string, TPad*>(pad->GetName(), pad));
 		get_end_pads(pad);
 	}
-	for(std::map<std::string, TPad*>::iterator it = pads.begin(); it != pads.end(); ++it) {
-		fSelectCanvas->AddEntry(it->first.c_str(), fSelectCanvas->GetNumberOfEntries());
-	}
 }
 
-void rb::Signals::CdCanvas(const char* which) {
-	if(!pads.count(which)) {
-		std::cerr << "Error: Pad " << which << " not found.\n";
-		return;
-	}
-	pads.find(which)->second->cd();
+void rb::Signals::CdCanvas() {
+	// if(!pads.count(which)) {
+	// 	std::cerr << "Error: Pad " << which << " not found.\n";
+	// 	return;
+	// }
+	// pads.find(which)->second->cd();
+
+	SyncCanvases();
+	std::vector<std::string> names;
+	for(std::map<std::string, TPad*>::iterator it = pads.begin(); it!=pads.end(); ++it)
+		 names.push_back(it->first);
+	int which = -1;
+	new TGSelectDialog(gClient->GetRoot(), 0, "Select Canvas:", "Select Canvas", &names, &which);
+	if(which >= 0 && which < (int)names.size()) {
+		pads[names[which]]->cd();
+	}		
+}
+
+void rb::Signals::DivideCurrent() {
+
+
+//	new TGInputDialog (fRbeerFrame);
 }

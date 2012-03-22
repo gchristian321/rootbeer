@@ -150,6 +150,9 @@ void GuiLayout()
 
    TGFont *ufont;         // will reflect user font changes
    ufont = gClient->GetFont("-*-helvetica-medium-r-*-*-12-*-*-*-*-*-iso8859-1");
+	 FontStruct_t fontreg = gClient->GetFont("-*-helvetica-medium-r-*-*-12-*-*-*-*-*-iso8859-1")->GetFontStruct();
+	 FontStruct_t fontbold = gClient->GetFont("-*-helvetica-bold-r-*-*-12-*-*-*-*-*-iso8859-1")->GetFontStruct();
+
 
    TGGC   *uGC;           // will reflect user GC changes
    // graphics context changes
@@ -161,7 +164,6 @@ void GuiLayout()
    valpFrame2889.fFont = ufont->GetFontHandle();
    valpFrame2889.fGraphicsExposures = kFALSE;
    uGC = gClient->GetGC(&valpFrame2889, kTRUE);
-
 
    // "Data" group frame
    TGGroupFrame *fGroupData = new TGGroupFrame(fMainFrame6310,"Data",kVerticalFrame | kRaisedFrame,uGC->GetGC(),ufont->GetFontStruct(),ucolor);
@@ -205,6 +207,21 @@ void GuiLayout()
    fUnattach->Resize(91,24);
    fGroupData->AddFrame(fUnattach, new TGLayoutHints(kLHintsLeft | kLHintsTop,2,2,2,2));
    fUnattach->MoveResize(8,136,91,24);
+
+   gClient->GetColorByName("#ff0000",ucolor);
+   TGTextButton *fQuit = new TGTextButton(fGroupData,"Quit");
+	 fQuit->SetTextColor((Pixel_t)0xffffff);
+	 fQuit->SetFont(fontbold);
+   fQuit->SetTextJustify(36);
+   fQuit->SetMargins(0,0,0,0);
+   fQuit->SetWrapLength(-1);
+   fQuit->Resize(91,24);
+
+   fQuit->ChangeBackground(ucolor);
+   fGroupData->AddFrame(fQuit, new TGLayoutHints(kLHintsLeft | kLHintsTop,2,2,2,2));
+   fQuit->MoveResize(180,136,91,24);
+
+
 
    ufont = gClient->GetFont("-*-helvetica-medium-r-*-*-12-*-*-*-*-*-iso8859-1");
 
@@ -354,7 +371,7 @@ void GuiLayout()
 
 	 fCreateNew->ChangeBackground(ucolor);
    fGroupCanvas->AddFrame(fCreateNew, new TGLayoutHints(kLHintsLeft | kLHintsTop,2,2,2,2));
-   fCreateNew->MoveResize(176,144,91,24);
+   fCreateNew->MoveResize(64,193,91,24);
 
    gClient->GetColorByName("#000000",ucolor);
    TGTextEntry *fEntryName = new TGTextEntry(fGroupCanvas, new TGTextBuffer(14),-1,uGC->GetGC(),ufont->GetFontStruct(),kSunkenFrame | kDoubleBorder | kOwnBackground);
@@ -364,26 +381,34 @@ void GuiLayout()
    fEntryName->SetTextColor(ucolor);
    fEntryName->Resize(176,fEntryName->GetDefaultHeight());
    fGroupData->AddFrame(fEntryName, new TGLayoutHints(kLHintsLeft | kLHintsTop,2,2,2,2));
-   fEntryName->MoveResize(222,177,45,22);
+   fEntryName->MoveResize(222-20,193,45+20,22);
 
    gClient->GetColorByName("#d4cf87",ucolor);
    TGLabel *fLabelName = new TGLabel(fGroupCanvas,"Name:",TGLabel::GetDefaultGC()(),TGLabel::GetDefaultFontStruct(),kChildFrame,ucolor);
-   fLabelName->SetTextJustify(kTextTop | kTextLeft);
+   fLabelName->SetTextJustify(kTextCenterY | kTextLeft);
    fLabelName->SetMargins(0,0,0,0);
    fLabelName->SetWrapLength(-1);
    fGroupCanvas->AddFrame(fLabelName, new TGLayoutHints(kLHintsLeft | kLHintsTop,2,2,2,2));
-   fLabelName->MoveResize(176,177,40,22);
+   fLabelName->MoveResize(176-15,193,40,22);
+
+
+	 TGHorizontal3DLine *fHorizontal3DLine560 = new TGHorizontal3DLine(fGroupCanvas,272,8);
+   fHorizontal3DLine560->SetName("fHorizontal3DLine560");
+	 fHorizontal3DLine560->ChangeBackground(0xd4cf87);
+   fGroupCanvas->AddFrame(fHorizontal3DLine560, new TGLayoutHints(kLHintsLeft | kLHintsTop,2,2,2,2));
+   fHorizontal3DLine560->MoveResize(5,180,327,0);
 
 
 
    gClient->GetColorByName("#ffffff",ucolor);
 
-   // combo box
-   TGComboBox *fSelectCanvas = new TGComboBox(fGroupCanvas,-1,kHorizontalFrame | kSunkenFrame | kDoubleBorder | kOwnBackground);
-   fSelectCanvas->Resize(160,22);
-   fSelectCanvas->Select(-1);
+   TGTextButton *fSelectCanvas = new TGTextButton(fGroupCanvas,"Cd");
+   fSelectCanvas->SetTextJustify(36);
+   fSelectCanvas->SetMargins(0,0,0,0);
+   fSelectCanvas->SetWrapLength(-1);
+   fSelectCanvas->Resize(91,24);
    fGroupCanvas->AddFrame(fSelectCanvas, new TGLayoutHints(kLHintsLeft | kLHintsTop,2,2,2,2));
-   fSelectCanvas->MoveResize(64,200,91,22);
+   fSelectCanvas->MoveResize(176,144,91,24);
 
    TGNumberEntry *fUpdateRate = new TGNumberEntry(fGroupCanvas, (Double_t) 0,6,-1,(TGNumberFormat::EStyle) 5);
    fGroupCanvas->AddFrame(fUpdateRate, new TGLayoutHints(kLHintsLeft | kLHintsTop,2,2,2,2));
@@ -396,13 +421,6 @@ void GuiLayout()
    fLabelRate->SetWrapLength(-1);
    fGroupCanvas->AddFrame(fLabelRate, new TGLayoutHints(kLHintsLeft | kLHintsTop,2,2,2,2));
    fLabelRate->MoveResize(240,40,64,18);
-
-   TGLabel *fLabelChangeSelected = new TGLabel(fGroupCanvas,"Change Selected",TGLabel::GetDefaultGC()(),TGLabel::GetDefaultFontStruct(),kChildFrame,ucolor);
-   fLabelChangeSelected->SetTextJustify(kTextTop | kTextLeft);
-   fLabelChangeSelected->SetMargins(0,0,0,0);
-   fLabelChangeSelected->SetWrapLength(-1);
-   fGroupCanvas->AddFrame(fLabelChangeSelected, new TGLayoutHints(kLHintsLeft | kLHintsTop,2,2,2,2));
-   fLabelChangeSelected->MoveResize(64,177,104,18);
 
    gClient->GetColorByName("#00ff00",ucolor);
    TGTextButton *fStartRefresh = new TGTextButton(fGroupCanvas,"Start Refresh");
