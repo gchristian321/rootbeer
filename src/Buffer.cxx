@@ -50,9 +50,13 @@ void rb::attach::File::DoInThread() {
     return;
   }
 
+	Int_t nbuffers = 0;
   while(FileAttached() || ListAttached()) { // loop over buffers in the file
     bool read_success = fBuffer->ReadBufferOffline();
-    if (read_success) fBuffer->UnpackBuffer(); // got an event
+    if (read_success) {
+			fBuffer->UnpackBuffer();
+			gApp()->GetSignals()->UpdateBufferCounter(nbuffers++);
+		}
     else if (kStopAtEnd) break; // we're done
     else gSystem->Sleep(10e3); // wait 10 sec. for more data
   }
@@ -65,6 +69,7 @@ void rb::attach::File::DoInThread() {
       Info("AttachFile", "Connection to %s aborted.", kFileName);
 		}
   }
+	gApp()->GetSignals()->UpdateBufferCounter(nbuffers, true);
   fBuffer->CloseFile();
 }
 
@@ -158,10 +163,13 @@ void rb::attach::Online::DoInThread() {
   Bool_t connected = fBuffer->ConnectOnline(fSourceArg, fOtherArg, fOtherArgs, fNumOthers);
   if (!connected) return;
 	gApp()->GetSignals()->AttachedOnline(fSourceArg);
+	Int_t nbuffers = 0;
   while (OnlineAttached()) {
     Bool_t readSuccess = fBuffer->ReadBufferOnline();
     if(!readSuccess) break;
     fBuffer->UnpackBuffer();
+		gApp()->GetSignals()->UpdateBufferCounter(nbuffers++);
   }
   fBuffer->DisconnectOnline();
+	gApp()->GetSignals()->UpdateBufferCounter(nbuffers, true);
 }

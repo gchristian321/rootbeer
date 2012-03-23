@@ -63,11 +63,11 @@ rootbeer: $(RBLIB)/libRootbeer.so $(SRC)/main.cc
 OBJECTS=$(OBJ)/hist/Hist.o $(OBJ)/hist/Manager.o \
 $(OBJ)/Formula.o $(OBJ)/midas/TMidasEvent.o $(OBJ)/midas/TMidasFile.o $(MIDASONLINE) \
 $(OBJ)/Data.o $(OBJ)/Event.o $(OBJ)/Buffer.o $(OBJ)/user/User.o $(OBJ)/Canvas.o $(OBJ)/WriteConfig.o \
-$(OBJ)/Rint.o $(OBJ)/Signals.o $(OBJ)/Rootbeer.o $(OBJ)/Gui.o $(OBJ)/TGSelectDialog.o
+$(OBJ)/Rint.o $(OBJ)/Signals.o $(OBJ)/Rootbeer.o $(OBJ)/Gui.o $(OBJ)/TGSelectDialog.o $(OBJ)/TGDivideSelect.o
 
 HEADERS=$(SRC)/Rootbeer.hxx $(SRC)/Rint.hxx $(SRC)/Data.hxx $(SRC)/Buffer.hxx $(SRC)/Event.hxx $(SRC)/user/User.hxx \
 $(SRC)/Signals.hxx $(SRC)/Formula.hxx $(SRC)/utils/LockingPointer.hxx $(SRC)/utils/Mutex.hxx \
-$(SRC)/hist/Hist.hxx $(SRC)/hist/Visitor.hxx $(SRC)/hist/Manager.hxx $(SRC)/TGSelectDialog.h \
+$(SRC)/hist/Hist.hxx $(SRC)/hist/Visitor.hxx $(SRC)/hist/Manager.hxx $(SRC)/TGSelectDialog.h $(SRC)/TGDivideSelect.h \
 $(SRC)/midas/*.h $(SRC)/utils/*.h* $(USER_HEADERS)
 
 
@@ -101,6 +101,11 @@ TGSelectDialog: $(OBJ)/TGSelectDialog.o
 $(OBJ)/TGSelectDialog.o: $(CINT)/RBDictionary.cxx $(SRC)/TGSelectDialog.cxx
 	$(COMPILE) $(FPIC) -c \
 -o $@  -p $(SRC)/TGSelectDialog.cxx \
+
+TGDivideSelect: $(OBJ)/TGDivideSelect.o
+$(OBJ)/TGDivideSelect.o: $(CINT)/RBDictionary.cxx $(SRC)/TGDivideSelect.cxx
+	$(COMPILE) $(FPIC) -c \
+-o $@  -p $(SRC)/TGDivideSelect.cxx \
 
 WriteConfig: $(OBJ)/WriteConfig.o
 $(OBJ)/WriteConfig.o: $(CINT)/RBDictionary.cxx $(SRC)/WriteConfig.cxx

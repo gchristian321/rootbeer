@@ -29,6 +29,7 @@ void MakeConnections() {
 
 	fUnattach->SetEnabled(false);
 	fUpdateRate->SetLimits(TGNumberFormat::kNELLimitMinMax, 1, 600);
+	fUpdateRate->SetNumber(5);
 
 	RB_BUTTON_CONNECT(fAttachOnline, "AttachOnline()");
 	RB_BUTTON_CONNECT(fAttachFile, "AttachFile()");

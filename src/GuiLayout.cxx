@@ -1,5 +1,5 @@
 // Mainframe macro generated from application: root.exe
-// By ROOT version 5.32/01 on 2012-03-20 19:01:38
+// By ROOT version 5.32/01 on 2012-03-22 21:01:12
 
 #ifndef ROOT_TGDockableFrame
 #include "TGDockableFrame.h"
@@ -124,57 +124,226 @@
 void GuiLayout()
 {
 
+   TGFont *ufont;         // will reflect user font changes
+   ufont = gClient->GetFont("-*-helvetica-medium-r-*-*-12-*-*-*-*-*-iso8859-1");
+
    // main frame
    TGMainFrame *fRbeerFrame = new TGMainFrame(gClient->GetRoot(),10,10,kMainFrame | kVerticalFrame);
    fRbeerFrame->SetName("fRbeerFrame");
-	 fRbeerFrame->SetWindowName("Rootbeer");
    fRbeerFrame->SetLayoutBroken(kTRUE);
-	 fRbeerFrame->SetCleanup(kDeepCleanup);
+	 fRbeerFrame->ChangeBackground((Pixel_t)0xd4cf87);
 
+	 
    // composite frame
-   TGCompositeFrame *fMainFrame2710 = new TGCompositeFrame(fRbeerFrame,366,503,kVerticalFrame);
-   fMainFrame2710->SetName("fMainFrame2710");
-   fMainFrame2710->SetLayoutBroken(kTRUE);
-	 fMainFrame2710->SetCleanup(kDeepCleanup);
-
-   // composite frame
-   TGCompositeFrame *fMainFrame1877 = new TGCompositeFrame(fMainFrame2710,369,506,kVerticalFrame);
-   fMainFrame1877->SetName("fMainFrame1877");
-   fMainFrame1877->SetLayoutBroken(kTRUE);
-	 fMainFrame1877->SetCleanup(kDeepCleanup);
+   TGCompositeFrame *fMainFrame1596 = new TGCompositeFrame(fRbeerFrame,349,426,kVerticalFrame);
+   fMainFrame1596->SetName("fMainFrame1596");
+   fMainFrame1596->SetLayoutBroken(kTRUE);
+	 fMainFrame1596->ChangeBackground((Pixel_t)0xd4cf87);
 
    ULong_t ucolor;        // will reflect user color changes
-   gClient->GetColorByName("#d4cf87",ucolor);
 
    // composite frame
-   TGCompositeFrame *fMainFrame6310 = new TGCompositeFrame(fMainFrame1877,370,496,kVerticalFrame,ucolor);
+   TGCompositeFrame *fMainFrame6310 = new TGCompositeFrame(fMainFrame1596,352,428,kVerticalFrame,ucolor);
    fMainFrame6310->SetName("fMainFrame6310");
    fMainFrame6310->SetLayoutBroken(kTRUE);
-	 fMainFrame6310->SetCleanup(kDeepCleanup);
+	 fMainFrame6310->ChangeBackground((Pixel_t)0xd4cf87);
 
-   TGFont *ufont;         // will reflect user font changes
-   ufont = gClient->GetFont("-*-helvetica-medium-r-*-*-12-*-*-*-*-*-iso8859-1");
-//	 FontStruct_t fontreg = gClient->GetFont("-*-helvetica-medium-r-*-*-12-*-*-*-*-*-iso8859-1")->GetFontStruct();
-	 FontStruct_t fontbold = gClient->GetFont("-*-helvetica-bold-r-*-*-12-*-*-*-*-*-iso8859-1")->GetFontStruct();
-
+   // "Canvas" group frame
+   TGGroupFrame *fGroupCanvas = new TGGroupFrame(fMainFrame6310,"Canvas",kVerticalFrame,TGGroupFrame::GetDefaultGC()(),TGGroupFrame::GetDefaultFontStruct(),ucolor);
+   fGroupCanvas->SetTitlePos(TGGroupFrame::kCenter);
+   fGroupCanvas->SetLayoutBroken(kTRUE);
+	 fGroupCanvas->ChangeBackground((Pixel_t)0xd4cf87);
+   TGTextButton *fZeroAll = new TGTextButton(fGroupCanvas,"Zero All");
+   fZeroAll->SetTextJustify(36);
+   fZeroAll->SetMargins(0,0,0,0);
+   fZeroAll->SetWrapLength(-1);
+   fZeroAll->Resize(91,24);
+   fGroupCanvas->AddFrame(fZeroAll, new TGLayoutHints(kLHintsLeft | kLHintsTop,2,2,2,2));
+   fZeroAll->MoveResize(110,100,91,24);
+   TGTextButton *fDivideCurrent = new TGTextButton(fGroupCanvas,"Divide Current");
+   fDivideCurrent->SetTextJustify(36);
+   fDivideCurrent->SetMargins(0,0,0,0);
+   fDivideCurrent->SetWrapLength(-1);
+   fDivideCurrent->Resize(91,24);
+   fGroupCanvas->AddFrame(fDivideCurrent, new TGLayoutHints(kLHintsLeft | kLHintsTop,2,2,2,2));
+   fDivideCurrent->MoveResize(8,132,91,24);
 
    TGGC   *uGC;           // will reflect user GC changes
    // graphics context changes
-   GCValues_t valpFrame2889;
-   valpFrame2889.fMask = kGCForeground | kGCBackground | kGCFillStyle | kGCFont | kGCGraphicsExposures;
-   gClient->GetColorByName("#000000",valpFrame2889.fForeground);
-   gClient->GetColorByName("#e0e0e0",valpFrame2889.fBackground);
-   valpFrame2889.fFillStyle = kFillSolid;
-   valpFrame2889.fFont = ufont->GetFontHandle();
-   valpFrame2889.fGraphicsExposures = kFALSE;
-   uGC = gClient->GetGC(&valpFrame2889, kTRUE);
+   GCValues_t valEntry1852;
+   valEntry1852.fMask = kGCForeground | kGCBackground | kGCFillStyle | kGCFont | kGCGraphicsExposures;
+   gClient->GetColorByName("#000000",valEntry1852.fForeground);
+   gClient->GetColorByName("#e0e0e0",valEntry1852.fBackground);
+   valEntry1852.fFillStyle = kFillSolid;
+   valEntry1852.fFont = ufont->GetFontHandle();
+   valEntry1852.fGraphicsExposures = kFALSE;
+   uGC = gClient->GetGC(&valEntry1852, kTRUE);
+
+   TGTextEntry *fEntryName = new TGTextEntry(fGroupCanvas, new TGTextBuffer(14),-1,uGC->GetGC(),ufont->GetFontStruct(),kSunkenFrame | kDoubleBorder | kOwnBackground);
+   fEntryName->SetMaxLength(4096);
+   fEntryName->SetAlignment(kTextLeft);
+   fEntryName->SetText("");
+   fEntryName->Resize(80,fEntryName->GetDefaultHeight());
+   fGroupCanvas->AddFrame(fEntryName, new TGLayoutHints(kLHintsLeft | kLHintsTop,2,2,2,2));
+   fEntryName->MoveResize(208,167,80,22);
+
+   gClient->GetColorByName("#00ff00",ucolor);
+   TGTextButton *fCreateNew = new TGTextButton(fGroupCanvas,"Create New");
+   fCreateNew->SetTextJustify(36);
+   fCreateNew->SetMargins(0,0,0,0);
+   fCreateNew->SetWrapLength(-1);
+   fCreateNew->Resize(91,24);
+
+   fCreateNew->ChangeBackground(ucolor);
+   fGroupCanvas->AddFrame(fCreateNew, new TGLayoutHints(kLHintsLeft | kLHintsTop,2,2,2,2));
+   fCreateNew->MoveResize(110,165,91,24);
+
+   gClient->GetColorByName("#d4cf87",ucolor);
+   TGLabel *fLabelName = new TGLabel(fGroupCanvas,"Name:",TGLabel::GetDefaultGC()(),TGLabel::GetDefaultFontStruct(),kChildFrame,ucolor);
+   fLabelName->SetTextJustify(33);
+   fLabelName->SetMargins(0,0,0,0);
+   fLabelName->SetWrapLength(-1);
+   fGroupCanvas->AddFrame(fLabelName, new TGLayoutHints(kLHintsLeft | kLHintsTop,2,2,2,2));
+   fLabelName->MoveResize(210,145,35,22);
+
+   TGTextButton *fSelectCanvas = new TGTextButton(fGroupCanvas,"Cd");
+   fSelectCanvas->SetTextJustify(36);
+   fSelectCanvas->SetMargins(0,0,0,0);
+   fSelectCanvas->SetWrapLength(-1);
+   fSelectCanvas->Resize(91,24);
+   fGroupCanvas->AddFrame(fSelectCanvas, new TGLayoutHints(kLHintsLeft | kLHintsTop,2,2,2,2));
+   fSelectCanvas->MoveResize(110,132,91,24);
+   TGNumberEntry *fUpdateRate = new TGNumberEntry(fGroupCanvas, (Double_t) 0,6,-1,(TGNumberFormat::EStyle) 5);
+   fGroupCanvas->AddFrame(fUpdateRate, new TGLayoutHints(kLHintsLeft | kLHintsTop,2,2,2,2));
+   fUpdateRate->MoveResize(110,28,59,22);
+
+   TGLabel *fLabelRate = new TGLabel(fGroupCanvas,"Rate [sec.]",TGLabel::GetDefaultGC()(),TGLabel::GetDefaultFontStruct(),kChildFrame,ucolor);
+   fLabelRate->SetTextJustify(36);
+   fLabelRate->SetMargins(0,0,0,0);
+   fLabelRate->SetWrapLength(-1);
+   fGroupCanvas->AddFrame(fLabelRate, new TGLayoutHints(kLHintsLeft | kLHintsTop,2,2,2,2));
+   fLabelRate->MoveResize(174,28,64,18);
+
+   gClient->GetColorByName("#00ff00",ucolor);
+   TGTextButton *fStartRefresh = new TGTextButton(fGroupCanvas,"Start Refresh");
+   fStartRefresh->SetTextJustify(36);
+   fStartRefresh->SetMargins(0,0,0,0);
+   fStartRefresh->SetWrapLength(-1);
+   fStartRefresh->Resize(91,24);
+
+   fStartRefresh->ChangeBackground(ucolor);
+   fGroupCanvas->AddFrame(fStartRefresh, new TGLayoutHints(kLHintsLeft | kLHintsTop,2,2,2,2));
+   fStartRefresh->MoveResize(8,28,91,24);
+   TGTextButton *fRefreshCurrent = new TGTextButton(fGroupCanvas,"Refresh Current");
+   fRefreshCurrent->SetTextJustify(36);
+   fRefreshCurrent->SetMargins(0,0,0,0);
+   fRefreshCurrent->SetWrapLength(-1);
+   fRefreshCurrent->Resize(91,24);
+   fGroupCanvas->AddFrame(fRefreshCurrent, new TGLayoutHints(kLHintsLeft | kLHintsTop,2,2,2,2));
+   fRefreshCurrent->MoveResize(8,68,91,24);
+   TGTextButton *fRefreshAll = new TGTextButton(fGroupCanvas,"Refresh All");
+   fRefreshAll->SetTextJustify(36);
+   fRefreshAll->SetMargins(0,0,0,0);
+   fRefreshAll->SetWrapLength(-1);
+   fRefreshAll->Resize(91,24);
+   fGroupCanvas->AddFrame(fRefreshAll, new TGLayoutHints(kLHintsLeft | kLHintsTop,2,2,2,2));
+   fRefreshAll->MoveResize(110,68,91,24);
+   TGTextButton *fZeroCurrent = new TGTextButton(fGroupCanvas,"Zero Current");
+   fZeroCurrent->SetTextJustify(36);
+   fZeroCurrent->SetMargins(0,0,0,0);
+   fZeroCurrent->SetWrapLength(-1);
+   fZeroCurrent->Resize(91,24);
+   fGroupCanvas->AddFrame(fZeroCurrent, new TGLayoutHints(kLHintsLeft | kLHintsTop,2,2,2,2));
+   fZeroCurrent->MoveResize(8,100,91,24);
+   TGTextButton *fClearCurrent = new TGTextButton(fGroupCanvas,"ClearCurrent");
+   fClearCurrent->SetTextJustify(36);
+   fClearCurrent->SetMargins(0,0,0,0);
+   fClearCurrent->SetWrapLength(-1);
+   fClearCurrent->Resize(91,24);
+   fGroupCanvas->AddFrame(fClearCurrent, new TGLayoutHints(kLHintsLeft | kLHintsTop,2,2,2,2));
+   fClearCurrent->MoveResize(8,165,91,24);
+
+   gClient->GetColorByName("#d4cf87",ucolor);
+
+   // "Configuration" group frame
+   TGGroupFrame *fGroupConfig = new TGGroupFrame(fGroupCanvas,"Configuration",kVerticalFrame,TGGroupFrame::GetDefaultGC()(),TGGroupFrame::GetDefaultFontStruct(),ucolor);
+   fGroupConfig->SetTitlePos(TGGroupFrame::kCenter);
+   fGroupConfig->SetLayoutBroken(kTRUE);
+
+   gClient->GetColorByName("#ffcc00",ucolor);
+   TGTextButton *fCOnfigLoad = new TGTextButton(fGroupConfig,"Load");
+   fCOnfigLoad->SetTextJustify(36);
+   fCOnfigLoad->SetMargins(0,0,0,0);
+   fCOnfigLoad->SetWrapLength(-1);
+   fCOnfigLoad->Resize(64,24);
+
+   fCOnfigLoad->ChangeBackground(ucolor);
+   fGroupConfig->AddFrame(fCOnfigLoad, new TGLayoutHints(kLHintsLeft | kLHintsTop,2,2,2,2));
+   fCOnfigLoad->MoveResize(10,24,64,24);
+
+   ufont = gClient->GetFont("-*-helvetica-medium-r-*-*-12-*-*-*-*-*-iso8859-1");
+
+   // graphics context changes
+   GCValues_t valButton1868;
+   valButton1868.fMask = kGCForeground | kGCBackground | kGCFillStyle | kGCFont | kGCGraphicsExposures;
+   gClient->GetColorByName("#ffffff",valButton1868.fForeground);
+   gClient->GetColorByName("#e0e0e0",valButton1868.fBackground);
+   valButton1868.fFillStyle = kFillSolid;
+   valButton1868.fFont = ufont->GetFontHandle();
+   valButton1868.fGraphicsExposures = kFALSE;
+   uGC = gClient->GetGC(&valButton1868, kTRUE);
+
+   gClient->GetColorByName("#0000ff",ucolor);
+   TGTextButton *fCOnfigSave = new TGTextButton(fGroupConfig,"Save",-1,uGC->GetGC());
+   fCOnfigSave->SetTextJustify(36);
+   fCOnfigSave->SetMargins(0,0,0,0);
+   fCOnfigSave->SetWrapLength(-1);
+   fCOnfigSave->Resize(64,24);
+
+   fCOnfigSave->ChangeBackground(ucolor);
+   fGroupConfig->AddFrame(fCOnfigSave, new TGLayoutHints(kLHintsLeft | kLHintsTop,2,2,2,2));
+   fCOnfigSave->MoveResize(10,56,64,24);
+
+   fGroupConfig->SetLayoutManager(new TGVerticalLayout(fGroupConfig));
+   fGroupConfig->Resize(88,96);
+   fGroupCanvas->AddFrame(fGroupConfig, new TGLayoutHints(kLHintsLeft | kLHintsTop,2,2,2,2));
+   fGroupConfig->MoveResize(228,55,88,96);
+
+   ufont = gClient->GetFont("-*-helvetica-medium-r-*-*-12-*-*-*-*-*-iso8859-1");
+
+   // graphics context changes
+   GCValues_t valEntry1869;
+   valEntry1869.fMask = kGCForeground | kGCBackground | kGCFillStyle | kGCFont | kGCGraphicsExposures;
+   gClient->GetColorByName("#000000",valEntry1869.fForeground);
+   gClient->GetColorByName("#e0e0e0",valEntry1869.fBackground);
+   valEntry1869.fFillStyle = kFillSolid;
+   valEntry1869.fFont = ufont->GetFontHandle();
+   valEntry1869.fGraphicsExposures = kFALSE;
+   uGC = gClient->GetGC(&valEntry1869, kTRUE);
+
+   fGroupCanvas->SetLayoutManager(new TGVerticalLayout(fGroupCanvas));
+   fGroupCanvas->Resize(336,208);
+   fMainFrame6310->AddFrame(fGroupCanvas, new TGLayoutHints(kLHintsExpandX | kLHintsExpandY));
+   fGroupCanvas->MoveResize(8,217,336,208);
+
+   ufont = gClient->GetFont("-*-helvetica-medium-r-*-*-12-*-*-*-*-*-iso8859-1");
+
+   // graphics context changes
+   GCValues_t valpFrame1870;
+   valpFrame1870.fMask = kGCForeground | kGCBackground | kGCFillStyle | kGCFont | kGCGraphicsExposures;
+   gClient->GetColorByName("#000000",valpFrame1870.fForeground);
+   gClient->GetColorByName("#e0e0e0",valpFrame1870.fBackground);
+   valpFrame1870.fFillStyle = kFillSolid;
+   valpFrame1870.fFont = ufont->GetFontHandle();
+   valpFrame1870.fGraphicsExposures = kFALSE;
+   uGC = gClient->GetGC(&valpFrame1870, kTRUE);
+
+   gClient->GetColorByName("#d4cf87",ucolor);
 
    // "Data" group frame
    TGGroupFrame *fGroupData = new TGGroupFrame(fMainFrame6310,"Data",kVerticalFrame | kRaisedFrame,uGC->GetGC(),ufont->GetFontStruct(),ucolor);
    fGroupData->SetTitlePos(TGGroupFrame::kCenter);
    fGroupData->SetLayoutBroken(kTRUE);
-	 fGroupData->SetCleanup(kDeepCleanup);
-	 
 
    gClient->GetColorByName("#ffcc00",ucolor);
    TGTextButton *fAttachOnline = new TGTextButton(fGroupData,"Attach Online");
@@ -214,10 +383,20 @@ void GuiLayout()
    fGroupData->AddFrame(fUnattach, new TGLayoutHints(kLHintsLeft | kLHintsTop,2,2,2,2));
    fUnattach->MoveResize(8,136,91,24);
 
+   ufont = gClient->GetFont("-*-helvetica-bold-r-*-*-12-*-*-*-*-*-iso8859-1");
+
+   // graphics context changes
+   GCValues_t valButton1875;
+   valButton1875.fMask = kGCForeground | kGCBackground | kGCFillStyle | kGCFont | kGCGraphicsExposures;
+   gClient->GetColorByName("#ffffff",valButton1875.fForeground);
+   gClient->GetColorByName("#e0e0e0",valButton1875.fBackground);
+   valButton1875.fFillStyle = kFillSolid;
+   valButton1875.fFont = ufont->GetFontHandle();
+   valButton1875.fGraphicsExposures = kFALSE;
+   uGC = gClient->GetGC(&valButton1875, kTRUE);
+
    gClient->GetColorByName("#ff0000",ucolor);
-   TGTextButton *fQuit = new TGTextButton(fGroupData,"Quit");
-	 fQuit->SetTextColor((Pixel_t)0xffffff);
-	 fQuit->SetFont(fontbold);
+   TGTextButton *fQuit = new TGTextButton(fGroupData,"Quit",-1,uGC->GetGC(),ufont->GetFontStruct());
    fQuit->SetTextJustify(36);
    fQuit->SetMargins(0,0,0,0);
    fQuit->SetWrapLength(-1);
@@ -225,21 +404,19 @@ void GuiLayout()
 
    fQuit->ChangeBackground(ucolor);
    fGroupData->AddFrame(fQuit, new TGLayoutHints(kLHintsLeft | kLHintsTop,2,2,2,2));
-   fQuit->MoveResize(180,136,91,24);
-
-
+   fQuit->MoveResize(180,130,91,24);
 
    ufont = gClient->GetFont("-*-helvetica-medium-r-*-*-12-*-*-*-*-*-iso8859-1");
 
    // graphics context changes
-   GCValues_t valEntry2894;
-   valEntry2894.fMask = kGCForeground | kGCBackground | kGCFillStyle | kGCFont | kGCGraphicsExposures;
-   gClient->GetColorByName("#000000",valEntry2894.fForeground);
-   gClient->GetColorByName("#e0e0e0",valEntry2894.fBackground);
-   valEntry2894.fFillStyle = kFillSolid;
-   valEntry2894.fFont = ufont->GetFontHandle();
-   valEntry2894.fGraphicsExposures = kFALSE;
-   uGC = gClient->GetGC(&valEntry2894, kTRUE);
+   GCValues_t valEntry1876;
+   valEntry1876.fMask = kGCForeground | kGCBackground | kGCFillStyle | kGCFont | kGCGraphicsExposures;
+   gClient->GetColorByName("#000000",valEntry1876.fForeground);
+   gClient->GetColorByName("#e0e0e0",valEntry1876.fBackground);
+   valEntry1876.fFillStyle = kFillSolid;
+   valEntry1876.fFont = ufont->GetFontHandle();
+   valEntry1876.fGraphicsExposures = kFALSE;
+   uGC = gClient->GetGC(&valEntry1876, kTRUE);
    TGTextEntry *fEntryHost = new TGTextEntry(fGroupData, new TGTextBuffer(14),-1,uGC->GetGC(),ufont->GetFontStruct(),kSunkenFrame | kDoubleBorder | kOwnBackground);
    fEntryHost->SetMaxLength(4096);
    fEntryHost->SetAlignment(kTextLeft);
@@ -259,14 +436,14 @@ void GuiLayout()
    ufont = gClient->GetFont("-*-helvetica-medium-r-*-*-12-*-*-*-*-*-iso8859-1");
 
    // graphics context changes
-   GCValues_t valEntry2896;
-   valEntry2896.fMask = kGCForeground | kGCBackground | kGCFillStyle | kGCFont | kGCGraphicsExposures;
-   gClient->GetColorByName("#000000",valEntry2896.fForeground);
-   gClient->GetColorByName("#e0e0e0",valEntry2896.fBackground);
-   valEntry2896.fFillStyle = kFillSolid;
-   valEntry2896.fFont = ufont->GetFontHandle();
-   valEntry2896.fGraphicsExposures = kFALSE;
-   uGC = gClient->GetGC(&valEntry2896, kTRUE);
+   GCValues_t valEntry1878;
+   valEntry1878.fMask = kGCForeground | kGCBackground | kGCFillStyle | kGCFont | kGCGraphicsExposures;
+   gClient->GetColorByName("#000000",valEntry1878.fForeground);
+   gClient->GetColorByName("#e0e0e0",valEntry1878.fBackground);
+   valEntry1878.fFillStyle = kFillSolid;
+   valEntry1878.fFont = ufont->GetFontHandle();
+   valEntry1878.fGraphicsExposures = kFALSE;
+   uGC = gClient->GetGC(&valEntry1878, kTRUE);
    TGTextEntry *fEntryPort = new TGTextEntry(fGroupData, new TGTextBuffer(14),-1,uGC->GetGC(),ufont->GetFontStruct(),kSunkenFrame | kDoubleBorder | kOwnBackground);
    fEntryPort->SetMaxLength(4096);
    fEntryPort->SetAlignment(kTextLeft);
@@ -290,263 +467,111 @@ void GuiLayout()
    fGroupData->AddFrame(fIsContinuous, new TGLayoutHints(kLHintsLeft | kLHintsTop,2,2,2,2));
    fIsContinuous->MoveResize(104,80,88,19);
 
-   TGLabel *fLabelSource = new TGLabel(fGroupData,"[none]",TGLabel::GetDefaultGC()(),TGLabel::GetDefaultFontStruct(),kChildFrame,ucolor);
-   fLabelSource->SetTextJustify(kTextBottom | kTextLeft);
+   ufont = gClient->GetFont("-*-helvetica-medium-r-*-*-12-*-*-*-*-*-iso8859-1");
+
+   // graphics context changes
+   GCValues_t vall1881;
+   vall1881.fMask = kGCForeground | kGCBackground | kGCFillStyle | kGCFont | kGCGraphicsExposures;
+   gClient->GetColorByName("#0000ff",vall1881.fForeground);
+   gClient->GetColorByName("#e0e0e0",vall1881.fBackground);
+   vall1881.fFillStyle = kFillSolid;
+   vall1881.fFont = ufont->GetFontHandle();
+   vall1881.fGraphicsExposures = kFALSE;
+   uGC = gClient->GetGC(&vall1881, kTRUE);
+
+   TGLabel *fLabelSource = new TGLabel(fGroupData,"[none]",uGC->GetGC(),ufont->GetFontStruct(),kChildFrame,ucolor);
+   fLabelSource->SetTextJustify(17);
    fLabelSource->SetMargins(0,0,0,0);
    fLabelSource->SetWrapLength(-1);
    fGroupData->AddFrame(fLabelSource, new TGLayoutHints(kLHintsLeft | kLHintsTop,2,2,2,2));
-   fLabelSource->MoveResize(24,198,300,18);
-	 fLabelSource->SetTextColor(0x0000ff);
+   fLabelSource->MoveResize(24,184,300,18);
 
-   TGLabel *fLabelDataSource = new TGLabel(fGroupData,"Data source:",TGLabel::GetDefaultGC()(),TGLabel::GetDefaultFontStruct(),kChildFrame,ucolor);
-   fLabelDataSource->SetTextJustify(kTextBottom | kTextLeft);
+   ufont = gClient->GetFont("-*-helvetica-medium-r-*-*-12-*-*-*-*-*-iso8859-1");
+
+   // graphics context changes
+   GCValues_t vall1882;
+   vall1882.fMask = kGCForeground | kGCBackground | kGCFillStyle | kGCFont | kGCGraphicsExposures;
+   gClient->GetColorByName("#0000ff",vall1882.fForeground);
+   gClient->GetColorByName("#e0e0e0",vall1882.fBackground);
+   vall1882.fFillStyle = kFillSolid;
+   vall1882.fFont = ufont->GetFontHandle();
+   vall1882.fGraphicsExposures = kFALSE;
+   uGC = gClient->GetGC(&vall1882, kTRUE);
+
+   TGLabel *fLabelDataSource = new TGLabel(fGroupData,"Data source:",uGC->GetGC(),ufont->GetFontStruct(),kChildFrame,ucolor);
+   fLabelDataSource->SetTextJustify(17);
    fLabelDataSource->SetMargins(0,0,0,0);
    fLabelDataSource->SetWrapLength(-1);
    fGroupData->AddFrame(fLabelDataSource, new TGLayoutHints(kLHintsLeft | kLHintsTop,2,2,2,2));
-	 fLabelDataSource->SetTextColor(0x0000ff);
-   fLabelDataSource->MoveResize(8,180,80,18);
+   fLabelDataSource->MoveResize(8,166,80,18);
 
-   TGLabel *fNBuffersLabelDivider = new TGLabel(fGroupData," | ",TGLabel::GetDefaultGC()(),TGLabel::GetDefaultFontStruct(),kChildFrame,ucolor);
-   fNBuffersLabelDivider->SetTextJustify(kTextBottom | kTextLeft);
-   fNBuffersLabelDivider->SetMargins(0,0,0,0);
-   fNBuffersLabelDivider->SetWrapLength(-1);
-   fGroupData->AddFrame(fNBuffersLabelDivider, new TGLayoutHints(kLHintsLeft | kLHintsTop,2,2,2,2));
-	 fNBuffersLabelDivider->SetTextColor(0x0000ff);
-   fNBuffersLabelDivider->MoveResize(90,180,8,18);
+   ufont = gClient->GetFont("-*-helvetica-medium-r-*-*-12-*-*-*-*-*-iso8859-1");
 
+   // graphics context changes
+   GCValues_t vall1883;
+   vall1883.fMask = kGCForeground | kGCBackground | kGCFillStyle | kGCFont | kGCGraphicsExposures;
+   gClient->GetColorByName("#0000ff",vall1883.fForeground);
+   gClient->GetColorByName("#e0e0e0",vall1883.fBackground);
+   vall1883.fFillStyle = kFillSolid;
+   vall1883.fFont = ufont->GetFontHandle();
+   vall1883.fGraphicsExposures = kFALSE;
+   uGC = gClient->GetGC(&vall1883, kTRUE);
 
-   TGLabel *fNBuffersLabel = new TGLabel(fGroupData,"Buffers Analyzed:",TGLabel::GetDefaultGC()(),TGLabel::GetDefaultFontStruct(),kChildFrame,ucolor);
-   fNBuffersLabel->SetTextJustify(kTextBottom | kTextLeft);
-   fNBuffersLabel->SetMargins(0,0,0,0);
-   fNBuffersLabel->SetWrapLength(-1);
-   fGroupData->AddFrame(fNBuffersLabel, new TGLayoutHints(kLHintsLeft | kLHintsTop,2,2,2,2));
-	 fNBuffersLabel->SetTextColor(0x0000ff);
-   fNBuffersLabel->MoveResize(110,180,120,18);
+   TGLabel *fNbuffersLabelDivider = new TGLabel(fGroupData," | ",uGC->GetGC(),ufont->GetFontStruct(),kChildFrame,ucolor);
+   fNbuffersLabelDivider->SetTextJustify(17);
+   fNbuffersLabelDivider->SetMargins(0,0,0,0);
+   fNbuffersLabelDivider->SetWrapLength(-1);
+   fGroupData->AddFrame(fNbuffersLabelDivider, new TGLayoutHints(kLHintsLeft | kLHintsTop,2,2,2,2));
+   fNbuffersLabelDivider->MoveResize(90,166,8,18);
 
-   TGLabel *fNBuffers = new TGLabel(fGroupData,"0",TGLabel::GetDefaultGC()(),TGLabel::GetDefaultFontStruct(),kChildFrame,ucolor);
-   fNBuffers->SetTextJustify(kTextBottom | kTextLeft);
-   fNBuffers->SetMargins(0,0,0,0);
-   fNBuffers->SetWrapLength(-1);
-   fGroupData->AddFrame(fNBuffers, new TGLayoutHints(kLHintsLeft | kLHintsTop,2,2,2,2));
-	 fNBuffers->SetTextColor(0x0000ff);
-   fNBuffers->MoveResize(210,180,100,18);
+   ufont = gClient->GetFont("-*-helvetica-medium-r-*-*-12-*-*-*-*-*-iso8859-1");
 
+   // graphics context changes
+   GCValues_t vall1884;
+   vall1884.fMask = kGCForeground | kGCBackground | kGCFillStyle | kGCFont | kGCGraphicsExposures;
+   gClient->GetColorByName("#0000ff",vall1884.fForeground);
+   gClient->GetColorByName("#e0e0e0",vall1884.fBackground);
+   vall1884.fFillStyle = kFillSolid;
+   vall1884.fFont = ufont->GetFontHandle();
+   vall1884.fGraphicsExposures = kFALSE;
+   uGC = gClient->GetGC(&vall1884, kTRUE);
+
+   TGLabel *fNbuffersLabel = new TGLabel(fGroupData,"Buffers Analyzed:",uGC->GetGC(),ufont->GetFontStruct(),kChildFrame,ucolor);
+   fNbuffersLabel->SetTextJustify(17);
+   fNbuffersLabel->SetMargins(0,0,0,0);
+   fNbuffersLabel->SetWrapLength(-1);
+   fGroupData->AddFrame(fNbuffersLabel, new TGLayoutHints(kLHintsLeft | kLHintsTop,2,2,2,2));
+   fNbuffersLabel->MoveResize(110,166,120,18);
+
+   ufont = gClient->GetFont("-*-helvetica-medium-r-*-*-12-*-*-*-*-*-iso8859-1");
+
+   // graphics context changes
+   GCValues_t vall1885;
+   vall1885.fMask = kGCForeground | kGCBackground | kGCFillStyle | kGCFont | kGCGraphicsExposures;
+   gClient->GetColorByName("#0000ff",vall1885.fForeground);
+   gClient->GetColorByName("#e0e0e0",vall1885.fBackground);
+   vall1885.fFillStyle = kFillSolid;
+   vall1885.fFont = ufont->GetFontHandle();
+   vall1885.fGraphicsExposures = kFALSE;
+   uGC = gClient->GetGC(&vall1885, kTRUE);
+
+   TGLabel *fNbuffers = new TGLabel(fGroupData,"0",uGC->GetGC(),ufont->GetFontStruct(),kChildFrame,ucolor);
+   fNbuffers->SetTextJustify(17);
+   fNbuffers->SetMargins(0,0,0,0);
+   fNbuffers->SetWrapLength(-1);
+   fGroupData->AddFrame(fNbuffers, new TGLayoutHints(kLHintsLeft | kLHintsTop,2,2,2,2));
+   fNbuffers->MoveResize(210,166,100,18);
 
    fGroupData->SetLayoutManager(new TGVerticalLayout(fGroupData));
-   fGroupData->Resize(336,240);
+   fGroupData->Resize(336,216);
    fMainFrame6310->AddFrame(fGroupData, new TGLayoutHints(kLHintsLeft | kLHintsTop,2,2,2,2));
-   fGroupData->MoveResize(16,16,336,240);
+   fGroupData->MoveResize(8,2,336,216);
 
-   // "Canvas" group frame
-   TGGroupFrame *fGroupCanvas = new TGGroupFrame(fMainFrame6310,"Canvas",kVerticalFrame,TGGroupFrame::GetDefaultGC()(),TGGroupFrame::GetDefaultFontStruct(),ucolor);
-   fGroupCanvas->SetTitlePos(TGGroupFrame::kCenter);
-   fGroupCanvas->SetLayoutBroken(kTRUE);
-	 fGroupCanvas->SetCleanup(kDeepCleanup);
+   fMainFrame1596->AddFrame(fMainFrame6310, new TGLayoutHints(kLHintsExpandX | kLHintsExpandY));
+   fMainFrame6310->MoveResize(0,1,352,428);
 
-   TGGroupFrame *fGroupConfig = new TGGroupFrame(fGroupCanvas,"Load / Save",kVerticalFrame,TGGroupFrame::GetDefaultGC()(),TGGroupFrame::GetDefaultFontStruct(),ucolor);
-   fGroupConfig->SetTitlePos(TGGroupFrame::kCenter);
-   fGroupConfig->SetLayoutBroken(kTRUE);
-	 fGroupConfig->SetCleanup(kDeepCleanup);
-   fGroupCanvas->AddFrame(fGroupConfig, new TGLayoutHints(kLHintsLeft | kLHintsTop,2,2,2,2));
-   fGroupConfig->MoveResize(230,60,90,90);
-
-
-   ufont = gClient->GetFont("-*-helvetica-medium-r-*-*-12-*-*-*-*-*-iso8859-1");
-
-   // graphics context changes
-   GCValues_t valButton2902;
-   valButton2902.fMask = kGCForeground | kGCBackground | kGCFillStyle | kGCFont | kGCGraphicsExposures;
-   gClient->GetColorByName("#ffffff",valButton2902.fForeground);
-   gClient->GetColorByName("#e0e0e0",valButton2902.fBackground);
-   valButton2902.fFillStyle = kFillSolid;
-   valButton2902.fFont = ufont->GetFontHandle();
-   valButton2902.fGraphicsExposures = kFALSE;
-   uGC = gClient->GetGC(&valButton2902, kTRUE);
-
-   gClient->GetColorByName("#0000ff",ucolor);
-   TGTextButton *fZeroAll = new TGTextButton(fGroupCanvas,"Zero All");
-   fZeroAll->SetTextJustify(36);
-   fZeroAll->SetMargins(0,0,0,0);
-   fZeroAll->SetWrapLength(-1);
-   fZeroAll->Resize(91,24);
-
-//   fZeroAll->ChangeBackground(ucolor);
-   fGroupCanvas->AddFrame(fZeroAll, new TGLayoutHints(kLHintsLeft | kLHintsTop,2,2,2,2));
-   fZeroAll->MoveResize(176-66,112,91,24);
-
-   ufont = gClient->GetFont("-*-helvetica-medium-r-*-*-12-*-*-*-*-*-iso8859-1");
-
-   // graphics context changes
-   GCValues_t valButton2903;
-   valButton2903.fMask = kGCForeground | kGCBackground | kGCFillStyle | kGCFont | kGCGraphicsExposures;
-   gClient->GetColorByName("#ffffff",valButton2903.fForeground);
-   gClient->GetColorByName("#e0e0e0",valButton2903.fBackground);
-   valButton2903.fFillStyle = kFillSolid;
-   valButton2903.fFont = ufont->GetFontHandle();
-   valButton2903.fGraphicsExposures = kFALSE;
-   uGC = gClient->GetGC(&valButton2903, kTRUE);
-
-   TGTextButton *fDivideCurrent = new TGTextButton(fGroupCanvas,"Divide Current");
-   fDivideCurrent->SetTextJustify(36);
-   fDivideCurrent->SetMargins(0,0,0,0);
-   fDivideCurrent->SetWrapLength(-1);
-   fDivideCurrent->Resize(91,24);
-
-//   fDivideCurrent->ChangeBackground(ucolor);
-   fGroupCanvas->AddFrame(fDivideCurrent, new TGLayoutHints(kLHintsLeft | kLHintsTop,2,2,2,2));
-   fDivideCurrent->MoveResize(64-56,144,91,24);
-
-   gClient->GetColorByName("#00ff00",ucolor);
-   TGTextButton *fCreateNew = new TGTextButton(fGroupCanvas,"Create New");
-   fCreateNew->SetTextJustify(36);
-   fCreateNew->SetMargins(0,0,0,0);
-   fCreateNew->SetWrapLength(-1);
-   fCreateNew->Resize(91,24);
-
-	 fCreateNew->ChangeBackground(ucolor);
-   fGroupCanvas->AddFrame(fCreateNew, new TGLayoutHints(kLHintsLeft | kLHintsTop,2,2,2,2));
-   fCreateNew->MoveResize(64-56,193,91,24);
-
-   gClient->GetColorByName("#000000",ucolor);
-   TGTextEntry *fEntryName = new TGTextEntry(fGroupCanvas, new TGTextBuffer(14),-1,uGC->GetGC(),ufont->GetFontStruct(),kSunkenFrame | kDoubleBorder | kOwnBackground);
-   fEntryName->SetMaxLength(4096);
-   fEntryName->SetAlignment(kTextLeft);
-   fEntryName->SetText("");
-   fEntryName->SetTextColor(ucolor);
-   fEntryName->Resize(176,fEntryName->GetDefaultHeight());
-   fGroupData->AddFrame(fEntryName, new TGLayoutHints(kLHintsLeft | kLHintsTop,2,2,2,2));
-   fEntryName->MoveResize(222-20-56,193,45+40,22);
-
-   gClient->GetColorByName("#d4cf87",ucolor);
-   TGLabel *fLabelName = new TGLabel(fGroupCanvas,"Name:",TGLabel::GetDefaultGC()(),TGLabel::GetDefaultFontStruct(),kChildFrame,ucolor);
-   fLabelName->SetTextJustify(kTextCenterY | kTextLeft);
-   fLabelName->SetMargins(0,0,0,0);
-   fLabelName->SetWrapLength(-1);
-   fGroupCanvas->AddFrame(fLabelName, new TGLayoutHints(kLHintsLeft | kLHintsTop,2,2,2,2));
-   fLabelName->MoveResize(176-56-15,193,40,22);
-
-
-	 TGHorizontal3DLine *fHorizontal3DLine560 = new TGHorizontal3DLine(fGroupCanvas,272,8);
-   fHorizontal3DLine560->SetName("fHorizontal3DLine560");
-	 fHorizontal3DLine560->ChangeBackground(0xd4cf87);
-   fGroupCanvas->AddFrame(fHorizontal3DLine560, new TGLayoutHints(kLHintsLeft | kLHintsTop,2,2,2,2));
-   fHorizontal3DLine560->MoveResize(5,180,327,0);
-
-
-
-   gClient->GetColorByName("#ffffff",ucolor);
-
-   TGTextButton *fSelectCanvas = new TGTextButton(fGroupCanvas,"Cd");
-   fSelectCanvas->SetTextJustify(36);
-   fSelectCanvas->SetMargins(0,0,0,0);
-   fSelectCanvas->SetWrapLength(-1);
-   fSelectCanvas->Resize(91,24);
-   fGroupCanvas->AddFrame(fSelectCanvas, new TGLayoutHints(kLHintsLeft | kLHintsTop,2,2,2,2));
-   fSelectCanvas->MoveResize(176-66,144,91,24);
-
-   TGNumberEntry *fUpdateRate = new TGNumberEntry(fGroupCanvas, (Double_t) 0,6,-1,(TGNumberFormat::EStyle) 5);
-   fGroupCanvas->AddFrame(fUpdateRate, new TGLayoutHints(kLHintsLeft | kLHintsTop,2,2,2,2));
-   fUpdateRate->MoveResize(176-66,40,59,22);
-
-   gClient->GetColorByName("#d4cf87",ucolor);
-   TGLabel *fLabelRate = new TGLabel(fGroupCanvas,"Rate [sec.]",TGLabel::GetDefaultGC()(),TGLabel::GetDefaultFontStruct(),kChildFrame,ucolor);
-   fLabelRate->SetTextJustify(36);
-   fLabelRate->SetMargins(0,0,0,0);
-   fLabelRate->SetWrapLength(-1);
-   fGroupCanvas->AddFrame(fLabelRate, new TGLayoutHints(kLHintsLeft | kLHintsTop,2,2,2,2));
-   fLabelRate->MoveResize(240-66,40,64,18);
-
-   gClient->GetColorByName("#00ff00",ucolor);
-   TGTextButton *fStartRefresh = new TGTextButton(fGroupCanvas,"Start Refresh");
-   fStartRefresh->SetTextJustify(36);
-   fStartRefresh->SetMargins(0,0,0,0);
-   fStartRefresh->SetWrapLength(-1);
-   fStartRefresh->Resize(91,24);
-
-   fStartRefresh->ChangeBackground(ucolor);
-   fGroupCanvas->AddFrame(fStartRefresh, new TGLayoutHints(kLHintsLeft | kLHintsTop,2,2,2,2));
-   fStartRefresh->MoveResize(64-56,40,91,24);
-
-   ufont = gClient->GetFont("-*-helvetica-medium-r-*-*-12-*-*-*-*-*-iso8859-1");
-
-   // graphics context changes
-   GCValues_t valButton2930;
-   valButton2930.fMask = kGCForeground | kGCBackground | kGCFillStyle | kGCFont | kGCGraphicsExposures;
-   gClient->GetColorByName("#ffffff",valButton2930.fForeground);
-   gClient->GetColorByName("#e0e0e0",valButton2930.fBackground);
-   valButton2930.fFillStyle = kFillSolid;
-   valButton2930.fFont = ufont->GetFontHandle();
-   valButton2930.fGraphicsExposures = kFALSE;
-   uGC = gClient->GetGC(&valButton2930, kTRUE);
-
-   gClient->GetColorByName("#0000ff",ucolor);
-   TGTextButton *fRefreshCurrent = new TGTextButton(fGroupCanvas,"Refresh Current");
-   fRefreshCurrent->SetTextJustify(36);
-   fRefreshCurrent->SetMargins(0,0,0,0);
-   fRefreshCurrent->SetWrapLength(-1);
-   fRefreshCurrent->Resize(91,24);
-
-//   fRefreshCurrent->ChangeBackground(ucolor);
-   fGroupCanvas->AddFrame(fRefreshCurrent, new TGLayoutHints(kLHintsLeft | kLHintsTop,2,2,2,2));
-   fRefreshCurrent->MoveResize(64-56,80,91,24);
-
-   ufont = gClient->GetFont("-*-helvetica-medium-r-*-*-12-*-*-*-*-*-iso8859-1");
-
-   // graphics context changes
-   GCValues_t valButton2931;
-   valButton2931.fMask = kGCForeground | kGCBackground | kGCFillStyle | kGCFont | kGCGraphicsExposures;
-   gClient->GetColorByName("#ffffff",valButton2931.fForeground);
-   gClient->GetColorByName("#e0e0e0",valButton2931.fBackground);
-   valButton2931.fFillStyle = kFillSolid;
-   valButton2931.fFont = ufont->GetFontHandle();
-   valButton2931.fGraphicsExposures = kFALSE;
-   uGC = gClient->GetGC(&valButton2931, kTRUE);
-
-   TGTextButton *fRefreshAll = new TGTextButton(fGroupCanvas,"Refresh All");
-   fRefreshAll->SetTextJustify(36);
-   fRefreshAll->SetMargins(0,0,0,0);
-   fRefreshAll->SetWrapLength(-1);
-   fRefreshAll->Resize(91,24);
-
-//   fRefreshAll->ChangeBackground(ucolor);
-   fGroupCanvas->AddFrame(fRefreshAll, new TGLayoutHints(kLHintsLeft | kLHintsTop,2,2,2,2));
-   fRefreshAll->MoveResize(176-66,80,91,24);
-
-   ufont = gClient->GetFont("-*-helvetica-medium-r-*-*-12-*-*-*-*-*-iso8859-1");
-
-   // graphics context changes
-   GCValues_t valButton2932;
-   valButton2932.fMask = kGCForeground | kGCBackground | kGCFillStyle | kGCFont | kGCGraphicsExposures;
-   gClient->GetColorByName("#ffffff",valButton2932.fForeground);
-   gClient->GetColorByName("#e0e0e0",valButton2932.fBackground);
-   valButton2932.fFillStyle = kFillSolid;
-   valButton2932.fFont = ufont->GetFontHandle();
-   valButton2932.fGraphicsExposures = kFALSE;
-   uGC = gClient->GetGC(&valButton2932, kTRUE);
-
-   TGTextButton *fZeroCurrent = new TGTextButton(fGroupCanvas,"Zero Current");
-   fZeroCurrent->SetTextJustify(36);
-   fZeroCurrent->SetMargins(0,0,0,0);
-   fZeroCurrent->SetWrapLength(-1);
-   fZeroCurrent->Resize(91,24);
-
-//   fZeroCurrent->ChangeBackground(ucolor);
-   fGroupCanvas->AddFrame(fZeroCurrent, new TGLayoutHints(kLHintsLeft | kLHintsTop,2,2,2,2));
-   fZeroCurrent->MoveResize(64-56,112,91,24);
-
-   fGroupCanvas->SetLayoutManager(new TGVerticalLayout(fGroupCanvas));
-   fGroupCanvas->Resize(336,240);
-   fMainFrame6310->AddFrame(fGroupCanvas, new TGLayoutHints(kLHintsExpandX | kLHintsExpandY));
-   fGroupCanvas->MoveResize(16,256,336,240);
-
-   fMainFrame1877->AddFrame(fMainFrame6310, new TGLayoutHints(kLHintsExpandX | kLHintsExpandY));
-   fMainFrame6310->MoveResize(0,0,370,496);
-
-   fMainFrame2710->AddFrame(fMainFrame1877, new TGLayoutHints(kLHintsExpandX | kLHintsExpandY));
-   fMainFrame1877->MoveResize(0,0,369,506);
-
-   fRbeerFrame->AddFrame(fMainFrame2710, new TGLayoutHints(kLHintsExpandX | kLHintsExpandY));
-   fMainFrame2710->MoveResize(0,0,366,503);
+   fRbeerFrame->AddFrame(fMainFrame1596, new TGLayoutHints(kLHintsExpandX | kLHintsExpandY));
+   fMainFrame1596->MoveResize(0,0,349,426);
 
    fRbeerFrame->SetMWMHints(kMWMDecorAll,
                         kMWMFuncAll,
@@ -554,8 +579,6 @@ void GuiLayout()
    fRbeerFrame->MapSubwindows();
 
    fRbeerFrame->Resize(fRbeerFrame->GetDefaultSize());
-	 fRbeerFrame->Move(100,100);
-	 fRbeerFrame->SetWMPosition(100,100);
    fRbeerFrame->MapWindow();
-   fRbeerFrame->Resize(361,495);
+   fRbeerFrame->Resize(349,424);
 }  

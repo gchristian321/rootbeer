@@ -4,10 +4,19 @@
 #include <TString.h>
 #include <TGFileDialog.h>
 #include "TGSelectDialog.h"
+#include "TGDivideSelect.h"
 #include "Signals.hxx"
 #include "Rootbeer.hxx"
 #include "Gui.hxx"
 
+
+void rb::Signals::UpdateBufferCounter(Int_t n, Bool_t force) {
+	// if(!fNBuffers) return;
+	// if(n % 100 != 0 && !force) return;
+	// std::stringstream sstr;
+	// sstr << n;
+	// fNBuffers->ChangeText(sstr.str().c_str());
+}
 
 void rb::Signals::AttachOnline() { printf("todo\n"); }
 
@@ -76,15 +85,13 @@ void rb::Signals::ClearCurrent() {
 }
 void rb::Signals::CreateNew() {
 	std::string name = fEntryName->GetText();
-	if(name == "") new TCanvas();
-	else {
-		std::stringstream ssname(name);
-		int nn = 1;
-		while(gROOT->GetListOfCanvases()->FindObject(ssname.str().c_str())) {
-			ssname.str(""); ssname << name << "_n" << nn++;
-		}
-		new TCanvas(ssname.str().c_str(), ssname.str().c_str());
+	if(name == "") name = "c1";
+	std::stringstream ssname(name);
+	int nn = 1;
+	while(gROOT->GetListOfCanvases()->FindObject(ssname.str().c_str())) {
+		ssname.str(""); ssname << name << "_n" << nn++;
 	}
+	new TCanvas(ssname.str().c_str(), ssname.str().c_str(), 500, 10, 696, 472);
 }
 void rb::Signals::Update() {
 	if(!rb::canvas::GetUpdateRate()) {
@@ -115,26 +122,24 @@ void get_end_pads(TPad* canvas) {
 	for(int i=0; i < primitives->GetEntries(); ++i) {
 			TPad* pad = dynamic_cast<TPad*>(primitives->At(i));
 			if(!pad) continue;
-			if(!is_divided(pad)) pads.insert(std::make_pair<std::string, TPad*>(pad->GetName(), pad));
-			else get_end_pads(pad);
+			if(!is_divided(pad))
+				 pads.insert(std::make_pair<std::string, TPad*>(pad->GetName(), pad));
+			else {
+				pads.insert(std::make_pair<std::string, TPad*>(pad->GetName(), pad));
+				get_end_pads(pad);
+			}
 	}
 } }
 void rb::Signals::SyncCanvases() {
 	pads.clear();
 	for(int i=0; i< gROOT->GetListOfCanvases()->GetEntries(); ++i) {
 		TPad* pad = dynamic_cast<TPad*>(gROOT->GetListOfCanvases()->At(i));
-		if(!is_divided(pad)) pads.insert(std::make_pair<std::string, TPad*>(pad->GetName(), pad));
+		/*if(!is_divided(pad))*/ pads.insert(std::make_pair<std::string, TPad*>(pad->GetName(), pad));
 		get_end_pads(pad);
 	}
 }
 
 void rb::Signals::CdCanvas() {
-	// if(!pads.count(which)) {
-	// 	std::cerr << "Error: Pad " << which << " not found.\n";
-	// 	return;
-	// }
-	// pads.find(which)->second->cd();
-
 	SyncCanvases();
 	std::vector<std::string> names;
 	for(std::map<std::string, TPad*>::iterator it = pads.begin(); it!=pads.end(); ++it)
@@ -143,11 +148,23 @@ void rb::Signals::CdCanvas() {
 	new TGSelectDialog(gClient->GetRoot(), 0, "Select Canvas:", "Select Canvas", &names, &which);
 	if(which >= 0 && which < (int)names.size()) {
 		pads[names[which]]->cd();
-	}		
+	}
+	gPad->Modified();
+	gPad->Update();
+	fSelectCanvas->SetDown(false);
 }
 
 void rb::Signals::DivideCurrent() {
-
-
-//	new TGInputDialog (fRbeerFrame);
+	if(!gPad) return;
+	int h = -1, v = -1;
+	new TGDivideSelect(gClient->GetRoot(), 0, &h, &v);
+	if(h > 0 && v > 0) {
+		gPad->Clear();
+		gPad->Divide(h, v);
+		if(h==1 && v == 1) gPad->cd();
+		else gPad->cd(1);
+	}
+	gPad->Modified();
+	gPad->Update();
+	fDivideCurrent->SetDown(false);
 }
