@@ -17,7 +17,7 @@ namespace rb { rb::Mutex gDataMutex("gDataMutex"); }
 rb::Event::Event(): fTree(new TTree("tree", "Rootbeer event tree")),
 		    fHistManager() {
   LockingPointer<TTree> pTree(fTree, gDataMutex);
-  pTree->SetDirectory(0);
+//  pTree->SetDirectory(0);
   pTree->SetCircular(1); // Allows storage of only one event
 }
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
@@ -38,6 +38,18 @@ void rb::Event::Process(void* event_address, Int_t nchar) {
   else HandleBadEvent();
 }
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// rb::Event::GetBranchList()                            //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+std::vector< std::pair<std::string, std::string> > rb::Event::GetBranchList() {
+	LockingPointer<TTree> pTree(fTree, gDataMutex);
+	std::vector< std::pair<std::string, std::string> > out;
+	for(Int_t i=0; i< pTree->GetListOfBranches()->GetEntries(); ++i) {
+		TBranch* branch = static_cast<TBranch*>(pTree->GetListOfBranches()->At(i));
+		out.push_back(std::make_pair<std::string, std::string> (branch->GetName(), branch->GetClassName()));
+	}
+	return out;
+}
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // Bool_t rb::Event::InitFormula::Operate()              //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 TTreeFormula* rb::Event::InitFormula::Operate(rb::Event* const event, const char* formula_arg) {
@@ -53,5 +65,3 @@ Bool_t rb::Event::BranchAdd::Operate(rb::Event* const event, const char* name, c
     LockingPointer<TTree>(event->fTree, gDataMutex)->Branch(name, classname, address, bufsize, 0);
   return branch != 0;
 }
-
-

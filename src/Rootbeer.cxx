@@ -5,6 +5,7 @@
 #include "Rint.hxx"
 #include "Buffer.hxx"
 #include "Data.hxx"
+#include "Signals.hxx"
 #include "hist/Hist.hxx"
 
 
@@ -110,7 +111,7 @@ namespace { rb::hist::Manager* const find_manager(Int_t code) {
   rb::Event* event = rb::gApp()->GetEvent(code);
   if(event == 0) err::Throw() << "Invalid event code: " << code;
   return event->GetHistManager();
-} }
+}}
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // rb::hist::New (One-dimensional)                       //
@@ -118,12 +119,14 @@ namespace { rb::hist::Manager* const find_manager(Int_t code) {
 rb::hist::Base* rb::hist::New(const char* name, const char* title,
 			      Int_t bx, Double_t xl, Double_t xh,
 			      const char* param, const char* gate, Int_t event_code) {
+	Bool_t from_gui = gApp()->GetSignals()->IsHistFromGui();
   rb::hist::Base* hist = 0;
   try {
     hist = find_manager(event_code)->Create<D1>(name, title, param, gate, event_code, bx, xl, xh);
   }
   catch (std::exception& e) {
-    err::Error("rb::hist::New") << e.what();
+		if(!from_gui) err::Error("rb::hist::New") << e.what();
+		else throw;
   }
   return hist;
 }
@@ -135,12 +138,14 @@ rb::hist::Base* rb::hist::New(const char* name, const char* title,
 			      Int_t bx, Double_t xl, Double_t xh,
 			      Int_t by, Double_t yl, Double_t yh,
 			      const char* param, const char* gate, Int_t event_code) {
+  Bool_t from_gui = gApp()->GetSignals()->IsHistFromGui();
   rb::hist::Base* hist = 0;
   try {
     hist = find_manager(event_code)->Create<D2>(name, title, param, gate, event_code, bx, xl, xh, by, yl, yh);
   }
   catch (std::exception& e) {
-    err::Error("rb::hist::New") << e.what();
+		if(!from_gui) err::Error("rb::hist::New") << e.what();
+		else throw;
   }
   return hist;
 }
@@ -153,12 +158,14 @@ rb::hist::Base* rb::hist::New(const char* name, const char* title,
 			      Int_t by, Double_t yl, Double_t yh,
 			      Int_t bz, Double_t zl, Double_t zh,
 			      const char* param, const char* gate, Int_t event_code) {
+  Bool_t from_gui = gApp()->GetSignals()->IsHistFromGui();
   rb::hist::Base* hist = 0;
   try {
       hist = find_manager(event_code)->Create<D3>(name, title, param, gate, event_code, bx, xl, xh, by, yl, yh, bz, zl, zh);
   }
   catch (std::exception& e) {
-    err::Error("rb::hist::New") << e.what();
+		if(!from_gui) err::Error("rb::hist::New") << e.what();
+		else throw;
   }
   return hist;
 }
@@ -170,13 +177,15 @@ rb::hist::Base* rb::hist::NewSummary(const char* name, const char* title,
 				     Int_t nbins, Double_t low, Double_t high,
 				     const char* paramList,  const char* gate, Int_t event_code,
 				     const char* orient) {
+  Bool_t from_gui = gApp()->GetSignals()->IsHistFromGui();
   rb::hist::Base* hist = 0;
   try {
     hist = find_manager(event_code)->Create<Summary>(name, title, paramList, gate, event_code,
 						     nbins, low, high, orient);
   }
   catch (std::exception& e) {
-    err::Error("rb::hist::New") << e.what();
+		if(!from_gui) err::Error("rb::hist::New") << e.what();
+		else throw;
   }
   return hist;
 }
@@ -187,12 +196,14 @@ rb::hist::Base* rb::hist::NewSummary(const char* name, const char* title,
 rb::hist::Base* rb::hist::NewGamma(const char* name, const char* title,
 				   Int_t nbinsx, Double_t xlow, Double_t xhigh,
 				   const char* param, const char* gate, Int_t event_code) {
+  Bool_t from_gui = gApp()->GetSignals()->IsHistFromGui();
   rb::hist::Base* hist = 0;
   try {
     hist = find_manager(event_code)->Create<Gamma>(name, title, param, gate, event_code, nbinsx, xlow, xhigh);
   }
   catch (std::exception& e) {
-    err::Error("rb::hist::New") << e.what();
+		if(!from_gui) err::Error("rb::hist::New") << e.what();
+		else throw;
   }
   return hist;
 }
@@ -204,13 +215,15 @@ rb::hist::Base* rb::hist::NewGamma(const char* name, const char* title,
 				   Int_t nbinsx, Double_t xlow, Double_t xhigh,
 				   Int_t nbinsy, Double_t ylow, Double_t yhigh,
 				   const char* param, const char* gate, Int_t event_code) {
+  Bool_t from_gui = gApp()->GetSignals()->IsHistFromGui();
   rb::hist::Base* hist = 0;
   try {
     hist = find_manager(event_code)->Create<Gamma>(name, title, param, gate, event_code,
 						   nbinsx, xlow, xhigh, nbinsy, ylow, yhigh);
   }
   catch (std::exception& e) {
-    err::Error("rb::hist::New") << e.what();
+		if(!from_gui) err::Error("rb::hist::New") << e.what();
+		else throw;
   }
   return hist;
 }
@@ -223,13 +236,15 @@ rb::hist::Base* rb::hist::NewGamma(const char* name, const char* title,
 				   Int_t nbinsy, Double_t ylow, Double_t yhigh,
 				   Int_t nbinsz, Double_t zlow, Double_t zhigh,
 				   const char* params,  const char* gate, Int_t event_code) {
+  Bool_t from_gui = gApp()->GetSignals()->IsHistFromGui();
   rb::hist::Base* hist = 0;
   try {
     hist = find_manager(event_code)->Create<Gamma>(name, title, params, gate, event_code,
 						   nbinsx, xlow, xhigh, nbinsy, ylow, yhigh, nbinsz, zlow, zhigh);
   }
   catch (std::exception& e) {
-    err::Error("rb::hist::New") << e.what();
+		if(!from_gui) err::Error("rb::hist::New") << e.what();
+		else throw;
   }
   return hist;
 }
@@ -239,12 +254,14 @@ rb::hist::Base* rb::hist::NewGamma(const char* name, const char* title,
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 rb::hist::Base* rb::hist::NewBit(const char* name, const char* title, Int_t nbits, const char* param, const char* gate,
 				 Int_t event_code) {
+  Bool_t from_gui = gApp()->GetSignals()->IsHistFromGui();
   rb::hist::Base* hist = 0;
   try {
     hist = find_manager(event_code)->Create<Bit>(name, title, param, gate, event_code, nbits, 0., 1.);
   }
   catch (std::exception& e) {
-    err::Error("rb::hist::New") << e.what();
+		if(!from_gui) err::Error("rb::hist::New") << e.what();
+		else throw;
   }
   return hist;
 }

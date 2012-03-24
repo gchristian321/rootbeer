@@ -63,7 +63,8 @@ rootbeer: $(RBLIB)/libRootbeer.so $(SRC)/main.cc
 OBJECTS=$(OBJ)/hist/Hist.o $(OBJ)/hist/Manager.o \
 $(OBJ)/Formula.o $(OBJ)/midas/TMidasEvent.o $(OBJ)/midas/TMidasFile.o $(MIDASONLINE) \
 $(OBJ)/Data.o $(OBJ)/Event.o $(OBJ)/Buffer.o $(OBJ)/user/User.o $(OBJ)/Canvas.o $(OBJ)/WriteConfig.o \
-$(OBJ)/Rint.o $(OBJ)/Signals.o $(OBJ)/Rootbeer.o $(OBJ)/Gui.o $(OBJ)/TGSelectDialog.o $(OBJ)/TGDivideSelect.o
+$(OBJ)/Rint.o $(OBJ)/Signals.o $(OBJ)/Rootbeer.o $(OBJ)/Gui.o $(OBJ)/HistGui.o \
+$(OBJ)/TGSelectDialog.o $(OBJ)/TGDivideSelect.o
 
 HEADERS=$(SRC)/Rootbeer.hxx $(SRC)/Rint.hxx $(SRC)/Data.hxx $(SRC)/Buffer.hxx $(SRC)/Event.hxx $(SRC)/user/User.hxx \
 $(SRC)/Signals.hxx $(SRC)/Formula.hxx $(SRC)/utils/LockingPointer.hxx $(SRC)/utils/Mutex.hxx \
@@ -82,20 +83,26 @@ $(OBJ)/Rootbeer.o: $(CINT)/RBDictionary.cxx $(SRC)/Rootbeer.cxx
 -o $@  -p $(SRC)/Rootbeer.cxx \
 
 Rint: $(OBJ)/Rint.o
-$(OBJ)/Rint.o: $(CINT)/RBDictionary.cxx $(SRC)/Rint.cxx $(CINT)/RBGuiDictionary.cxx $(OBJ)/Gui.o
+$(OBJ)/Rint.o: $(CINT)/RBDictionary.cxx $(SRC)/Rint.cxx $(OBJ)/Gui.o $(OBJ)/HistGui.o
 	$(COMPILE) $(FPIC) -c \
 -o $@  -p $(SRC)/Rint.cxx \
 
 Signals: $(OBJ)/Signals.o
-$(OBJ)/Signals.o: $(CINT)/RBDictionary.cxx $(SRC)/Signals.cxx $(CINT)/RBGuiDictionary.cxx
+$(OBJ)/Signals.o: $(CINT)/RBDictionary.cxx $(SRC)/Signals.cxx
 	$(COMPILE) $(FPIC) -c \
 -o $@  -p $(SRC)/Signals.cxx \
 
 Gui: $(OBJ)/Gui.o
-$(OBJ)/Gui.o: $(CINT)/RBDictionary.cxx $(SRC)/GuiLayout.cxx $(SRC)/MakeConnections.hxx $(CINT)/RBGuiDictionary.cxx
+$(OBJ)/Gui.o: $(CINT)/RBDictionary.cxx $(SRC)/GuiLayout.cxx $(SRC)/MakeConnections.hxx
 	python gui_edit.py src/GuiLayout.cxx 
 	$(COMPILE) $(FPIC) -c \
 -o $@  -p $(SRC)/Gui.cxx \
+
+HistGui: $(OBJ)/HistGui.o
+$(OBJ)/HistGui.o: $(CINT)/RBDictionary.cxx $(SRC)/HistGuiLayout.cxx $(SRC)/MakeHistConnections.hxx
+	python gui_edit.py src/HistGuiLayout.cxx 
+	$(COMPILE) $(FPIC) -c \
+-o $@  -p $(SRC)/HistGui.cxx \
 
 TGSelectDialog: $(OBJ)/TGSelectDialog.o
 $(OBJ)/TGSelectDialog.o: $(CINT)/RBDictionary.cxx $(SRC)/TGSelectDialog.cxx

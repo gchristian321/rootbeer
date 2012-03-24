@@ -26,7 +26,7 @@ void MakeConnections() {
    // Define actions to take when buttons are pressed:
    //     fMainFramePointer->Connect(fTextButtonPointer, "Pressed()", 0, 0, "some_function()");
 
-
+	fRbeerFrame->MoveResize(20,20,fRbeerFrame->GetWidth(), fRbeerFrame->GetHeight());
 	fUnattach->SetEnabled(false);
 	fUpdateRate->SetLimits(TGNumberFormat::kNELLimitMinMax, 1, 600);
 	fUpdateRate->SetNumber(5);
@@ -37,13 +37,16 @@ void MakeConnections() {
 	RB_BUTTON_CONNECT(fUnattach, "Unattach()");
 	RB_BUTTON_CONNECT(fRefreshAll, "UpdateAll()");
 	RB_BUTTON_CONNECT(fRefreshCurrent, "UpdateCurrent()");
-	RB_BUTTON_CONNECT(fZeroAll, "ClearAll()");
-	RB_BUTTON_CONNECT(fZeroCurrent, "ClearCurrent()");
+	RB_BUTTON_CONNECT(fZeroAll, "ZeroAll()");
+	RB_BUTTON_CONNECT(fZeroCurrent, "ZeroCurrent()");
 	RB_BUTTON_CONNECT(fCreateNew, "CreateNew()");
 	RB_BUTTON_CONNECT(fDivideCurrent, "DivideCurrent()");
 	RB_BUTTON_CONNECT(fStartRefresh, "Update()");
 	RB_BUTTON_CONNECT(fSelectCanvas, "CdCanvas()");
 	RB_BUTTON_CONNECT(fQuit, "Quit()");
+	RB_BUTTON_CONNECT(fClearCurrent, "ClearCurrent()");
+	RB_BUTTON_CONNECT(fConfigLoad, "ReadCanvasConfig()");
+	RB_BUTTON_CONNECT(fConfigSave, "WriteCanvasConfig()");
 
 	RB_SIGNALS->Connect("Unattaching()", "TGTextButton", fUnattach, "ChangeBackground(=0xe0e0e0)");	
 	RB_SIGNALS->Connect("Unattaching()", "TGTextButton", fUnattach, "SetEnabled(=false)");

@@ -47,7 +47,9 @@ void rb::hist::Manager::Add(rb::hist::Base* hist) {
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 void rb::hist::Manager::Remove(rb::hist::Base* hist) {
   LockingPointer<hist::Container_t> pSet(fSet, fSetMutex);
-  pSet->erase(hist);
-  TDirectory* directory = hist->fDirectory;
-  if(directory) directory->Remove(hist);
+	if(pSet->count(hist)) {
+		pSet->erase(hist);
+		TDirectory* directory = hist->fDirectory;
+		if(directory) directory->Remove(hist);
+	}
 }

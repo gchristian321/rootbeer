@@ -26,19 +26,42 @@ public:
 	 void Unattach();
 	 void UpdateAll();
 	 void UpdateCurrent();
-	 void ClearAll();
+	 void ZeroAll();
+	 void ZeroCurrent();
 	 void ClearCurrent();
 	 void DivideCurrent();
+	 void WriteConfig();
+	 void ReadConfig();
+	 void WriteHistConfig();
+	 void WriteVariableConfig();
+	 void ReadCanvasConfig();
+	 void WriteCanvasConfig();
 	 void CreateNew();
 	 void Update();
 	 void SyncCanvases();
 	 void CdCanvas();
 	 void Quit();
+
+// === Hist === //
+private:
+	 Bool_t fHistFromGui;
+public:
+	 void EnableHistFields(Int_t);
+	 void PopulateEvents();
+	 void PopulateParameters(Int_t);
+	 void SetHistFromGui();
+	 Bool_t IsHistFromGui();
+	 void CreateHistogram();
+	 
+
+	 Signals();
 	 ClassDef(rb::Signals, 0);
 };
 
 }
 
+inline rb::Signals::Signals():
+	fHistFromGui (false) {}
 inline void rb::Signals::Unattaching() {
 	Emit("Unattaching()");
 }
@@ -63,6 +86,9 @@ inline void rb::Signals::AttachedOnline(const char* host) {
 }
 inline void rb::Signals::ChangedCanvases() {
 	Emit("ChangedCanvases()");
+}
+inline void rb::Signals::SetHistFromGui() {
+	fHistFromGui = true;
 }
 
 #endif

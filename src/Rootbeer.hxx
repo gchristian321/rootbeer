@@ -64,6 +64,12 @@ namespace rb
   //! \todo Currently not implemented.
   extern Int_t WriteCanvases(const char* filename, Bool_t prompt = kTRUE);
 
+  /// \brief Read canvas configuration file.
+  //! \details Reads the current canvases and the histograms contained on them from a configuration
+  //! file.
+  //! \todo Currently not implemented.
+  extern Int_t ReadCanvases(const char* filename);
+
   /// Contains user functions relevant to updating canvases and other graphics.
   namespace canvas
   {

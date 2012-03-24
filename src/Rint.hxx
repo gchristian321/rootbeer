@@ -1,15 +1,18 @@
 #ifndef RINT_HXX
 #define RINT_HXX
 #include <map>
+#include <vector>
 #include <sstream>
 #include <TRint.h>
-#include "Signals.hxx"
 #include "Event.hxx"
+#include "Signals.hxx"
+#include "utils/Error.hxx"
 
 namespace rb
 {
 //========== Typedefs ===========//
-typedef std::map<Int_t, rb::Event*> EventMap_t;
+typedef std::map<Int_t, std::pair<rb::Event*, std::string> > EventMap_t;
+typedef std::vector<std::pair<Int_t, std::string> > EventVector_t;
 
 namespace gui { class MainFrameFactory; class MainFrame; }
 
@@ -41,6 +44,9 @@ public:
 	 //!  return NULL
 	 rb::Event* GetEvent(Int_t code);
 
+   //! Return a vector populated with pairs of < event code, event name >
+	 EventVector_t GetEventVector();
+
 	 //! Return the number of events total
 	 Int_t NEvents() { return fEvents.size(); }
 
@@ -68,7 +74,7 @@ public:
 private:
 	 /// Adds an instance of an event processor to fEvents.
 	 //! \tparam T The type of the instance you want to register.
-	 template <typename T> void RegisterEvent(Int_t code);
+	 template <typename T> void RegisterEvent(Int_t code, const char* name);
 
 	 /// \brief Registers all event processors in the program.
 	 //! \details This needs to be implemented by users to account for
@@ -100,8 +106,16 @@ inline void rb::Rint::AddMessage(const std::string& str) {
   fMessage << str;
 }
 template <typename T>
-void rb::Rint::RegisterEvent(Int_t code) {
-  fEvents.insert(std::make_pair<Int_t, rb::Event*>(code, rb::Event::Instance<T>()));
+void rb::Rint::RegisterEvent(Int_t code, const char* name) {
+	if(code == -1) {
+		err::Error("RegisterEvent")
+			 << "Event code -1 is reserved and cannot be set by users.\n"
+			 << "Please choose another code for " << name << "\n";
+		exit(1);
+	}
+	std::pair<Event*, std::string> second = std::make_pair(rb::Event::Instance<T>(),
+																												 std::string(name));
+  fEvents.insert(std::make_pair(code, second));
 }
 inline rb::Signals* rb::Rint::GetSignals() {
 	return &fSignals;

@@ -111,6 +111,6 @@ Bool_t DragonEvent::DoProcess(void* addr, Int_t nchar) {
 
 void rb::Rint::RegisterEvents() {
   // Register events here //
-  RegisterEvent<DragonEvent>(DRAGON_EVENT);
+  RegisterEvent<DragonEvent>(DRAGON_EVENT, "DragonEvent");
 }
 

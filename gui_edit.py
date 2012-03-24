@@ -12,12 +12,18 @@ if __name__ == "__main__":
     if fbase == "src/GuiLayout":
         fnameheader = "Gui.hxx"
         fnamesource = "Gui.cxx"
+    elif fbase == "src/HistGuiLayout":
+        fnameheader = "HistGui.hxx"
+        fnamesource = "HistGui.cxx"
     else:
         fnameheader = fbase + "_edit.hxx"
         fnamesource = fbase + "_edit.cxx"
 
     fin = open(fnamein, 'r')
     if fnameheader == "Gui.hxx":
+        fheader = open("src/"+fnameheader, 'w')
+        fsource = open("src/"+fnamesource, 'w')
+    elif fnameheader == "HistGui.hxx":
         fheader = open("src/"+fnameheader, 'w')
         fsource = open("src/"+fnamesource, 'w')
     else:
@@ -46,8 +52,12 @@ if __name__ == "__main__":
             decl.append(tok[0] + " " +tok[1] + " = 0;")
 
         elif (line == "}  \n"):
-            fsource.write("\n   // Call MakeConnections function, defined in " + fnameheader + "\n")
-            fsource.write("   MakeConnections(); \n" + line)
+            if fbase == "src/HistGuiLayout":
+                fsource.write("\n   // Call MakeHistConnections function, defined in " + fnameheader + "\n")
+                fsource.write("   MakeHistConnections(); \n" + line)
+            else:
+                fsource.write("\n   // Call MakeConnections function, defined in " + fnameheader + "\n")
+                fsource.write("   MakeConnections(); \n" + line)
 
         elif (line[0] == "#"):
             fheader.write(line)
@@ -68,10 +78,17 @@ if __name__ == "__main__":
     for d in decl:
         fsource.write(d)
     fsource.write("\n// ================================================== //\n\n")
-    fconnect = open("src/MakeConnections.hxx", 'r')
+    if fbase == "src/HistGuiLayout":
+        fconnect = open("src/MakeHistConnections.hxx", 'r')
+    else:
+        fconnect = open("src/MakeConnections.hxx", 'r')
     for line in fconnect:
         fsource.write(line)
     fconnect.close()
-    fheader.write("\nextern void GuiLayout();\n")
-    fheader.write("\nextern void MakeConnections();\n")
+    if fbase == "src/HistGuiLayout":
+        fheader.write("\nextern void HistGuiLayout();\n")
+        fheader.write("\nextern void MakeHistConnections();\n")
+    else:
+        fheader.write("\nextern void GuiLayout();\n")
+        fheader.write("\nextern void MakeConnections();\n")
     fheader.write("\n\n\n\n#endif\n")

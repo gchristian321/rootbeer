@@ -307,3 +307,9 @@ Int_t rb::WriteCanvases(const char* fname, Bool_t prompt) {
   return 0;
 }
 
+// Just write the canvases.
+Int_t rb::ReadCanvases(const char* fname) {
+	std::cout << "Todo\n";
+  return 0;
+}
+

@@ -5,6 +5,7 @@
 #include "Rootbeer.hxx"
 #include "gui/CanvasGui.hxx"
 #include "Gui.hxx"
+#include "HistGui.hxx"
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // Class rb::Rint Implementation                         //
@@ -34,7 +35,7 @@ void rb::Rint::Terminate(Int_t status) {
 	if(fFrames) delete fFrames;
   EventMap_t::iterator it;
   for(it = fEvents.begin(); it != fEvents.end(); ++it) {
-    rb::Event* event = it->second;
+    rb::Event* event = it->second.first;
     rb::Event::Destructor::Operate(event);
   }
   TRint::Terminate(status);
@@ -45,6 +46,7 @@ void rb::Rint::Terminate(Int_t status) {
 void rb::Rint::InitGui() {
 //	fFrames->Add (new gui::Canvas() );
 	GuiLayout();
+	HistGuiLayout();
 }
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // Frame* rb::Rint::GetGuiFrame()                        //
@@ -58,15 +60,25 @@ void rb::Rint::SyncAll() {
 // Events_t rb::Rint::GetEvent()                         //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 rb::Event* rb::Rint::GetEvent(Int_t code) {
-  EventMap_t::iterator itEvent = fEvents.find(code);
-  return itEvent != fEvents.end() ? itEvent->second : NULL;
+	return fEvents.count(code) ? fEvents.find(code)->second.first : 0;
+}
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// EventVector_t rb::Rint::GetEventVector()              //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+rb::EventVector_t rb::Rint::GetEventVector() {
+	EventMap_t::iterator it = fEvents.begin();
+	EventVector_t out; if(!fEvents.size()) return out;
+	while(it != fEvents.end()) {
+		out.push_back(std::make_pair(it->first, it->second.second)); ++it;
+	}
+	return out;
 }
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // void rb::Rint::PrintLogo()                            //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 void rb::Rint::PrintLogo(Bool_t lite) {
   if(!lite)
-    std::cout << "                                                                 \n"
+    std::cout << "                                                           \n"
 	      << "                            ___                                  \n"
 	      << "                          .'   '.                                \n"
 	      << "                         /       \\           oOoOo              \n"
@@ -87,7 +99,7 @@ void rb::Rint::PrintLogo(Bool_t lite) {
 	      << "                      /                                          \n"
 	      << "                     /                                           \n"
 	      << "                    /_____                                       \n";
-  std::cout   << "                                                                 \n"
+  std::cout   << "                                                           \n"
 	      << "      Welcome to ROOT BEER, the ROOT Basic Event ExtractoR       \n"
 	      << "                                                                 \n";
 }
