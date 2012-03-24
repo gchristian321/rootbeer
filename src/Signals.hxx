@@ -4,6 +4,7 @@
 #define SIGNALS_HXX
 #include <TQObject.h>
 
+
 namespace rb
 {
 
@@ -52,6 +53,9 @@ public:
 	 void SetHistFromGui();
 	 Bool_t IsHistFromGui();
 	 void CreateHistogram();
+
+// === Variables/Config === //
+	 void ClickedLoadButton(Int_t);
 	 
 
 	 Signals();

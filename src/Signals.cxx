@@ -412,3 +412,15 @@ void rb::Signals::CreateHistogram() {
 		hist_error(e.what());
 	}
 }
+
+
+void rb::Signals::ClickedLoadButton(Int_t which) {
+	TGRadioButton* buttons[3] = {	fConfigLoadMethodReset,
+																fConfigLoadMethodOverwrite,
+																fConfigLoadMethodCumulate };
+	for(int i=0; i< 3; ++i) {
+		if(i != which) buttons[i]->SetOn(false);
+		else buttons[i]->SetOn(true);
+	}
+}
+
