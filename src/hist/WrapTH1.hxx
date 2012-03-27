@@ -455,12 +455,12 @@ virtual void GetCenter(Double_t* center) const
   rb::ScopedLock<rb::Mutex> LOCK (TTHREAD_GLOBAL_MUTEX);
   return AS_TH1->GetCenter(center);
 }
-/// <a href = "http://root.cern.ch/root/html/TH1.html#TH1:GetDirectory">*** TH1 Member Function ***</a>
-TDirectory* GetDirectory() const
-{
-  rb::ScopedLock<rb::Mutex> LOCK (TTHREAD_GLOBAL_MUTEX);
-  return AS_TH1->GetDirectory();
-}
+// /// <a href = "http://root.cern.ch/root/html/TH1.html#TH1:GetDirectory">*** TH1 Member Function ***</a>
+// TDirectory* GetDirectory() const
+// {
+//   rb::ScopedLock<rb::Mutex> LOCK (TTHREAD_GLOBAL_MUTEX);
+//   return AS_TH1->GetDirectory();
+// }
 /// <a href = "http://root.cern.ch/root/html/TH1.html#TH1:GetEntries">*** TH1 Member Function ***</a>
 virtual Double_t GetEntries() const
 {

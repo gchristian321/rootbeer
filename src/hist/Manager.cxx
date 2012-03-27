@@ -32,6 +32,7 @@ void rb::hist::Manager::FillAll() {
 void rb::hist::Manager::DeleteAll() {
   LockingPointer<hist::Container_t> pSet(fSet, fSetMutex);
   Int_t nhists = pSet->size();
+	if(!nhists) return;
   std::vector<rb::hist::Base*> addresses(pSet->begin(), pSet->end());
   for(Int_t i=0; i< nhists; ++i) delete addresses[i]; // removes from fSet
 }

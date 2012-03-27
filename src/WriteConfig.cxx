@@ -9,18 +9,20 @@
 #include "Rootbeer.hxx"
 #include "Rint.hxx"
 #include "Data.hxx"
+#include "Signals.hxx"
 #include "hist/Hist.hxx"
 using namespace std;
 
 
+namespace {
 
 /// Tells the writing functions how many tabs to indent by.
-static Int_t ntabs = 2;
+Int_t ntabs = 2;
 
 // Some helper functions, etc.
 
 /// Return axis based on number code
-TAxis* get_axis(TH1* hst, UInt_t n) {
+TAxis* get_axis(rb::hist::Base* hst, UInt_t n) {
   switch(n) {
   case 0: return hst->GetXaxis(); break;
   case 1: return hst->GetYaxis(); break;
@@ -29,33 +31,37 @@ TAxis* get_axis(TH1* hst, UInt_t n) {
   }
 }
 
-/// Write a histogram constructor format to a stream.
-void write_hist(TObject* object, ostream& ofs) {
-  rb::hist::Base* rbhst = dynamic_cast<rb::hist::Base*>(object);
-  if(!rbhst) return;
-  TH1* hst = rbhst->GetHist();
-  if(!hst) return;
-
-  for(int i=0; i< ntabs; ++i) ofs << "    ";
-  ofs << "  rb::hist::Base::New(\"" << rbhst->GetName() << "\", \"" << rbhst->GetTitle() << "\", ";
-  string param = "";
-  for(UInt_t i=0; i< rbhst->GetNdimensions(); ++i) {
-    param.insert(0, rbhst->GetParam(i));
-    param.insert(0, ":"); // append :par in reverse order
-    TAxis* axis = get_axis(hst, i);
+void write_std_hist(rb::hist::Base* rbhist, std::ostream& ofs) {
+	for(int i=0; i< ntabs; ++i) ofs << "    ";
+	ofs << "  rb::hist::New(\"" << rbhist->GetName() << "\", \"" << rbhist->GetTitle() << "\", " ;
+	for(UInt_t dim = 0; dim < rbhist->GetNdimensions(); ++dim) {
+		TAxis* axis = get_axis(rbhist, dim);
     ofs << axis->GetNbins() << ", " << axis->GetBinLowEdge(1) << ", " << axis->GetBinLowEdge(1+axis->GetNbins()) <<", ";
-  }
-  param.erase(0, 1); // get rid of leading ":"
-  ofs << "\"" << param << "\", \"" << rbhst->GetGate() << "\");\n";
+	}
+	std::string param = rbhist->GetInitialParams();
+	ofs << "\"" << param << "\", \"" << rbhist->GetGate() << "\");\n";
+}
+
+/// Write a histogram constructor format to a stream.
+void write_hist(TObject* object, std::ostream& ofs) {
+  rb::hist::Base* rbhist = dynamic_cast<rb::hist::Base*>(object);
+  if(!rbhist) return;
+  TH1* hst = rbhist->GetHist();
+  if(!hst) return;
+	std::string class_name = rbhist->ClassName();
+	class_name = class_name.substr(std::string("rb::hist::").size());
+	if(class_name == "D1" || class_name == "D2" || class_name == "D3")
+		 write_std_hist(rbhist, ofs);
+	else ;
 }
 
 /// Write a diretory constructor to a stream.
-Bool_t write_directory(TObject* object, ostream& ofs) {
+Bool_t write_directory(TObject* object, std::ostream& ofs) {
   TDirectory* dir = dynamic_cast<TDirectory*>(object);
   if(!dir) return kFALSE;
   TDirectory* mother = dir->GetMotherDir();
   if(!mother) return kFALSE;
-  string motherOut = (mother == gROOT) ? "gROOT" : mother->GetName();
+  std::string motherOut = (mother == gROOT) ? "gROOT" : mother->GetName();
   ofs << "\n"; for(int i=0; i< ntabs; ++i) ofs << "    ";
   ofs << "  TDirectory* " << dir->GetName() << " = new TDirectory(\""
       << dir->GetName() << "\", \"" << dir->GetTitle() << "\", \""
@@ -65,9 +71,22 @@ Bool_t write_directory(TObject* object, ostream& ofs) {
   return kTRUE;
 }
 
+void recursive_delete_directory(TDirectory* dir) {
+  for(Int_t i=0; i< dir->GetList()->GetEntries(); ++i) {
+		if(dynamic_cast<rb::hist::Base*>(dir->GetList()->At(i))) {
+			delete dynamic_cast<rb::hist::Base*>(dir->GetList()->At(i));
+		}
+  }
+  for(Int_t i=0; i< dir->GetList()->GetEntries(); ++i) {
+		if(dynamic_cast<TDirectory*>(dir->GetList()->At(i))) {
+			recursive_delete_directory(dynamic_cast<TDirectory*>(dir->GetList()->At(i)));
+		}
+  }
+}
+
 /// Recurse through all directories, write their owned histograms
 /// to a stream as well as the directory constructors themselves.
-void recurse_directory(TDirectory* dir, ostream& ofs) {
+void recurse_directory(TDirectory* dir, std::ostream& ofs) {
   for(Int_t i=0; i< dir->GetList()->GetEntries(); ++i) {
     write_hist(dir->GetList()->At(i), ofs);
   }
@@ -80,9 +99,9 @@ void recurse_directory(TDirectory* dir, ostream& ofs) {
   --ntabs;
 }
 
-inline void write_hists_and_directories(ostream& ofs) {
+inline void write_hists_and_directories(std::ostream& ofs) {
   TDirectory* dirInitial = gDirectory;
-  string initialName = (dirInitial == gROOT) ? "gROOT" : dirInitial->GetName();
+  std::string initialName = (dirInitial == gROOT) ? "gROOT" : dirInitial->GetName();
 
   gROOT->cd();
   ofs << "  // DIRECTORIES AND HISTOGRAMS //\n";
@@ -94,7 +113,7 @@ inline void write_hists_and_directories(ostream& ofs) {
 
 
 /// Save a TCutG.
-void write_cut(TObject* obj, ostream& ofs)
+void write_cut(TObject* obj, std::ostream& ofs)
 {
   TCutG* cut = dynamic_cast<TCutG*>(obj);
   if(!cut) return;
@@ -106,7 +125,7 @@ void write_cut(TObject* obj, ostream& ofs)
   Int_t np = cut->GetN();
 
   Double_t xx, yy;
-  stringstream sX, sY;
+  std::stringstream sX, sY;
   sX << "     Double_t px[] = { " ;
   sY << "     Double_t py[] = { " ;
   for(Int_t i=0; i< np; ++i) {
@@ -133,7 +152,7 @@ Bool_t overwrite(const char* fname) {
   Bool_t out = kTRUE;
   ifstream ifs(fname, ios::in);
   if(ifs.good()) {
-    string answer;
+    std::string answer;
     cout << "The file " << fname << " already exists. Overwrite (y/n)?\n";
     cin  >> answer;
     if(!(answer == "y" || answer == "Y")) out = kFALSE;
@@ -141,15 +160,15 @@ Bool_t overwrite(const char* fname) {
   ifs.close();
   return out;
 }
-
+} // namespace
 
 // Write rootbeer configuration file
 Int_t rb::WriteConfig(const char* fname, Bool_t prompt) {
   if(prompt) {
     if(!overwrite(fname))
-      return 1;
+			 return 1;
   }
-  TTimeStamp ts; string ts_str = ts.AsString("l");
+  TTimeStamp ts; std::string ts_str = ts.AsString("l");
 
   ofstream ofs(fname, ios::out);
   ofs << "// ROOTBEER CONFIGURATION FILE \n"
@@ -178,9 +197,9 @@ Int_t rb::WriteConfig(const char* fname, Bool_t prompt) {
 Int_t rb::WriteHistograms(const char* fname, Bool_t prompt) {
   if(prompt) {
     if(!overwrite(fname))
-      return 1;
+			 return 1;
   }
-  TTimeStamp ts; string ts_str = ts.AsString("l");
+  TTimeStamp ts; std::string ts_str = ts.AsString("l");
 
   ofstream ofs(fname, ios::out);
   ofs << "// ROOTBEER HISTOGRAM CONFIGURATION FILE \n"
@@ -199,9 +218,9 @@ Int_t rb::WriteHistograms(const char* fname, Bool_t prompt) {
 Int_t rb::WriteVariables(const char* fname, Bool_t prompt) {
   if(prompt) {
     if(!overwrite(fname))
-      return 1;
+			 return 1;
   }
-  TTimeStamp ts; string ts_str = ts.AsString("l");
+  TTimeStamp ts; std::string ts_str = ts.AsString("l");
 
   ofstream ofs(fname, ios::out);
   ofs << "// ROOTBEER VARIABLE CONFIGURATION FILE \n"
@@ -232,60 +251,64 @@ void rb::ReadConfig(const char* filename, Option_t* option) {
   opt.ToLower();
   if(0);
   else if(!opt.CompareTo("c")) {
-    stringstream sstr;
+    std::stringstream sstr;
     sstr << ".x " << filename;
     gROOT->ProcessLine(sstr.str().c_str());
   }
   else if(!opt.CompareTo("o")) {
     TDirectory* dirInitial = gDirectory;
     ifstream ifs(filename);
-    string line;
+    std::string line;
     while(1) {
       getline(ifs, line);
       if(!ifs.good()) break;
       UInt_t pos = line.find("TCutG*");
       if(pos < line.size()) {
-	line = line.substr(pos);
-	line = line.substr(1+line.find("("));
-	line = line.substr(1+line.find("\""));
-	string name = line.substr(0, line.find("\""));
-	TCutG* old = dynamic_cast<TCutG*> (gROOT->GetListOfSpecials()->FindObject(name.c_str()));
-	if(old) delete old;
-	continue;
+				line = line.substr(pos);
+				line = line.substr(1+line.find("("));
+				line = line.substr(1+line.find("\""));
+				string name = line.substr(0, line.find("\""));
+				TCutG* old = dynamic_cast<TCutG*> (gROOT->GetListOfSpecials()->FindObject(name.c_str()));
+				if(old) delete old;
+				continue;
       }
 
       pos = line.find("cd()");
       if(pos < line.size()) gROOT->ProcessLine(line.c_str());
 
-      pos = line.find("rb::hist::New");
+      pos = line.find("rb::hist::");
       if(pos < line.size()) {
-	line = line.substr(pos);
-	line = line.substr(1+line.find("("));
-	line = line.substr(1+line.find("\""));
-	string name = line.substr(0, line.find("\""));
-	rb::hist::Base* old = dynamic_cast<rb::hist::Base*> (gDirectory->FindObject(name.c_str()));
-	if(old) old->Delete(); //delete old;
-	continue;
+				line = line.substr(pos);
+				line = line.substr(1+line.find("("));
+				line = line.substr(1+line.find("\""));
+				string name = line.substr(0, line.find("\""));
+				rb::hist::Base* old = dynamic_cast<rb::hist::Base*> (gDirectory->FindObject(name.c_str()));
+				if(old) old->Delete(); //delete old;
+				continue;
       }
     }
     ReadConfig(filename, "c");
     dirInitial->cd();
   }
   else if(!opt.CompareTo("r")) {
-    for(Int_t event = 0; event < rb::gApp()->NEvents(); ++event) {
-      rb::gApp()->GetEvent(event)->GetHistManager()->DeleteAll();
-    }
+		gROOT->cd();
+		recursive_delete_directory(gROOT);
+		// EventVector_t events = rb::gApp()->GetEventVector();
+		// for(EventVector_t::iterator it = events.begin(); it != events.end(); ++it) {
+		// 	rb::gApp()->GetEvent(it->first)->GetHistManager()->DeleteAll();
+		// }
+
     TSeqCollection* primitives = gROOT->GetListOfSpecials();
     for(Int_t i=0; i< primitives->GetSize(); ++i) {
       TCutG* cut = dynamic_cast<TCutG*>(primitives->At(i));
       if(cut) delete cut;
     }
-    ReadConfig(filename, "c");
+//    ReadConfig(filename, "c");
   }
   else {
     Error("ReadConfig", "Valid options are: \"r\" (reset), \"o\" (overwrite), and \"c\" (cumulate).");
   }
-
+	gApp()->GetSignals()->SyncHistTree();
 }
 
 
@@ -293,9 +316,9 @@ void rb::ReadConfig(const char* filename, Option_t* option) {
 Int_t rb::WriteCanvases(const char* fname, Bool_t prompt) {
   if(prompt) {
     if(!overwrite(fname))
-      return 1;
+			 return 1;
   }
-  TTimeStamp ts; string ts_str = ts.AsString("l");
+  TTimeStamp ts; std::string ts_str = ts.AsString("l");
 
   ofstream ofs(fname, ios::out);
   ofs << "// ROOTBEER CANVAS CONFIGURATION FILE \n"

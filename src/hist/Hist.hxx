@@ -145,10 +145,7 @@ public:
 	 /// \warning Derived classes should not implement a destructor. If additional
 	 /// memory de-allocation is needed in addition to what's done here, they should
 	 /// instead override the virtual Destruct() member function.
-	 virtual ~Base() {
-		 fManager->Remove(this); // locks TTHREAD_GLOBAL_MUTEX while running
-		 Destruct();
-	 }
+	 virtual ~Base();
 
 	 /// Function to change the histogram gate.
 	 //! Updates \c fGate to reflect the new gate formula. Returns 0 if successful,
@@ -184,6 +181,16 @@ public:
 
 	 /// Return the parameter name associated with the specified axis.
 	 virtual std::string GetParam(Int_t axis) { return fParams->Get(axis); }
+
+   /// Return the initial parameter argument
+	 const char* GetInitialParams() {
+		 return kInitialParams.c_str();
+	 }
+
+   /// Return pointer to fDirectory
+	 TDirectory* GetDirectory() const	{
+		 return fDirectory;
+	 }
 
 protected:
 	 /// Set name and title

@@ -36,6 +36,16 @@ void rb::data::MBasic::New(const char* name, volatile void* addr, TDataMember* d
 #undef CHECK_TYPE
 }
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// rb::data::MBasic::GetAll() [static]         //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+std::vector<std::string> rb::data::MBasic::GetAll() {
+	std::vector<std::string> out;
+	for(Map_t::iterator it = fgAll().begin(); it != fgAll().end(); ++it) {
+		out.push_back(it->first);
+	}
+	return out;
+}
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // MBasic* rb::data::MBasic::Find() [static]   //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 rb::data::MBasic* rb::data::MBasic::Find(const char* name) {
@@ -103,7 +113,7 @@ namespace { // Helper Functions & Class //
 inline Bool_t ShouldBeMapped(TDataMember* d, bool exclude_hash = true) {
 	std::string title = d->GetTitle();
 	if(title.size() == 0) return true;
-	if(exclude_hash) return !(title[0] == '!' || title[0] == '#');
+	if(exclude_hash) return !(title[0] == '#');
 	else             return !(title[0] == '!');
 }
 class ArrayConverter // Class to reconstruct the original indices				       

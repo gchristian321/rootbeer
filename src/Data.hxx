@@ -48,6 +48,8 @@ public:
 	 virtual Double_t GetValue() = 0;
 	 //! Pure virtual, see rb::data::Basic
 	 virtual void SetValue(Double_t newval) = 0;
+   //! Returns a vector containing the names of all variables.
+	 static std::vector<std::string> GetAll();
 	 //! Search for an instance of Basic*
 	 //! \param [in] leafName The name (how it would be referred to in TTree::Draw) of the class instance being searched for.
 	 static MBasic* Find(const char* leafName);

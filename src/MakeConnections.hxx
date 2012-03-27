@@ -45,8 +45,6 @@ void MakeConnections() {
 	RB_BUTTON_CONNECT(fSelectCanvas, "CdCanvas()");
 	RB_BUTTON_CONNECT(fQuit, "Quit()");
 	RB_BUTTON_CONNECT(fClearCurrent, "ClearCurrent()");
-	RB_BUTTON_CONNECT(fConfigLoad, "ReadCanvasConfig()");
-	RB_BUTTON_CONNECT(fConfigSave, "WriteCanvasConfig()");
 
 	RB_SIGNALS->Connect("Unattaching()", "TGTextButton", fUnattach, "ChangeBackground(=0xe0e0e0)");	
 	RB_SIGNALS->Connect("Unattaching()", "TGTextButton", fUnattach, "SetEnabled(=false)");
@@ -66,6 +64,11 @@ void MakeConnections() {
 	RB_SIGNALS->Connect("AttachedFile(const char*)", "TGLabel", fLabelSource, "SetText(const char*)");   
 	RB_SIGNALS->Connect("AttachedOnline(const char*)", "TGLabel", fLabelSource, "SetText(const char*)");
 	RB_SIGNALS->Connect("Unattaching()", "TGLabel", fLabelSource, "SetText(=\"[none]\")");
+
+	fConfigSave->Connect("Pressed()", "rb::Signals", RB_SIGNALS, "WriteConfig(=3)");
+	fConfigLoad->Connect("Pressed()", "rb::Signals", RB_SIGNALS, "ReadCanvasConfig()");
+	fConfigSave->Connect("Pressed()", "TGTextButton", fConfigSave, "SetDown(=false)");
+	fConfigLoad->Connect("Pressed()", "TGTextButton", fConfigLoad, "SetDown(=false)");
 
 }
 

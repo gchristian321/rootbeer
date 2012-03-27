@@ -12,7 +12,7 @@ Int_t main(Int_t argc, Char_t** argv)
 {
 	std::set<std::string> args(argv, argv+argc);
 	Bool_t lite = args.count("-l");
-  rb::Rint rbApp("RootBeer", &argc, argv, 0, 0, lite);
+  rb::Rint rbApp("Rootbeer", &argc, argv, 0, 0, lite);
   gROOT->ProcessLine("gStyle->SetOptTitle(kTRUE)");
   rbApp.Run();
   return 0;

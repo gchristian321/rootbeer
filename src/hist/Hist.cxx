@@ -6,6 +6,8 @@
 #include "boost/dynamic_bitset.hpp"
 #include "Hist.hxx"
 #include "Formula.hxx"
+#include "Rint.hxx"
+#include "Signals.hxx"
 
 typedef std::vector<std::string> StringVector_t;
 
@@ -117,11 +119,20 @@ void rb::hist::Base::Init(const char* name, const char* title, const char* param
   if(gDirectory) {
     fDirectory = gDirectory;
     fDirectory->Append(this, kTRUE);
+		gApp()->GetSignals()->NewOrDeleteHist();
   }
   else {
     err::Warning("Hist::Init") << "gDirectory == 0; not adding to any ROOT collections.";
     fDirectory = gDirectory;
   }
+}
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// Destructor                                            //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+rb::hist::Base::~Base() {
+	fManager->Remove(this); // locks TTHREAD_GLOBAL_MUTEX while running
+	Destruct();
+	gApp()->GetSignals()->NewOrDeleteHist();
 }
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // void rb::hist::Base::InitParams()                     //
