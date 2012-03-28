@@ -8,13 +8,18 @@
 #include "Signals.hxx"
 #include "utils/Error.hxx"
 
+
+class TDirectory;
+
 namespace rb
 {
 //========== Typedefs ===========//
 typedef std::map<Int_t, std::pair<rb::Event*, std::string> > EventMap_t;
 typedef std::vector<std::pair<Int_t, std::string> > EventVector_t;
 
+//========== Forward Declarations ===========//
 namespace gui { class MainFrameFactory; class MainFrame; }
+namespace hist { class Base; }
 
 //========== Class Definitions ===========//
 /// \brief Class that runs the interactive ROOT application.
@@ -49,6 +54,11 @@ public:
 
 	 //! Return the number of events total
 	 Int_t NEvents() { return fEvents.size(); }
+
+	 //! Search for a histogram by name
+   //! \param [in] name Histogram name
+	 //! \param [in] Directory owing the histogram, passing 0 searches globally and simply returns the first result.
+	 rb::hist::Base* FindHistogram(const char* name, TDirectory* owner = 0);
 
 	 /// \brief Constructor
 	 //! \details Just call the standard \c TRint constructor, plus set the prompt to be

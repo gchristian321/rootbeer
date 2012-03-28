@@ -6,6 +6,7 @@
 #include "gui/CanvasGui.hxx"
 #include "Gui.hxx"
 #include "HistGui.hxx"
+#include "hist/Hist.hxx"
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // Class rb::Rint Implementation                         //
@@ -72,6 +73,17 @@ rb::EventVector_t rb::Rint::GetEventVector() {
 		out.push_back(std::make_pair(it->first, it->second.second)); ++it;
 	}
 	return out;
+}
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// rb::hist::Base* rb::Rint::FindHistogram()             //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+rb::hist::Base* rb::Rint::FindHistogram(const char* name, TDirectory* directory) {
+	EventVector_t events = GetEventVector();
+	for(EventVector_t::iterator it = events.begin(); it != events.end(); ++it) {
+		rb::hist::Base* hist = GetEvent(it->first)->FindHistogram(name, directory);
+		if(hist) return hist;
+	}
+	return 0;
 }
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // void rb::Rint::PrintLogo()                            //

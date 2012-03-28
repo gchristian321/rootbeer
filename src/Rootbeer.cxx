@@ -1,12 +1,15 @@
 //! \file Rootbeer.cxx 
 //! \brief Implements the user interface functions.
 #include <iostream>
+#include <TCutG.h>
+#include <TVirtualPad.h>
 #include "Rootbeer.hxx"
 #include "Rint.hxx"
 #include "Buffer.hxx"
 #include "Data.hxx"
 #include "Signals.hxx"
 #include "hist/Hist.hxx"
+#include "utils/Error.hxx"
 
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
@@ -70,6 +73,120 @@ void rb::Unattach() {
 }
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// TVirtualPad* rb::CdPad                                //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+TVirtualPad* rb::CdPad(TVirtualPad* owner, Int_t* subpad_numbers, Int_t depth) {
+	TVirtualPad* current = owner;
+	for(Int_t i=0; i< depth; ++i) {
+		current = current->cd( subpad_numbers[i] );
+		if(!current) {
+			err::Error("CdPad") << "Invalid subpad_numbers";
+			return 0;
+		}
+	}
+	return current;
+}
+
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// TDirectory* rb::Cd                                    //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+TDirectory* rb::Cd(const char* path_, Bool_t silent) {
+	gROOT->cd();
+	std::string path(path_);
+	path = path.substr(std::string(gROOT->GetName()).size()+2);
+	if(path.size() == 0) {
+		gROOT->cd(); return gROOT;
+	}
+	TDirectory* dir = 0;
+	Bool_t quit = false;
+	while(1) {
+		unsigned long pos = path.find("/");
+		std::string this_path = "";
+		if(pos > path.size()) {
+			quit = true;
+			this_path = path;
+		} else {
+			this_path = path.substr(0, pos);
+			path = path.substr(this_path.size()+1);
+		}	
+		dir = dynamic_cast<TDirectory*>(gROOT->FindObject(this_path.c_str()));
+		if(!dir) {
+			if(!silent)
+				 err::Error("rb::Cd") << "A portion of the path (" << this_path << ") is invalid.\n"
+															<< "Full path = " << path_;
+			break;
+		}
+		dir->cd();
+		if(quit) break;
+	}
+	return dir;
+}
+
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// TDirectory* rb::Mkdir                                 //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+TDirectory* rb::Mkdir(const char* name, const char* title) {
+	if(!gDirectory) {
+		Error("rb::Mkdir", "gDirectory == 0");
+		return 0;
+	}
+	if(gDirectory->FindObject(name)) {
+		TDirectory* old_dir = dynamic_cast<TDirectory*>(gDirectory->FindObject(name));
+		if(old_dir) {
+			old_dir->cd();
+			return old_dir;
+		}
+	}
+	TDirectory* new_dir = gDirectory->mkdir(name, title);
+	if(new_dir) new_dir->cd();
+	gApp()->GetSignals()->SyncHistTree();
+	return new_dir;
+}
+
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// void rb::SetTCutGOverwrite                            //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+namespace { Bool_t gTCutGOverwrite = false; }
+Bool_t rb::SetTCutGOverwrite(Bool_t on) {
+	Bool_t ret = (on != gTCutGOverwrite);
+	gTCutGOverwrite = on;
+	return ret;
+}
+
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// void rb::CreateTCutG                                  //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+TCutG* rb::CreateTCutG(const char* name, Int_t n, const Double_t* x, const Double_t* y,
+											 const char* varx, const char* vary, Width_t lineWidth, Color_t lineColor) {
+	std::string Name = name;
+	if(dynamic_cast<TCutG*>(gROOT->GetListOfSpecials()->FindObject(name))) {
+		if(gTCutGOverwrite) {
+			delete dynamic_cast<TCutG*>(gROOT->GetListOfSpecials()->FindObject(name));
+			Name = name;
+		}
+		else {
+			std::stringstream ssname;
+			ssname << name;
+			int i=1;
+			while(dynamic_cast<TCutG*>(gROOT->GetListOfSpecials()->FindObject(ssname.str().c_str()))) {
+				ssname.str("");
+				ssname << name << "_" << i++;
+			}
+			Name = ssname.str();
+		}
+	}
+	TCutG* cutg = new TCutG(Name.c_str(), n, x, y);
+	if(cutg) {
+		cutg->SetVarX(varx);
+		cutg->SetVarY(vary);
+		cutg->SetLineWidth(lineWidth);
+		cutg->SetLineColor(lineColor);
+	}
+	return cutg;
+}
+
+
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // Double_t rb::data::GetValue                           //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 Double_t rb::data::GetValue(const char* name) {
@@ -102,7 +219,6 @@ void rb::data::PrintAll() {
   data::MBasic::Printer p;
   p.PrintAll();
 }
-
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // Histogram Creation Helper Function                    //

@@ -78,6 +78,9 @@ protected:
 	 /// Stops addition of local histogram to gDirectory
 	 hist::StopAddDirectory fStopAdd;
 
+   /// Event code
+	 const Int_t kEventCode;
+
 	 /// Number of dimensions (axes).
 	 const UInt_t kDimensions;
 
@@ -113,6 +116,10 @@ protected:
 	 //! \details Variant class covers all possible dimensions from 1-3 in one object.
 	 HistVariant fHistVariant;
 
+	 /// Construction mode for duplicates
+	 //! true means overwrite duplicate names in the same directory, false means append _1, _2, etc. until unique
+	 static Bool_t fgOverwrite;
+
 	 /// Constructor (1d)
 	 Base(const char* name, const char* title, const char* param, const char* gate,
 				hist::Manager* manager, Int_t event_code,
@@ -134,7 +141,7 @@ protected:
 public:
 	 /// Default constructor.
 	 //! Does nothing, just here to make rootcint happy.
-	 Base() : kDimensions(0), fManager(0) {}
+	 Base() : kEventCode(0), kDimensions(0), fManager(0) {}
 
 private:
 	 /// Destruction function, acts like a normal dstructor
@@ -146,6 +153,19 @@ public:
 	 /// memory de-allocation is needed in addition to what's done here, they should
 	 /// instead override the virtual Destruct() member function.
 	 virtual ~Base();
+
+	 /// Returns the event code
+	 Int_t GetEventCode() { return kEventCode; }
+
+	 /// Returns kUseDefaultTitle
+	 Bool_t UseDefaultTitle() { return kUseDefaultTitle; }
+
+   /// Returns true if the argument is equal to the wrapped histogram
+	 Bool_t CompareTH1(TH1* th1) {
+		 TH1* this_ = visit::hist::Cast::Do(fHistVariant);
+		 if(th1 == this_) return true;
+		 else return false;
+	 }
 
 	 /// Function to change the histogram gate.
 	 //! Updates \c fGate to reflect the new gate formula. Returns 0 if successful,
@@ -192,6 +212,14 @@ public:
 		 return fDirectory;
 	 }
 
+	 /// Turn on/off overwriting for duplicate names
+	 //! \returns true if the condition was changed by calling the function, false otherwise
+	 static Bool_t SetOverwrite(Bool_t on = true) {
+		 Bool_t ret = (on != fgOverwrite);
+		 fgOverwrite = on;
+		 return ret;		 
+	 }
+
 protected:
 	 /// Set name and title
 	 void Init(const char* name, const char* title, const char* param, const char* gate, Int_t event_code);
@@ -206,7 +234,7 @@ private:
 	 /// Prevent assigmnent
 	 Base& operator= (const Base& other) { return *this; }
 	 /// Prevent copying
-	 Base(const Base& other) : kDimensions(other.kDimensions), fManager(other.fManager) {}
+	 Base(const Base& other) : kEventCode(other.kEventCode), kDimensions(other.kDimensions), fManager(other.fManager) {}
 	 /// Internal function to fill the histogram.
 	 //! Called from the public Fill() and FillAll(), does not do any mutex locking,
 	 //! instead relies on being passed already locked components.
@@ -267,9 +295,10 @@ public:
 //! \details Histogram displaying multiple parameters at once.
 class Summary: public Base
 {
-private:
+public:
 	 //! Orientation codes
 	 enum { VERTICAL, HORIZONTAL };
+private:
 	 //! Orientation of the histogram
 	 Int_t kOrientation;
 	 //! Number of bins along the parameter axis
@@ -287,6 +316,8 @@ public:
 	 virtual void InitParams(const char* params, Int_t event_code);
 	 //! Override hist::Base filling procedure
 	 virtual Int_t DoFill(const std::vector<Double_t>& params);
+   //! Return kOrientation
+	 Int_t GetOrientation() { return kOrientation; }
 private:
 	 //! Set the orientation (horizontal or vertical)
 	 void SetOrientation(Option_t* orientation);

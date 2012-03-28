@@ -21,6 +21,8 @@
 #include "utils/boost_scoped_ptr.h"
 
 
+class TH1;
+class TDirectory;
 namespace rb
 {
 typedef boost::scoped_ptr<volatile TTreeFormula> FormulaPtr_t;
@@ -28,6 +30,7 @@ typedef boost::scoped_ptr<volatile TTreeFormula> FormulaPtr_t;
 class Rint;
 class TreeFormulae;
 namespace data { template <class T> class Wrapper; }
+namespace hist { class Base; }
 
 /// \brief Abstract base class for event processors.
 class Event
@@ -62,6 +65,12 @@ public:
 	 //! \returns vector containing pairs of <name, class_name> for each top-level
 	 //! branch in fTree.
 	 std::vector< std::pair<std::string, std::string> >	 GetBranchList();
+
+	 //! Search for a histogram by it's fHistogram address
+	 rb::hist::Base* FindHistogram(TH1* th1);
+
+	 //! Search for a histogram by it's name
+	 rb::hist::Base* FindHistogram(const char* name, TDirectory* owner);
 
 protected:
 	 //! Initialize data members

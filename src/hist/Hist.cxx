@@ -70,13 +70,15 @@ namespace
 // rb::hist::Base                                        //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 
+Bool_t rb::hist::Base::fgOverwrite = false;
+
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // Constructor (1d)                                      //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 rb::hist::Base::Base(const char* name, const char* title, const char* param, const char* gate,
 		     hist::Manager* manager, Int_t event_code,
 		     Int_t nbinsx, Double_t xlow, Double_t xhigh):
-  kDimensions(1), fManager(manager), fHistogramClone(0), kInitialParams(param), fParams(0), fGate(0),
+  kEventCode(event_code), kDimensions(1), fManager(manager), fHistogramClone(0), kInitialParams(param), fParams(0), fGate(0),
   fHistVariant(TH1D(name, title, nbinsx, xlow, xhigh))
 { }
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
@@ -86,7 +88,7 @@ rb::hist::Base::Base(const char* name, const char* title, const char* param, con
 		     hist::Manager* manager, Int_t event_code,
 		     Int_t nbinsx, Double_t xlow, Double_t xhigh,
 		     Int_t nbinsy, Double_t ylow, Double_t yhigh):
-  kDimensions(2), fManager(manager), fHistogramClone(0), kInitialParams(param), fParams(0), fGate(0),
+  kEventCode(event_code), kDimensions(2), fManager(manager), fHistogramClone(0), kInitialParams(param), fParams(0), fGate(0),
   fHistVariant(TH2D(name, title, nbinsx, xlow, xhigh, nbinsy, ylow, yhigh))
 { }
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
@@ -97,7 +99,7 @@ rb::hist::Base::Base(const char* name, const char* title, const char* param, con
 		     Int_t nbinsx, Double_t xlow, Double_t xhigh,
 		     Int_t nbinsy, Double_t ylow, Double_t yhigh,
 		     Int_t nbinsz, Double_t zlow, Double_t zhigh):
-  kDimensions(3), fManager(manager), fHistogramClone(0), kInitialParams(param), fParams(0), fGate(0),
+  kEventCode(event_code), kDimensions(3), fManager(manager), fHistogramClone(0), kInitialParams(param), fParams(0), fGate(0),
   fHistVariant(TH3D(name, title, nbinsx, xlow, xhigh, nbinsy, ylow, yhigh, nbinsz, zlow, zhigh))
 { }
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
@@ -105,7 +107,12 @@ rb::hist::Base::Base(const char* name, const char* title, const char* param, con
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 void rb::hist::Base::Init(const char* name, const char* title, const char* param, const char* gate, Int_t event_code) {
   // Set name & title
-  fName = check_name(name).c_str();
+  if(!fgOverwrite) fName = check_name(name).c_str();
+	else {
+		Base* hist_base = dynamic_cast<Base*>(gROOT->FindObject(name));
+		if(hist_base) delete hist_base;
+		fName = name;
+	}
   kDefaultTitle = default_title(gate, param);
   kUseDefaultTitle = std::string(title).empty();
   fTitle = kUseDefaultTitle ? kDefaultTitle.c_str() : title;

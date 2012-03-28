@@ -16,47 +16,12 @@
 #include "HistGui.hxx"
 #include "hist/Hist.hxx"
 #include "utils/Error.hxx"
+#include "utils/ANSort.hxx"
 
 namespace { void error_box(const char* message, const char* title = "Error") {
 	new TGMsgBox(gClient->GetRoot(), 0, title, message);
 }
-void to_lower(std::string& str) {
-  std::string l = "abcdefghijklmnopqrstuvwxyz";
-  std::string u = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-  for(unsigned i=0; i< str.size(); ++i) {
-    unsigned long upos = u.find(str[i]);
-    if(upos< u.size())
-       str[i] = l[upos];
-  }
-}
-std::string get_number(const std::string& str, unsigned posn) {
-  std::string num = "0123456789", out = "";
-  while(posn < str.size() && num.find(str[posn]) < num.size())
-     out += std::string(1, str[posn++]);
-  return out;
-}
-
-struct ansort { // alpha-numeric sorting
-   bool operator() (const std::string& lhs, const std::string& rhs) {
-     std::string l = "_abcdefghijklmnopqrstuvwxyz";
-     std::string left(lhs), right(rhs);
-     to_lower(left); to_lower(right);
-
-     for(unsigned int i=0; i< left.size(); ++i) {
-       if(!get_number(left, i).empty()) {
-         if(!get_number(right, i).empty()) {
-           int ileft = atoi(get_number(left, i).c_str());
-           int iright = atoi(get_number(right, i).c_str());
-           if(ileft != iright) return ileft < iright;
-           else i += get_number(left, i).size()-1;
-         }
-       }
-       else if(l.find(left[i]) != l.find(right[i]))
-          return l.find(left[i]) < l.find(right[i]);
-     }
-     return false;
-   }
-} ANSort;
+ANSort ansort;
 }
 
 void rb::Signals::UpdateBufferCounter(Int_t n, Bool_t force) {
@@ -122,15 +87,23 @@ void rb::Signals::Unattach() {
 }
 void rb::Signals::UpdateAll() {
 	rb::canvas::UpdateAll();
+	gPad->Modified();
+	gPad->Update();
 }
 void rb::Signals::UpdateCurrent() {
 	rb::canvas::UpdateCurrent();
+	gPad->Modified();
+	gPad->Update();
 }
 void rb::Signals::ZeroAll() {
 	rb::canvas::ClearAll();
+	gPad->Modified();
+	gPad->Update();
 }
 void rb::Signals::ZeroCurrent() {
 	rb::canvas::ClearCurrent();
+	gPad->Modified();
+	gPad->Update();
 }
 void rb::Signals::ClearCurrent() {
 	if(gPad) {
@@ -317,7 +290,7 @@ void rb::Signals::PopulateParameters(Int_t event_code) {
 			data::Mapper mapper(it->first.c_str(), it->second.c_str(), 0, false);
 			mapper.ReadBranches(event_branches);
 		}
-		std::sort(event_branches.begin(), event_branches.end(), ANSort);
+		std::sort(event_branches.begin(), event_branches.end(), ansort);
 		branches.insert(std::make_pair(event_code, event_branches));
 	}
 	if(fParamX->IsEnabled()) populate_combo(fParamX, branches[event_code], 400);
@@ -534,7 +507,8 @@ void rb::Signals::DrawHist(TGListTreeItem* item, Int_t btn) {
 	if(!gPad) CreateNew();
 	if(hist_map.count(item)) {
 		hist_map.find(item)->second->Draw(fDrawOptionEntry->GetText());
-		rb::canvas::UpdateAll();
+		gPad->Modified();
+		gPad->Update();
 	}
 }
 
@@ -552,8 +526,13 @@ void rb::Signals::HistTreeItemSelect(TGListTreeItem* item, Int_t btn) {
 }
 
 void rb::Signals::DeleteHist() {
-	if(GetSelectedHist())
-		 delete GetSelectedHist();
+	if(GetSelectedHist()) {
+		delete GetSelectedHist();
+	}
+	else if(directory_map.count(fHistTree->GetSelected())) {
+		delete directory_map.find(fHistTree->GetSelected())->second;
+		SyncHistTree();
+	}
 	rb::canvas::UpdateAll();
 }
 
@@ -618,7 +597,7 @@ void rb::Signals::SyncVariables() {
 	const TGPicture* pbr_c = gClient->GetPicture("branch-cl_t.xpm");
 	const TGPicture* pvar = gClient->GetPicture("leaf_t.xpm");
 	static std::vector<std::string> variables = rb::data::MBasic::GetAll();
-	std::sort(variables.begin(), variables.end(), ANSort);
+	std::sort(variables.begin(), variables.end(), ansort);
 	for(UInt_t i=0; i< variables.size(); ++i) {
 		std::string name = variables[i];
 		TGListTreeItem* item = 0;

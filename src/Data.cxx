@@ -3,6 +3,7 @@
 #include <algorithm>
 #include "Rint.hxx"
 #include "Data.hxx"
+#include "Utils/ANSort.hxx"
 
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
@@ -60,10 +61,17 @@ rb::data::MBasic* rb::data::MBasic::Find(const char* name) {
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // void rb::data::MBasic::Printer::SavePrimitive()   //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+namespace { ANSort ansort; }
 void rb::data::MBasic::Printer::SavePrimitive(std::ostream& strm) {
   if(fgAll().empty()) return;
   rb::data::MBasic::Map_t::iterator it;
+	std::vector<std::string> names;
   for(it = fgAll().begin(); it != fgAll().end(); ++it) {
+		names.push_back(it->first);
+	}
+	std::sort(names.begin(), names.end(), ansort);
+	for(UInt_t i=0; i< names.size(); ++i) {
+		it = fgAll().find(names[i]);
     strm << "  rb::Rb::Data::SetValue(\"" << it->first << "\", " << it->second->GetValue() << ");\n";
   }
 }
@@ -78,18 +86,21 @@ inline std::string double2str(Double_t d) {
 	std::stringstream sstr;
 	sstr << d;
 	return sstr.str();
-}
-}
+} }
 void rb::data::MBasic::Printer::PrintAll() {
   if(fgAll().empty()) return;
   std::vector<std::string> names, values, classes;
 
   rb::data::MBasic::Map_t::iterator it = fgAll().begin();
   while(it != fgAll().end()) {
-    names.push_back(it->first);
+    names.push_back(it->first); ++it;
+	}
+	std::sort(names.begin(), names.end(), ansort);
+
+	for(UInt_t i=0; i< names.size(); ++i) {
+		it = fgAll().find(names[i]);
     values.push_back(double2str(it->second->GetValue()));
     classes.push_back(it->second->fDataMember->GetTrueTypeName());
-    ++it;
   }
   Int_t maxName  = max_element(names.begin(), names.end(), string_len_compare)->size();
   maxName = maxName > 4 ? maxName : 4;

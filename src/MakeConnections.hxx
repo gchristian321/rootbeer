@@ -65,7 +65,7 @@ void MakeConnections() {
 	RB_SIGNALS->Connect("AttachedOnline(const char*)", "TGLabel", fLabelSource, "SetText(const char*)");
 	RB_SIGNALS->Connect("Unattaching()", "TGLabel", fLabelSource, "SetText(=\"[none]\")");
 
-	fConfigSave->Connect("Pressed()", "rb::Signals", RB_SIGNALS, "WriteConfig(=3)");
+	fConfigSave->Connect("Pressed()", "rb::Signals", RB_SIGNALS, "WriteConfig(=1)");
 	fConfigLoad->Connect("Pressed()", "rb::Signals", RB_SIGNALS, "ReadCanvasConfig()");
 	fConfigSave->Connect("Pressed()", "TGTextButton", fConfigSave, "SetDown(=false)");
 	fConfigLoad->Connect("Pressed()", "TGTextButton", fConfigLoad, "SetDown(=false)");

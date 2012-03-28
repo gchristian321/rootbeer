@@ -176,7 +176,7 @@ $(OBJ)/Formula.o: $(CINT)/RBDictionary.cxx $(SRC)/Formula.cxx
 
 RBdict: $(CINT)/RBDictionary.cxx
 $(CINT)/RBDictionary.cxx:  $(HEADERS) $(USER)/UserLinkdef.h $(CINT)/Linkdef.h \
-$(SRC)/utils/Mutex.hxx $(SRC)/utils/LockingPointer.hxx
+$(SRC)/utils/Mutex.hxx $(SRC)/utils/LockingPointer.hxx $(SRC)/utils/ANSort.hxx
 	rootcint -f $@ -c $(CXXFLAGS)  -p $(HEADERS) $(CINT)/Linkdef.h \
 
 

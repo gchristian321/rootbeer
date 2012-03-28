@@ -4,6 +4,8 @@
 //!  Rootbeer.cxx
 #include <iostream>
 #include <fstream>
+#include <TCanvas.h>
+#include <TFrame.h>
 #include <TTimeStamp.h>
 #include <TCutG.h>
 #include "Rootbeer.hxx"
@@ -32,14 +34,38 @@ TAxis* get_axis(rb::hist::Base* hst, UInt_t n) {
 }
 
 void write_std_hist(rb::hist::Base* rbhist, std::ostream& ofs) {
+	std::string title = rbhist->UseDefaultTitle() ? "" : rbhist->GetTitle();
 	for(int i=0; i< ntabs; ++i) ofs << "    ";
-	ofs << "  rb::hist::New(\"" << rbhist->GetName() << "\", \"" << rbhist->GetTitle() << "\", " ;
+	ofs << "  rb::hist::New(\"" << rbhist->GetName() << "\", \"" << title << "\", " ;
 	for(UInt_t dim = 0; dim < rbhist->GetNdimensions(); ++dim) {
 		TAxis* axis = get_axis(rbhist, dim);
     ofs << axis->GetNbins() << ", " << axis->GetBinLowEdge(1) << ", " << axis->GetBinLowEdge(1+axis->GetNbins()) <<", ";
 	}
 	std::string param = rbhist->GetInitialParams();
-	ofs << "\"" << param << "\", \"" << rbhist->GetGate() << "\");\n";
+	ofs << "\"" << param << "\", \"" << rbhist->GetGate() << "\", " << rbhist->GetEventCode() << ");\n";
+}
+
+void write_summary_hist(rb::hist::Summary* rbhist, std::ostream& ofs) {
+	std::string title = rbhist->UseDefaultTitle() ? "" : rbhist->GetTitle();
+	for(int i=0; i< ntabs; ++i) ofs << "    ";
+	ofs << "  rb::hist::NewSummary(\"" << rbhist->GetName() << "\", \"" << title << "\", " ;
+	Int_t orientation = rbhist->GetOrientation();
+	Bool_t vertical = orientation == rb::hist::Summary::VERTICAL;
+	TAxis* axis = vertical? rbhist->GetXaxis() : rbhist->GetYaxis();
+	std::string orient_arg =  vertical? "v" : "h";
+	ofs << axis->GetNbins() << ", " << axis->GetBinLowEdge(1) << ", " << axis->GetBinLowEdge(1+axis->GetNbins()) <<", ";
+	std::string param = rbhist->GetInitialParams();
+	ofs << "\"" << param << "\", \"" << rbhist->GetGate() << "\", \"" << orient_arg << "\", " << rbhist->GetEventCode() << ");\n";
+}
+
+void write_bit_hist(rb::hist::Bit* rbhist, std::ostream& ofs) {
+	std::string title = rbhist->UseDefaultTitle() ? "" : rbhist->GetTitle();
+	for(int i=0; i< ntabs; ++i) ofs << "    ";
+	ofs << "  rb::hist::NewBit(\"" << rbhist->GetName() << "\", \"" << title << "\", " ;
+	TAxis* axis = rbhist->GetXaxis();
+	ofs << axis->GetNbins() << ", ";
+	std::string param = rbhist->GetInitialParams();
+	ofs << "\"" << param << "\", \"" << rbhist->GetGate() << "\", " << rbhist->GetEventCode() << ");\n";
 }
 
 /// Write a histogram constructor format to a stream.
@@ -50,9 +76,13 @@ void write_hist(TObject* object, std::ostream& ofs) {
   if(!hst) return;
 	std::string class_name = rbhist->ClassName();
 	class_name = class_name.substr(std::string("rb::hist::").size());
-	if(class_name == "D1" || class_name == "D2" || class_name == "D3")
+	if(class_name == "D1" || class_name == "D2" || class_name == "D3" || class_name == "Gamma")
 		 write_std_hist(rbhist, ofs);
-	else ;
+	else if(class_name == "Summary")
+		 write_summary_hist(static_cast<rb::hist::Summary*>(rbhist), ofs);
+	else if(class_name == "Bit")
+		 write_bit_hist(static_cast<rb::hist::Bit*>(rbhist), ofs);
+	else;
 }
 
 /// Write a diretory constructor to a stream.
@@ -61,41 +91,32 @@ Bool_t write_directory(TObject* object, std::ostream& ofs) {
   if(!dir) return kFALSE;
   TDirectory* mother = dir->GetMotherDir();
   if(!mother) return kFALSE;
-  std::string motherOut = (mother == gROOT) ? "gROOT" : mother->GetName();
+	mother->cd();
+	std::string title = "";
+	if(gDirectory != gROOT) { title = gDirectory->GetTitle(); title += "/"; }
+	title += dir->GetName();
   ofs << "\n"; for(int i=0; i< ntabs; ++i) ofs << "    ";
-  ofs << "  TDirectory* " << dir->GetName() << " = new TDirectory(\""
-      << dir->GetName() << "\", \"" << dir->GetTitle() << "\", \""
-      << dir->GetOption() << "\", " << motherOut << ");  ";
-  ofs << dir->GetName() << "->cd();\n";
+	ofs << "  rb::Mkdir(\"" << dir->GetName() << "\", \"" << title << "\");\n";
   ++ntabs;
   return kTRUE;
 }
 
-void recursive_delete_directory(TDirectory* dir) {
-  for(Int_t i=0; i< dir->GetList()->GetEntries(); ++i) {
-		if(dynamic_cast<rb::hist::Base*>(dir->GetList()->At(i))) {
-			delete dynamic_cast<rb::hist::Base*>(dir->GetList()->At(i));
-		}
-  }
-  for(Int_t i=0; i< dir->GetList()->GetEntries(); ++i) {
-		if(dynamic_cast<TDirectory*>(dir->GetList()->At(i))) {
-			recursive_delete_directory(dynamic_cast<TDirectory*>(dir->GetList()->At(i)));
-		}
-  }
-}
-
 /// Recurse through all directories, write their owned histograms
 /// to a stream as well as the directory constructors themselves.
-void recurse_directory(TDirectory* dir, std::ostream& ofs) {
+void recurse_directory(TDirectory* dir, std::ostream& ofs, Bool_t top = true) {
   for(Int_t i=0; i< dir->GetList()->GetEntries(); ++i) {
     write_hist(dir->GetList()->At(i), ofs);
   }
   //  ++ntabs;
   for(Int_t i=0; i< dir->GetList()->GetEntries(); ++i) {
     if(write_directory(dir->GetList()->At(i), ofs)) {
-      recurse_directory(static_cast<TDirectory*>(dir->GetList()->At(i)), ofs);
+      recurse_directory(static_cast<TDirectory*>(dir->GetList()->At(i)), ofs, false);
     }
   }
+	if(!top) {
+		for(int i=0; i< ntabs; ++i) ofs << "    ";
+		ofs << "  " << "gDirectory->GetMotherDir()->cd();\n";
+	}
   --ntabs;
 }
 
@@ -106,8 +127,8 @@ inline void write_hists_and_directories(std::ostream& ofs) {
   gROOT->cd();
   ofs << "  // DIRECTORIES AND HISTOGRAMS //\n";
   ofs << "  // gROOT\n";
+	ofs << "  gROOT->cd();\n";
   recurse_directory(gROOT, ofs);
-  ofs << "  "<< initialName << "->cd();\n";
   dirInitial->cd();
 }
 
@@ -139,11 +160,8 @@ void write_cut(TObject* obj, std::ostream& ofs)
     }
   }
   ofs << sX.str() << sY.str();
-  ofs << "     TCutG* " << nme << " = new TCutG(\"" << nme << "\", " << np << ", px, py);\n";
-  ofs << nme << "->SetVarX(\"" << varx << "\");\n";
-  ofs << nme << "->SetVarY(\"" << vary << "\");\n";
-  ofs << nme << "->SetLineWidth(" << www <<");\n";
-  ofs << nme << "->SetLineColor(" << ccc <<");\n";
+  ofs << "     TCutG* " << nme << " = rb::CreateTCutG(\"" << nme << "\", " << np << ", px, py, ";
+	ofs << "\"" << varx << "\", \"" << vary << "\", " << www << ", " << ccc << ");\n";
 }
 
 
@@ -239,6 +257,24 @@ Int_t rb::WriteVariables(const char* fname, Bool_t prompt) {
 }
 
 
+namespace {
+std::vector<TObject*>
+get_object_vector(TSeqCollection* collection) {
+	std::vector<TObject*> out;
+	for(int i=0; i< collection->GetSize(); ++i)
+		 out.push_back(collection->At(i));
+	return out;
+}
+
+template <class T>
+Bool_t try_delete(TObject* object) {
+	Bool_t ret = true;
+	T* t = dynamic_cast<T*>(object);
+	if(t) delete t;
+	else ret = false;
+	return ret;
+} }
+
 void rb::ReadConfig(const char* filename, Option_t* option) {
   ifstream ifs(filename);
   if(ifs.fail()) {
@@ -256,54 +292,23 @@ void rb::ReadConfig(const char* filename, Option_t* option) {
     gROOT->ProcessLine(sstr.str().c_str());
   }
   else if(!opt.CompareTo("o")) {
-    TDirectory* dirInitial = gDirectory;
-    ifstream ifs(filename);
-    std::string line;
-    while(1) {
-      getline(ifs, line);
-      if(!ifs.good()) break;
-      UInt_t pos = line.find("TCutG*");
-      if(pos < line.size()) {
-				line = line.substr(pos);
-				line = line.substr(1+line.find("("));
-				line = line.substr(1+line.find("\""));
-				string name = line.substr(0, line.find("\""));
-				TCutG* old = dynamic_cast<TCutG*> (gROOT->GetListOfSpecials()->FindObject(name.c_str()));
-				if(old) delete old;
-				continue;
-      }
-
-      pos = line.find("cd()");
-      if(pos < line.size()) gROOT->ProcessLine(line.c_str());
-
-      pos = line.find("rb::hist::");
-      if(pos < line.size()) {
-				line = line.substr(pos);
-				line = line.substr(1+line.find("("));
-				line = line.substr(1+line.find("\""));
-				string name = line.substr(0, line.find("\""));
-				rb::hist::Base* old = dynamic_cast<rb::hist::Base*> (gDirectory->FindObject(name.c_str()));
-				if(old) old->Delete(); //delete old;
-				continue;
-      }
-    }
-    ReadConfig(filename, "c");
-    dirInitial->cd();
+		Bool_t changed1 = rb::hist::Base::SetOverwrite(true);
+		Bool_t changed2 = rb::SetTCutGOverwrite(true);
+		ReadConfig(filename, "c");
+		if(changed1) rb::hist::Base::SetOverwrite(false);
+		if(changed2) rb::SetTCutGOverwrite(false);
   }
   else if(!opt.CompareTo("r")) {
-		gROOT->cd();
-		recursive_delete_directory(gROOT);
-		// EventVector_t events = rb::gApp()->GetEventVector();
-		// for(EventVector_t::iterator it = events.begin(); it != events.end(); ++it) {
-		// 	rb::gApp()->GetEvent(it->first)->GetHistManager()->DeleteAll();
-		// }
-
-    TSeqCollection* primitives = gROOT->GetListOfSpecials();
-    for(Int_t i=0; i< primitives->GetSize(); ++i) {
-      TCutG* cut = dynamic_cast<TCutG*>(primitives->At(i));
-      if(cut) delete cut;
-    }
-//    ReadConfig(filename, "c");
+		std::vector<TObject*> objects = get_object_vector(gROOT->GetList());
+		for(std::vector<TObject*>::iterator it = objects.begin(); it != objects.end(); ++it) {
+			if (try_delete<TDirectory>(*it));
+			else if (try_delete<rb::hist::Base>(*it));
+		}
+		std::vector<TObject*> specials = get_object_vector(gROOT->GetList());
+		for(std::vector<TObject*>::iterator it = specials.begin(); it != specials.end(); ++it) {
+			try_delete<TCutG>(*it);
+		}
+    ReadConfig(filename, "c");
   }
   else {
     Error("ReadConfig", "Valid options are: \"r\" (reset), \"o\" (overwrite), and \"c\" (cumulate).");
@@ -311,9 +316,58 @@ void rb::ReadConfig(const char* filename, Option_t* option) {
 	gApp()->GetSignals()->SyncHistTree();
 }
 
+namespace {
+Int_t get_n_subpads(TPad* pad) {
+	Int_t out = 0;
+	for(Int_t i=0; i< pad->GetListOfPrimitives()->GetEntries(); ++i) {
+		if(dynamic_cast<TPad*>(pad->GetListOfPrimitives()->At(i))) ++out;
+	}
+	return out;
+}
+void write_canvas_hist(TH1* th1, std::ostream& ofs) {
+	rb::hist::Base* hist = 0;
+	if(th1) {
+		rb::EventVector_t events = rb::gApp()->GetEventVector();
+		for(UInt_t k = 0; k< events.size(); ++k) {
+			hist = rb::gApp()->GetEvent(events[k].first)->FindHistogram(th1);
+			if(hist) {
+				TDirectory* dir = hist->GetDirectory();
+				const std::string dir_path = dir->GetPath();
+						
+				ofs << "  if(rb::Cd(\"" << dir_path << "\", true) &&  rb::gApp()->FindHistogram(\"" << hist->GetName() << "\"))\n"
+						<< "      rb::gApp()->FindHistogram(\"" << hist->GetName() << "\")->Draw();\n";
+				break;
+			}
+		}
+	}
+}
+void recurse_pad(TPad* pad, TCanvas* owner, std::vector<Int_t>& path, std::ostream& ofs) {
+	for(Int_t i=0; i< pad->GetListOfPrimitives()->GetEntries(); ++i) {
+		*(path.end()-1)++;
+		TH1* th1 = dynamic_cast<TH1*>(pad->GetListOfPrimitives()->At(i));
+		TPad* subpad = dynamic_cast<TPad*>(pad->GetListOfPrimitives()->At(i));
+		if(th1) {
+			ofs << "Int_t path[" << path.size() << "] = { ";
+			for(UInt_t j=0; j< path.size(); ++j) {
+				ofs << path[j];
+				if(j<path.size()-1) ofs << ", ";
+			}
+			ofs << " };\n";
+			ofs << "rb::CdPad(" << owner->GetName() << ", path, " << path.size() << ");\n";
+			write_canvas_hist(th1, ofs);
+		}
+		else if(subpad) {
+			path.push_back(0);
+			recurse_pad(subpad, owner, path, ofs);
+		}
+	}
+}
 
-// Just write the canvases.
+}
+
 Int_t rb::WriteCanvases(const char* fname, Bool_t prompt) {
+	TVirtualPad* current = 0;
+	if(gPad) current = gPad;
   if(prompt) {
     if(!overwrite(fname))
 			 return 1;
@@ -326,13 +380,87 @@ Int_t rb::WriteCanvases(const char* fname, Bool_t prompt) {
       << "// Generated on " << ts_str << "\n"
       << "\n"
       << "{\n\n";
-  ofs << "/// \todo Get Working" << endl;
-  return 0;
+	std::stringstream tmpfile;
+	tmpfile << "TEMP_" << ts.GetTime();
+	for(Int_t i=0; i< gROOT->GetListOfCanvases()->GetEntries(); ++i) {
+		TCanvas* canvas = dynamic_cast<TCanvas*>(gROOT->GetListOfCanvases()->At(i));
+	 	if(!canvas) continue;
+		canvas->SaveSource(tmpfile.str().c_str());
+		std::ifstream ifs(tmpfile.str().c_str());
+		std::string line, pad_name = "";
+		for(int i=0; i< 3; ++i) std::getline(ifs, line);
+		while(1) {
+			std::getline(ifs, line);
+			if(!ifs.good()) break;
+			if(line.find("------------>Primitives in pad") < line.size()) {
+				pad_name = line.substr(std::string("// ------------>Primitives in pad: ").size());
+				ofs << line << "\n";
+			}
+			else if(line.find("   TCanvas *") < line.size()) {
+				pad_name = line.substr(line.find("(")+2, line.find(",") - (line.find("(")+2)-1);
+				ofs << line << "\n";
+			}
+			else if(line.find("   TH1D *") < line.size()) {
+				std::stringstream cmd;
+				cmd << pad_name << "->cd();";
+				gROOT->ProcessLine(cmd.str().c_str());
+				if(gPad) {
+					for(Int_t i=0; i< gPad->GetListOfPrimitives()->GetEntries(); ++i) {
+						if(dynamic_cast<TH1*>(gPad->GetListOfPrimitives()->At(i)))
+							 write_canvas_hist(dynamic_cast<TH1*>(gPad->GetListOfPrimitives()->At(i)), ofs);
+					}
+				}
+				while(line.find("->Draw()") > line.size()) {
+					std::getline(ifs, line);
+				}
+			}
+			else if (line == "}");
+			else {
+				ofs << line << "\n";
+			}
+		}
+		std::stringstream rm_cmd;
+		rm_cmd << "rm -f " << tmpfile.str();
+		gSystem->Exec(rm_cmd.str().c_str());
+	}
+	ofs << "\n}\n";
+	current->cd();
+	return 0;
 }
 
-// Just write the canvases.
+  // ofs << "// ROOTBEER CANVAS CONFIGURATION FILE \n"
+  //     << "// " << fname << "\n"
+  //     << "// Generated on " << ts_str << "\n"
+  //     << "\n"
+  //     << "{\n\n";
+
+	// for(Int_t i=0; i< gROOT->GetListOfCanvases()->GetEntries(); ++i) {
+	// 	TCanvas* canvas = dynamic_cast<TCanvas*>(gROOT->GetListOfCanvases()->At(i));
+	// 	if(!canvas) continue;		
+	// 	ofs << "  TCanvas* " << canvas->GetName() << " = new TCanvas(\""
+	// 			<< canvas->GetName() << "\", \"" << canvas->GetTitle() << "\", "
+	// 			<< canvas->GetWindowTopX() << ", " << canvas->GetWindowTopY() << ", "
+	// 			<< canvas->GetWw() << ", " << canvas->GetWh() << ");\n";
+	// 	if(get_n_subpads(canvas))
+	// 		 ofs << "  " << canvas->GetName() << "->Divide"
+			
+	// 	for(Int_t j=0; j< canvas->GetListOfPrimitives()->GetEntries(); ++j) {
+	// 		TH1* th1 = dynamic_cast<TH1*>(canvas->GetListOfPrimitives()->At(j));
+	// 		TPad* pad = dynamic_cast<TPad*>(canvas->GetListOfPrimitives()->At(j));
+	// 		std::vector<Int_t> path;
+	// 		if(th1) write_canvas_hist(th1, ofs);
+	// 		else if(pad) recurse_pad(pad, canvas, path, ofs);
+	// 	}
+	// }
+	// ofs <<"\n}\n";
+  // return 0;
+// }
+
 Int_t rb::ReadCanvases(const char* fname) {
-	std::cout << "Todo\n";
+	std::vector<TObject*> canvases = get_object_vector(gROOT->GetListOfCanvases());
+	for(std::vector<TObject*>::iterator it = canvases.begin(); it != canvases.end(); ++it)
+		 try_delete<TCanvas>(*it);
+	std::string cmd = ".x "; cmd += fname;
+	gROOT->ProcessLine(cmd.c_str());
   return 0;
 }
-

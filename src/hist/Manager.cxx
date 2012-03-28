@@ -54,3 +54,25 @@ void rb::hist::Manager::Remove(rb::hist::Base* hist) {
 		if(directory) directory->Remove(hist);
 	}
 }
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// Base* rb::hist::Manager::FindByTH1()                  //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+rb::hist::Base* rb::hist::Manager::FindByTH1(TH1* hist) {
+	LockingPointer<hist::Container_t> pSet(fSet, fSetMutex);
+	for(hist::Container_t::iterator it = pSet->begin(); it != pSet->end(); ++it)
+	 	 if((*it)->CompareTH1(hist)) return *it;
+	return 0;
+}
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// Base* rb::hist::Manager::FindByName()                 //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+rb::hist::Base* rb::hist::Manager::FindByName(const char* name, TDirectory* owner) {
+	LockingPointer<hist::Container_t> pSet(fSet, fSetMutex);
+	for(hist::Container_t::iterator it = pSet->begin(); it != pSet->end(); ++it)
+		 if(!strcmp((*it)->GetName(), name)) {
+			 if(!owner || (*it)->GetDirectory() == owner) {
+				 return *it;
+			 }
+		 }
+	return 0;
+}

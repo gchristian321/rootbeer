@@ -50,6 +50,18 @@ std::vector< std::pair<std::string, std::string> > rb::Event::GetBranchList() {
 	return out;
 }
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// rb::Event::FindHistogram()                            //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+rb::hist::Base* rb::Event::FindHistogram(TH1* th1) {
+	return fHistManager.FindByTH1(th1);
+}
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// rb::Event::FindHistogram()                            //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+rb::hist::Base* rb::Event::FindHistogram(const char* name, TDirectory* owner) {
+	return fHistManager.FindByName(name, owner);
+}
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // Bool_t rb::Event::InitFormula::Operate()              //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 TTreeFormula* rb::Event::InitFormula::Operate(rb::Event* const event, const char* formula_arg) {
