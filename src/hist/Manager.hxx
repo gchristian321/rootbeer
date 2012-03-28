@@ -32,6 +32,8 @@ public:
 public:
 	 //! Fill all histograms in fSet
 	 void FillAll();
+	 //! Write all histograms in fSet
+	 void WriteAll(TFile* file);
 	 //! Does nothing
 	 Manager();
 	 //! Deletes all entries in fSet

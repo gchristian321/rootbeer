@@ -205,6 +205,12 @@ Int_t rb::hist::Base::Fill() {
   fParams->EvalAll(axes);
   return DoFill(axes);
 }
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// rb::hist::Base::Write()                               //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+Int_t rb::hist::Base::Write(const char* name, Int_t option, Int_t bufsize) {
+	return visit::hist::Write::Do(fHistVariant, name, option, bufsize);
+}
 
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//

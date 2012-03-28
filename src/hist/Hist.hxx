@@ -179,6 +179,9 @@ public:
 	 //! section of code, use FillUnlocked() instead.
 	 Int_t Fill();
 
+	 /// Write to disk
+	 Int_t Write(const char* name = 0, Int_t option = 0, Int_t bufsize = 0);
+
 #ifndef __MAKECINT__
 	 /// Unlocked version of Fill().
 	 Int_t FillUnlocked();

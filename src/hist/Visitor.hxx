@@ -47,6 +47,22 @@ struct Clear : public rb::visit::Locked<void>
 	 }
 };
 
+/// Write to disk
+struct Write : public rb::visit::Locked<Int_t>
+{
+	 template <class T> Int_t operator() (T& t) const {
+		 return t.Write(fName, fOption, fBufsize);
+	 }
+	 static Int_t Do(HistVariant& hist, const char* name, Int_t option, Int_t bufsize) {
+		 return boost::apply_visitor(Write(name, option, bufsize), hist);
+	 }
+	 Write(const char* name, Int_t option, Int_t bufsize):
+		 fName(name), fOption(option), fBufsize(bufsize) { }
+private:
+	 const char* fName;
+	 Int_t fOption, fBufsize;
+};
+
 /// Clones the histogram into a TH1* pointer.
 struct Clone : public rb::visit::Locked<void>
 {

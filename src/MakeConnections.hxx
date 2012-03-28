@@ -43,7 +43,6 @@ void MakeConnections() {
 	RB_BUTTON_CONNECT(fDivideCurrent, "DivideCurrent()");
 	RB_BUTTON_CONNECT(fStartRefresh, "Update()");
 	RB_BUTTON_CONNECT(fSelectCanvas, "CdCanvas()");
-	RB_BUTTON_CONNECT(fQuit, "Quit()");
 	RB_BUTTON_CONNECT(fClearCurrent, "ClearCurrent()");
 
 	RB_SIGNALS->Connect("Unattaching()", "TGTextButton", fUnattach, "ChangeBackground(=0xe0e0e0)");	
@@ -69,6 +68,14 @@ void MakeConnections() {
 	fConfigLoad->Connect("Pressed()", "rb::Signals", RB_SIGNALS, "ReadCanvasConfig()");
 	fConfigSave->Connect("Pressed()", "TGTextButton", fConfigSave, "SetDown(=false)");
 	fConfigLoad->Connect("Pressed()", "TGTextButton", fConfigLoad, "SetDown(=false)");
+
+	fSaveData->Connect("Clicked()", "rb::Signals", RB_SIGNALS, "SaveData()");
+	fSaveHist->Connect("Clicked()", "rb::Signals", RB_SIGNALS, "SaveHists()");
+	RB_SIGNALS->Connect("Attaching()", "TGTextButton", fSaveData, "SetEnabled(=false)");
+	RB_SIGNALS->Connect("Attaching()", "TGTextButton", fSaveHist, "SetEnabled(=false)");
+	RB_SIGNALS->Connect("Unattaching()", "TGTextButton", fSaveData, "SetEnabled(=true)");
+	RB_SIGNALS->Connect("Unattaching()", "rb::Signals", RB_SIGNALS, "EnableSaveHists()");
+	fSaveData->Clicked();
 
 }
 

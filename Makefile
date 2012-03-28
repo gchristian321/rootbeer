@@ -14,7 +14,7 @@ RPATH    += -Wl,-rpath,$(ROOTSYS)/lib -Wl,-rpath,$(PWD)/lib
 DYLIB=-shared
 FPIC=-fPIC
 INCFLAGS=-I$(SRC) -I$(CINT) -I$(USER) $(USER_INCLUDES)
-DEBUG=-ggdb -O0 -DDEBUG -DRB_LOGGING
+DEBUG=-ggdb -O0 -DDEBUG
 #-DRB_LOGGING
 #-DDEBUG
 CXXFLAGS=$(DEBUG) $(INCFLAGS) -L$(PWD)/lib $(STOCK_BUFFERS) -DBUFFER_TYPE=$(USER_BUFFER_TYPE)
@@ -69,7 +69,7 @@ $(OBJ)/TGSelectDialog.o $(OBJ)/TGDivideSelect.o
 HEADERS=$(SRC)/Rootbeer.hxx $(SRC)/Rint.hxx $(SRC)/Data.hxx $(SRC)/Buffer.hxx $(SRC)/Event.hxx $(SRC)/user/User.hxx \
 $(SRC)/Signals.hxx $(SRC)/Formula.hxx $(SRC)/utils/LockingPointer.hxx $(SRC)/utils/Mutex.hxx \
 $(SRC)/hist/Hist.hxx $(SRC)/hist/Visitor.hxx $(SRC)/hist/Manager.hxx $(SRC)/TGSelectDialog.h $(SRC)/TGDivideSelect.h \
-$(SRC)/midas/*.h $(SRC)/utils/*.h* $(USER_HEADERS)
+$(SRC)/utils/Save.hxx $(SRC)/midas/*.h $(SRC)/utils/*.h* $(USER_HEADERS)
 
 
 RBlib: $(RBLIB)/libRootbeer.so

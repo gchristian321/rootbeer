@@ -5,6 +5,7 @@
 #include <TError.h>
 #include <TString.h>
 #include <TSystem.h>
+#include <TDatime.h>
 #include "Rint.hxx"
 #include "Buffer.hxx"
 
@@ -21,14 +22,32 @@ extern void attach_sync();
 rb::attach::File::File(const char* filename, Bool_t stopAtEnd) :
   rb::Thread(FILE_THREAD_NAME),
   kFileName(gSystem->ExpandPathName(filename)),
-  kStopAtEnd(stopAtEnd) {
-
+  kStopAtEnd(stopAtEnd)
+{
   fBuffer = BufferSource::New();
 	if(!ListAttached()) gApp()->GetSignals()->Attaching(); // signal to gui
 	std::string fname(kFileName);
 	if(fname.find_last_of("/") < fname.size())
 		 fname = fname.substr(fname.find_last_of("/")+1);
 	gApp()->GetSignals()->AttachedFile(fname.c_str());
+
+	if(gApp()->GetSaveData()) {
+#ifdef RB_DEFAULT_SAVE_DIR
+		std::string save_fname = RB_DEFAULT_SAVE_DIR ;
+		save_fname += fname;
+#else
+		std::string save_fname = fname;
+#endif
+		save_fname = save_fname.substr(0, save_fname.find_last_of("."));
+		save_fname += ".root";
+		EventVector_t events = gApp()->GetEventVector();
+		for(EventVector_t::iterator it = events.begin(); it != events.end(); ++it) {
+			std::stringstream tname; tname << "t" << it->first;
+			std::stringstream ttitle; ttitle << it->second << " data";
+			gApp()->GetEvent(it->first)->
+				 StartSave(save_fname.c_str(), tname.str().c_str(), ttitle.str().c_str(), gApp()->GetSaveHists());
+		}
+	}
 }
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
@@ -36,6 +55,10 @@ rb::attach::File::File(const char* filename, Bool_t stopAtEnd) :
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 rb::attach::File::~File() {
 	if(!ListAttached()) gApp()->GetSignals()->Unattaching(); // signal to gui
+	EventVector_t events = gApp()->GetEventVector();
+	for(EventVector_t::iterator it = events.begin(); it != events.end(); ++it) {
+		gApp()->GetEvent(it->first)->StopSave();
+	}
 	delete fBuffer;
 }
 
@@ -137,6 +160,14 @@ void rb::attach::List::DoInThread() {
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // Constructor                                           //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+namespace { TString get_ts_string() {
+	TDatime ts;
+	TString time = ts.AsSQLString();
+	time.ReplaceAll("-","_");
+	time.ReplaceAll(" ","_");
+	time.ReplaceAll(":","");
+	return time;
+}}
 rb::attach::Online::Online(const char* source, const char* other, char** others, int nothers) :
   rb::Thread(ONLINE_THREAD_NAME),
   fSourceArg(source),
@@ -146,6 +177,24 @@ rb::attach::Online::Online(const char* source, const char* other, char** others,
 
   fBuffer = BufferSource::New();  
 	gApp()->GetSignals()->Attaching();
+
+	if(gApp()->GetSaveData()) {
+#ifdef RB_DEFAULT_SAVE_DIR
+		std::string save_fname = RB_DEFAULT_SAVE_DIR ;
+#else
+		std::string save_fname = "";
+#endif
+		save_fname += "Online__";
+		save_fname += get_ts_string().Data();
+		save_fname += ".root";
+		EventVector_t events = gApp()->GetEventVector();
+		for(EventVector_t::iterator it = events.begin(); it != events.end(); ++it) {
+			std::stringstream tname; tname << "t" << it->first;
+			std::stringstream ttitle; ttitle << it->second << " data";
+			gApp()->GetEvent(it->first)->
+				 StartSave(save_fname.c_str(), tname.str().c_str(), ttitle.str().c_str(), gApp()->GetSaveHists());
+		}
+	}
 }
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//

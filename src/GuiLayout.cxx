@@ -383,8 +383,6 @@ void GuiLayout()
    fGroupData->AddFrame(fUnattach, new TGLayoutHints(kLHintsLeft | kLHintsTop,2,2,2,2));
    fUnattach->MoveResize(8,136,95,24);
 
-   ufont = gClient->GetFont("-*-helvetica-bold-r-*-*-12-*-*-*-*-*-iso8859-1");
-
    // graphics context changes
    GCValues_t valButton1875;
    valButton1875.fMask = kGCForeground | kGCBackground | kGCFillStyle | kGCFont | kGCGraphicsExposures;
@@ -396,15 +394,6 @@ void GuiLayout()
    uGC = gClient->GetGC(&valButton1875, kTRUE);
 
    gClient->GetColorByName("#ff0000",ucolor);
-   TGTextButton *fQuit = new TGTextButton(fGroupData,"Quit",-1,uGC->GetGC(),ufont->GetFontStruct());
-   fQuit->SetTextJustify(36);
-   fQuit->SetMargins(0,0,0,0);
-   fQuit->SetWrapLength(-1);
-   fQuit->Resize(91,24);
-
-   fQuit->ChangeBackground(ucolor);
-   fGroupData->AddFrame(fQuit, new TGLayoutHints(kLHintsLeft | kLHintsTop,2,2,2,2));
-   fQuit->MoveResize(180,130,95,24);
 
    ufont = gClient->GetFont("-*-helvetica-medium-r-*-*-12-*-*-*-*-*-iso8859-1");
 
@@ -452,20 +441,37 @@ void GuiLayout()
    fGroupData->AddFrame(fEntryPort, new TGLayoutHints(kLHintsLeft | kLHintsTop,2,2,2,2));
    fEntryPort->MoveResize(144,48,88,22);
 
-   TGLabel *fLabelPort = new TGLabel(fGroupData,"Port:",TGLabel::GetDefaultGC()(),TGLabel::GetDefaultFontStruct(),kChildFrame,ucolor);
+   TGLabel *fLabelPort = new TGLabel(fGroupData,"Expt:",TGLabel::GetDefaultGC()(),TGLabel::GetDefaultFontStruct(),kChildFrame,ucolor);
    fLabelPort->SetTextJustify(36);
    fLabelPort->SetMargins(0,0,0,0);
    fLabelPort->SetWrapLength(-1);
    fGroupData->AddFrame(fLabelPort, new TGLayoutHints(kLHintsLeft | kLHintsTop,2,2,2,2));
    fLabelPort->MoveResize(104,48,32,18);
-   TGCheckButton *fIsContinuous = new TGCheckButton(fGroupData,"Continuous");
 
+   TGCheckButton *fIsContinuous = new TGCheckButton(fGroupData,"Continuous");
    fIsContinuous->ChangeBackground(ucolor);
    fIsContinuous->SetTextJustify(36);
    fIsContinuous->SetMargins(0,0,0,0);
    fIsContinuous->SetWrapLength(-1);
    fGroupData->AddFrame(fIsContinuous, new TGLayoutHints(kLHintsLeft | kLHintsTop,2,2,2,2));
    fIsContinuous->MoveResize(104,80,88,19);
+
+   TGCheckButton *fSaveData = new TGCheckButton(fGroupData,"Save Data");
+   fSaveData->ChangeBackground(ucolor);
+   fSaveData->SetTextJustify(36);
+   fSaveData->SetMargins(0,0,0,0);
+   fSaveData->SetWrapLength(-1);
+   fGroupData->AddFrame(fSaveData, new TGLayoutHints(kLHintsLeft | kLHintsTop,2,2,2,2));
+   fSaveData->MoveResize(140,125,88,19);
+
+   TGCheckButton *fSaveHist = new TGCheckButton(fGroupData,"Save Histograms");
+   fSaveHist->ChangeBackground(ucolor);
+   fSaveHist->SetTextJustify(36);
+   fSaveHist->SetMargins(0,0,0,0);
+   fSaveHist->SetWrapLength(-1);
+   fGroupData->AddFrame(fSaveHist, new TGLayoutHints(kLHintsLeft | kLHintsTop,2,2,2,2));
+   fSaveHist->MoveResize(140,143,118,19);
+
 
    ufont = gClient->GetFont("-*-helvetica-medium-r-*-*-12-*-*-*-*-*-iso8859-1");
 

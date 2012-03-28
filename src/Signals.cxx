@@ -32,7 +32,29 @@ void rb::Signals::UpdateBufferCounter(Int_t n, Bool_t force) {
 	// fNBuffers->ChangeText(sstr.str().c_str());
 }
 
-void rb::Signals::AttachOnline() { printf("todo\n"); }
+void rb::Signals::SaveData() {
+	EnableSaveHists();
+	if(fSaveData->IsOn()) {
+		rb::gApp()->StartSave(fSaveHist->IsOn());
+	}
+	else {
+		rb::gApp()->StopSave();
+	}
+}
+
+void rb::Signals::SaveHists() {
+	if(fSaveData->IsOn()) {
+		rb::gApp()->StartSave(fSaveHist->IsOn());
+	}
+}
+
+void rb::Signals::EnableSaveHists() {
+	fSaveHist->SetEnabled(fSaveData->IsOn());
+}
+
+void rb::Signals::AttachOnline() {
+	rb::AttachOnline(fEntryHost->GetText(), fEntryPort->GetText());
+}
 
 void rb::Signals::AttachFile() {
 	Bool_t continuous = !fIsContinuous->IsOn();

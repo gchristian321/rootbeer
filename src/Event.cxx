@@ -15,9 +15,10 @@ namespace rb { rb::Mutex gDataMutex("gDataMutex"); }
 // Constructor                                           //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 rb::Event::Event(): fTree(new TTree("tree", "Rootbeer event tree")),
-		    fHistManager() {
+										fHistManager(),
+										fSave(new rb::Save(), gDataMutex) {
   LockingPointer<TTree> pTree(fTree, gDataMutex);
-//  pTree->SetDirectory(0);
+  pTree->SetDirectory(0);
   pTree->SetCircular(1); // Allows storage of only one event
 }
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
@@ -32,10 +33,28 @@ void rb::Event::Process(void* event_address, Int_t nchar) {
     if(success) {
       pTree->Fill();
       pTree->LoadTree(0);
+			fSave->Fill();
     }
   } // Locks go out of scope & unlock
   if(success) fHistManager.FillAll();
   else HandleBadEvent();
+}
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// void rb::Event::StartSave()                           //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+void rb::Event::StartSave(const char* filename, const char* tree_name, const char* tree_title, Bool_t include_hists) {
+	LockingPointer<TTree> pTree(fTree, gDataMutex);
+	if(!include_hists)
+		 fSave->Start(filename, pTree.Get(), tree_name, tree_title);
+	else
+		 fSave->Start(filename, pTree.Get(), tree_name, tree_title, &fHistManager);
+}
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// void rb::Event::StopSave()                            //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+void rb::Event::StopSave() {
+	rb::ScopedLock<rb::Mutex> lock(gDataMutex);
+	fSave->Stop();
 }
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // rb::Event::GetBranchList()                            //

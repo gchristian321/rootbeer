@@ -34,8 +34,13 @@ private:
 	 EventMap_t fEvents;
 	 //! Manages construction & destruction of gui objects
 	 gui::MainFrameFactory* fFrames;
-  //! Signal emitter
+	 //! Signal emitter
 	 Signals fSignals;
+	 //! Tells whether or not to save tree data to disk.
+	 Bool_t fSaveData;
+	 //! Tells whether or not to save histograms to disk.
+	 //! \note can only be true if fSaveData is also
+	 Bool_t fSaveHists;
 public:
    //! Call Sync() on all gui frames
 	 void SyncAll();
@@ -54,6 +59,19 @@ public:
 
 	 //! Return the number of events total
 	 Int_t NEvents() { return fEvents.size(); }
+
+	 //! Turn on saving of data
+	 //! \param [in] save_hists true means to save historams also
+	 void StartSave(Bool_t save_hists);
+	 
+	 //! Turn off saving of data
+	 void StopSave();
+
+	 //! Returns fSaveData
+	 Bool_t GetSaveData();
+	 
+	 //! Returns fSaveHists
+	 Bool_t GetSaveHists();
 
 	 //! Search for a histogram by name
    //! \param [in] name Histogram name
@@ -130,6 +148,21 @@ void rb::Rint::RegisterEvent(Int_t code, const char* name) {
 inline rb::Signals* rb::Rint::GetSignals() {
 	return &fSignals;
 }
+inline void rb::Rint::StartSave(Bool_t save_hists) {
+	fSaveData = true;
+	fSaveHists = save_hists;
+}
+inline void rb::Rint::StopSave() {
+	fSaveData = false;
+	fSaveHists = false;
+}
+inline Bool_t rb::Rint::GetSaveHists() {
+	return fSaveHists;
+}
+inline Bool_t rb::Rint::GetSaveData() {
+	return fSaveData;
+}
+
 #endif
 
 #endif

@@ -9,9 +9,25 @@
 // Helper Functions and Classes                          //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 namespace {
-  struct HistFill { Int_t operator() (rb::hist::Base* const& hist) {
-    return hist->Fill();
-  } } fill_hist;
+struct HistFill { Int_t operator() (rb::hist::Base* const& hist) {
+	return hist->Fill();
+} } fill_hist;
+class HistWrite
+{
+private:
+	 TFile* fFile;
+public:
+	 HistWrite(TFile* file): fFile(file) { }
+	 void operator() (rb::hist::Base* const& hist) {
+		 TDirectory* current = hist->GetDirectory();
+		 if(!current) return;
+		 fFile->cd();
+		 hist->SetDirectory(fFile);
+		 hist->Write(hist->GetName());
+		 hist->SetDirectory(current);
+		 current->cd();
+	 }
+};
 }
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
@@ -25,6 +41,14 @@ namespace {
 void rb::hist::Manager::FillAll() {
   LockingPointer<hist::Container_t> pSet(fSet, fSetMutex);
   std::for_each(pSet->begin(), pSet->end(), fill_hist);
+}
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// void rb::hist::Manager::WriteAll()                    //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+void rb::hist::Manager::WriteAll(TFile* file) {
+	HistWrite write_hist(file);
+  LockingPointer<hist::Container_t> pSet(fSet, fSetMutex);
+  std::for_each(pSet->begin(), pSet->end(), write_hist);
 }
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // void rb::hist::Manager::DeleteAll()                   //

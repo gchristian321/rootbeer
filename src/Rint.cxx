@@ -17,7 +17,8 @@
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 rb::Rint::Rint(const char* appClassName, int* argc, char** argv,
 	       void* options, int numOptions, Bool_t liteLogo) :
-  TRint(appClassName, argc, argv, options, numOptions, kTRUE) {
+  TRint(appClassName, argc, argv, options, numOptions, kTRUE),
+	fSaveData(false), fSaveHists(false) {
   RegisterEvents();
   SetPrompt("rootbeer [%d] ");
   PrintLogo(liteLogo);

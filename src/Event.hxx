@@ -16,6 +16,8 @@
 #include <TTreeFormula.h>
 #include "hist/Manager.hxx"
 #include "utils/LockingPointer.hxx"
+#include "utils/Save.hxx"
+#include "utils/Critical.hxx"
 #include "utils/Error.hxx"
 #include "utils/nocopy.h"
 #include "utils/boost_scoped_ptr.h"
@@ -35,14 +37,23 @@ namespace hist { class Base; }
 /// \brief Abstract base class for event processors.
 class Event
 {
-	 RB_NOCOPY(Event);
 private:
+	 //! Pointer to the event tree
 	 boost::scoped_ptr<volatile TTree> fTree;
 
 	 //! Manages histograms associated with the event
 	 hist::Manager fHistManager;
+	 
+   //! Manages saving of event data to disk
+	 rb::Critical<rb::Save> fSave;
 
 public:
+	 //! Start saving the output to a root tree on disk.
+	 void StartSave(const char* filename, const char* tree_name = "", const char* tree_title = "", Bool_t include_hists = true);
+
+	 //! Stop saving the output to a root tree on disk.
+	 void StopSave();
+
 	 //! Return a pointer to fHistManager
 	 hist::Manager* const GetHistManager();
 

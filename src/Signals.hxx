@@ -22,6 +22,9 @@ public:
 	 void AttachedFile(const char*); //*SIGNAL*
 	 void ChangedCanvases(); //*SIGNAL*
 	 void UpdateBufferCounter(Int_t n, Bool_t force = false);
+	 void SaveData();
+	 void SaveHists();
+	 void EnableSaveHists();
 	 void AttachOnline();
 	 void AttachFile();
 	 void AttachList();
