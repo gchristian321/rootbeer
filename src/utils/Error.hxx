@@ -58,6 +58,9 @@ namespace err
     std::stringstream fStrm;
   public:
     Throw() { }
+    Throw(const char* where) {
+			fStrm << "Error in <" << where << ">: ";
+		}
     OPS__(fStrm, Throw);
     Throw& operator<<(StandardEndLine manip) {
         manip(fStrm);
@@ -69,6 +72,7 @@ namespace err
   };
 }
 
+#define ERR_FILE_LINE "\nFile, line: " << __FILE__ << ", " << __LINE__ << "." << std::endl
 
 
 #undef OP__
