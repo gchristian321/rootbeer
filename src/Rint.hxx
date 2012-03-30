@@ -18,7 +18,6 @@ typedef std::map<Int_t, std::pair<rb::Event*, std::string> > EventMap_t;
 typedef std::vector<std::pair<Int_t, std::string> > EventVector_t;
 
 //========== Forward Declarations ===========//
-namespace gui { class MainFrameFactory; class MainFrame; }
 namespace hist { class Base; }
 
 //========== Class Definitions ===========//
@@ -32,8 +31,6 @@ private:
 	 std::stringstream fMessage;
 	 //! Map of all event processors, keyed by an integer code.
 	 EventMap_t fEvents;
-	 //! Manages construction & destruction of gui objects
-	 gui::MainFrameFactory* fFrames;
 	 //! Signal emitter
 	 Signals fSignals;
 	 //! Tells whether or not to save tree data to disk.
@@ -42,9 +39,6 @@ private:
 	 //! \note can only be true if fSaveData is also
 	 Bool_t fSaveHists;
 public:
-   //! Call Sync() on all gui frames
-	 void SyncAll();
-
    //! Returns a pointer to fSignals
 	 rb::Signals* GetSignals();
 
@@ -110,7 +104,7 @@ private:
 	 //! See rb::Event documentation for more information.
 	 void RegisterEvents();
 
-   /// \brief Adds gui objects to fFrames
+   /// \brief
 	 void InitGui();
 public:
 	 ClassDef(rb::Rint, 0);

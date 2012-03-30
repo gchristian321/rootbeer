@@ -22,13 +22,13 @@ USER_INCLUDES=-I$(DRAGON_SRC)
 ### Specify the full path for each header. Example:
 ### USER_HEADERS=/path/to/headers/header1.hxx /path/to/headers/header2.hxx
 
-USER_HEADERS= $(DRAGON_SRC)/vme/vme.hxx $(DRAGON_SRC)/vme/bits.hxx 
+USER_HEADERS=$(DRAGON_SRC)/vme/vme.hxx $(DRAGON_SRC)/vme/bits.hxx $(DRAGON_SRC)/Bgo.hxx $(DRAGON_SRC)/Dragon.hxx
 
 ############################
 ### Use the USER_SOURCES variable to tell the compiler where all of your source (compile) files are located.
 ### Specify the full path for each file. Example:
 ### USER_HEADERS=/path/to/sources/source1.cxx /path/to/sources/source2.cxx
-USER_SOURCES=$(DRAGON_SRC)/vme/vme.cxx
+USER_SOURCES=$(DRAGON_SRC)/vme/vme.cxx $(DRAGON_SRC)/Bgo.cxx $(DRAGON_SRC)/Dragon.cxx
 
 
 ############################
@@ -43,5 +43,5 @@ STOCK_BUFFERS=-DMIDAS_BUFFERS
 
 ## DEF_EXT=-DRB_DEFAULT_FILE_EXTENSION=.mid
 DEF_FILE_DIR=-DRB_DEFAULT_FILE_DIRECTORY=\"/user/gchristian/soft/develop/dragon/analyzer\"
-DEF_SAVE_DIR=-DRB_DEFAULT_SAVE_DIR=\"/user/gchristian/soft/develop/dragon/analyzer\"
-DEF_CONFIG_DIR=-DRB_DEFAULT_CONFIG_DIR=\"/user/gchristian/soft/develop/rootbeer\"
+DEF_SAVE_DIR=-DRB_DEFAULT_SAVE_DIRECTORY=\"/user/gchristian/soft/develop/dragon/analyzer\"
+DEF_CONFIG_DIR=-DRB_DEFAULT_CONFIG_DIRECTORY=\"/user/gchristian/soft/develop/rootbeer/config\"

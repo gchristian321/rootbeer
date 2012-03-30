@@ -56,7 +56,7 @@ Bool_t rb::Midas::ReadBufferOnline() {
   } while (size == 0 && rb::Thread::IsRunning(rb::attach::ONLINE_THREAD_NAME) && onlineMidas->poll(1000));
 
   if(size == 0) // Unattached or stopped polling
-    ret = kFALSE;
+		 ret = kFALSE;
   else if(size > 0) { // Got data, copy into midas event  
     //! \todo: byte ordering??
     memcpy(fBuffer.GetEventHeader(), pEvent, sizeof(EventHeader_t));
@@ -77,15 +77,13 @@ Bool_t rb::Midas::UnpackBuffer() {
 #ifdef MIDAS_BUFFERS
   // (DRAGON test setup)
   Short_t eventId = fBuffer.GetEventId();
-  //  fBgo->reset();
-
   switch(eventId) {
   case DRAGON_EVENT: // event
-    {
-      rb::Event* event = rb::Event::Instance<DragonEvent>();
-      event->Process(&fBuffer, 0);
-    break;
-    }
+		 {
+			 rb::Event* event = rb::Event::Instance<DragonEvent>();
+			 event->Process(&fBuffer, 0);
+			 break;
+		 }
   case DRAGON_SCALER: // scaler
     break;
   default:
@@ -98,12 +96,12 @@ Bool_t rb::Midas::UnpackBuffer() {
 #endif
 }
 
-DragonEvent::DragonEvent(): fBgo("bgo", this, true, "") { }
+DragonEvent::DragonEvent(): fDragon("dragon", this, true, "") { }
 
 Bool_t DragonEvent::DoProcess(void* addr, Int_t nchar) {
   TMidasEvent* fEvent = Cast(addr);
   if(fEvent) {
-    fBgo->unpack(*fEvent);
+    fDragon->unpack(*fEvent);
     return true;
   }
   else return false;

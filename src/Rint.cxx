@@ -3,7 +3,6 @@
 #include <set>
 #include "Rint.hxx"
 #include "Rootbeer.hxx"
-#include "gui/CanvasGui.hxx"
 #include "Gui.hxx"
 #include "HistGui.hxx"
 #include "hist/Hist.hxx"
@@ -25,8 +24,7 @@ rb::Rint::Rint(const char* appClassName, int* argc, char** argv,
   std::cout << fMessage.str() << std::endl;
 
 	std::set<std::string> flags(argv, argv + *argc);
-	if(flags.count("-ng") || !gClient) fFrames = 0;
-	else { fFrames = new rb::gui::MainFrameFactory(); InitGui(); }
+	if(!(flags.count("-ng") || !gClient)) InitGui();
 }
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // void rb::Rint::Terminate()                            //
@@ -34,7 +32,6 @@ rb::Rint::Rint(const char* appClassName, int* argc, char** argv,
 void rb::Rint::Terminate(Int_t status) {
   rb::canvas::StopUpdate();
   rb::Unattach();
-	if(fFrames) delete fFrames;
   EventMap_t::iterator it;
   for(it = fEvents.begin(); it != fEvents.end(); ++it) {
     rb::Event* event = it->second.first;
@@ -46,17 +43,8 @@ void rb::Rint::Terminate(Int_t status) {
 // void rb::Rint::Terminate()                            //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 void rb::Rint::InitGui() {
-//	fFrames->Add (new gui::Canvas() );
 	GuiLayout();
 	HistGuiLayout();
-}
-//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-// Frame* rb::Rint::GetGuiFrame()                        //
-//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-void rb::Rint::SyncAll() {
-	if(!fFrames) return;
-	for(UInt_t i=0; i< fFrames->Size(); ++i)
-		 fFrames->Get(i)->Sync();
 }
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // Events_t rb::Rint::GetEvent()                         //

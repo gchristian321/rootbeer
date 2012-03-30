@@ -18,28 +18,28 @@
 #endif
 namespace rb
 {
-  class Midas : public rb::BufferSource
-  {
-  protected:
-    Int_t fRequestId; //< Return code for online event requests.
-    TMidasFile fFile; //< Offline MIDAS file.
-    TMidasEvent fBuffer; //< Midas event buffer.
-  public:
-    Midas();
-    virtual ~Midas();
-    virtual Bool_t OpenFile(const char* file_name, char** other = 0, int nother = 0);
-    virtual Bool_t ConnectOnline(const char* host, const char* other_arg = "", char** other_args = 0, int n_others = 0);
-    virtual Bool_t ReadBufferOffline();
-    virtual Bool_t ReadBufferOnline();
-    virtual Bool_t UnpackBuffer();
-    virtual void CloseFile();
-    virtual void DisconnectOnline();
-  protected:
-    static void RunStop(int transition, int run_number, int trans_time);
-    static void RunStart(int transition, int run_number, int trans_time);
-    static void RunPause(int transition, int run_number, int trans_time);
-    static void RunResume(int transition, int run_number, int trans_time);
-  };
+class Midas : public rb::BufferSource
+{
+protected:
+	 Int_t fRequestId; //< Return code for online event requests.
+	 TMidasFile fFile; //< Offline MIDAS file.
+	 TMidasEvent fBuffer; //< Midas event buffer.
+public:
+	 Midas();
+	 virtual ~Midas();
+	 virtual Bool_t OpenFile(const char* file_name, char** other = 0, int nother = 0);
+	 virtual Bool_t ConnectOnline(const char* host, const char* other_arg = "", char** other_args = 0, int n_others = 0);
+	 virtual Bool_t ReadBufferOffline();
+	 virtual Bool_t ReadBufferOnline();
+	 virtual Bool_t UnpackBuffer();
+	 virtual void CloseFile();
+	 virtual void DisconnectOnline();
+protected:
+	 static void RunStop(int transition, int run_number, int trans_time);
+	 static void RunStart(int transition, int run_number, int trans_time);
+	 static void RunPause(int transition, int run_number, int trans_time);
+	 static void RunResume(int transition, int run_number, int trans_time);
+};
 }
 #ifndef __MAKECINT__
 inline rb::Midas::Midas() : fRequestId(-1) {
@@ -77,7 +77,7 @@ inline void rb::Midas::RunResume(int transition, int run_number, int trans_time)
 }
 #endif
 
-#include "vme/vme.hxx"
+#include "Dragon.hxx"
 enum {
   DRAGON_EVENT = 1,
   DRAGON_SCALER = 2
@@ -86,14 +86,14 @@ enum {
 class DragonEvent : public rb::Event
 {
 private:
-  rb::data::Wrapper<Bgo> fBgo;
+	 rb::data::Wrapper<dragon::Dragon> fDragon;
 public:
-  DragonEvent();
-  ~DragonEvent() {}
+	 DragonEvent();
+	 ~DragonEvent() {}
 private:
-  TMidasEvent* Cast(void* addr) {return reinterpret_cast<TMidasEvent*>(addr);}
-  Bool_t DoProcess(void* event_address, Int_t nchar);
-  void HandleBadEvent() {Error("DragonEvent", "Something went wrong!!");}
+	 TMidasEvent* Cast(void* addr) {return reinterpret_cast<TMidasEvent*>(addr);}
+	 Bool_t DoProcess(void* event_address, Int_t nchar);
+	 void HandleBadEvent() {Error("DragonEvent", "Something went wrong!!");}
 };
 
 #else
@@ -107,17 +107,17 @@ class /* ClassName */ : public rb::BufferSource()
   // Data, etc.
   public:
   // Required functions //
-    /*Name*/ (); // Constructor
-    virtual ~/*Name*/ (); // Destructor
-    virtual Bool_t OpenFile(const char* file_name, char** other = 0, int nother = 0);
-    virtual Bool_t ConnectOnline(const char* host, const char* other_arg = "", char** other_args = 0, int n_others = 0);
-    virtual Bool_t ReadBufferOffline();
-    virtual Bool_t ReadBufferOnline();
-    virtual Bool_t UnpackBuffer();
-    virtual void CloseFile();
-    virtual void DisconnectOnline();
+	/*Name*/ (); // Constructor
+	virtual ~/*Name*/ (); // Destructor
+	virtual Bool_t OpenFile(const char* file_name, char** other = 0, int nother = 0);
+	virtual Bool_t ConnectOnline(const char* host, const char* other_arg = "", char** other_args = 0, int n_others = 0);
+	virtual Bool_t ReadBufferOffline();
+	virtual Bool_t ReadBufferOnline();
+	virtual Bool_t UnpackBuffer();
+	virtual void CloseFile();
+	virtual void DisconnectOnline();
   protected:
-    // Internal functions, etc.
+	// Internal functions, etc.
 };
 
 rb::BufferSource* rb::BufferSource::New() {
