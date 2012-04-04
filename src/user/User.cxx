@@ -101,7 +101,9 @@ DragonEvent::DragonEvent(): fDragon("dragon", this, true, "") { }
 Bool_t DragonEvent::DoProcess(void* addr, Int_t nchar) {
   TMidasEvent* fEvent = Cast(addr);
   if(fEvent) {
+		fDragon->reset();
     fDragon->unpack(*fEvent);
+		fDragon->calibrate();
     return true;
   }
   else return false;

@@ -22,13 +22,16 @@ USER_INCLUDES=-I$(DRAGON_SRC)
 ### Specify the full path for each header. Example:
 ### USER_HEADERS=/path/to/headers/header1.hxx /path/to/headers/header2.hxx
 
-USER_HEADERS=$(DRAGON_SRC)/vme/vme.hxx $(DRAGON_SRC)/vme/bits.hxx $(DRAGON_SRC)/Bgo.hxx $(DRAGON_SRC)/Dragon.hxx
+USER_HEADERS=$(DRAGON_SRC)/utils/Bits.hxx $(DRAGON_SRC)/vme/Vme.hxx $(DRAGON_SRC)/vme/IO32.hxx \
+$(DRAGON_SRC)/vme/caen/V1190.hxx $(DRAGON_SRC)/vme/caen/Adc.hxx \
+$(DRAGON_SRC)/Modules.hxx $(DRAGON_SRC)/Bgo.hxx $(DRAGON_SRC)/Dragon.hxx
 
 ############################
 ### Use the USER_SOURCES variable to tell the compiler where all of your source (compile) files are located.
 ### Specify the full path for each file. Example:
 ### USER_HEADERS=/path/to/sources/source1.cxx /path/to/sources/source2.cxx
-USER_SOURCES=$(DRAGON_SRC)/vme/vme.cxx $(DRAGON_SRC)/Bgo.cxx $(DRAGON_SRC)/Dragon.cxx
+USER_SOURCES=$(DRAGON_SRC)/vme/Vme.cxx $(DRAGON_SRC)/vme/caen/Adc.cxx \
+$(DRAGON_SRC)/Modules.cxx $(DRAGON_SRC)/Bgo.cxx $(DRAGON_SRC)/Dragon.cxx
 
 
 ############################
