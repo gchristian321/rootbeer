@@ -355,7 +355,12 @@ void rb::Signals::EnableHistFields(Int_t code) {
 	}
 }
 
+
 void rb::Signals::CreateHistogram() {
+	if(GetSelectedHist()) {
+		delete GetSelectedHist();
+	};
+
 	Int_t type = fTypeEntry->GetSelected();
 	Int_t bins[3] = { fBinsX->GetNumber(), fBinsY->GetNumber(), fBinsZ->GetNumber() };
 	Int_t evt = fEventEntry->GetSelected();
@@ -534,9 +539,80 @@ void rb::Signals::DrawHist(TGListTreeItem* item, Int_t btn) {
 	}
 }
 
+void rb::Signals::RegateHist() {
+	if(!GetSelectedHist()) return;
+	GetSelectedHist()->Regate(fGateEntry->GetText());
+}
+
+void rb::Signals::SyncHistMenu(rb::hist::Base* hist) {
+	if(!hist) return;
+	//	1d, 2d, 3d, summary [h], summary [v], gamma1, gamma2, gamma3, bit
+  //   0,  1,  2,     3,          4,          5,      6,      7,     8
+	int code = -1;
+	if(0);
+	else if(dynamic_cast<rb::hist::D1*>(hist)) {
+		fTypeEntry->Select(0);
+		code = 0;
+	}
+	else if(dynamic_cast<rb::hist::D2*>(hist)) {
+		fTypeEntry->Select(1);
+		code = 1;
+	}
+	else if(dynamic_cast<rb::hist::D3*>(hist)) {
+		fTypeEntry->Select(2);
+		code = 2;
+	}
+	else if(dynamic_cast<rb::hist::Summary*>(hist)) {
+		if(!dynamic_cast<rb::hist::Summary*>(hist)->GetOrientation()) {
+			fTypeEntry->Select(3);
+			code = 3;
+		}
+		else {
+			fTypeEntry->Select(4);
+			code = 4;
+		}
+	}
+	else if(dynamic_cast<rb::hist::Gamma*>(hist)) {
+		fTypeEntry->Select(4 + hist->GetNdimensions());
+		code = 4 + hist->GetNdimensions();
+	}
+	else { // bit
+		fTypeEntry->Select(8);
+		code = 8;
+	}	
+
+	fNameEntry->SetText(hist->GetName());
+	if(!hist->UseDefaultTitle()) {
+		fTitleEntry->SetText(hist->GetTitle());
+	} else {
+		fTitleEntry->SetText("");
+	}
+	if(hist->GetGate() != "1") {
+		fGateEntry->SetText(hist->GetGate().c_str());
+	}
+	else {
+		fGateEntry->SetText("");
+	}
+	fEventEntry->Select(hist->GetEventCode());
+
+/*
+	TGComboBox* par_boxes[] = { fParamX, fParamY, fParamZ };
+	for(int i=0; i< get_dim(code); ++i) {
+		TGLBEntry* entry = par_boxes[i]->FindEntry(hist->GetParam(i).c_str());
+		if(entry) {
+			par_boxes[i]->Select(entry->EntryId());
+			par_boxes[i]->Selected(entry->EntryId());
+		}
+	}
+*/
+}
+
 void rb::Signals::HistTreeItemClicked(TGListTreeItem* item, Int_t btn) {
 	if(0 && btn);
-	else if (hist_map.count(item)) HistTreeItemClicked(item->GetParent(), btn);
+	else if (hist_map.count(item)) {
+		SyncHistMenu(GetSelectedHist());
+		HistTreeItemClicked(item->GetParent(), btn);
+	}
 	else if (directory_map.count(item)) Cd(item, btn);
 	else;
 }

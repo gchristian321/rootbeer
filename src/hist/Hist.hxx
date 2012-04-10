@@ -203,7 +203,15 @@ public:
 	 virtual std::string GetGate() { return fGate->Get(0); }
 
 	 /// Return the parameter name associated with the specified axis.
-	 virtual std::string GetParam(Int_t axis) { return fParams->Get(axis); }
+	 virtual std::string GetParam(Int_t axis) {
+		 if(axis >= 0 && (int)axis < (int)kDimensions)
+				return fParams->Get(axis);
+		 else {
+			 err::Error("GetParam") << "Invalid axis specification: " << axis
+															<< " (must be in the range of 0 - " << kDimensions-1;
+					return "";
+		 }
+	 }
 
    /// Return the initial parameter argument
 	 const char* GetInitialParams() {
@@ -310,6 +318,8 @@ private:
 	 Double_t fLow;
 	 //! High end of the parameter axis
 	 Double_t fHigh;
+	 //! Initial parameter argument
+	 std::string kParamArg;
 public:
 	 //! Calls base 2d constructor with junk bin arguments, sets constants
 	 Summary (const char* name, const char* title, const char* param, const char* gate,
@@ -321,6 +331,15 @@ public:
 	 virtual Int_t DoFill(const std::vector<Double_t>& params);
    //! Return kOrientation
 	 Int_t GetOrientation() { return kOrientation; }
+	 //! Return parameter arguments
+	 virtual std::string GetParam(Int_t axis = 0) {
+		 if(axis != 0) {
+			 err::Error("GetParam")  << "Invalid axis specification; only 0 is allowed for summary histograms.";
+			 return "";
+		 }
+		 return kParamArg;
+	 }
+
 private:
 	 //! Set the orientation (horizontal or vertical)
 	 void SetOrientation(Option_t* orientation);

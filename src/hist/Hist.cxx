@@ -286,6 +286,7 @@ namespace
 }
 // ===== InitParams ===== //
 void rb::hist::Summary::InitParams(const char* param, Int_t event_code) {
+	kParamArg = param;
   StringVector_t pars = parse_multiple_params(param);
   fParams.reset(new rb::TreeFormulae(pars, event_code));
 
@@ -360,7 +361,7 @@ rb::hist::Gamma::Gamma (const char* name, const char* title, const char* param, 
   fLockOnConstruction.Unlock();
 }
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-// void rb::hist::Summary::InitParams() [virtual]        //
+// void rb::hist::Gamma::InitParams() [virtual]          //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 void rb::hist::Gamma::InitParams(const char* params, Int_t event_code) {
   StringVector_t par0 = parse_params(params, kDimensions);

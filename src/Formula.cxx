@@ -48,43 +48,6 @@ rb::TreeFormulae::TreeFormulae(std::vector<std::string>& params, Int_t event_cod
     else fTreeFormulae->push_back(formula);
   }
 }
-    
-						    
-
-    /*
-  // Initialize parameters
-  Int_t npar_found;
-  std::vector<std::string> pars = get_param_vector(params, npar_found);
-  if(npar_found != npar) {
-    std::stringstream err;
-    err << "Invalid parameter specification (\"" << params << "\") for a " << npar << "-dimensional histogram";
-    throw(std::invalid_argument(err.str().c_str()));
-  }
-  for(Int_t I = 0; I < 3; ++I) {
-    fFormulaArgs.push_back(pars[I]);
-    modify_formula_arg(I, fFormulaArgs[I]);
-    TTreeFormula* formula = 0;
-    bool good_param = Init(formula, fFormulaArgs[I].c_str());
-    if(!good_param) ThrowBad(pars[I].c_str(), I);
-    else {
-      fFormulae->push_back(formula);
-    }
-  }
-    */
-  /*
-  // Initialize gate
-  fFormulaArgs.push_back(gate);
-  modify_formula_arg(GATE, fFormulaArgs.at(GATE));
-  boost::scoped_ptr<volatile TTreeFormula> formula(0);
-  bool good_gate = Init(formula, fFormulaArgs.at(GATE));
-  if(!good_gate) ThrowBad(gate, GATE);
-  else {
-    LockingPointer<TTreeFormula> pFormula(formula, gDataMutex);
-    fTreeFormulae->push_back(pFormula.Get());
-  }
-  */
-//};
-
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // void ThrowBad()                                       //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//

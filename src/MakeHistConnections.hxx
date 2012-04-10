@@ -46,6 +46,8 @@ void MakeHistConnections() {
 	fCommandOk->Connect("Pressed()", "rb::Signals", RB_SIGNALS, "HistMemberFn()");
 	fCommandEntry->Connect("ReturnPressed()", "rb::Signals", RB_SIGNALS, "HistMemberFn()");
 	fMkdirButton->Connect("Pressed()",  "rb::Signals", RB_SIGNALS, "Mkdir()");
+	fHistRegateButton->Connect("Pressed()", "rb::Signals", RB_SIGNALS, "RegateHist()");
+
 
 	RB_SIGNALS->Connect("NewOrDeleteHist()", "rb::Signals", RB_SIGNALS, "SyncHistTree()");
 

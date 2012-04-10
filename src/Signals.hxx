@@ -57,6 +57,8 @@ public:
 	 void HistTreeItemClicked(TGListTreeItem*, Int_t);
 	 void HistTreeItemSelect(TGListTreeItem*, Int_t);
 	 void HistTreeItemSelect(TGListTreeItem*);
+	 void SyncHistMenu(rb::hist::Base* hist);
+	 void RegateHist();
 	 void DrawHist(TGListTreeItem*, Int_t);
 	 void DrawHist(TGListTreeItem* item);
 	 void DrawHist();
