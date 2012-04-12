@@ -747,6 +747,8 @@ void rb::HistSignals::WriteConfig(Int_t which) {
 	TGFileInfo fileInfo;
 	const char* ext[] =
 		 { "ROOT macro files", "*.[Cc]",
+			 "ROOT macro files", "*.cc",
+			 "ROOT macro files", "*.cxx",
 			 "All Files", "*",
 			 0, 0 };
 	fileInfo.fFileTypes = reinterpret_cast<const char**>(ext);
@@ -794,6 +796,8 @@ void rb::HistSignals::ReadConfig(Bool_t type_prompt) {
 	TGFileInfo fileInfo;
 	const char* ext[] =
 		 { "ROOT macro files", "*.[Cc]",
+			 "ROOT macro files", "*.cc",
+			 "ROOT macro files", "*.cxx",
 			 "All Files", "*",
 			 0, 0 };
 	fileInfo.fFileTypes = reinterpret_cast<const char**>(ext);
@@ -813,6 +817,8 @@ void rb::HistSignals::ReadCanvasConfig() {
 	TGFileInfo fileInfo;
 	const char* ext[] =
 		 { "ROOT macro files", "*.[Cc]",
+			 "ROOT macro files", "*.cc",
+			 "ROOT macro files", "*.cxx",
 			 "All Files", "*",
 			 0, 0 };
 	fileInfo.fFileTypes = reinterpret_cast<const char**>(ext);

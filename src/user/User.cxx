@@ -103,7 +103,7 @@ Bool_t rb::Midas::UnpackBuffer() {
 #endif
 }
 
-CoincidenceEvent::CoincidenceEvent(): fDragon("dragon", this, true, "") { }
+CoincidenceEvent::CoincidenceEvent(): fDragon("coinc", this, false, "") { }
 
 Bool_t CoincidenceEvent::DoProcess(void* addr, Int_t nchar) {
 	TMidasEvent* fEvent = Cast(addr);
