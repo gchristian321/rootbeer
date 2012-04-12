@@ -13,6 +13,7 @@
 #pragma link C++ namespace rb::canvas;
 #pragma link C++ class rb::Rint+;
 #pragma link C++ class rb::Signals+;
+#pragma link C++ class rb::HistSignals+;
 #pragma link C++ class rb::Save+;
 #pragma link C++ class rb::Event+;
 #pragma link C++ class TGSelectDialog+;

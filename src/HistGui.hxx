@@ -148,6 +148,7 @@ private:
 	 TGListTree *fHistTree;
 	 TGTextButton *fCommandOk; // "OK"
 	 TGTextButton *fQuit; // "Quit"
+	 TGTextButton *fVarQuit; // "Quit"
 	 TGTextEntry *fCommandEntry;
 	 TGLabel *fCommandLabel; // "Command (member function)"
 	 TGTextButton *fDrawButton; // "Draw"

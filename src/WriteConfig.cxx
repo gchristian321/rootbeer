@@ -313,7 +313,7 @@ void rb::ReadConfig(const char* filename, Option_t* option) {
   else {
     Error("ReadConfig", "Valid options are: \"r\" (reset), \"o\" (overwrite), and \"c\" (cumulate).");
   }
-	gApp()->GetSignals()->SyncHistTree();
+	if(gApp()->GetHistSignals()) gApp()->GetHistSignals()->SyncHistTree();
 }
 
 namespace {

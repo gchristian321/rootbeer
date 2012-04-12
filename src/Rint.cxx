@@ -17,6 +17,7 @@
 rb::Rint::Rint(const char* appClassName, int* argc, char** argv,
 	       void* options, int numOptions, Bool_t liteLogo) :
   TRint(appClassName, argc, argv, options, numOptions, kTRUE),
+	fSignals(0), fHistSignals(0),
 	fSaveData(false), fSaveHists(false) {
   RegisterEvents();
   SetPrompt("rootbeer [%d] ");
@@ -37,14 +38,22 @@ void rb::Rint::Terminate(Int_t status) {
     rb::Event* event = it->second.first;
     rb::Event::Destructor::Operate(event);
   }
+	DeleteSignals();
+	DeleteHistSignals();
   TRint::Terminate(status);
 }
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-// void rb::Rint::Terminate()                            //
+// void rb::Rint::InitGui()                              //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 void rb::Rint::InitGui() {
-	GuiLayout();
-	HistGuiLayout();
+	DeleteSignals();
+	fSignals = new rb::Signals();
+	DeleteHistSignals();
+	fHistSignals = new rb::HistSignals();
+	fRbeerFrame = new TGRbeerFrame(gClient->GetRoot(),10,10,kMainFrame | kVerticalFrame);
+	fRbeerFrame->GuiLayout();
+	fHistFrame = new TGHistVarFrame(gClient->GetRoot(),10,10,kMainFrame | kVerticalFrame);
+	fHistFrame->HistGuiLayout();
 }
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // Events_t rb::Rint::GetEvent()                         //
@@ -74,6 +83,25 @@ rb::hist::Base* rb::Rint::FindHistogram(const char* name, TDirectory* directory)
 	}
 	return 0;
 }
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// void rb::Rint::DeleteSignals()                        //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+void rb::Rint::DeleteSignals() {
+	if(fSignals) {
+		delete fSignals;
+		fSignals = 0;
+	}
+}
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// void rb::Rint::DeleteHistSignals()                    //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+void rb::Rint::DeleteHistSignals() {
+	if(fHistSignals) {
+		delete fHistSignals;
+		fHistSignals = 0;
+	}
+}
+
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // void rb::Rint::PrintLogo()                            //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//

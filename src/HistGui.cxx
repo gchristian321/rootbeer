@@ -117,7 +117,7 @@ fCommandOk->SetFont(ufont->GetFontStruct());
 
    ufont = gClient->GetFont("-*-helvetica-bold-r-*-*-12-*-*-*-*-*-iso8859-1");
    /* TGTextButton* */ fQuit = new TGTextButton(fCompositeFrame717,"Quit");
-fQuit->SetFont(ufont->GetFontStruct());
+	 fQuit->SetFont(ufont->GetFontStruct());
    fQuit->SetTextJustify(36);
    fQuit->SetMargins(0,0,0,0);
    fQuit->SetWrapLength(-1);
@@ -128,6 +128,7 @@ fQuit->SetFont(ufont->GetFontStruct());
 	 fQuit->SetFont(ufont->GetFontStruct());
    fCompositeFrame717->AddFrame(fQuit, new TGLayoutHints(kLHintsLeft | kLHintsTop,2,2,2,2));
    fQuit->MoveResize(620,411,96,22);
+
 
    ufont = gClient->GetFont("-*-helvetica-medium-r-*-*-12-*-*-*-*-*-iso8859-1");
 
@@ -708,6 +709,25 @@ fMkdirButton->SetFont(ufont->GetFontStruct());
    // "Variables" group frame
    /* TGGroupFrame* */ fVariablesFrame = new TGGroupFrame(fCompositeFrame857,"Variables");   fVariablesFrame->SetLayoutBroken(kTRUE);
 
+
+   ufont = gClient->GetFont("-*-helvetica-bold-r-*-*-12-*-*-*-*-*-iso8859-1");
+
+   /* TGTextButton* */ fVarQuit = new TGTextButton(fCompositeFrame857,"Quit");
+fVarQuit->SetFont(ufont->GetFontStruct());
+   fVarQuit->SetTextJustify(36);
+   fVarQuit->SetMargins(0,0,0,0);
+   fVarQuit->SetWrapLength(-1);
+   fVarQuit->Resize(91,24);
+
+   fVarQuit->ChangeBackground(0xff0000);
+	 fVarQuit->SetForegroundColor(0xffffff);
+	 fVarQuit->SetFont(ufont->GetFontStruct());
+   fCompositeFrame857->AddFrame(fVarQuit, new TGLayoutHints(kLHintsLeft | kLHintsTop,2,2,2,2));
+   fVarQuit->MoveResize(620,411,96,22);
+
+   ufont = gClient->GetFont("-*-helvetica--*-*-12-*-*-*-*-*-*-*");
+
+
    // canvas widget
    /* TGCanvas* */ fVariablesCanvas = new TGCanvas(fVariablesFrame,336,352);
    // canvas viewport
@@ -715,25 +735,6 @@ fMkdirButton->SetFont(ufont->GetFontStruct());
 
    // list tree
    /* TGListTree* */ fVariablesTree = new TGListTree(fVariablesCanvas,kHorizontalFrame);
-   // const TGPicture *popen2 = gClient->GetPicture("tree_s.xpm");       //used for list tree items
-   // const TGPicture *pclose2= gClient->GetPicture("tree_t.xpm");      //used for list tree items
-
-   // TGListTreeItem *item60 = fVariablesTree->AddItem(NULL,"Entry 1");
-   // item60->SetPictures(popen2, pclose2);
-   // fVariablesTree->CloseItem(item60);
-   // TGListTreeItem *item61 = fVariablesTree->AddItem(NULL,"Entry 2");
-   // item61->SetPictures(popen2, pclose2);
-   // fVariablesTree->CloseItem(item61);
-   // fVariablesTree->SetSelected(item61);
-   // TGListTreeItem *item62 = fVariablesTree->AddItem(NULL,"Entry 3");
-   // item62->SetPictures(popen2, pclose2);
-   // fVariablesTree->CloseItem(item62);
-   // TGListTreeItem *item63 = fVariablesTree->AddItem(NULL,"Entry 4");
-   // item63->SetPictures(popen2, pclose2);
-   // fVariablesTree->CloseItem(item63);
-   // TGListTreeItem *item64 = fVariablesTree->AddItem(NULL,"Entry 5");
-   // item64->SetPictures(popen2, pclose2);
-   // fVariablesTree->CloseItem(item64);
 
    fViewPort860->AddFrame(fVariablesTree);
    fVariablesTree->SetLayoutManager(new TGHorizontalLayout(fVariablesTree));
@@ -1034,6 +1035,7 @@ void TGHistVarFrame::MakeHistConnections() {
 	RB_HIST_SIGNALS->SyncHistTree();
 
 	fQuit->Connect("Pressed()", "rb::HistSignals", RB_HIST_SIGNALS, "Quit()");
+	fVarQuit->Connect("Pressed()", "rb::HistSignals", RB_HIST_SIGNALS, "Quit()");
 
 
 // ===== Variables/Config ===== //

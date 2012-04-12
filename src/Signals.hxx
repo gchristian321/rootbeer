@@ -3,6 +3,7 @@
 #ifndef SIGNALS_HXX
 #define SIGNALS_HXX
 #include <TQObject.h>
+#include "HistGui.hxx"
 
 class TGListTreeItem;
 class TGTextButton;
@@ -11,6 +12,9 @@ namespace rb
 namespace hist { class Base; }
 class Signals: public TQObject
 {
+public:
+	 Signals();
+	 ~Signals();
 public:
 	 void Unattaching(); //*SIGNAL*
 	 void Attaching(); //*SIGNAL*
@@ -39,11 +43,23 @@ public:
 	 void Update();
 	 void SyncCanvases();
 	 void CdCanvas();
-	 void Quit();
+
+	 ClassDef(rb::Signals, 0);
+};
 
 // === Hist === //
+
+class HistSignals: public TQObject
+{
+public:
+	 HistSignals();
+	 ~HistSignals();
 private:
 	 Bool_t fHistFromGui;
+	 void hist_field_enable(bool, int);
+	 void hist_error(const char*);
+	 void recurse_directory(TDirectory*, TGListTreeItem*);
+	 std::string get_variable(TGListTreeItem*);
 public:
 	 void NewOrDeleteHist(); //*SIGNAL*
 	 void EnableHistFields(Int_t);
@@ -68,6 +84,7 @@ public:
 	 void Cd();
 	 void DeleteHist();
 	 void HistMemberFn();
+	 void Quit();
 
 // === Variables/Config === //
 	 enum { WRITE_ALL, WRITE_CANVAS, WRITE_VAR, WRITE_HIST };
@@ -80,15 +97,11 @@ public:
 	 void ReadVariable();
 	 void SetVariable();
 	 
-
-	 Signals();
-	 ClassDef(rb::Signals, 0);
+	 ClassDef(rb::HistSignals, 0);
 };
 
 }
 
-inline rb::Signals::Signals():
-	fHistFromGui (false) {}
 inline void rb::Signals::Unattaching() {
 	Emit("Unattaching()");
 }
@@ -114,19 +127,21 @@ inline void rb::Signals::AttachedOnline(const char* host) {
 inline void rb::Signals::ChangedCanvases() {
 	Emit("ChangedCanvases()");
 }
-inline void rb::Signals::SetHistFromGui() {
+
+
+inline void rb::HistSignals::SetHistFromGui() {
 	fHistFromGui = true;
 }
-inline void rb::Signals::NewOrDeleteHist() {
+inline void rb::HistSignals::NewOrDeleteHist() {
 	Emit("NewOrDeleteHist()");
 }
-inline void rb::Signals::HistTreeItemSelect(TGListTreeItem* item) {
+inline void rb::HistSignals::HistTreeItemSelect(TGListTreeItem* item) {
 	HistTreeItemSelect(item, 0);
 }
-inline void rb::Signals::DrawHist(TGListTreeItem* item) {
+inline void rb::HistSignals::DrawHist(TGListTreeItem* item) {
 	DrawHist(item, 0);
 }
-inline void rb::Signals::Cd(TGListTreeItem* item) {
+inline void rb::HistSignals::Cd(TGListTreeItem* item) {
 	Cd(item, 0);
 }
 
