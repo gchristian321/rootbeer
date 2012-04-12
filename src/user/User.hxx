@@ -80,20 +80,49 @@ inline void rb::Midas::RunResume(int transition, int run_number, int trans_time)
 #include "Dragon.hxx"
 enum {
   DRAGON_EVENT = 1,
-  DRAGON_SCALER = 2
+  DRAGON_SCALER = 2,
+	HI_EVENT = 3,
+	GAMMA_EVENT = 4,
+	COINCIDENCE_EVENT = 5
 };
 #include "TStreamerInfo.h"
-class DragonEvent : public rb::Event
+class CoincidenceEvent : public rb::Event
 {
 private:
 	 rb::data::Wrapper<dragon::Dragon> fDragon;
 public:
-	 DragonEvent();
-	 ~DragonEvent() {}
+	 CoincidenceEvent();
+	 ~CoincidenceEvent() {}
 private:
 	 TMidasEvent* Cast(void* addr) {return reinterpret_cast<TMidasEvent*>(addr);}
 	 Bool_t DoProcess(void* event_address, Int_t nchar);
-	 void HandleBadEvent() {Error("DragonEvent", "Something went wrong!!");}
+	 void HandleBadEvent() {Error("CoincidenceEvent", "Something went wrong!!");}
+};
+
+class GammaEvent : public rb::Event
+{
+private:
+	 rb::data::Wrapper<dragon::gamma::Gamma> fGamma;
+public:
+	 GammaEvent();
+	 ~GammaEvent() {}
+private:
+	 TMidasEvent* Cast(void* addr) {return reinterpret_cast<TMidasEvent*>(addr);}
+	 Bool_t DoProcess(void* event_address, Int_t nchar);
+	 void HandleBadEvent() {Error("GammaEvent", "Something went wrong!!");}
+};
+
+class HeavyIonEvent : public rb::Event
+{
+private:
+	 rb::data::Wrapper<dragon::hion::HeavyIon> fHeavyIon;
+public:
+	 HeavyIonEvent();
+	 ~HeavyIonEvent() {}
+private:
+	 TMidasEvent* Cast(void* addr) {return reinterpret_cast<TMidasEvent*>(addr);}
+	 Bool_t DoProcess(void* event_address, Int_t nchar);
+	 void HandleBadEvent() {Error("HeavyIonEvent", "Something went wrong!!");}
 };
 
 #else

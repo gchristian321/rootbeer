@@ -267,6 +267,8 @@ std::string to_upper(const std::string& str) {
 	return std::string(tstr.Data());
 }
 void populate_combo(TGComboBox* combo, const std::vector<std::string>& entries, UInt_t max_height) {
+	bool enabled = combo->IsEnabled();
+	if(!enabled) combo->SetEnabled();
 	combo->RemoveAll();
 	int n(0);
 	for(std::vector<std::string>::const_iterator it = entries.begin(); it != entries.end(); ++it)
@@ -277,6 +279,7 @@ void populate_combo(TGComboBox* combo, const std::vector<std::string>& entries, 
 	size.fHeight = box->GetItemVsize() * box->GetNumberOfEntries();
 	if(size.fHeight > max_height) size.fHeight = max_height;
 	box->Resize(size);
+	if(!enabled) combo->SetEnabled(false);
 }
 } //namespace
 
@@ -330,9 +333,24 @@ void rb::HistSignals::PopulateParameters(Int_t event_code) {
 		std::sort(event_branches.begin(), event_branches.end(), ansort);
 		branches.insert(std::make_pair(event_code, event_branches));
 	}
-	if(rb::gApp()->fHistFrame->fParamX->IsEnabled()) populate_combo(rb::gApp()->fHistFrame->fParamX, branches[event_code], 400);
-	if(rb::gApp()->fHistFrame->fParamY->IsEnabled()) populate_combo(rb::gApp()->fHistFrame->fParamY, branches[event_code], 400);
-	if(rb::gApp()->fHistFrame->fParamZ->IsEnabled()) populate_combo(rb::gApp()->fHistFrame->fParamZ, branches[event_code], 400);
+	// bool enabled[3] = {1,1,1};
+	// if(!rb::gApp()->fHistFrame->fParamX->IsEnabled()) {
+	// 	enabled[0] = false;
+	// }
+	// if(!rb::gApp()->fHistFrame->fParamY->IsEnabled()) {
+	// 	enabled[1] = false;
+	// 	rb::gApp()->fHistFrame->fParamY->SetEnabled(true);
+	// }
+	// if(!rb::gApp()->fHistFrame->fParamZ->IsEnabled()) {
+	// 	enabled[2] = false;
+	// 	rb::gApp()->fHistFrame->fParamZ->SetEnabled(true);
+	// }
+	populate_combo(rb::gApp()->fHistFrame->fParamX, branches[event_code], 400);
+	populate_combo(rb::gApp()->fHistFrame->fParamY, branches[event_code], 400);
+	populate_combo(rb::gApp()->fHistFrame->fParamZ, branches[event_code], 400);
+	// rb::gApp()->fHistFrame->fParamX->SetEnabled(enabled[0]);
+	// rb::gApp()->fHistFrame->fParamY->SetEnabled(enabled[1]);
+	// rb::gApp()->fHistFrame->fParamZ->SetEnabled(enabled[2]);
 }
 
 void rb::HistSignals::PopulateEvents() {
@@ -341,6 +359,7 @@ void rb::HistSignals::PopulateEvents() {
 	if(!events.size()) return;
 	std::stringstream entry;
 	for(unsigned i=0; i< events.size(); ++i) {
+		entry.str("");
 		entry << events[i].second << " [ code: "
 					<< events[i].first  << " ]";
 		rb::gApp()->fHistFrame->fEventEntry->AddEntry(entry.str().c_str(), events[i].first);
@@ -672,7 +691,7 @@ void rb::HistSignals::HistMemberFn() {
 		}
 	}
 	std::stringstream cmd;
-	cmd << "rb::gApp()->GetSignals()->GetSelectedHist()->" << rb::gApp()->fHistFrame->fCommandEntry->GetText();
+	cmd << "rb::gApp()->GetHistSignals()->GetSelectedHist()->" << rb::gApp()->fHistFrame->fCommandEntry->GetText();
 	gROOT->ProcessLineFast(cmd.str().c_str());
 	rb::canvas::UpdateAll();
 }

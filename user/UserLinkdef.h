@@ -25,7 +25,7 @@
 
 
 #pragma link C++ defined_in /user/gchristian/soft/develop/dragon/analyzer/src/Dragon.hxx;
-#pragma link C++ defined_in /user/gchristian/soft/develop/dragon/analyzer/src/Bgo.hxx;
+#pragma link C++ defined_in /user/gchristian/soft/develop/dragon/analyzer/src/Gamma.hxx;
 #pragma link C++ defined_in /user/gchristian/soft/develop/dragon/analyzer/src/HeavyIon.hxx;
 #pragma link C++ defined_in /user/gchristian/soft/develop/dragon/analyzer/src/Modules.hxx;
 #pragma link C++ defined_in /user/gchristian/soft/develop/dragon/analyzer/src/vme/Vme.hxx;

@@ -79,9 +79,16 @@ Bool_t rb::Midas::UnpackBuffer() {
   Short_t eventId = fBuffer.GetEventId();
   switch(eventId) {
   case DRAGON_EVENT: // event
-		 {
-			 rb::Event* event = rb::Event::Instance<DragonEvent>();
-			 event->Process(&fBuffer, 0);
+		 {	 
+			 // Figure out timestamp matching
+			 // ....
+
+			 rb::Event* gamma_event = rb::Event::Instance<GammaEvent>();
+			 gamma_event->Process(&fBuffer, 0);
+
+			 rb::Event* hi_event = rb::Event::Instance<HeavyIonEvent>();
+			 hi_event->Process(&fBuffer, 0);
+		 
 			 break;
 		 }
   case DRAGON_SCALER: // scaler
@@ -96,10 +103,10 @@ Bool_t rb::Midas::UnpackBuffer() {
 #endif
 }
 
-DragonEvent::DragonEvent(): fDragon("dragon", this, true, "") { }
+CoincidenceEvent::CoincidenceEvent(): fDragon("dragon", this, true, "") { }
 
-Bool_t DragonEvent::DoProcess(void* addr, Int_t nchar) {
-  TMidasEvent* fEvent = Cast(addr);
+Bool_t CoincidenceEvent::DoProcess(void* addr, Int_t nchar) {
+	TMidasEvent* fEvent = Cast(addr);
   if(fEvent) {
 		fDragon->reset();
     fDragon->unpack(*fEvent);
@@ -109,8 +116,33 @@ Bool_t DragonEvent::DoProcess(void* addr, Int_t nchar) {
   else return false;
 }
 
-void rb::Rint::RegisterEvents() {
-  // Register events here //
-  RegisterEvent<DragonEvent>(DRAGON_EVENT, "DragonEvent");
+GammaEvent::GammaEvent(): fGamma("gamma", this, true, "") { }
+
+Bool_t GammaEvent::DoProcess(void* addr, Int_t nchar) {
+  TMidasEvent* fEvent = Cast(addr);
+  if(fEvent) {
+		fGamma->unpack(*fEvent);
+		fGamma->read_data();
+    return true;
+  }
+  else return false;
 }
 
+HeavyIonEvent::HeavyIonEvent(): fHeavyIon("hi", this, true, "") { }
+
+Bool_t HeavyIonEvent::DoProcess(void* addr, Int_t nchar) {
+  TMidasEvent* fEvent = Cast(addr);
+  if(fEvent) {
+		fHeavyIon->unpack(*fEvent);
+		fHeavyIon->read_data();
+    return true;
+  }
+  else return false;
+}
+
+void rb::Rint::RegisterEvents() {
+  // Register events here //
+  RegisterEvent<CoincidenceEvent>(COINCIDENCE_EVENT, "CoincidenceEvent");
+	RegisterEvent<GammaEvent>(GAMMA_EVENT, "GammaEvent");
+	RegisterEvent<HeavyIonEvent>(HI_EVENT, "HeavyIonEvent");
+}
