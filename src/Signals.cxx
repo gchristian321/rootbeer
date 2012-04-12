@@ -333,24 +333,9 @@ void rb::HistSignals::PopulateParameters(Int_t event_code) {
 		std::sort(event_branches.begin(), event_branches.end(), ansort);
 		branches.insert(std::make_pair(event_code, event_branches));
 	}
-	// bool enabled[3] = {1,1,1};
-	// if(!rb::gApp()->fHistFrame->fParamX->IsEnabled()) {
-	// 	enabled[0] = false;
-	// }
-	// if(!rb::gApp()->fHistFrame->fParamY->IsEnabled()) {
-	// 	enabled[1] = false;
-	// 	rb::gApp()->fHistFrame->fParamY->SetEnabled(true);
-	// }
-	// if(!rb::gApp()->fHistFrame->fParamZ->IsEnabled()) {
-	// 	enabled[2] = false;
-	// 	rb::gApp()->fHistFrame->fParamZ->SetEnabled(true);
-	// }
 	populate_combo(rb::gApp()->fHistFrame->fParamX, branches[event_code], 400);
 	populate_combo(rb::gApp()->fHistFrame->fParamY, branches[event_code], 400);
 	populate_combo(rb::gApp()->fHistFrame->fParamZ, branches[event_code], 400);
-	// rb::gApp()->fHistFrame->fParamX->SetEnabled(enabled[0]);
-	// rb::gApp()->fHistFrame->fParamY->SetEnabled(enabled[1]);
-	// rb::gApp()->fHistFrame->fParamZ->SetEnabled(enabled[2]);
 }
 
 void rb::HistSignals::PopulateEvents() {
