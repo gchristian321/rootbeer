@@ -71,7 +71,7 @@ $(OBJ)/TGSelectDialog.o $(OBJ)/TGDivideSelect.o
 HEADERS=$(SRC)/Rootbeer.hxx $(SRC)/Rint.hxx $(SRC)/Data.hxx $(SRC)/Buffer.hxx $(SRC)/Event.hxx $(SRC)/user/User.hxx \
 $(SRC)/Signals.hxx $(SRC)/Formula.hxx $(SRC)/utils/LockingPointer.hxx $(SRC)/utils/Mutex.hxx \
 $(SRC)/hist/Hist.hxx $(SRC)/hist/Visitor.hxx $(SRC)/hist/Manager.hxx $(SRC)/TGSelectDialog.h $(SRC)/TGDivideSelect.h \
-$(SRC)/HistGui.hxx $(SRC)/Gui.hxx $(SRC)/utils/Save.hxx $(SRC)/midas/*.h $(SRC)/utils/*.h* $(USER_HEADERS)
+$(SRC)/HistGui.hxx $(SRC)/Gui.hxx $(SRC)/midas/*.h $(SRC)/utils/*.h* $(USER_HEADERS)
 
 
 RBlib: $(RBLIB)/libRootbeer.so

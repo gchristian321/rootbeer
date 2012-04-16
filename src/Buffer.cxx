@@ -2,6 +2,7 @@
 //! \brief Implements classes defined in Buffer.hxx
 #include <fstream>
 #include <memory>
+#include <TFile.h>
 #include <TError.h>
 #include <TString.h>
 #include <TSystem.h>
@@ -10,6 +11,20 @@
 #include "Buffer.hxx"
 
 extern void attach_sync();
+
+namespace { void start_save(const std::string& save_fname) {
+	TDirectory* current = gDirectory;
+	if(!current) current = gROOT;
+	boost::shared_ptr<TFile> file (new TFile(save_fname.c_str(), "recreate"));
+	current->cd();
+	rb::EventVector_t events = rb::gApp()->GetEventVector();
+	for(rb::EventVector_t::iterator it = events.begin(); it != events.end(); ++it) {
+		std::stringstream tname; tname << "t" << it->first;
+		std::stringstream ttitle; ttitle << it->second << " data";
+		rb::gApp()->GetEvent(it->first)->
+			 StartSave(file, tname.str().c_str(), ttitle.str().c_str(), rb::gApp()->GetSaveHists());
+	}
+} }
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // Class                                                 //
@@ -44,13 +59,7 @@ rb::attach::File::File(const char* filename, Bool_t stopAtEnd) :
 #endif
 		save_fname = save_fname.substr(0, save_fname.find_last_of("."));
 		save_fname += ".root";
-		EventVector_t events = gApp()->GetEventVector();
-		for(EventVector_t::iterator it = events.begin(); it != events.end(); ++it) {
-			std::stringstream tname; tname << "t" << it->first;
-			std::stringstream ttitle; ttitle << it->second << " data";
-			gApp()->GetEvent(it->first)->
-				 StartSave(save_fname.c_str(), tname.str().c_str(), ttitle.str().c_str(), gApp()->GetSaveHists());
-		}
+		start_save(save_fname);
 	}
 }
 
@@ -183,8 +192,8 @@ rb::attach::Online::Online(const char* source, const char* other, char** others,
   fSourceArg(source),
   fOtherArg(other),
   fOtherArgs(others),
-  fNumOthers(nothers) {
-
+  fNumOthers(nothers)
+{
   fBuffer = BufferSource::New();  
 	if(gApp()->GetSignals())
 		 gApp()->GetSignals()->Attaching();
@@ -198,13 +207,7 @@ rb::attach::Online::Online(const char* source, const char* other, char** others,
 		save_fname += "Online__";
 		save_fname += get_ts_string().Data();
 		save_fname += ".root";
-		EventVector_t events = gApp()->GetEventVector();
-		for(EventVector_t::iterator it = events.begin(); it != events.end(); ++it) {
-			std::stringstream tname; tname << "t" << it->first;
-			std::stringstream ttitle; ttitle << it->second << " data";
-			gApp()->GetEvent(it->first)->
-				 StartSave(save_fname.c_str(), tname.str().c_str(), ttitle.str().c_str(), gApp()->GetSaveHists());
-		}
+		start_save(save_fname);
 	}
 }
 

@@ -16,14 +16,15 @@
 #include <TTreeFormula.h>
 #include "hist/Manager.hxx"
 #include "utils/LockingPointer.hxx"
-#include "utils/Save.hxx"
 #include "utils/Critical.hxx"
 #include "utils/Error.hxx"
 #include "utils/nocopy.h"
 #include "utils/boost_scoped_ptr.h"
+#include "utils/boost_shared_ptr.h"
 
 
 class TH1;
+class TFile;
 class TDirectory;
 namespace rb
 {
@@ -43,13 +44,10 @@ private:
 
 	 //! Manages histograms associated with the event
 	 hist::Manager fHistManager;
-	 
-   //! Manages saving of event data to disk
-	 rb::Critical<rb::Save> fSave;
 
 public:
 	 //! Start saving the output to a root tree on disk.
-	 void StartSave(const char* filename, const char* tree_name = "", const char* tree_title = "", Bool_t include_hists = true);
+	 void StartSave(boost::shared_ptr<TFile> file, const char* name, const char* title, Bool_t save_hists = false);
 
 	 //! Stop saving the output to a root tree on disk.
 	 void StopSave();
@@ -135,7 +133,39 @@ public:
       friend class rb::TreeFormulae;
 	 };
 
+	 /// For saving event data into a disk-resident tree.
+	 class Save
+	 {
+			//! Pointer to rb::Event
+			rb::Event* fEvent;
+			//! Tells whether save is active or not
+			Bool_t fIsActive;
+			//! Tells whether or not to save histograms
+			Bool_t fSaveHistograms;
+			//! Shared pointer to file
+			boost::shared_ptr<TFile> fFile;
+			//! Tree pointer for saving output
+			TTree* fTree;
+			//! Vector of branch addresses (for fSaveTree)
+			std::vector<void**> fBranchAddr;
+	 public:
+			//! Start saving
+			void Start(boost::shared_ptr<TFile> file, const char* name, const char* title, Bool_t save_hists = false);
+			//! Stop saving
+			void Stop();
+			//! Fill fTree (if active)
+			void Fill();
+			//! Constructor
+			Save(rb::Event* event): fEvent(event), fIsActive(false), fSaveHistograms(false), fTree(0), fBranchAddr(0) { }
+			//! Destructor
+			~Save() { Stop(); }
+	 };
+
+private:
+	 boost::scoped_ptr<volatile Save> fSave;
+
 #ifndef __MAKECINT__
+	 friend class rb::Event::Save;
 	 friend void Destructor::Operate(Event*&);
 	 friend TTreeFormula* InitFormula::Operate(Event* const, const char*);
 	 friend Bool_t BranchAdd::Operate(Event* const, const char*, const char*, void**, Int_t);

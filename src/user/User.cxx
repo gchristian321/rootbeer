@@ -88,6 +88,11 @@ Bool_t rb::Midas::UnpackBuffer() {
 
 			 rb::Event* hi_event = rb::Event::Instance<HeavyIonEvent>();
 			 hi_event->Process(&fBuffer, 0);
+
+			 rb::Event* coinc_event = rb::Event::Instance<CoincidenceEvent>();
+			 CoincEventPair_t coinc =
+					std::make_pair(static_cast<GammaEvent*>(gamma_event), static_cast<HeavyIonEvent*>(hi_event));
+			 coinc_event->Process(reinterpret_cast<void*>(&coinc), 0);
 		 
 			 break;
 		 }
@@ -106,14 +111,11 @@ Bool_t rb::Midas::UnpackBuffer() {
 CoincidenceEvent::CoincidenceEvent(): fDragon("coinc", this, false, "") { }
 
 Bool_t CoincidenceEvent::DoProcess(void* addr, Int_t nchar) {
-	TMidasEvent* fEvent = Cast(addr);
-  if(fEvent) {
-		fDragon->reset();
-    fDragon->unpack(*fEvent);
-		fDragon->calibrate();
-    return true;
-  }
-  else return false;
+	CoincEventPair_t* coinc = Cast(addr);
+	dragon::gamma::Gamma* gamma = coinc->first->fGamma.Get();
+	dragon::hion::HeavyIon* hi  = coinc->second->fHeavyIon.Get();
+	fDragon->read_event(*gamma, *hi);
+	return true;
 }
 
 GammaEvent::GammaEvent(): fGamma("gamma", this, true, "") { }

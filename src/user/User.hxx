@@ -77,6 +77,7 @@ inline void rb::Midas::RunResume(int transition, int run_number, int trans_time)
 }
 #endif
 
+#include <utility>
 #include "Dragon.hxx"
 enum {
   DRAGON_EVENT = 1,
@@ -85,20 +86,8 @@ enum {
 	GAMMA_EVENT = 4,
 	COINCIDENCE_EVENT = 5
 };
-#include "TStreamerInfo.h"
-class CoincidenceEvent : public rb::Event
-{
-private:
-	 rb::data::Wrapper<dragon::Dragon> fDragon;
-public:
-	 CoincidenceEvent();
-	 ~CoincidenceEvent() {}
-private:
-	 TMidasEvent* Cast(void* addr) {return reinterpret_cast<TMidasEvent*>(addr);}
-	 Bool_t DoProcess(void* event_address, Int_t nchar);
-	 void HandleBadEvent() {Error("CoincidenceEvent", "Something went wrong!!");}
-};
 
+class CoincideceEvent;
 class GammaEvent : public rb::Event
 {
 private:
@@ -110,6 +99,7 @@ private:
 	 TMidasEvent* Cast(void* addr) {return reinterpret_cast<TMidasEvent*>(addr);}
 	 Bool_t DoProcess(void* event_address, Int_t nchar);
 	 void HandleBadEvent() {Error("GammaEvent", "Something went wrong!!");}
+	 friend class CoincidenceEvent;
 };
 
 class HeavyIonEvent : public rb::Event
@@ -123,7 +113,23 @@ private:
 	 TMidasEvent* Cast(void* addr) {return reinterpret_cast<TMidasEvent*>(addr);}
 	 Bool_t DoProcess(void* event_address, Int_t nchar);
 	 void HandleBadEvent() {Error("HeavyIonEvent", "Something went wrong!!");}
+	 friend class CoincidenceEvent;
 };
+
+typedef std::pair<GammaEvent*, HeavyIonEvent*> CoincEventPair_t;
+class CoincidenceEvent : public rb::Event
+{
+private:
+	 rb::data::Wrapper<dragon::Dragon> fDragon;
+public:
+	 CoincidenceEvent();
+	 ~CoincidenceEvent() {}
+private:
+	 CoincEventPair_t* Cast(void* addr) {return reinterpret_cast<CoincEventPair_t*>(addr);}
+	 Bool_t DoProcess(void* event_address, Int_t nchar);
+	 void HandleBadEvent() {Error("CoincidenceEvent", "Something went wrong!!");}
+};
+
 
 #else
 

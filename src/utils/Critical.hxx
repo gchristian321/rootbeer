@@ -9,22 +9,23 @@
 
 namespace rb
 {
-  template <class T>
-  class Critical
-  {
-    RB_NOCOPY(Critical);
-  private:
-    T* fCritical;
-    rb::Mutex& fMutex;
-  public:
-    Critical (T* critical, rb::Mutex& mutex);
-    Critical (T* critical, rb::Mutex* mutex);
-    ~Critical();
-    T* Get();
-    T* get();
-    T* operator-> ();
-    T& operator* ();
-  };
+template <class T>
+class Critical
+{
+	 RB_NOCOPY(Critical);
+private:
+	 T* fCritical;
+	 rb::Mutex& fMutex;
+public:
+	 Critical (T* critical, rb::Mutex& mutex);
+	 Critical (T* critical, rb::Mutex* mutex);
+	 ~Critical();
+	 T* Get();
+	 T* get();
+	 T* operator-> ();
+	 T& operator* ();
+	 void Reset(T*);
+};
 }
 
 template <class T>
@@ -64,6 +65,12 @@ T& rb::Critical<T>::operator*() {
   assert(fCritical != NULL);
 #endif
   return *Get();
+}
+
+template <class T>
+void rb::Critical<T>::Reset(T* new_) {
+	if(fCritical) delete fCritical;
+	fCritical = new_;
 }
 
 

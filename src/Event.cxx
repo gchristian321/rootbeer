@@ -15,8 +15,8 @@ namespace rb { rb::Mutex gDataMutex("gDataMutex"); }
 // Constructor                                           //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 rb::Event::Event(): fTree(new TTree("tree", "Rootbeer event tree")),
-										fHistManager(),
-										fSave(new rb::Save(), gDataMutex) {
+										fHistManager(), fSave(new rb::Event::Save(this))
+{									
   LockingPointer<TTree> pTree(fTree, gDataMutex);
   pTree->SetDirectory(0);
   pTree->SetCircular(1); // Allows storage of only one event
@@ -29,11 +29,12 @@ void rb::Event::Process(void* event_address, Int_t nchar) {
   {
     rb::ScopedLock<TVirtualMutex> cint_lock (gCINTMutex);
     LockingPointer<TTree> pTree(fTree, gDataMutex);
+		LockFreePointer<rb::Event::Save> pSave(fSave);
     success = DoProcess(event_address, nchar);
     if(success) {
       pTree->Fill();
       pTree->LoadTree(0);
-			fSave->Fill();
+			pSave->Fill();
     }
   } // Locks go out of scope & unlock
   if(success) fHistManager.FillAll();
@@ -42,19 +43,16 @@ void rb::Event::Process(void* event_address, Int_t nchar) {
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // void rb::Event::StartSave()                           //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-void rb::Event::StartSave(const char* filename, const char* tree_name, const char* tree_title, Bool_t include_hists) {
-	LockingPointer<TTree> pTree(fTree, gDataMutex);
-	if(!include_hists)
-		 fSave->Start(filename, pTree.Get(), tree_name, tree_title);
-	else
-		 fSave->Start(filename, pTree.Get(), tree_name, tree_title, &fHistManager);
+void rb::Event::StartSave(boost::shared_ptr<TFile> file, const char* name, const char* title, Bool_t save_hists) {
+	LockingPointer<rb::Event::Save> pSave(fSave, gDataMutex);
+	pSave->Start(file, name, title, save_hists);
 }
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // void rb::Event::StopSave()                            //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 void rb::Event::StopSave() {
-	rb::ScopedLock<rb::Mutex> lock(gDataMutex);
-	fSave->Stop();
+	LockingPointer<rb::Event::Save> pSave(fSave, gDataMutex);
+	pSave->Stop();
 }
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // rb::Event::GetBranchList()                            //
@@ -84,7 +82,6 @@ rb::hist::Base* rb::Event::FindHistogram(const char* name, TDirectory* owner) {
 // Bool_t rb::Event::InitFormula::Operate()              //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 TTreeFormula* rb::Event::InitFormula::Operate(rb::Event* const event, const char* formula_arg) {
-  //  LockingPointer<TTree> pTree(event->fTree, gDataMutex);
   LockFreePointer<TTree> pTree(event->fTree);
   return new TTreeFormula(formula_arg, formula_arg, pTree.Get());
 }
@@ -95,4 +92,51 @@ Bool_t rb::Event::BranchAdd::Operate(rb::Event* const event, const char* name, c
   TBranch* branch =
     LockingPointer<TTree>(event->fTree, gDataMutex)->Branch(name, classname, address, bufsize, 0);
   return branch != 0;
+}
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// void rb::Event::Save::Start()                         //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+void rb::Event::Save::Start(boost::shared_ptr<TFile> file, const char* name, const char* title, Bool_t save_hists) {
+	TDirectory* current = gDirectory;
+	fFile = file;
+	fFile->cd();
+	fSaveHistograms = save_hists;
+	LockFreePointer<TTree> pEventTree(fEvent->fTree);
+	fTree = new TTree(pEventTree->GetName(), pEventTree->GetTitle());
+	if(strcmp(name, "")) fTree->SetName(name);
+	if(strcmp(title, "")) fTree->SetTitle(title);
+	std::string br_name = "", br_clname = "";
+	for(int i=0; i< pEventTree->GetListOfBranches()->GetEntries(); ++i) {
+		TBranch* branch = static_cast<TBranch*>(pEventTree->GetListOfBranches()->At(i));
+		br_name = branch->GetName();
+		br_clname = branch->GetClassName();
+		fBranchAddr.push_back(reinterpret_cast<void**>(branch->GetAddress()));
+		fTree->Branch(br_name.c_str(), br_clname.c_str(), fBranchAddr.at(i));
+	}
+	fIsActive = true;
+	if(current) current->cd();
+	else gROOT->cd();
+}
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// void rb::Event::Save::Stop()                          //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+void rb::Event::Save::Stop() {
+	if(!fTree) return;
+	if(!fFile.get()) return;
+	TDirectory* current = gDirectory;
+	fFile->cd();
+	fTree->GetCurrentFile();
+	fTree->Write(fTree->GetName());
+	fTree->ResetBranchAddresses();
+	if(fSaveHistograms) fEvent->fHistManager.WriteAll(fFile.get());
+	if(current) current->cd();
+	else gROOT->cd();
+	if(fFile.get()) fFile.reset();
+	fIsActive = false;
+}
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// void rb::Event::Save::Fill()                          //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+void rb::Event::Save::Fill() {
+	if(fIsActive && fTree) fTree->Fill();
 }
