@@ -70,6 +70,7 @@ public:
 	 void CreateHistogram();
 	 void SyncHistTree();
 	 rb::hist::Base* GetSelectedHist();
+	 void HistTreeKeyPressed(TGListTreeItem*, UInt_t, UInt_t);
 	 void HistTreeItemClicked(TGListTreeItem*, Int_t);
 	 void HistTreeItemSelect(TGListTreeItem*, Int_t);
 	 void HistTreeItemSelect(TGListTreeItem*);

@@ -39,6 +39,7 @@ void MakeHistConnections() {
 
 	fHistCreateButton->Connect("Pressed()", "rb::Signals", RB_SIGNALS, "CreateHistogram()");
 	fHistTree->Connect("DoubleClicked(TGListTreeItem*, Int_t)", "rb::Signals", RB_SIGNALS, "HistTreeItemSelect(TGListTreeItem*, Int_t)");
+	fHistTree->Con3nect("KeyPressed(TGListTreeItem*, UInt_t, UInt_t)", "rb::Signals", RB_SIGNALS, "HistTreeKeyPressed(TGListTreeItem*, UInt_t, UInt_t)");
 	fHistTree->Connect("ReturnPressed(TGListTreeItem*)", "rb::Signals", RB_SIGNALS, "HistTreeItemSelect(TGListTreeItem*)");
 	fHistTree->Connect("Clicked(TGListTreeItem*, Int_t)", "rb::Signals", RB_SIGNALS, "HistTreeItemClicked(TGListTreeItem*, Int_t)");
 	fDrawButton->Connect("Pressed()", "rb::Signals", RB_SIGNALS, "DrawHist()");

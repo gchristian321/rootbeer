@@ -375,21 +375,22 @@ Int_t main(Int_t argc, Char_t** argv)
 	
 	The "main" (leftmost) gui page allows control over data sources and canvas displays.  The upper frame (labeled
 	"Data") gives control over data sources.  The buttons on the left of the frame allow users to attach to various
-	sources of data.  The top button "Attach Online" connects to real-time online data, and the text entry fields
+	sources of data.  The top button ("Attach Online") connects to real-time online data, and the text entry fields
 	"Host" and "Expt" allow the user to specify where to look for incoming data buffers. The purpose of the text boxes
 	is somewhat specific to MIDAS experiments, where online sources are specified by a host computer and a MIDAS experiment
 	running on said host. However, users of other systems will likely need to specify similar parameters, so the boxes are
-	still useful.
+	still useful (hopefully).
 
 	The second button from the top ("Attach File") lets users attach to a file containing saved run data. Clicking on the
-	button opens up a dialog box, from which the user selects the file he/she wants to scan (note that the deault directory
-	of the dialog box is set at compile time; please see the <a href=install.html>Installation</a> page for more information
-	on how to set this).  Ths "Continuios" check box to the right of the button determines what the program should do when the
+	button opens up a dialog box, from which the user selects the file he/she wants to scan (note that the default directory
+	to which the dialog box points is set at compile time; please see the <a href=install.html>Installation</a>
+	page for more information
+	on how to set this).  The "Continuous" check box to the right of the button determines what the program should do when the
 	end of the run file is reached. Default behavior (unselected) is to assume the run is complete and stop looking for data, i.e.
 	we're finished with the run. The other alternative (selected check box) is to stay attached to the file and wait for more
 	data to come in. This can be useful in cases where you want to use a file as a buffer between the online data and your
 	analysis.  With this option selected, whenever the program reaches the end of a run file, it waits 10 seconds and then checks
-	if more data has been appended to the run. If so, it continues to analyze the now data; otherwise the wait cycle is repeated
+	if more data has been appended to the run. If so, it continues to analyze the new data; otherwise the wait cycle is repeated
 	until the user manually unattaches from the file.
 
 	The third button from the top ("Attach List") allows users to scan a list of offline run files in sequence.  Like "Attach File",
@@ -415,14 +416,14 @@ Int_t main(Int_t argc, Char_t** argv)
 
 	The "Save Data" and "Save Histograms" checkboxes allow users to save the data
 	that the read in into a root file.  Checking "Save Data" saves all event-by-event data in root TTrees, and checking
-	"Save Histograms" (onlt available when "Save Data" is already checked) also saves any histograms created in the current
-	session to disk.  When selecting a save option, the output file path is automatic.  If attaching to offline (file) data, then
+	"Save Histograms" (only available when "Save Data" is already checked) also saves any histograms created in the current
+	session to disk.  When selecting a save option, the output file path is automatic (set at compile time similar to the search
+	path for attaching to files).  If attaching to offline (file) data, then
 	the data from each individual run file will be saved in a separate .root file; the name of the .root file will be identical
 	to that of the run file, except with the extension replaced by \c .root (so \c run1.mid becomes <tt>run1.root</tt>). Note that
 	when selecting "Attach List", a new .root file is created for each run file in the list.  In the case of online data, a new
 	.root file is created any time the user re-attaches to the online source, and the file name is automatically set from the date
-	and time the run occurred.  Note also that the output directory of all saved .root files is set at compile time,
-	<a href=install.html>as explained on the Installation page.</a>
+	and time the run occurred.
 
 	\section canvas_gui Canvas Frame
 
@@ -526,7 +527,7 @@ Int_t main(Int_t argc, Char_t** argv)
 	which will be explained more in the <a href=#gui_variables>next</a> frame.	Finally, the
 	"Quit" button in the lower-right corner of the frame exits the rootbeer program completely, without saving any data.
 
-	\warning  Currently, when the user clicks buttons with potential negative consequences (Delete, Quit), there is no
+	\warning  Currently, clicking buttons with potential negative consequences (Delete, Quit), there is no
 	checking if you "really want to do this", so click with care!
 
 	\section gui_variables Variables Frame
@@ -535,6 +536,26 @@ Int_t main(Int_t argc, Char_t** argv)
 	what things look like with the alternate ("Variables / Configuration") tab selected.
 
 	\image html rbeer_variables_screenshot.png "Variables/Configuration tab."
+
+	The main scroll window on the left of the frame displays all of the available variables in your experiment, arranged
+	in a tree structure. Single clicking on a variable makes it the "currently selected" one. Clicking  the "Read Value"
+	button populates the text box at the bottom of the frame with the variable value (note that double clicking on a
+	variable has the same effect). Changing the value in the text box and then clicking "Set Value" changes the value
+	of the selected variable.
+
+	The "Configuration Files" frame on the right allows users to save and load a variety of configuration files.
+	Each button opens a pop-up window to select the file that you want to save or load.  "Save Histograms" generates
+	macro code to reproduce the directory structure and histograms present at save time (this is identical to the "Save"
+	button on the histograms frame).  "Save Variables" has a similar effect, except is produces code to reproduce all
+	of the variables and their values at save time. "Save Canvases" saves the canvas structure as
+	<a href=#gui_canvas>described previously</a>.  "Save All" generates a macro file reproducing histogram, variable,
+	and canvas configurations at save time.  Finally, the "Load" button allows the user to read in a previously
+	saved configuration file. By changing the "Load Method" selction to its left, the user can choose what to do in the
+	case of overlaps between currently present histograms and TCuts and identical ones inthe loaded file.
+	"Reset" completely resets everything, deleting all histograms and TCuts before loading the file. "Overwrite" overwrites
+	any existing duplicates but leaves all others alone.  "Cumulate" leaves all currently exitsing objects the same, and
+	if there are duplicates in the configuration file, the newly created object will have _1, _2, etc. appended to its
+	name until it is unique.
 
 
 

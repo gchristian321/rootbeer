@@ -32,7 +32,7 @@ ANSort ansort;
 
 void rb::Signals::UpdateBufferCounter(Int_t n, Bool_t force) {
 	if(!rb::gApp()->fRbeerFrame->fNbuffers) return;
-	if(n % 100 != 0 && !force) return;
+	if(n % 1000 != 0 && !force) return;
 	std::stringstream sstr;
 	sstr << n;
 	rb::gApp()->fRbeerFrame->fNbuffers->ChangeText(sstr.str().c_str());
@@ -629,6 +629,10 @@ void rb::HistSignals::SyncHistMenu(rb::hist::Base* hist) {
 */
 }
 
+void rb::HistSignals::HistTreeKeyPressed(TGListTreeItem* item, UInt_t keycode, UInt_t mask) {
+	printf("KEY PRESSED: 0x%x 0x%x\n", keycode, mask);
+}
+
 void rb::HistSignals::HistTreeItemClicked(TGListTreeItem* item, Int_t btn) {
 	if(0 && btn);
 	else if (hist_map.count(item)) {
@@ -650,7 +654,8 @@ void rb::HistSignals::DeleteHist() {
 		delete GetSelectedHist();
 	}
 	else if(directory_map.count(rb::gApp()->fHistFrame->fHistTree->GetSelected())) {
-		delete directory_map.find(rb::gApp()->fHistFrame->fHistTree->GetSelected())->second;
+		TDirectory* directory = directory_map.find(rb::gApp()->fHistFrame->fHistTree->GetSelected())->second;
+		if(directory != gROOT) delete directory;
 		SyncHistTree();
 	}
 	rb::canvas::UpdateAll();
