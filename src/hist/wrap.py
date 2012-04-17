@@ -1,3 +1,6 @@
+"""@file wrap.py
+@brief Generates source files for wrapping TH1 member functions in rb::hist::Base
+"""
 import types
 from xml.etree import ElementTree as ET
 

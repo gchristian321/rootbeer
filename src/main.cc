@@ -214,7 +214,7 @@ Int_t main(Int_t argc, Char_t** argv)
   \endcode
 
   The first argument is the name (path) of the offline file, and the second specifies whether you want to stop
-  reading at the end of the file [true], or stay attached and wait for more data to come it [false].
+  reading at the end of the file [true], or stay attached and wait for more data to come in [false].
 
   It's also possible to string multiple offline files together using
   \code
@@ -269,23 +269,10 @@ Int_t main(Int_t argc, Char_t** argv)
   \endcode
 
   We have now added a histogram to the ROOTBEER environment, and the user has access via the \c myHistName pointer.
-  Because of issues with thread safety, most of the stock histogram functions are not transferred to the ROOTBEER
-  histograms. Instead, the user can obtain a copy of the internal histogram using the GetHist() function:
-  \code
-  TH1D* myHistInternal = myHistName->GetHist();
-  myHistInternal->Fit();
-  myHistInternal->Draw();
-  ...
-  \endcode
+	The syntax to work with a rootbeer histogram in CINT is very similar to that of normal ROOT histograms. Nearly all
+	of the TH1 member functions have been transferred to the rootbeer histograms and should work the same (you can find
+	a complete list of member functions in the rb::hist::Base documemtation).
 
-  Note that since GetHist() returns a copy of the internal histogram, it will not continue to update as new data
-  comes in. Since you will probably want to watch the histogram update as data comes in, it is possible to
-  Draw() a ROOTBEER histgram directly:
-  \code
-  myHistName->Draw();
-  \endcode
-  which will display the most up-to-date version of the histogram in the canvas. There are a few other functions
-  available that will be explained later.
 
   Two and three-dimensional histograms are created
   similarly to 1D ones, with the parameter specifier still being a single string with parameters separated by colons,
@@ -336,9 +323,9 @@ Int_t main(Int_t argc, Char_t** argv)
   histogram types. For more information, consult the linked documentation for each:
 
   
-  - "Gamma Histograms": rb::GammaHist
-  - "Summary Histograms": rb::SummaryHist
-  - "Bitmask Histograms": rb::BitHist
+  - "Gamma Histograms": rb::hist::Gamma
+  - "Summary Histograms": rb::hist::Summary
+  - "Bitmask Histograms": rb::hist::Bit
 
 
 
@@ -378,7 +365,177 @@ Int_t main(Int_t argc, Char_t** argv)
 
 
   \page gui Graphical User Interface
-  \todo Write GIU section
+	
+	Below is a basic screenshot of the rootbeer graphical user interface (GUI). In this section, we'll go over
+	what the various buttons do and how you can use them.
+
+	\image html rbeer_screenshot.png "The rootbeer gui."
+
+	\section data_gui Data Frame
+	
+	The "main" (leftmost) gui page allows control over data sources and canvas displays.  The upper frame (labeled
+	"Data") gives control over data sources.  The buttons on the left of the frame allow users to attach to various
+	sources of data.  The top button "Attach Online" connects to real-time online data, and the text entry fields
+	"Host" and "Expt" allow the user to specify where to look for incoming data buffers. The purpose of the text boxes
+	is somewhat specific to MIDAS experiments, where online sources are specified by a host computer and a MIDAS experiment
+	running on said host. However, users of other systems will likely need to specify similar parameters, so the boxes are
+	still useful.
+
+	The second button from the top ("Attach File") lets users attach to a file containing saved run data. Clicking on the
+	button opens up a dialog box, from which the user selects the file he/she wants to scan (note that the deault directory
+	of the dialog box is set at compile time; please see the <a href=install.html>Installation</a> page for more information
+	on how to set this).  Ths "Continuios" check box to the right of the button determines what the program should do when the
+	end of the run file is reached. Default behavior (unselected) is to assume the run is complete and stop looking for data, i.e.
+	we're finished with the run. The other alternative (selected check box) is to stay attached to the file and wait for more
+	data to come in. This can be useful in cases where you want to use a file as a buffer between the online data and your
+	analysis.  With this option selected, whenever the program reaches the end of a run file, it waits 10 seconds and then checks
+	if more data has been appended to the run. If so, it continues to analyze the now data; otherwise the wait cycle is repeated
+	until the user manually unattaches from the file.
+
+	The third button from the top ("Attach List") allows users to scan a list of offline run files in sequence.  Like "Attach File",
+	it brings up a dialog box from which the user can select the file he/she wants to load. In this case, what needs to be selected
+	is a text file that specifies the paths of all of the run files the user wants to scan. In this "list" file, the path
+	of each desired run should be on a separate line; whitespace is ignored, as is anything between a comment marker \c # and 
+	the end of a line. Example:
+	\code
+	# LIST of MIDAS Files to analyze
+
+	/path/to/somewhere/run1.mid # run 1
+	/path/to/somewhere/run2.mid # run 2
+	/path/to/somewhere/run3.mid # run 3
+	# /path/to/somewhere/run4.mid # run 4
+	## ^ Decided I don't really want to look at run4
+
+	/path/to/somewhere/run5.mid
+	\endcode
+	
+
+	The bottom ("Unattach") button allows the user to stop analysis whenever attached to a data source of any type. This button
+	is only active when attached to a data source.
+
+	The "Save Data" and "Save Histograms" checkboxes allow users to save the data
+	that the read in into a root file.  Checking "Save Data" saves all event-by-event data in root TTrees, and checking
+	"Save Histograms" (onlt available when "Save Data" is already checked) also saves any histograms created in the current
+	session to disk.  When selecting a save option, the output file path is automatic.  If attaching to offline (file) data, then
+	the data from each individual run file will be saved in a separate .root file; the name of the .root file will be identical
+	to that of the run file, except with the extension replaced by \c .root (so \c run1.mid becomes <tt>run1.root</tt>). Note that
+	when selecting "Attach List", a new .root file is created for each run file in the list.  In the case of online data, a new
+	.root file is created any time the user re-attaches to the online source, and the file name is automatically set from the date
+	and time the run occurred.  Note also that the output directory of all saved .root files is set at compile time,
+	<a href=install.html>as explained on the Installation page.</a>
+
+	\section canvas_gui Canvas Frame
+
+	The lower frame on the "main" gui window, labeled "Canvas" allows control over canvases in the current rootbeer session.
+	Rootbeer doesn't use any special or custom canvases for displaying data; rather, it uses stock ROOT canvases with a few
+	extra functions.  The topmost row in the canvas frame allows the user to control the canvas auto-refresh rate. Clicking the
+	"Start Refresh" button begins to auto-update all active canvases in the session, and the number selection box to the right of
+	the button allows the user to control the refresh rate. When in refresh mode, every canvas or sub-pad containing a rootbeer
+	histogram will re-draw the histogram every \c n seconds, where \c n is the selected refresh rate. Note that when auto-refresh
+	is turned on, the "Start Refresh" button will become "Stop Refresh" (and change color to red); in this case, clicking it turns
+	off the auto-refresh utility.
+
+	The next row of buttons "Refresh Current"/"Refresh All" allows the user to refresh canvases independent of the auto-refresh
+	utility. "Refresh Current" refreshes only the currently selected Canvas or Pad, while "Refresh All" refreshes every Canvas/Pad
+	in the program.  Similarly, the "Zero Current" and "Zero All" buttons allow the user to zero-out the histograms displayed
+	either in the currently selected Canvas/Pad or all of them.  Here, "zero-out" means that the content of each bin of a histogram
+	is set to zero.
+
+	The lowermost rows of buttons on the canvas frames control some commonly used Canvas functions that are already part of stock
+	ROOT. "Divide Current" allows the user to divide the curently selected canvas into subpads; clicking it brings up a dialog
+	box from which the user can select the division geometry (e.g. 2x2, 2x3, 3x3, etc.).  "Cd" allows the user to change the 
+	currently selected canvas; it also brings up a dialog box containing a drop-down menu from whch the user can select the new
+	canvas (or sub-pad) to which he/she wants to switch.  "Clear Canvas" clears the currently selected Canvas/Pad. Note that
+	"Clearing" a canvas is different from "Zeroing" - where zeroing simply sets the bin content of histograms to zero, clearing
+	completely removes the histogram (and any other graphical objects, including sub-pads) from the canvas.  Finally, the
+	"Create New" button allows the user to make new canvases, and the "Name" text entry box to the right of it specifies the
+	name of newly created canvases (in the case of duplicate names, _1, _2, etc. will be appended to make the names unique,
+	and if nothing is entered a default name will be given to the new canvas).
+
+	The "Configuration" sub frame allows the user to save or load canvas configuration files.  A canvas  configuration file
+	contains all of the macro code needed to reproduce the canvas environment at the time of the save; that is, it will
+	re-construct any convases present, divide them into the same number of sub-pads, and re-draw whatever histograms were
+	present in the canvas at save time.
+
+
+	\section gui_hist Histogram Frame
+
+	The right window in the screenshot allows users to create and manipulate histograms and directories. The "Create New"
+	frame provides a graphical means of creating new histograms. The various fields are hopefully somewhat intuitive,
+	but I'll go through them briefly:
+
+	- Type: using this drop-down menu, select the histogram type (1/2/3-dimensional, summary, "gamma", bitwise; for
+	information on the various histogram types see the rb::hist::Base class documantation and links to the respective
+	derived types)
+	- Name: Enter the histogram name (required).
+	- Title: Enter the histogram title (optional). If left blank, a default name is assigned specifying the parameter and
+	gate conditions.
+	- Parameter: From the drop down menu, select the TTree parameter that you want to histogram on the indicated axis. 
+	Note that the "y" and "z" axes only become active for histogram types where appropriate.
+	You can also choose to histogram	functions depending on TTree parameters by manually typing in the box
+	(for example, I could type <tt>gamma.bgo.q[0] * 2</tt>).
+	- Bins, Low, High: Select the number of bins, low edge and high edge of the specified axis.
+	- Gate: Here you can set the gate condition for your histogram by filling in the text box; the gate condition must
+	be a logical statement depending on relevant TTree parameters and constants. For a given event, each histogram is
+	only filled when its gate condition evaluates to true.  Note that leaving the gate field empty makes the histogram
+	in question "ungated", i.e. it will be filled for all events.
+	- Event Type: This allows the user to select the type of event that is being histogrammed. Each "event type" is
+	associated with a single root TTree, and selecting a different event type from the drop down menu causes the "Parameter"
+	drop down menus to be re-populated. The exact format of the various events and parameters in your experiment will depend
+	on the implementation of the person who designs your analysis code.
+
+	The "Create/Replace" buttons either create a new histgram or replace a current one from the selections you have made
+	in the list above. If no histogram is currently selected in the window to the left of the "Create New" frame (more on this
+	in  bit), then the button takes on its "Create" function. Otherwise, the selected histogram is replaced with a new one
+	having the selected properties.  It is also possible to change the gate condition on any currently existing histogram.
+	To do this, select (single click) the desired histogram in the window to the left, enter the new gating conditin in the
+	"Gate" text box, and then click the "Regate" button.
+
+	This large menu at the left of the frame allows the user to view and manipulate already existing histograms and directories.
+	As you can start to see in the screenshot, this window displays the current TDirectory structure and any histograms
+	created in the present rootbeer session.  Single clicking on a directory (folder icon), causes that directory to become
+	the "currently focused" one, i.e. it issues a \c gROOT->cd() command.  Single clicking on a histogram (graph icon)
+	makes the corresponding histogram the "selected" one. This means that the "Create/Replace" and "Regate" buttons will
+	act on the selected histogram as described above, as will the "Draw", "Delete", and "Command" buttons/entries.
+
+	The "Draw" button draws the currently selected histogram, either in the currently selected canvas (if there is one) or in
+	a new canvas window (if one isn't already open).  The "Draw option" text entry box allows the user to select the draw
+	option argument (for some examples of draw options, see
+	<a href=http://root.cern.ch/root/html/tutorials/hist/h1draw.C.html>
+	http://root.cern.ch/root/html/tutorials/hist/h1draw.C.html</a> and 
+	<a href=http://root.cern.ch/root/html/tutorials/hist/draw2dopt.C.html>
+	http://root.cern.ch/root/html/tutorials/hist/draw2dopt.C.html</a>).  Note that double clicking on a histogram in the
+	window is identical to first single clicking on it, then clicking the "Draw" button.
+
+	As might be expected, the "Delete" button deletes (removes from rootbeer completely) the selected histogram or directory.
+	In the case of deleting a directory, all histograms and sub-directories are also removed.
+
+	The "Command" text entry box allows the user to call rb::hist::Base member functions directly from the gui. To use, enter
+	a valid member function syntax in the box and either hit "Return" or click "OK". The member function is performed on the
+	currently selected histogram (if there is one). For example, to change the line color of the selected histogram to green,
+	type:
+	\code
+	SetLineColor(kGreen);
+	\endcode
+
+	In the box and hit enter or click "OK".
+
+	The "New Directory" button to the right of the "Draw Option" box allows the user to create new TDirectories; the
+	newly created directory will be inserted as a sibdirectory of the one currently selected in the window. The
+	"Configuration File" subframe within the "Create New" frame allows saving/loading of histogram configuration files,
+	which will be explained more in the <a href=#gui_variables>next</a> frame.	Finally, the
+	"Quit" button in the lower-right corner of the frame exits the rootbeer program completely, without saving any data.
+
+	\warning  Currently, when the user clicks buttons with potential negative consequences (Delete, Quit), there is no
+	checking if you "really want to do this", so click with care!
+
+	\section gui_variables Variables Frame
+
+	In the last section, you may have noticed that the right window has two tab selction options. The figure below shows
+	what things look like with the alternate ("Variables / Configuration") tab selected.
+
+	\image html rbeer_variables_screenshot.png "Variables/Configuration tab."
+
 
 
   \page data Customizing for Your Experiment
