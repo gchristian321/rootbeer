@@ -478,7 +478,9 @@ Int_t main(Int_t argc, Char_t** argv)
 	<tt>gamma.bgo.q[0]</tt>).
 	- Bins, Low, High: Select the number of bins, low edge and high edge of the specified axis.
 	- Gate: Here you can set the gate condition for your histogram by filling in the text box; the gate condition must
-	be a logical statement depending on relevant TTree parameters and constants. For a given event, each histogram is
+	be a logical statement depending on relevant TTree parameters and constants (non-rectangular gate conditions can be
+	set by creating a <a href=http://root.cern.ch/root/html/TCutG.html>TCutG</a> and then setting its name as part of the
+	logic statement). For a given event, each histogram is
 	only filled when its gate condition evaluates to true.  Note that leaving the gate field empty makes the histogram
 	in question "ungated", i.e. it will be filled for all events.
 	- Event Type: This allows the user to select the type of event that is being histogrammed. Each "event type" is
@@ -555,9 +557,10 @@ Int_t main(Int_t argc, Char_t** argv)
 
 	The "Configuration Files" frame on the right allows users to save and load a variety of configuration files.
 	Each button opens a pop-up window to select the file that you want to save or load.  "Save Histograms" generates
-	macro code to reproduce the directory structure and histograms present at save time (this is identical to the "Save"
-	button on the histograms frame).  "Save Variables" has a similar effect, except is produces code to reproduce all
-	of the variables and their values at save time. "Save Canvases" saves the canvas structure as
+	macro code to reproduce the directory structure, histograms, and TCutGs present at save time
+	(this is identical to the "Save" button on the histograms frame).  "Save Variables" has a similar effect,
+	except is produces code to reproduce all of the variables and their values at save time. "Save Canvases"
+	saves the canvas structure as
 	<a href=#gui_canvas>described previously</a>.  "Save All" generates a macro file reproducing histogram, variable,
 	and canvas configurations at save time.  Finally, the "Load" button allows the user to read in a previously
 	saved configuration file. By changing the "Load Method" selction to its left, the user can choose what to do in the
