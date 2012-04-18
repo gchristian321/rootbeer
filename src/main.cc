@@ -8,7 +8,7 @@
 
 /// \brief The \c main ROOTBEER function.
 //! \details Creates an instance of \c rb::Rint and runs it.
-Int_t main(Int_t argc, Char_t** argv)
+int main(int argc, char** argv)
 {
 	std::set<std::string> args(argv, argv+argc);
 	Bool_t lite = args.count("-l");
