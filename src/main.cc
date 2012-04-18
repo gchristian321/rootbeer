@@ -780,7 +780,7 @@ Int_t main(Int_t argc, Char_t** argv)
    Successful compilation will create the \c rootbeer executable, along with some shared libraries (in <tt>/lib</tt>).
    Try running it by typing <tt>./rootbeer</tt>
 
-   If you notice any difficulties that you thing were the fault of the ROOTBEER design, or with this documentation,
+   If you notice any difficulties that you think were the fault of the ROOTBEER design, or with this documentation,
    feel free to contact
    <a href = mailto:gchristian@triumf.ca>Greg</a> with comments, complaints, or suggestions.  As much as possible, we
    hope that adapting ROOTBEER to work with your experiment will be a painless experience, and we take suggestions on how
