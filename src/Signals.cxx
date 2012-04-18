@@ -630,7 +630,8 @@ void rb::HistSignals::SyncHistMenu(rb::hist::Base* hist) {
 }
 
 void rb::HistSignals::HistTreeKeyPressed(TGListTreeItem* item, UInt_t keycode, UInt_t mask) {
-	printf("KEY PRESSED: 0x%x 0x%x\n", keycode, mask);
+	// Apparently this doesn't work....
+	// printf("KEY PRESSED: 0x%x 0x%x\n", keycode, mask);
 }
 
 void rb::HistSignals::HistTreeItemClicked(TGListTreeItem* item, Int_t btn) {

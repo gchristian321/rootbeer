@@ -383,7 +383,7 @@ Int_t main(Int_t argc, Char_t** argv)
 
 	The second button from the top ("Attach File") lets users attach to a file containing saved run data. Clicking on the
 	button opens up a dialog box, from which the user selects the file he/she wants to scan (note that the default directory
-	to which the dialog box points is set at compile time; please see the <a href=install.html>Installation</a>
+	to which the dialog box points is set at compile time; please see the <a href=data.html>Customizing for Your Experiment</a>
 	page for more information
 	on how to set this).  The "Continuous" check box to the right of the button determines what the program should do when the
 	end of the run file is reached. Default behavior (unselected) is to assume the run is complete and stop looking for data, i.e.
@@ -455,7 +455,7 @@ Int_t main(Int_t argc, Char_t** argv)
 
 	The "Configuration" sub frame allows the user to save or load canvas configuration files.  A canvas  configuration file
 	contains all of the macro code needed to reproduce the canvas environment at the time of the save; that is, it will
-	re-construct any convases present, divide them into the same number of sub-pads, and re-draw whatever histograms were
+	re-construct any canvases present, divide them into the same number of sub-pads, and re-draw whatever histograms were
 	present in the canvas at save time.
 
 
@@ -466,15 +466,16 @@ Int_t main(Int_t argc, Char_t** argv)
 	but I'll go through them briefly:
 
 	- Type: using this drop-down menu, select the histogram type (1/2/3-dimensional, summary, "gamma", bitwise; for
-	information on the various histogram types see the rb::hist::Base class documantation and links to the respective
+	information on the various histogram types see the rb::hist::Base class documentation and links to the respective
 	derived types)
 	- Name: Enter the histogram name (required).
-	- Title: Enter the histogram title (optional). If left blank, a default name is assigned specifying the parameter and
+	- Title: Enter the histogram title (optional). If left blank, a default title is assigned specifying the parameter and
 	gate conditions.
 	- Parameter: From the drop down menu, select the TTree parameter that you want to histogram on the indicated axis. 
 	Note that the "y" and "z" axes only become active for histogram types where appropriate.
 	You can also choose to histogram	functions depending on TTree parameters by manually typing in the box
-	(for example, I could type <tt>gamma.bgo.q[0] * 2</tt>).
+	(for example, I could type <tt>gamma.bgo.q[0] * gamma.bgo.q[0]</tt> to look at the square of
+	<tt>gamma.bgo.q[0]</tt>).
 	- Bins, Low, High: Select the number of bins, low edge and high edge of the specified axis.
 	- Gate: Here you can set the gate condition for your histogram by filling in the text box; the gate condition must
 	be a logical statement depending on relevant TTree parameters and constants. For a given event, each histogram is
@@ -487,8 +488,11 @@ Int_t main(Int_t argc, Char_t** argv)
 
 	The "Create/Replace" buttons either create a new histgram or replace a current one from the selections you have made
 	in the list above. If no histogram is currently selected in the window to the left of the "Create New" frame (more on this
-	in  bit), then the button takes on its "Create" function. Otherwise, the selected histogram is replaced with a new one
-	having the selected properties.  It is also possible to change the gate condition on any currently existing histogram.
+	in  bit), then the button takes on its "Create" functionality; that is, it creates a brand new histogram without affecting
+	any that are already in existence. If a histogram is selected in the window, then the "Create/Replace" button takes on it's
+	"Replace" functionality - it deletes the selected histogram and then replaces it with a new one.
+	
+	It is also possible to change the gate condition on any currently existing histogram.
 	To do this, select (single click) the desired histogram in the window to the left, enter the new gating conditin in the
 	"Gate" text box, and then click the "Regate" button.
 
@@ -511,24 +515,27 @@ Int_t main(Int_t argc, Char_t** argv)
 	As might be expected, the "Delete" button deletes (removes from rootbeer completely) the selected histogram or directory.
 	In the case of deleting a directory, all histograms and sub-directories are also removed.
 
-	The "Command" text entry box allows the user to call rb::hist::Base member functions directly from the gui. To use, enter
+	The "Command" text entry box allows the user to call rb::hist::Base member functions directly from the gui
+	(click on the rb::hist::Base link to see a list of all available functions). To use, enter
 	a valid member function syntax in the box and either hit "Return" or click "OK". The member function is performed on the
-	currently selected histogram (if there is one). For example, to change the line color of the selected histogram to green,
+	currently selected histogram (if there is one). For example, to change the line color of the selected histogram to blue,
 	type:
 	\code
-	SetLineColor(kGreen);
+	SetLineColor(kBlue);
 	\endcode
 
-	In the box and hit enter or click "OK".
+	In the box and press "Return" or click "OK".
 
 	The "New Directory" button to the right of the "Draw Option" box allows the user to create new TDirectories; the
 	newly created directory will be inserted as a sibdirectory of the one currently selected in the window. The
 	"Configuration File" subframe within the "Create New" frame allows saving/loading of histogram configuration files,
-	which will be explained more in the <a href=#gui_variables>next</a> frame.	Finally, the
+	which will be explained more in the <a href=#gui_variables>next</a> section.	Finally, the
 	"Quit" button in the lower-right corner of the frame exits the rootbeer program completely, without saving any data.
 
 	\warning  Currently, clicking buttons with potential negative consequences (Delete, Quit), there is no
 	checking if you "really want to do this", so click with care!
+
+
 
 	\section gui_variables Variables Frame
 
@@ -538,10 +545,13 @@ Int_t main(Int_t argc, Char_t** argv)
 	\image html rbeer_variables_screenshot.png "Variables/Configuration tab."
 
 	The main scroll window on the left of the frame displays all of the available variables in your experiment, arranged
-	in a tree structure. Single clicking on a variable makes it the "currently selected" one. Clicking  the "Read Value"
+	in a tree structure. Note that by "variables", we mean quantities utilized in the user's analysis code - things like
+	calibration slopes/offsets, channel mappings and the like.
+	Single clicking on a variable makes it the "currently selected" one. Clicking  the "Read Value"
 	button populates the text box at the bottom of the frame with the variable value (note that double clicking on a
 	variable has the same effect). Changing the value in the text box and then clicking "Set Value" changes the value
-	of the selected variable.
+	of the selected variable. This change is a "live" one, i.e. any future analysis depending on the value of the
+	selected variable will be performed using the new variable value.
 
 	The "Configuration Files" frame on the right allows users to save and load a variety of configuration files.
 	Each button opens a pop-up window to select the file that you want to save or load.  "Save Histograms" generates
@@ -551,11 +561,14 @@ Int_t main(Int_t argc, Char_t** argv)
 	<a href=#gui_canvas>described previously</a>.  "Save All" generates a macro file reproducing histogram, variable,
 	and canvas configurations at save time.  Finally, the "Load" button allows the user to read in a previously
 	saved configuration file. By changing the "Load Method" selction to its left, the user can choose what to do in the
-	case of overlaps between currently present histograms and TCuts and identical ones inthe loaded file.
-	"Reset" completely resets everything, deleting all histograms and TCuts before loading the file. "Overwrite" overwrites
+	case of overlaps between currently present histograms and
+	<a href=http://root.cern.ch/root/html/TCutG.html>TCutG</a>s and those in the loaded file with the same name.
+	"Reset" completely resets everything, deleting all histograms and TCutGs before loading the file. "Overwrite" overwrites
 	any existing duplicates but leaves all others alone.  "Cumulate" leaves all currently exitsing objects the same, and
 	if there are duplicates in the configuration file, the newly created object will have _1, _2, etc. appended to its
-	name until it is unique.
+	name until it is unique.  Note that objects other than histograms and TCutGs are always loaded from the new file; for
+	example, when loading a file containing variable definitions, variable values will be set from the loaded file regardless
+	of the method selected.
 
 
 
