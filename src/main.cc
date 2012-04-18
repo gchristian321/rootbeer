@@ -4,7 +4,6 @@
 #include <TROOT.h>
 #include "Rint.hxx"
 #include "Rootbeer.hxx"
-//#include "gui/CanvasGui.hxx"
 
 /// \brief The \c main ROOTBEER function.
 //! \details Creates an instance of \c rb::Rint and runs it.
