@@ -24,10 +24,15 @@
 //! (note that the '+' at the end is required except in special cases).
 
 
-#pragma link C++ defined_in /user/gchristian/soft/develop/dragon/analyzer/src/Dragon.hxx;
-#pragma link C++ defined_in /user/gchristian/soft/develop/dragon/analyzer/src/Gamma.hxx;
-#pragma link C++ defined_in /user/gchristian/soft/develop/dragon/analyzer/src/HeavyIon.hxx;
-#pragma link C++ defined_in /user/gchristian/soft/develop/dragon/analyzer/src/Modules.hxx;
+#pragma link C++ defined_in /user/gchristian/soft/develop/dragon/analyzer/src/dragon/Dragon.hxx;
+#pragma link C++ defined_in /user/gchristian/soft/develop/dragon/analyzer/src/dragon/gamma/Gamma.hxx;
+#pragma link C++ defined_in /user/gchristian/soft/develop/dragon/analyzer/src/dragon/gamma/Bgo.hxx;
+#pragma link C++ defined_in /user/gchristian/soft/develop/dragon/analyzer/src/dragon/heavy_ion/HeavyIon.hxx;
+#pragma link C++ defined_in /user/gchristian/soft/develop/dragon/analyzer/src/dragon/heavy_ion/MCP.hxx;
+#pragma link C++ defined_in /user/gchristian/soft/develop/dragon/analyzer/src/dragon/heavy_ion/DSSSD.hxx;
+#pragma link C++ defined_in /user/gchristian/soft/develop/dragon/analyzer/src/dragon/heavy_ion/IonChamber.hxx;
+#pragma link C++ defined_in /user/gchristian/soft/develop/dragon/analyzer/src/dragon/heavy_ion/SurfaceBarrier.hxx;
+#pragma link C++ defined_in /user/gchristian/soft/develop/dragon/analyzer/src/dragon/Modules.hxx;
 #pragma link C++ defined_in /user/gchristian/soft/develop/dragon/analyzer/src/vme/Vme.hxx;
 #pragma link C++ class vme::caen::Adc<32>+;
 #pragma link C++ class vme::caen::V1190b+;

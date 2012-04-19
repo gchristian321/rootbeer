@@ -24,15 +24,23 @@ USER_INCLUDES=-I$(DRAGON_SRC)
 
 USER_HEADERS=$(DRAGON_SRC)/utils/Bits.hxx $(DRAGON_SRC)/vme/Vme.hxx $(DRAGON_SRC)/vme/IO32.hxx \
 $(DRAGON_SRC)/vme/caen/V1190.hxx $(DRAGON_SRC)/vme/caen/Adc.hxx \
-$(DRAGON_SRC)/Modules.hxx $(DRAGON_SRC)/Gamma.hxx $(DRAGON_SRC)/Dragon.hxx $(DRAGON_SRC)/HeavyIon.hxx
+$(DRAGON_SRC)/dragon/Modules.hxx $(DRAGON_SRC)/dragon/Dragon.hxx \
+$(DRAGON_SRC)/dragon/heavy_ion/HeavyIon.hxx \
+$(DRAGON_SRC)/dragon/heavy_ion/DSSSD.hxx $(DRAGON_SRC)/dragon/heavy_ion/IonChamber.hxx \
+$(DRAGON_SRC)/dragon/heavy_ion/MCP.hxx $(DRAGON_SRC)/dragon/heavy_ion/SurfaceBarrier.hxx \
+$(DRAGON_SRC)/dragon/gamma/Gamma.hxx $(DRAGON_SRC)/dragon/gamma/Bgo.hxx 
+
 
 ############################
 ### Use the USER_SOURCES variable to tell the compiler where all of your source (compile) files are located.
 ### Specify the full path for each file. Example:
 ### USER_HEADERS=/path/to/sources/source1.cxx /path/to/sources/source2.cxx
 USER_SOURCES=$(DRAGON_SRC)/vme/caen/Adc.cxx $(DRAGON_SRC)/vme/caen/V1190.cxx \
-$(DRAGON_SRC)/Modules.cxx $(DRAGON_SRC)/Gamma.cxx $(DRAGON_SRC)/Dragon.cxx $(DRAGON_SRC)/HeavyIon.cxx
-
+$(DRAGON_SRC)/dragon/Modules.cxx $(DRAGON_SRC)/dragon/Dragon.cxx \
+$(DRAGON_SRC)/dragon/heavy_ion/HeavyIon.cxx \
+$(DRAGON_SRC)/dragon/heavy_ion/DSSSD.cxx $(DRAGON_SRC)/dragon/heavy_ion/IonChamber.cxx \
+$(DRAGON_SRC)/dragon/heavy_ion/MCP.cxx $(DRAGON_SRC)/dragon/heavy_ion/SurfaceBarrier.cxx \
+$(DRAGON_SRC)/dragon/gamma/Gamma.cxx $(DRAGON_SRC)/dragon/gamma/Bgo.cxx 
 
 ############################
 ### If you want to use the stock routines for extracting MIDAS data buffers, uncomment the following

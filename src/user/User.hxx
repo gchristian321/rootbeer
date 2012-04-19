@@ -78,7 +78,7 @@ inline void rb::Midas::RunResume(int transition, int run_number, int trans_time)
 #endif
 
 #include <utility>
-#include "Dragon.hxx"
+#include "dragon/Dragon.hxx"
 enum {
   DRAGON_EVENT = 1,
   DRAGON_SCALER = 2,
