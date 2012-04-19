@@ -41,6 +41,21 @@ rb::BufferSource* rb::BufferSource::New() {
 
 #ifdef MIDAS_BUFFERS // Implementation of rb::Midas member functions
 
+rb::Midas::Midas(): fRequestId(-1) { }
+
+rb::Midas::~Midas() {
+	CloseFile();
+  DisconnectOnline();
+}
+
+Bool_t rb::Midas::OpenFile(const char*  file_name, char** other, int nother) {
+  return fFile.Open(file_name);
+}
+
+void rb::Midas::CloseFile() {
+  fFile.Close();
+}
+
 Bool_t rb::Midas::ConnectOnline(const char* host, const char* experiment, char** unused, int unused2) {
 #ifdef MIDAS_ONLINE
   TMidasOnline* onlineMidas = TMidasOnline::instance();
@@ -54,6 +69,17 @@ Bool_t rb::Midas::ConnectOnline(const char* host, const char* experiment, char**
 #else
   return kFALSE;
 #endif
+}
+
+void rb::Midas::DisconnectOnline() {
+#ifdef MIDAS_ONLINE
+  TMidasOnline::instance()->disconnect();
+#endif
+}
+
+Bool_t rb::Midas::ReadBufferOffline() {
+  fBuffer.Clear();
+  return fFile.Read(&fBuffer);
 }
 
 Bool_t rb::Midas::ReadBufferOnline() {
