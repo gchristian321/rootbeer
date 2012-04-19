@@ -1,4 +1,0 @@
-# Ignoreobject files
-RBDictionary.*
-# Except this file
-!.gitignore
