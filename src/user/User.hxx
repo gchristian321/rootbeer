@@ -10,6 +10,7 @@
 
 
 // Definition of a BufferSource class to handle MIDAS data (at TRIUMF). //
+// The macro MIDAS_BUFFERS is set in user/Makefile.user //
 #ifdef MIDAS_BUFFERS
 #include "midas/TMidasFile.h"
 #include "midas/TMidasEvent.h"
@@ -75,63 +76,9 @@ inline void rb::Midas::RunPause(int transition, int run_number, int trans_time) 
 inline void rb::Midas::RunResume(int transition, int run_number, int trans_time) {
   Info("rb::Midas", "Resuming run number %i.", run_number);
 }
-#endif
+#endif // #ifdef __MAKECINT__
 
-#include <utility>
-#include "dragon/Dragon.hxx"
-enum {
-  DRAGON_EVENT = 1,
-  DRAGON_SCALER = 2,
-	HI_EVENT = 3,
-	GAMMA_EVENT = 4,
-	COINCIDENCE_EVENT = 5
-};
-
-class CoincideceEvent;
-class GammaEvent : public rb::Event
-{
-private:
-	 rb::data::Wrapper<dragon::gamma::Gamma> fGamma;
-public:
-	 GammaEvent();
-	 ~GammaEvent() {}
-private:
-	 TMidasEvent* Cast(void* addr) {return reinterpret_cast<TMidasEvent*>(addr);}
-	 Bool_t DoProcess(void* event_address, Int_t nchar);
-	 void HandleBadEvent() {Error("GammaEvent", "Something went wrong!!");}
-	 friend class CoincidenceEvent;
-};
-
-class HeavyIonEvent : public rb::Event
-{
-private:
-	 rb::data::Wrapper<dragon::hion::HeavyIon> fHeavyIon;
-public:
-	 HeavyIonEvent();
-	 ~HeavyIonEvent() {}
-private:
-	 TMidasEvent* Cast(void* addr) {return reinterpret_cast<TMidasEvent*>(addr);}
-	 Bool_t DoProcess(void* event_address, Int_t nchar);
-	 void HandleBadEvent() {Error("HeavyIonEvent", "Something went wrong!!");}
-	 friend class CoincidenceEvent;
-};
-
-typedef std::pair<GammaEvent*, HeavyIonEvent*> CoincEventPair_t;
-class CoincidenceEvent : public rb::Event
-{
-private:
-	 rb::data::Wrapper<dragon::Dragon> fDragon;
-public:
-	 CoincidenceEvent();
-	 ~CoincidenceEvent() {}
-private:
-	 CoincEventPair_t* Cast(void* addr) {return reinterpret_cast<CoincEventPair_t*>(addr);}
-	 Bool_t DoProcess(void* event_address, Int_t nchar);
-	 void HandleBadEvent() {Error("CoincidenceEvent", "Something went wrong!!");}
-};
-
-
-#else
+#else // #ifdef MIDAS_BUFFERS
 
 // Throw a compile-time error.  The user should remove this one he/she has done what's required.
 #error "You need to define a derived class of rb::BufferSource and implement rb::BufferSource::New()."
@@ -160,7 +107,7 @@ rb::BufferSource* rb::BufferSource::New() {
 
 }
 
-#endif 
+#endif // #ifdef MIDAS_BUFFERS ... #else
 
 
-#endif
+#endif // #ifndef USER_HXX
