@@ -57,6 +57,3 @@ DEF_FILE_DIR=-DRB_DEFAULT_FILE_DIRECTORY=\"/user/gchristian/soft/develop/dragon/
 DEF_SAVE_DIR=-DRB_DEFAULT_SAVE_DIRECTORY=\"/user/gchristian/soft/develop/dragon/analyzer\"
 DEF_CONFIG_DIR=-DRB_DEFAULT_CONFIG_DIRECTORY=\"/user/gchristian/soft/develop/rootbeer/config\"
 USER_DEFINITIONS=
-
-
-### DRAGON !!!!!! ###
