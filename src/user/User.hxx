@@ -83,29 +83,26 @@ inline void rb::Midas::RunResume(int transition, int run_number, int trans_time)
 // Throw a compile-time error.  The user should remove this one he/she has done what's required.
 #error "You need to define a derived class of rb::BufferSource and implement rb::BufferSource::New()."
 
-class /* ClassName */ : public rb::BufferSource()
-{
-  protected:
-  // Data, etc.
-  public:
-  // Required functions //
-	/*Name*/ (); // Constructor
-	virtual ~/*Name*/ (); // Destructor
-	virtual Bool_t OpenFile(const char* file_name, char** other = 0, int nother = 0);
-	virtual Bool_t ConnectOnline(const char* host, const char* other_arg = "", char** other_args = 0, int n_others = 0);
-	virtual Bool_t ReadBufferOffline();
-	virtual Bool_t ReadBufferOnline();
-	virtual Bool_t UnpackBuffer();
-	virtual void CloseFile();
-	virtual void DisconnectOnline();
-  protected:
-	// Internal functions, etc.
-};
-
-rb::BufferSource* rb::BufferSource::New() {
-  // Needs to be implemented //
-
-}
+// Here's what you need:
+//
+// class /* ClassName */ : public rb::BufferSource()
+// {
+//   protected:
+//   // Data, etc.
+//   public:
+//   // Required functions //
+// 	/*Name*/ (); // Constructor
+// 	virtual ~/*Name*/ (); // Destructor
+// 	virtual Bool_t OpenFile(const char* file_name, char** other = 0, int nother = 0);
+// 	virtual Bool_t ConnectOnline(const char* host, const char* other_arg = "", char** other_args = 0, int n_others = 0);
+// 	virtual Bool_t ReadBufferOffline();
+// 	virtual Bool_t ReadBufferOnline();
+// 	virtual Bool_t UnpackBuffer();
+// 	virtual void CloseFile();
+// 	virtual void DisconnectOnline();
+//   protected:
+// 	// Internal functions, etc.
+// };
 
 #endif // #ifdef MIDAS_BUFFERS ... #else
 
