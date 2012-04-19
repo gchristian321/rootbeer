@@ -1,3 +1,5 @@
+#### TEST ####
+
 ### Include the user-defined portion of the makefile
 include $(PWD)/user/Makefile.user
 
