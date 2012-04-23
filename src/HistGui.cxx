@@ -1,8 +1,5 @@
-// Mainframe macro generated from application: root.exe
-// By ROOT version 5.32/01 on 2012-03-23 09:53:23
-
-
-
+//! \file HistGui.cxx
+//! \brief Implements HistGui.hxx
 #include "HistGui.hxx"
 #include "Rint.hxx"
 

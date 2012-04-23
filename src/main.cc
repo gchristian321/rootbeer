@@ -124,8 +124,8 @@ int main(int argc, char** argv)
   unpacking and analyzing the data collected in a given experiment will need to be implemented as C++ code (or C code
   compatable with C++ compilers) by users. A code skeleton has been set up that will hopefully allow this to be done
   relatively painlessly.  Depending on where you collect your data, the way in which online buffers are received
-  may need to be implemented as well (currently <a href="http://www.nscl.msu.edu" target="_blank">NSCL/MSU</a> and
-  <a href="http://www.triumf.ca" target="_blank">TRIUMF</a> online data are supported).
+  may need to be implemented as well (currently <a href="http://docs.nscl.msu.edu/daq/bluebook/html/" target="_blank">
+	NSCL/MSU</a> and <a href="https://daq-plone.triumf.ca/SR/MIDAS/" target="_blank">MIDAS</a> online data are supported).
 
   As much as possible, we want to keep things simple and make use of what has already been implemented into ROOT.
   There's no reason to re-invent the wheel, and really all we need/want to do is to add the things listed above to
@@ -576,10 +576,58 @@ int main(int argc, char** argv)
 
   \page data Customizing for Your Experiment
 
+
+  - <a href=#data_prereq><b>Prerequisites</b></a>
   - <a href=#data_intro><b>Introduction</b></a>
   - <a href=#data_skel><b>Adding Your Classes to ROOTBEER</b></a>
   - <a href=#data_buffers><b>Defining How to Acquire and Unpack Data</b></a>
   - <a href=#data_other><b>Other Odds and Ends</b></a>
+
+ \section data_prereq Prerequisites
+
+  For users who are new to coding in C++, we'll briefly go over a few of the concepts that you will need to
+	understand before attempting to integrade your analysis codes with ROOTBEER. This is in no way intended to be
+	a comprehensive overview, just a quick introduction with some links to online documentation that you might find
+	useful.  If these concepts are new to you, it would be a good idea to become familiar with them before attempting
+	to develop code to be used with ROOTBEER.	Experienced C++ developers can safely skip to the
+	<a href=#data_intro>next section</a>.
+
+	First, you'll need to be familiar
+	with classes, which are basically coder-created objects which can contain ("encapsulate") data (integers, floating
+	points, arrays, vectors, other classes, etc.) and functions.  In C++ jargon, data contained within a class are often
+	referred to as "data members," and functions are often called "member functions".  Classes can also make use
+	of keywords ("private", "protected", and "public") to control the scope of data members and member functions. You can
+	find more information on classes (including an overview of the scope keywords) at the following link:
+	<a href=http://www.cplusplus.com/doc/tutorial/classes/>http://www.cplusplus.com/doc/tutorial/classes/</a>
+
+	A concept reated to classes is "inheritance." The basic idea here is that the coder can first create a "parent" class
+	which has a certain set of member data and member functions. Next, he/she creates a "child" or "derived" class which
+	inherits all of the data and functions from the parent class, possibly adding some more of its own. By "inherits", we
+	mean that the derived class gets access to the parent class's data and functions as if they were part of the child
+	class's definition in the first place (with some caveats regarding the scope keywords mentioned earlier).
+
+	One feature of C++ inheritance is the ability to create "virtual" member functions in parent classes. Virtual member
+	functions are similar to normal ones, except that derived classes have the option to override the implementation given
+	by the parent class. For example, we could create a parent class with a virtual \c print function that prints "I am a
+	parent" to the screen. Then in a derived class we could re-implement ("override") the \c print function to say "I am
+	a child" instead.  Virtual functions can also be "pure virtual" which means that they are not given any implementation
+	in the parent class. This means that any derived classes are required to privide an implementation of the pure virtual
+	functions.
+
+	Virtual functions introduce the concept of "polymorphism", which allows for the creation of a framework as is used
+	in ROOTBEER.  The basic idea behind polymorphism is that the coder can create a parent class, provide it with some
+	(possible pure) virtual functions, and then write additional code that uses those virtual functions. Later, one can
+	create a derived class which provides a specific implementation of the parent class's virtual functions, and use this
+	specific class in the other areas of the code. Thus the final result will then depend on the specific implementation
+	of the virtual functions in the derived class.  This is the basic idea behind the ROOTBEER framework. We (the developers)
+	have created some parent classes with virtual functions, and then called those virtual functions in other areas of the
+	source code.  You (the user) will need to create derived classes inheriting from our parent classes and implementing the
+	various virtual functions.  The final result is that data are sourced and processed depending on the specific structure
+	and needs of your experiment.
+
+	As mentioned, this section was only a very brief overview to the concepts covered. For more information, you can check
+	out the <a href=http://www.cplusplus.com/doc/tutorial/classes/>link</a> we already mentioned. The topics covered under
+	the <i>Object Oriented Programming</i> section give a more detailed introduction to these concepts.
 
 
   \section data_intro Introduction
