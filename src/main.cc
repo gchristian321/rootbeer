@@ -674,14 +674,29 @@ int main(int argc, char** argv)
 	The use of ROOT's tree-creation facilities places a few requirements on how you structure the data in your
 	analysis codes:
 
-  -# It must be in C++ or "forward compatable" C (that will compile with a C++ compiler).
-  -# You must encapsulate all of your data within a class or struct. Something like won't
-	-# Any array structures that you wish to include in a tree must be defined as plain C arrays (and not something like
-	<tt>std::vector</tt>). Currently, only plain arrays can be properly parsed into a tree structure as intended (note that
-	it \e might be possible to add support for standard library containers, but we haven't looked into this).
-
-	-# T1
-	-# 
+	-# It must be in C++ or "forward compatable" C (that will compile with a C++ compiler). <br><br>
+	-# You must encapsulate all of your data within a class or struct. Something like
+	\code
+  class MyData {
+     Double_t a, b, c;
+     ...
+  };
+  \endcode
+  or
+  \code
+  typedef struct {
+     Double_t a, b, c;
+     ...
+  } MyData;
+  \endcode
+  will work fine, but
+  \code
+  Double_t a;
+  Double_t b;
+  Double_t c;
+  ...
+  \endcode
+  won't. <br><br>
 	-# Any array structures that you wish to include in a tree must be defined as plain C arrays (and not something like
 	<tt>std::vector</tt>). Currently, only plain arrays can be properly parsed into a tree structure as intended (note that
 	it \e might be possible to add support for standard library containers, but we haven't looked into this).
