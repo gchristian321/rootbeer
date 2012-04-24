@@ -784,18 +784,20 @@ int main(int argc, char** argv)
 	rb::data::Wrapper.
 	As a brief example, say we have a user class <tt>MyClass</tt> that we want to use in handline a specific type of event.
 	In the event class definition, we might have something like:
-	\code
-	class MyEventClass : public rb::Event {
-	private:
-		rb::data::Wrapper<MyClass> fMyClass;
-	public:
-	   // ...More Class Defition Here... //
+  \code
+  class MyEventClass : public rb::Event {
+  private:
+    rb::data::Wrapper<MyClass> fMyClass;
+  public:
+    // ...More Class Definition Here... //
   };
-	\endcode
+  \endcode
 
 	Then in the implementation of the class constructor, you would call the rb::data::Wrapper constructor:
 	\code
-	MyEventClass::MyEventClass : fMyClass("mine", this, true, "");
+  MyEventClass::MyEventClass : fMyClass("mine", this, true, "") {
+    // ... //
+  };
 	\endcode
 
 	The above code would generate a TTree branch with the top level name \c "mine" (<tt>mine.branch.leaf</tt>, etc.),
@@ -818,7 +820,7 @@ int main(int argc, char** argv)
 	needs a bit of expansion, which we'll do here.  First, we'll note that we assume that all class data members
 	fall into one of three categories:
 	-# Parameters - numbers which are calculated event-by-event from detector signals, and which you want to be
-	further analyze (histogram, set gates on, etc.)
+	able to further analyze (view in a histogram, set gates on, etc.)
 	-# Variables - numbers which are used in the calculation of various parameters (e.g. calibration slopes and
 	the like). Typically, you will want the ability to check, and possibly re-set, the values of parameters at
 	any time during your analysis.
@@ -834,14 +836,14 @@ int main(int argc, char** argv)
 	to \c false means that no data members in your class can be treated as variables.
 
 	In addition to setting variable treatment in bulk as explained above, you can control the access levels of
-	individual data members using comment fields in your class definitions.  The relevanr comments should come
+	individual data members using comment fields in your class definitions.  The relevant comments should come
 	after the data member is defined, still on the same line. Comments beginning with \c //! and \c //# are
 	treated specially.  \c //! tells root to ignore the data member entirely when parsing the class, placing it into
 	category (3) above.  \c //# tells root not to treat the data member as a variable (definition (2) above). Typically,
 	you will want to use the \c //# comment whenever you have made your class full of variables by default (e.g. \c true
 	rb::data::Wrapper 3rd constructor argument) but want specific data members to be treated as parameters. Hopefully, the
 	simple example below will illustrate things better:
-  \code
+  \verbatim
   // Some user class, contains parameters, variables, and other data
   class Class1 {
   private:
@@ -854,11 +856,10 @@ int main(int argc, char** argv)
   // Later, when invoking rb::data::Wrapper constructor
   // By default all data members are treated as variables, and the comment fields
   // noted above change the status of specific members.
-  fClass1("class1", this, true, "");	
-  \endcode
+  fClass1("class1", this, true, "")  \endverbatim
   
-  	We could also create a class that we don't want to contain any variables:
-  	\code
+  We could also create a class that we don't want to contain any variables:
+  \verbatim
   // Some user class, contains just parameters and other data
   class Class2 {
   private:
@@ -869,8 +870,7 @@ int main(int argc, char** argv)
   	
   // Later, when invoking rb::data::Wrapper constructor
   // By default all data members are treated as parameters.
-  fClass2("class2", this, false, "");	
-  \endcode
+  fClass2("class2", this, false, "")	\endverbatim
 
   Once you have designed your event classes, what remains is to implement the virtual functions of rb::Event.
 	Specifically, these are rb::Event::DoProcess(), where you tell how to unpack an event into your data classes,
@@ -890,7 +890,7 @@ int main(int argc, char** argv)
 
 	If you have successfully designed and tested the implementation of a new buffer source class, please contact
 	the rootbeer developers about having your implementation added to the main code base. This way, your collaborators
-	won't have to spend time reporducing the work you've already done.
+	won't have to spend time reproducing the work you've already done.
 
 	\section data_orginization Code Orginization and Compilation
 
@@ -921,9 +921,11 @@ int main(int argc, char** argv)
 	\code
   > make
 	\endcode
-	from the \c rootbeer directory.  We hope that rootbeer will compile and run "out of the box" on your partucular
-	platform (assuming everything is done properly on your end).  If you run into troubles, please note the problems
-	you're having, the solutions (if you find one) and contact the developers so that we can try to fix things.
+	from the \c rootbeer directory. Successful compilation will generate the \c rootbeer executable in the \c rootbeer
+	directory, as well as the \c libRootbeer.so shared library in the \c rootbeer/lib directory.	We hope that rootbeer
+	will compile and run "out of the box" on your partucular platform (assuming everything is done properly on your end).
+  If you run into troubles, please note the problems you're having, the solutions (if you find one) and contact the
+	developers so that we can try to fix things.
 
 
   \page develop Developers
