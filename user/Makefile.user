@@ -1,13 +1,10 @@
 ##@file Makefile.user
-
 ############################
 ### Define any variables you might want to use later here, like the directory
 ### paths of your sources. Example:
 ### MYSOURCES=/path/to/my/sources/
 ### Note that the present directory (where this makefile segment is located)
 ### has already been defined as USER
-
-DRAGON_SRC=$(HOME)/soft/develop/dragon/analyzer/src
 
 
 ############################
@@ -16,7 +13,7 @@ DRAGON_SRC=$(HOME)/soft/develop/dragon/analyzer/src
 ### USER_INCLUDES=-I/path/to/some/sources/ -I/path/to/some/other/sources/
 ### Note that the present directory $(USER) has already been taken care of elsewhere.
 
-USER_INCLUDES=-I$(DRAGON_SRC)
+USER_INCLUDES=
 
 
 ############################
@@ -24,41 +21,40 @@ USER_INCLUDES=-I$(DRAGON_SRC)
 ### Specify the full path for each header. Example:
 ### USER_HEADERS=/path/to/headers/header1.hxx /path/to/headers/header2.hxx
 
-USER_HEADERS=$(DRAGON_SRC)/utils/Bits.hxx $(DRAGON_SRC)/vme/Vme.hxx $(DRAGON_SRC)/vme/IO32.hxx \
-$(DRAGON_SRC)/vme/caen/V1190.hxx $(DRAGON_SRC)/vme/caen/Adc.hxx \
-$(DRAGON_SRC)/dragon/Modules.hxx $(DRAGON_SRC)/dragon/Dragon.hxx \
-$(DRAGON_SRC)/dragon/heavy_ion/HeavyIon.hxx \
-$(DRAGON_SRC)/dragon/heavy_ion/DSSSD.hxx $(DRAGON_SRC)/dragon/heavy_ion/IonChamber.hxx \
-$(DRAGON_SRC)/dragon/heavy_ion/MCP.hxx $(DRAGON_SRC)/dragon/heavy_ion/SurfaceBarrier.hxx \
-$(DRAGON_SRC)/dragon/gamma/Gamma.hxx $(DRAGON_SRC)/dragon/gamma/Bgo.hxx 
+USER_HEADERS=
 
 
 ############################
 ### Use the USER_SOURCES variable to tell the compiler where all of your source (compile) files are located.
 ### Specify the full path for each file. Example:
 ### USER_HEADERS=/path/to/sources/source1.cxx /path/to/sources/source2.cxx
-USER_SOURCES=$(DRAGON_SRC)/vme/caen/Adc.cxx $(DRAGON_SRC)/vme/caen/V1190.cxx \
-$(DRAGON_SRC)/dragon/Modules.cxx $(DRAGON_SRC)/dragon/Dragon.cxx \
-$(DRAGON_SRC)/dragon/heavy_ion/HeavyIon.cxx \
-$(DRAGON_SRC)/dragon/heavy_ion/DSSSD.cxx $(DRAGON_SRC)/dragon/heavy_ion/IonChamber.cxx \
-$(DRAGON_SRC)/dragon/heavy_ion/MCP.cxx $(DRAGON_SRC)/dragon/heavy_ion/SurfaceBarrier.cxx \
-$(DRAGON_SRC)/dragon/gamma/Gamma.cxx $(DRAGON_SRC)/dragon/gamma/Bgo.cxx 
+USER_SOURCES=
 
 ############################
 ### If you want to use the stock routines for extracting MIDAS data buffers, uncomment the following
 ### line and make sure all other STOCK_BUFFER lines are commented.
-STOCK_BUFFERS=-DMIDAS_BUFFERS
+#STOCK_BUFFERS=-DMIDAS_BUFFERS
 
 ### If you want to use the stock routines for extracting NSCL data buffers, uncomment the following
 ### line and make sure all other STOCK_BUFFER lines are commented.
 #STOCK_BUFFERS=-DNSCL_BUFFERS
 
 
-## DEF_EXT=-DRB_DEFAULT_FILE_EXTENSION=.mid
-DEF_FILE_DIR=-DRB_DEFAULT_FILE_DIRECTORY=\"/user/gchristian/soft/develop/dragon/analyzer\"
-DEF_SAVE_DIR=-DRB_DEFAULT_SAVE_DIRECTORY=\"/user/gchristian/soft/develop/dragon/analyzer\"
-DEF_CONFIG_DIR=-DRB_DEFAULT_CONFIG_DIRECTORY=\"/user/gchristian/soft/develop/rootbeer/config\"
+############################
+### Here you can optionally define some default directories
+### To set the default directory to search for data files, define
+### DEF_FILE_DIR=-DRB_DEFAULT_FILE_DIRECTORY=\"/path/to/your/files\"
+
+### To set the default directory for saving output .root files, define
+### DEF_SAVE_DIR=-DRB_DEFAULT_SAVE_DIRECTORY=\"/path/for/saving/root/files\"
+
+### To set the default directory for loading/saving config files, define
+### DEF_CONFIG_DIR=-DRB_DEFAULT_CONFIG_DIRECTORY=\"/where/you/want/to/save/config/files\"
+
+
+############################
+### If you want to have any additional #defines present throughout your program, add them to
+### $(USER_DEFINITIONS) here
+###Example:
+### USER_DEFINITIONS=-DSOME_CONDITIONAL_COMPILATION -DSOME_OTHER_CONDITIONAL_COMPILATION
 USER_DEFINITIONS=
-
-
-### DRAGON !!!!!! ###

@@ -27,7 +27,33 @@
 
 
 rb::BufferSource* rb::BufferSource::New() {
-  return new rb::Midas();
+////////////////////////////////////////////////////////
+// Need to fill in this function such that it returns //
+// a new instance of your BufferSource class          //
+////////////////////////////////////////////////////////
+
+#ifdef MIDAS_BUFFERS	// Using rb::Midas as the BufferSource
+	return new rb::Midas();
+#else
+#error "rb::BufferSource::New() needs to be implemented!"
+#endif
+}
+
+#ifdef MIDAS_BUFFERS // Implementation of rb::Midas member functions
+
+rb::Midas::Midas(): fRequestId(-1) { }
+
+rb::Midas::~Midas() {
+	CloseFile();
+  DisconnectOnline();
+}
+
+Bool_t rb::Midas::OpenFile(const char*  file_name, char** other, int nother) {
+  return fFile.Open(file_name);
+}
+
+void rb::Midas::CloseFile() {
+  fFile.Close();
 }
 
 Bool_t rb::Midas::ConnectOnline(const char* host, const char* experiment, char** unused, int unused2) {
@@ -43,6 +69,17 @@ Bool_t rb::Midas::ConnectOnline(const char* host, const char* experiment, char**
 #else
   return kFALSE;
 #endif
+}
+
+void rb::Midas::DisconnectOnline() {
+#ifdef MIDAS_ONLINE
+  TMidasOnline::instance()->disconnect();
+#endif
+}
+
+Bool_t rb::Midas::ReadBufferOffline() {
+  fBuffer.Clear();
+  return fFile.Read(&fBuffer);
 }
 
 Bool_t rb::Midas::ReadBufferOnline() {
@@ -74,77 +111,19 @@ Bool_t rb::Midas::ReadBufferOnline() {
 }
 
 Bool_t rb::Midas::UnpackBuffer() {
-#ifdef MIDAS_BUFFERS
-  // (DRAGON test setup)
-  Short_t eventId = fBuffer.GetEventId();
-  switch(eventId) {
-  case DRAGON_EVENT: // event
-		 {	 
-			 // Figure out timestamp matching
-			 // ....
-
-			 rb::Event* gamma_event = rb::Event::Instance<GammaEvent>();
-			 gamma_event->Process(&fBuffer, 0);
-
-			 rb::Event* hi_event = rb::Event::Instance<HeavyIonEvent>();
-			 hi_event->Process(&fBuffer, 0);
-
-			 rb::Event* coinc_event = rb::Event::Instance<CoincidenceEvent>();
-			 CoincEventPair_t coinc =
-					std::make_pair(static_cast<GammaEvent*>(gamma_event), static_cast<HeavyIonEvent*>(hi_event));
-			 coinc_event->Process(reinterpret_cast<void*>(&coinc), 0);
-		 
-			 break;
-		 }
-  case DRAGON_SCALER: // scaler
-    break;
-  default:
-    //    Warning("UnpackBuffer", "Unrecognized Event Id: %d", eventId);
-    break;
-  }
-  return kTRUE;
-#else
-  return kFALSE;
-#endif
+// This function depends on the user's experiment
+#error "rb::Midas::UnpackBuffer() needs to be implemented!"
 }
 
-CoincidenceEvent::CoincidenceEvent(): fDragon("coinc", this, false, "") { }
-
-Bool_t CoincidenceEvent::DoProcess(void* addr, Int_t nchar) {
-	CoincEventPair_t* coinc = Cast(addr);
-	dragon::gamma::Gamma* gamma = coinc->first->fGamma.Get();
-	dragon::hion::HeavyIon* hi  = coinc->second->fHeavyIon.Get();
-	fDragon->read_event(*gamma, *hi);
-	return true;
-}
-
-GammaEvent::GammaEvent(): fGamma("gamma", this, true, "") { }
-
-Bool_t GammaEvent::DoProcess(void* addr, Int_t nchar) {
-  TMidasEvent* fEvent = Cast(addr);
-  if(fEvent) {
-		fGamma->unpack(*fEvent);
-		fGamma->read_data();
-    return true;
-  }
-  else return false;
-}
-
-HeavyIonEvent::HeavyIonEvent(): fHeavyIon("hi", this, true, "") { }
-
-Bool_t HeavyIonEvent::DoProcess(void* addr, Int_t nchar) {
-  TMidasEvent* fEvent = Cast(addr);
-  if(fEvent) {
-		fHeavyIon->unpack(*fEvent);
-		fHeavyIon->read_data();
-    return true;
-  }
-  else return false;
-}
+#endif // #ifdef MIDAS_BUFFERS
 
 void rb::Rint::RegisterEvents() {
-  // Register events here //
-  RegisterEvent<CoincidenceEvent>(COINCIDENCE_EVENT, "CoincidenceEvent");
-	RegisterEvent<GammaEvent>(GAMMA_EVENT, "GammaEvent");
-	RegisterEvent<HeavyIonEvent>(HI_EVENT, "HeavyIonEvent");
+//////////////////////////////////////////////////////////////////
+// Register your rb::Event derived classes here                 //
+// Example:                                                     //
+// RegisterEvent<EventClassName>(EVENT_CODE, "EventClassName"); //
+//////////////////////////////////////////////////////////////////
+
+#error "rb::Rint::RegisterEvents() needs to be implemented!"
+
 }
