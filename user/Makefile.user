@@ -1,4 +1,5 @@
 ##@file Makefile.user
+
 ############################
 ### Define any variables you might want to use later here, like the directory
 ### paths of your sources. Example:
