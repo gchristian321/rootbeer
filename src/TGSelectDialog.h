@@ -1,14 +1,6 @@
-// @(#)root/gui:$Id: TGSelectDialog.h 23115 2008-04-10 13:35:37Z rdm $
-// Author: David Gonzalez Maline  19/07/2006
-
-/*************************************************************************
- * Copyright (C) 1995-2000, Rene Brun and Fons Rademakers.               *
- * All rights reserved.                                                  *
- *                                                                       *
- * For the licensing terms see $ROOTSYS/LICENSE.                         *
- * For the list of contributors see $ROOTSYS/README/CREDITS.             *
- *************************************************************************/
-
+//! \file TGSelectDialog.h
+//! \brief Defines a pop-up window class for selecting a specific
+//! canvas to \c cd() to.
 #ifndef ROOT_TGSelectDialog
 #define ROOT_TGSelectDialog
 
@@ -31,6 +23,9 @@ class TGComboBox;
 class TGTextEntry;
 class TGTextButton;
 
+//! Class to select a canvas to \c cd() to
+/* Mostly copied and pasted from TGInputDialog.h, with modifications to create a
+ * canvas selection menu instead.*/
 class TGSelectDialog : public TGTransientFrame {
 
 private:

@@ -1,3 +1,6 @@
+//! \file TGDivideSelect.h
+//! \brief Defines a pop-up window class for selecting the geometry
+//! of a canvas division.
 #ifndef ROOT_TGDivideSelect
 #define ROOT_TGDivideSelect
 
@@ -11,7 +14,9 @@ class TGTextEntry;
 class TGTextButton;
 class TGNumberEntryField;
 
-
+//! Class to create a canvas geometry selection pop up window.
+/* Mostly copied and pasted from TGInputDialog.h, with modifications to create a 2x
+ * number selection instead.*/
 class TGDivideSelect : public TGTransientFrame {
 
 private:

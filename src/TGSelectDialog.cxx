@@ -1,22 +1,7 @@
-// @(#)root/gui:$Id: TGSelectDialog.cxx 40398 2011-07-29 07:37:23Z bellenot $
-// Author: David Gonzalez Maline  19/07/2006
-
-/*************************************************************************
- * Copyright (C) 1995-2000, Rene Brun and Fons Rademakers.               *
- * All rights reserved.                                                  *
- *                                                                       *
- * For the licensing terms see $ROOTSYS/LICENSE.                         *
- * For the list of contributors see $ROOTSYS/README/CREDITS.             *
- *************************************************************************/
-
-//////////////////////////////////////////////////////////////////////////
-//                                                                      //
-// Input Dialog Widget                                                   //
-//                                                                       //
-// An Input dialog box                                                   //
-//                                                                      //
-//////////////////////////////////////////////////////////////////////////
-
+//! \file TGSelectDialog.cxx
+//! \brief Implements TGSelectDialog.h
+//! \details As with the class definition, most of the code here was copied and pasted
+//! from TGInputDialog.cxx, then edited.
 #include "TGSelectDialog.h"
 #include "TGButton.h"
 #include "TGLabel.h"

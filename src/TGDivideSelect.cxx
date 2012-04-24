@@ -1,3 +1,7 @@
+//! \file TGDivideSelect.cxx
+//! \brief Implements TGDivideSelect.h
+//! \details As with the class definition, most of the code here was copied and pasted
+//! from TGInputDialog.cxx, then edited.
 #include "TGDivideSelect.h"
 #include "TGButton.h"
 #include "TGLabel.h"

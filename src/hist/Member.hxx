@@ -1,3 +1,6 @@
+//! \file Member.hxx
+//! \brief Uses boost preprocessor to generate code allowing any generic member function 
+//! to be called from a hist visitor.
 #ifndef AM_ITERATING_MEMBER
 #define AM_ITERATING_MEMBER
 #include "boost/preprocessor/iteration/iterate.hpp"
