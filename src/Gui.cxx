@@ -1,7 +1,5 @@
-// Mainframe macro generated from application: root.exe
-// By ROOT version 5.32/01 on 2012-03-22 21:01:12
-
-
+//! \file Gui.cxx
+//! \brief Implements Gui.hxx
 #include "Gui.hxx"
 #include "Rint.hxx"
 

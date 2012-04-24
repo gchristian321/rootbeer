@@ -29,7 +29,7 @@ endif
 
 # optional MIDAS libraries
 ifdef MIDASSYS
-MIDASLIBS = $(MIDASSYS)/linux/lib/libmidas.a -lutil -lrt
+MIDASLIBS = -L$(MIDASSYS)/linux/lib -lmidas -lutil -lrt
 CXXFLAGS += -DMIDAS_ONLINE -DOS_LINUX -Dextname -I$(MIDASSYS)/include
 MIDASONLINE=$(OBJ)/midas/TMidasOnline.o
 endif
@@ -38,7 +38,7 @@ UNAME=$(shell uname)
 ifeq ($(UNAME),Darwin)
 CXXFLAGS += -DOS_LINUX -DOS_DARWIN
 ifdef MIDASSYS
-MIDASLIBS = $(MIDASSYS)/darwin/lib/libmidas.a
+MIDASLIBS = -L$(MIDASSYS)/darwin/lib -lmidas
 endif
 DYLIB=-dynamiclib -single_module -undefined dynamic_lookup 
 FPIC=

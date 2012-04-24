@@ -10,8 +10,6 @@
 #include "Rint.hxx"
 #include "Buffer.hxx"
 
-extern void attach_sync();
-
 namespace { void start_save(const std::string& save_fname) {
 	TDirectory* current = gDirectory;
 	if(!current) current = gROOT;
@@ -111,6 +109,7 @@ void rb::attach::File::DoInThread() {
 	if(gApp()->GetSignals())
 		 gApp()->GetSignals()->UpdateBufferCounter(nbuffers, true);
   fBuffer->CloseFile();
+	printf("here\n");
 }
 
 

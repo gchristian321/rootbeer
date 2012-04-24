@@ -1,3 +1,5 @@
+//! \file Rint.hxx
+//! \brief Defines the ROOTBEER application class.
 #ifndef RINT_HXX
 #define RINT_HXX
 #include <map>
