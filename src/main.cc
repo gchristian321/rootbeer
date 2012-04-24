@@ -579,9 +579,10 @@ int main(int argc, char** argv)
 
   - <a href=#data_prereq><b>Prerequisites</b></a>
   - <a href=#data_intro><b>Introduction</b></a>
-  - <a href=#data_skel><b>Adding Your Classes to ROOTBEER</b></a>
-  - <a href=#data_buffers><b>Defining How to Acquire and Unpack Data</b></a>
-  - <a href=#data_other><b>Other Odds and Ends</b></a>
+  - <a href=#data_event><b>Creating Event Classes</b></a>
+  - <a href=#data_wrapper><b>Wrapping your Experiments Classes</b></a>
+  - <a href=#data_buffer><b>Adding a New Type of Buffer Source</b></a>
+  - <a href=#data_orginization><b>Orgainzing and Compiling your Code</b></a>
 
  \section data_prereq Prerequisites
 
@@ -711,7 +712,7 @@ int main(int argc, char** argv)
 	they are included into the tree structure (more on this in the next section).
 	
 
-	\section Event Derived Classes
+	\section data_event Event Derived Classes
 
 	To tell rootbeer how to handle a specific experiment's data, users must design and implement classes which inherit
 	from rb::Event.  The idea that each derived class will correspond to a different type of event that might be generated
@@ -757,7 +758,7 @@ int main(int argc, char** argv)
 	\c gApplication pointer from <tt>TApplication*</tt> to <tt>rb::Rint*</tt>.
 
 
-	\section User Class Wrappers
+	\section data_wrapper User Class Wrappers
 
 	As mentioned in the previous section, you will generally want to encapsulate your data classes within  the
 	rb::Event-derived classes that you create. This will result in a single TTree being generated for each type
