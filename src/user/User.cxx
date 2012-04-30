@@ -73,6 +73,7 @@ Bool_t rb::Midas::ReadBufferOnline() {
 #endif
 }
 
+// static std::set<tstamp::Event, tstamp::Order> set_;
 Bool_t rb::Midas::UnpackBuffer() {
 #ifdef MIDAS_BUFFERS
   // (DRAGON test setup)
@@ -82,8 +83,7 @@ Bool_t rb::Midas::UnpackBuffer() {
 		 {
 			 
 			 static Long64_t fakeTS = 1;
-			 tstamp::Event event(fakeTS++, tstamp::Event::GAMMA);
-			 event.fMidasEvent = fBuffer;
+			 tstamp::Event event(fakeTS++, tstamp::Event::GAMMA, fBuffer);
 
 			 fTSQueue.Push(event);
 

@@ -41,6 +41,7 @@ void TMidasEvent::Copy(const TMidasEvent& rhs)
 		fBankList    = strdup(rhs.fBankList);
 		assert(fBankList);
 	}
+	else fBankList   = NULL;
 }
 
 TMidasEvent::TMidasEvent(const TMidasEvent &rhs)
