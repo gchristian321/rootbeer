@@ -79,7 +79,15 @@ Bool_t rb::Midas::UnpackBuffer() {
   Short_t eventId = fBuffer.GetEventId();
   switch(eventId) {
   case DRAGON_EVENT: // event
-		 {	 
+		 {
+			 
+			 static Long64_t fakeTS = 1;
+			 tstamp::Event event(fakeTS++, tstamp::Event::GAMMA);
+			 event.fMidasEvent = fBuffer;
+
+			 fTSQueue.Push(event);
+
+/*
 			 // Figure out timestamp matching
 			 // ....
 
@@ -93,6 +101,7 @@ Bool_t rb::Midas::UnpackBuffer() {
 			 CoincEventPair_t coinc =
 					std::make_pair(static_cast<GammaEvent*>(gamma_event), static_cast<HeavyIonEvent*>(hi_event));
 			 coinc_event->Process(reinterpret_cast<void*>(&coinc), 0);
+*/
 		 
 			 break;
 		 }

@@ -7,7 +7,7 @@
 #include "Event.hxx"
 #include "Data.hxx"
 
-
+#include "tstamp/TStamp.hxx"
 
 // Definition of a BufferSource class to handle MIDAS data (at TRIUMF). //
 #ifdef MIDAS_BUFFERS
@@ -24,6 +24,7 @@ protected:
 	 Int_t fRequestId; //< Return code for online event requests.
 	 TMidasFile fFile; //< Offline MIDAS file.
 	 TMidasEvent fBuffer; //< Midas event buffer.
+	 tstamp::Queue fTSQueue;
 public:
 	 Midas();
 	 virtual ~Midas();
@@ -42,7 +43,7 @@ protected:
 };
 }
 #ifndef __MAKECINT__
-inline rb::Midas::Midas() : fRequestId(-1) {
+inline rb::Midas::Midas() : fRequestId(-1), fTSQueue(100) {
 }
 inline Bool_t rb::Midas::OpenFile(const char* file_name, char** other, int nother) {
   return fFile.Open(file_name);

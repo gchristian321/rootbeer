@@ -109,7 +109,6 @@ void rb::attach::File::DoInThread() {
 	if(gApp()->GetSignals())
 		 gApp()->GetSignals()->UpdateBufferCounter(nbuffers, true);
   fBuffer->CloseFile();
-	printf("here\n");
 }
 
 

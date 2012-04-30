@@ -30,8 +30,8 @@ $(DRAGON_SRC)/dragon/Modules.hxx $(DRAGON_SRC)/dragon/Dragon.hxx \
 $(DRAGON_SRC)/dragon/heavy_ion/HeavyIon.hxx \
 $(DRAGON_SRC)/dragon/heavy_ion/DSSSD.hxx $(DRAGON_SRC)/dragon/heavy_ion/IonChamber.hxx \
 $(DRAGON_SRC)/dragon/heavy_ion/MCP.hxx $(DRAGON_SRC)/dragon/heavy_ion/SurfaceBarrier.hxx \
-$(DRAGON_SRC)/dragon/gamma/Gamma.hxx $(DRAGON_SRC)/dragon/gamma/Bgo.hxx 
-
+$(DRAGON_SRC)/dragon/gamma/Gamma.hxx $(DRAGON_SRC)/dragon/gamma/Bgo.hxx \
+$(DRAGON_SRC)/tstamp/TStamp.hxx
 
 ############################
 ### Use the USER_SOURCES variable to tell the compiler where all of your source (compile) files are located.
@@ -42,7 +42,8 @@ $(DRAGON_SRC)/dragon/Modules.cxx $(DRAGON_SRC)/dragon/Dragon.cxx \
 $(DRAGON_SRC)/dragon/heavy_ion/HeavyIon.cxx \
 $(DRAGON_SRC)/dragon/heavy_ion/DSSSD.cxx $(DRAGON_SRC)/dragon/heavy_ion/IonChamber.cxx \
 $(DRAGON_SRC)/dragon/heavy_ion/MCP.cxx $(DRAGON_SRC)/dragon/heavy_ion/SurfaceBarrier.cxx \
-$(DRAGON_SRC)/dragon/gamma/Gamma.cxx $(DRAGON_SRC)/dragon/gamma/Bgo.cxx 
+$(DRAGON_SRC)/dragon/gamma/Gamma.cxx $(DRAGON_SRC)/dragon/gamma/Bgo.cxx  \
+$(DRAGON_SRC)/tstamp/TStamp.cxx
 
 ############################
 ### If you want to use the stock routines for extracting MIDAS data buffers, uncomment the following

@@ -37,3 +37,8 @@
 #pragma link C++ class vme::caen::Adc<32>+;
 #pragma link C++ class vme::caen::V1190b+;
 #pragma link C++ class vme::IO32+;
+
+
+#pragma link C++ class tstamp::Queue+;
+#pragma link C++ class tstamp::Event+;
+#pragma link C++ class TMidasEvent+;
