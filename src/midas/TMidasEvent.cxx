@@ -174,7 +174,7 @@ int TMidasEvent::FindBank(const char* name, int *bklen, int *bktype, void **pdat
   if (((pbkh->fFlags & (1<<4)) > 0)) {
     pbk32 = (Bank32_t *) (pbkh + 1);
     memcpy(&dname, name, 4);
-    do {
+    do { 
       if (*((uint32_t *) pbk32->fName) == dname) {
         *pdata = pbk32 + 1;
         if (TID_SIZE[pbk32->fType & 0xFF] == 0)
