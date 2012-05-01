@@ -73,7 +73,7 @@ Bool_t rb::Midas::ReadBufferOnline() {
 #endif
 }
 
-// static std::set<tstamp::Event, tstamp::Order> set_;
+#include "TRandom3.h"
 Bool_t rb::Midas::UnpackBuffer() {
 #ifdef MIDAS_BUFFERS
   // (DRAGON test setup)
@@ -82,10 +82,23 @@ Bool_t rb::Midas::UnpackBuffer() {
   case DRAGON_EVENT: // event
 		 {
 			 
+			 bool coinc = gRandom->Integer(10) < 3;
 			 static Long64_t fakeTS = 1;
-			 tstamp::Event event(fakeTS++, tstamp::Event::GAMMA, fBuffer);
 
-			 fTSQueue.Push(event);
+			 if(!coinc) {
+				 tstamp::Event event(fakeTS, tstamp::Event::GAMMA, fBuffer);
+				 fakeTS += 100;
+				 fTSQueue.Push(event);
+			 }
+			 else {
+				 tstamp::Event event(fakeTS, tstamp::Event::GAMMA, fBuffer);
+				 tstamp::Event event2(fakeTS+gRandom->Integer(9), tstamp::Event::HION, fBuffer);
+				 fTSQueue.Push(event);
+				 fTSQueue.Push(event2);
+				 fakeTS += 100;
+			 }
+
+
 
 /*
 			 // Figure out timestamp matching
