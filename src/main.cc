@@ -5,6 +5,9 @@
 #include "Rint.hxx"
 #include "Rootbeer.hxx"
 
+
+#ifndef RB_UNPACK_ONLY
+
 /// \brief The \c main ROOTBEER function.
 //! \details Creates an instance of \c rb::Rint and runs it.
 int main(int argc, char** argv)
@@ -18,7 +21,37 @@ int main(int argc, char** argv)
 }
 
 
+#else
+#include <cassert>
 
+namespace {
+void usage() {
+	std::cout << "usage: rbunpack <input file>\n\n";
+	exit(1);
+}
+void handle_args(int argc, char** argv, std::string& fin) {
+	if(argc != 2) usage();
+	fin  = argv[1];
+} }
+
+/// \brief Main function for a separate program to convert data files to root trees.
+int main(int argc, char** argv)
+{
+	std::string fin;
+	handle_args(argc, argv, fin);
+	assert(strlen(argv[0]) > 3);
+	sprintf(argv[0], "-ng");
+	rb::Rint rbApp("Rootbeer", &argc, argv, 0, 0, true);
+	rbApp.StartSave(false);
+	rb::AttachFile(fin.c_str());
+	gSystem->Sleep(1e2);
+	while(TThread::GetThread("AttachFile"));
+	rbApp.Terminate(0);
+}
+
+
+
+#endif
 
 
 

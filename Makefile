@@ -56,10 +56,13 @@ ROOTCINT=rootcint $(USER_DEFINITIONS)
 
 
 #### MAIN PROGRAM ####
-all: rootbeer
+all: rootbeer rbunpack
+
+rbunpack: $(RBLIB)/libRootbeer.so $(SRC)/main.cc 
+	$(LINK) -lRootbeer -DRB_UNPACK_ONLY $(SRC)/main.cc -o rbunpack \
 
 rootbeer: $(RBLIB)/libRootbeer.so $(SRC)/main.cc 
-	$(LINK) -lRootbeer $(SRC)/main.cc -o rootbeer
+	$(LINK) -lRootbeer $(SRC)/main.cc -o rootbeer \
 
 
 #### ROOTBEER LIBRARY ####

@@ -24,7 +24,7 @@
 //! compiled with attaching to online data disabled.
 #include "User.hxx"
 #include "utils/Error.hxx"
-
+#include "mvmestd.h"
 
 rb::BufferSource* rb::BufferSource::New() {
   return new rb::Midas();
@@ -74,6 +74,8 @@ Bool_t rb::Midas::ReadBufferOnline() {
 }
 
 #include "TRandom3.h"
+#include "TH1F.h"
+#include "utils/Incrvoid.hxx"
 Bool_t rb::Midas::UnpackBuffer() {
 #ifdef MIDAS_BUFFERS
   // (DRAGON test setup)
@@ -81,7 +83,14 @@ Bool_t rb::Midas::UnpackBuffer() {
   switch(eventId) {
   case DRAGON_EVENT: // event
 		 {
-			 
+
+// #define SINGLES_ONLY
+#ifdef  SINGLES_ONLY
+			 static Long64_t fakeTS = 1;
+			 tstamp::Event event(fakeTS, tstamp::Event::GAMMA, fBuffer);
+			 fakeTS += 100;
+			 fTSQueue.Push(event);
+#else
 			 bool coinc = gRandom->Integer(10) < 3;
 			 static Long64_t fakeTS = 1;
 
@@ -94,16 +103,36 @@ Bool_t rb::Midas::UnpackBuffer() {
 				 tstamp::Event event(fakeTS, tstamp::Event::GAMMA, fBuffer);
 				 tstamp::Event event2(fakeTS+gRandom->Integer(9), tstamp::Event::HION, fBuffer);
 				 fTSQueue.Push(event);
+
+				 int which = gRandom->Integer(10);
+				 if (0);
+				 else if (which < 3) {
+					 fakeTS += 100;
+					 tstamp::Event event3(fakeTS+gRandom->Integer(11), tstamp::Event::HION, fBuffer);
+					 fTSQueue.Push(event3);
+				 }
+				 else if (which < 6) {
+					 fakeTS += 100;
+					 tstamp::Event event3(fakeTS+gRandom->Integer(11), tstamp::Event::GAMMA, fBuffer);
+					 fTSQueue.Push(event3);
+				 }
+				 else {
+					 ;
+				 }
 				 fTSQueue.Push(event2);
 				 fakeTS += 100;
 			 }
+#endif
 
+// #define COUNT
+#ifdef COUNT
+			 static int nEvts = 0;
+			 std::cout << nEvts++ << std::endl;
+#undef COUNT
+#endif
 
 
 /*
-			 // Figure out timestamp matching
-			 // ....
-
 			 rb::Event* gamma_event = rb::Event::Instance<GammaEvent>();
 			 gamma_event->Process(&fBuffer, 0);
 
@@ -119,9 +148,37 @@ Bool_t rb::Midas::UnpackBuffer() {
 			 break;
 		 }
   case DRAGON_SCALER: // scaler
+	
+/*
+// Some Testing	//
+		void * pdata;
+		int bklen, bktype;
+		
+		static int nnn=0;
+		static TH1F* gHist = dynamic_cast<TH1F*>(gROOT->FindObject("gHist"));
+		if(fBuffer.FindBank("VSCD", &bklen, &bktype, &pdata)) {
+		++nnn;
+			std::cout << bklen << " " << bktype << "\n";
+			for(int i=0; i< bklen; ++i) {
+				float* fdata = (float*)pdata;
+				// std::cout << *fdata << " ";
+				if(i == 1 && gHist) {std::cout << *fdata<< "<<<<<< \n"; gHist->Fill(*fdata);}
+				increment_void(pdata, bktype);
+			}
+			std::cout << "\n";
+		}
+		if(fBuffer.FindBank("VSCR", &bklen, &bktype, &pdata)) {
+			for(int i=0; i< bklen; ++i) {
+				uint32_t* idata = (uint32_t*)pdata;
+				increment_void(pdata, bktype);
+			}
+			std::cout << "\n";
+		}
+*/
+
     break;
   default:
-    //    Warning("UnpackBuffer", "Unrecognized Event Id: %d", eventId);
+    // Warning("UnpackBuffer", "Unrecognized Event Id: %d", eventId);
     break;
   }
   return kTRUE;

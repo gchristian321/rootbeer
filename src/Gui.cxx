@@ -15,7 +15,7 @@ void TGRbeerFrame::GuiLayout()
    this->SetLayoutBroken(kTRUE);
 	 this->ChangeBackground((Pixel_t)0xd4cf87);
 
-	 
+
    // composite frame
    /* TGCompositeFrame* */ fMainFrame1596 = new TGCompositeFrame(this,349,426,kVerticalFrame);   fMainFrame1596->SetName("fMainFrame1596");
    fMainFrame1596->SetLayoutBroken(kTRUE);
@@ -465,8 +465,8 @@ fUnattach->SetFont(ufont->GetFontStruct());
    this->Resize(349,424);
 
    // Call MakeConnections function, defined in Gui.hxx
-   MakeConnections(); 
-}  
+   MakeConnections();
+}
 
 // TGMainFrame *fRbeerFrame = 0;TGCompositeFrame *fMainFrame1596 = 0;TGCompositeFrame *fMainFrame6310 = 0;TGGroupFrame *fGroupCanvas = 0;TGTextButton *fZeroAll = 0;TGTextButton *fDivideCurrent = 0;TGTextEntry *fEntryName = 0;TGTextButton *fCreateNew = 0;TGLabel *fLabelName = 0;TGTextButton *fSelectCanvas = 0;TGNumberEntry *fUpdateRate = 0;TGLabel *fLabelRate = 0;TGTextButton *fStartRefresh = 0;TGTextButton *fRefreshCurrent = 0;TGTextButton *fRefreshAll = 0;TGTextButton *fZeroCurrent = 0;TGTextButton *fClearCurrent = 0;TGGroupFrame *fGroupConfig = 0;TGTextButton *fConfigLoad = 0;TGTextButton *fConfigSave = 0;TGGroupFrame *fGroupData = 0;TGTextButton *fAttachOnline = 0;TGTextButton *fAttachFile = 0;TGTextButton *fAttachList = 0;TGTextButton *fUnattach = 0;TGTextEntry *fEntryHost = 0;TGLabel *fLabelHost = 0;TGTextEntry *fEntryPort = 0;TGLabel *fLabelPort = 0;TGCheckButton *fIsContinuous = 0;TGCheckButton *fSaveData = 0;TGCheckButton *fSaveHist = 0;TGLabel *fLabelSource = 0;TGLabel *fLabelDataSource = 0;TGLabel *fNbuffersLabelDivider = 0;TGLabel *fNbuffersLabel = 0;TGLabel *fNbuffers = 0;
 // ================================================== //
@@ -518,7 +518,7 @@ void TGRbeerFrame::MakeConnections() {
 	RB_BUTTON_CONNECT(fSelectCanvas, "CdCanvas()");
 	RB_BUTTON_CONNECT(fClearCurrent, "ClearCurrent()");
 
-	RB_SIGNALS->Connect("Unattaching()", "TGTextButton", fUnattach, "ChangeBackground(=0xe0e0e0)");	
+	RB_SIGNALS->Connect("Unattaching()", "TGTextButton", fUnattach, "ChangeBackground(=0xe0e0e0)");
 	RB_SIGNALS->Connect("Unattaching()", "TGTextButton", fUnattach, "SetEnabled(=false)");
 	RB_SIGNALS->Connect("Unattaching()", "TGTextButton", fIsContinuous, "SetEnabled(=true)");
 	RB_SIGNALS->Connect("Attaching()", "TGTextButton", fUnattach, "ChangeBackground(=0x00ff00)");
@@ -533,7 +533,7 @@ void TGRbeerFrame::MakeConnections() {
 	RB_SIGNALS->Connect("StartingUpdate(Int_t)", "TGNumberEntry", fUpdateRate, "SetNumber(Int_t)");
   fUpdateRate->Connect("ValueSet(Long_t)", "rb::Signals", RB_SIGNALS, "ChangeUpdateRate(Long_t)");
 
-	RB_SIGNALS->Connect("AttachedFile(const char*)", "TGLabel", fLabelSource, "SetText(const char*)");   
+	RB_SIGNALS->Connect("AttachedFile(const char*)", "TGLabel", fLabelSource, "SetText(const char*)");
 	RB_SIGNALS->Connect("AttachedOnline(const char*)", "TGLabel", fLabelSource, "SetText(const char*)");
 	RB_SIGNALS->Connect("Unattaching()", "TGLabel", fLabelSource, "SetText(=\"[none]\")");
 
@@ -550,11 +550,50 @@ void TGRbeerFrame::MakeConnections() {
 	RB_SIGNALS->Connect("Unattaching()", "rb::Signals", RB_SIGNALS, "EnableSaveHists()");
 	fSaveData->Clicked();
 }
- 
+
 TGRbeerFrame::~TGRbeerFrame() {
 	rb::gApp()->DeleteSignals();
+	DeleteMembers();
 }
 
+void TGRbeerFrame::DeleteMembers() {
+	 delete	fMainFrame1596;
+	 delete	fMainFrame6310;
+	 delete	fGroupCanvas;
+	 delete	fZeroAll;
+	 delete	fDivideCurrent;
+	 delete	fEntryName;
+	 delete	fCreateNew;
+	 delete	fLabelName;
+	 delete	fSelectCanvas;
+	 delete	fUpdateRate;
+	 delete	fLabelRate;
+	 delete	fStartRefresh;
+	 delete	fRefreshCurrent;
+	 delete	fRefreshAll;
+	 delete	fZeroCurrent;
+	 delete	fClearCurrent;
+	 delete	fGroupConfig;
+	 delete	fConfigLoad;
+	 delete	fConfigSave;
+	 delete	fGroupData;
+	 delete	fAttachOnline;
+	 delete	fAttachFile;
+	 delete	fAttachList;
+	 delete	fUnattach;
+	 delete	fEntryHost;
+	 delete	fLabelHost;
+	 delete	fEntryPort;
+	 delete	fLabelPort;
+	 delete	fIsContinuous;
+	 delete	fSaveData;
+	 delete	fSaveHist;
+	 delete	fLabelSource;
+	 delete	fLabelDataSource;
+	 delete	fNbuffersLabelDivider;
+	 delete	fNbuffersLabel;
+	 delete	fNbuffers;
+}
 
 #undef RB_SIGNALS
 #undef RB_BUTTON_CONNECT
