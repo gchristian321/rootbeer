@@ -229,10 +229,7 @@ public:
 
 	 /// \brief Free all resources upon window destruction.
 	 /// \details Closes all signal/socket connections (by calling destructors of TQObjects).
-	 /// \todo Currently, the destructor does \e not free any memory resources allocated to owned gui objects.
-	 /// Effectively, this means that the gui window is the source of a memory leak. In practice, this is of
-	 /// minor consequence since gui windows are typically created/destroyed rarely (if at all) within a program
-	 /// instance. However, it should be addressed at some point!
+	 /// \todo See todo for TGRbeerFrame, same situation here.
 	 ~TGHistVarFrame();
 
 	 /// \brief Set up the layout of the gui components.
@@ -243,6 +240,11 @@ public:
 	 /// \brief Create all TQObject connections between signals emitted from gui objects and rb::Signals
 	 void MakeHistConnections();
 
+private:
+	 /// Memory cleanup
+	 void DeleteMembers();
+
+public:
 	 /// Allow rb::Signals access to class data.
 	 friend class rb::HistSignals;
 };

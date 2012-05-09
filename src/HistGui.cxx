@@ -74,7 +74,7 @@ void TGHistVarFrame::HistGuiLayout()
    // const TGPicture *pclose= gClient->GetPicture("folder_t.xpm");      //used for list tree items
 	 fHistTree->AddRoot(gROOT->GetName());
 	 fHistTree->FindItemByPathname(gROOT->GetName())->SetOpen(true);
-	 
+
 
 
    fViewPort719->AddFrame(fHistTree);
@@ -970,8 +970,8 @@ fConfigAllLoadButton->SetFont(ufont->GetFontStruct());
 
 
    // Call MakeHistConnections function, defined in HistGui.hxx
-   MakeHistConnections(); 
-}  
+   MakeHistConnections();
+}
 
 //TGMainFrame *fHistVarFrame = 0;TGCompositeFrame *fMainFrame2592 = 0;TGCompositeFrame *fMainFrame2438 = 0;TGCompositeFrame *fMainFrame1180 = 0;TGCompositeFrame *fMainFrame2078 = 0;TGCompositeFrame *fMainFrame4698 = 0;TGCompositeFrame *fMainFrame1001 = 0;TGCompositeFrame *fMainFrame942 = 0;TGCompositeFrame *fMainFrame1678 = 0;TGCompositeFrame *fMainFrame909 = 0;TGCompositeFrame *fMainFrame1598 = 0;TGCompositeFrame *fMainFrame2824 = 0;TGTab *fHistTab = 0;TGCanvas *fHistCanvas = 0;TGListTree *fHistTree = 0;TGTextButton *fCommandOk = 0;TGTextButton *fQuit = 0;TGTextEntry *fCommandEntry = 0;TGLabel *fCommandLabel = 0;TGTextButton *fDrawButton = 0;TGTextButton *fDeleteButton = 0;TGGroupFrame *fHistCreateFrame = 0;TGNumberEntryField *fHighX = 0;TGNumberEntryField *fLowX = 0;TGNumberEntryField *fBinsX = 0;TGNumberEntryField *fBinsY = 0;TGNumberEntryField *fLowY = 0;TGNumberEntryField *fHighY = 0;TGNumberEntryField *fBinsZ = 0;TGNumberEntryField *fLowZ = 0;TGNumberEntryField *fHighZ = 0;TGLabel *fLabelX = 0;TGLabel *fLabelY = 0;TGLabel *fLabelZ = 0;TGLabel *fLabelParameter = 0;TGLabel *fLabelBins = 0;TGLabel *fLabelLow = 0;TGLabel *fLabelHigh = 0;TGComboBox *fTypeEntry = 0;TGTextEntry *fGateEntry = 0;TGLabel *fGateLabel = 0;TGTextEntry *fNameEntry = 0;TGTextEntry *fTitleEntry = 0;TGLabel *fTypeLabel = 0;TGComboBox *fParamZ = 0;TGComboBox *fParamY = 0;TGComboBox *fParamX = 0;TGComboBox *fEventEntry = 0;TGLabel *fEventLabel = 0;TGLabel *fNameLabel = 0;TGLabel *fTitleLabel = 0;TGTextButton *fHistCreateButton = 0;TGTextButton *fHistRegateButton = 0;TGGroupFrame *fHistConfigFrame = 0;TGTextButton *fHistSaveButton = 0;TGTextButton *fHistLoadButton = 0;TGTextEntry *fDrawOptionEntry = 0;TGTextButton *fMkdirButton = 0;TGLabel *fDrawOptionLabel = 0;TGGroupFrame *fVariablesFrame = 0;TGCanvas *fVariablesCanvas = 0;TGListTree *fVariablesTree = 0;TGTextButton *fReadVarButton = 0;TGTextButton *fSetVarButton = 0;TGNumberEntryField *fVarEntry = 0;TGGroupFrame *fConfigAllFrame = 0;TGTextButton *fConfigHistSaveButton = 0;TGTextButton *fConfigVarSaveButton = 0;TGTextButton *fConfigCanvasSaveButton = 0;TGTextButton *fConfigAllSaveButton = 0;TGTextButton *fConfigAllLoadButton = 0;TGGroupFrame *fConfigLoadMethodFrame = 0;TGRadioButton *fConfigLoadMethodReset = 0;TGRadioButton *fConfigLoadMethodOverwrite = 0;TGRadioButton *fConfigLoadMethodCumulate = 0;
 // ================================================== //
@@ -1072,6 +1072,85 @@ void TGHistVarFrame::MakeHistConnections() {
 
 TGHistVarFrame::~TGHistVarFrame() {
 	rb::gApp()->DeleteHistSignals();
+	DeleteMembers();
+}
+
+void TGHistVarFrame::DeleteMembers() {
+	delete fMainFrame2592;
+	delete fMainFrame2438;
+	delete fMainFrame1180;
+	delete fMainFrame2078;
+	delete fMainFrame4698;
+	delete fMainFrame1001;
+	delete fMainFrame942;
+	delete fMainFrame1678;
+	delete fMainFrame909;
+	delete fMainFrame1598;
+	delete fMainFrame2824;
+	delete fHistTab;
+	delete fHistCanvas;
+	delete fHistTree;
+	delete fCommandOk;
+	delete fQuit;
+	delete fVarQuit;
+	delete fCommandEntry;
+	delete fCommandLabel;
+	delete fDrawButton;
+	delete fDeleteButton;
+	delete fHistCreateFrame;
+	delete fHighX;
+	delete fLowX;
+	delete fBinsX;
+	delete fBinsY;
+	delete fLowY;
+	delete fHighY;
+	delete fBinsZ;
+	delete fLowZ;
+	delete fHighZ;
+	delete fLabelX;
+	delete fLabelY;
+	delete fLabelZ;
+	delete fLabelParameter;
+	delete fLabelBins;
+	delete fLabelLow;
+	delete fLabelHigh;
+	delete fTypeEntry;
+	delete fGateEntry;
+	delete fGateLabel;
+	delete fNameEntry;
+	delete fTitleEntry;
+	delete fTypeLabel;
+	delete fParamZ;
+	delete fParamY;
+	delete fParamX;
+	delete fEventEntry;
+	delete fEventLabel;
+	delete fNameLabel;
+	delete fTitleLabel;
+	delete fHistCreateButton;
+	delete fHistRegateButton;
+	delete fHistConfigFrame;
+	delete fHistSaveButton;
+	delete fHistLoadButton;
+	delete fDrawOptionEntry;
+	delete fMkdirButton;
+	delete fDrawOptionLabel;
+	delete fVariablesFrame;
+	delete fVariablesCanvas;
+	delete fVariablesTree;
+	delete fReadVarButton;
+	delete fSetVarButton;
+	delete fVarEntry;
+	delete fConfigAllFrame;
+	delete fConfigHistSaveButton;
+	delete fConfigVarSaveButton;
+	delete fConfigCanvasSaveButton;
+	delete fConfigAllSaveButton;
+	delete fConfigAllLoadButton;
+	delete fConfigLoadMethodFrame;
+	delete fConfigLoadMethodReset;
+	delete fConfigLoadMethodOverwrite;
+	delete fConfigLoadMethodCumulate;
 }
 
 #undef RB_HIST_SIGNALS

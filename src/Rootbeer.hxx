@@ -65,13 +65,11 @@ extern void ReadConfig(const char* filename, Option_t* option = "o");
 /// \brief Write canvas configuration file.
 //! \details Writes the current canvases and the histograms contained on them to a configuration
 //! file.
-//! \todo Currently not implemented.
 extern Int_t WriteCanvases(const char* filename, Bool_t prompt = kTRUE);
 
 /// \brief Read canvas configuration file.
 //! \details Reads the current canvases and the histograms contained on them from a configuration
 //! file.
-//! \todo Currently not implemented.
 extern Int_t ReadCanvases(const char* filename);
 
 /// Cd to a directory by its pathname

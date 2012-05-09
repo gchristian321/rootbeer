@@ -97,6 +97,8 @@ public:
 				void* options = 0, int numOptions = 0, Bool_t noLogo = kFALSE);
    /// \brief Create gui windows
 	 void InitGui();
+   /// \brief Close (delete) gui windows
+	 void CloseGui();
 	 /// \brief Terminate the application.
 	 //! \details Stops any running threads and frees any memory that was allocated during
 	 //! the CINT session.

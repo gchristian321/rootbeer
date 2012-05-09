@@ -18,7 +18,9 @@ rb::Rint::Rint(const char* appClassName, int* argc, char** argv,
 	       void* options, int numOptions, Bool_t liteLogo) :
   TRint(appClassName, argc, argv, options, numOptions, kTRUE),
 	fSignals(0), fHistSignals(0),
-	fSaveData(false), fSaveHists(false) {
+	fSaveData(false), fSaveHists(false),
+	fRbeerFrame(0), fHistFrame(0)
+{
   RegisterEvents();
   SetPrompt("rootbeer [%d] ");
   PrintLogo(liteLogo);
@@ -54,6 +56,14 @@ void rb::Rint::InitGui() {
 	fRbeerFrame->GuiLayout();
 	fHistFrame = new TGHistVarFrame(gClient->GetRoot(),10,10,kMainFrame | kVerticalFrame);
 	fHistFrame->HistGuiLayout();
+}
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// void rb::Rint::InitGui()                              //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+void rb::Rint::CloseGui() {
+	if(fRbeerFrame) { delete fRbeerFrame; fRbeerFrame = 0; }
+	if(fHistFrame)  { delete fHistFrame;  fHistFrame  = 0; }
+
 }
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // Events_t rb::Rint::GetEvent()                         //

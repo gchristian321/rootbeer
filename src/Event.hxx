@@ -99,6 +99,11 @@ private:
 	 //!  printing/logging an error message, aborting the program, etc. Since this is pure virtual, they get to choose.
 	 virtual void HandleBadEvent() = 0;
 
+	 //! \brief Actions to be completed at the beginning of a run.
+	 //! \details This function is called any time we attach to a new data source. It is given a "null" implementation
+	 //! here but can optionally be overridden in derived classes.
+	 virtual void BeginRun() { };
+
 public:
 	 /// Adds a branch to the event tree.
 	 class BranchAdd
@@ -161,11 +166,21 @@ public:
 			~Save() { Stop(); }
 	 };
 
+	 /// \brief Functor class to for calling BeginRun()
+	 /// \details Used in Buffer.cxx when attaching to a new data source, as an argument
+	 /// to std::for_each
+	 struct RunBegin
+	 {
+			/// operator(), used in std::for_each on a vector of std::pair<event code (int), event name (string)>
+			void operator() (const std::pair<Int_t, std::string>&);
+	 };
+
 private:
 	 boost::scoped_ptr<volatile Save> fSave;
 
 #ifndef __MAKECINT__
 	 friend class rb::Event::Save;
+	 friend class rb::Event::RunBegin;
 	 friend void Destructor::Operate(Event*&);
 	 friend TTreeFormula* InitFormula::Operate(Event* const, const char*);
 	 friend Bool_t BranchAdd::Operate(Event* const, const char*, const char*, void**, Int_t);

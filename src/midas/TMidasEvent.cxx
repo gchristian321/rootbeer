@@ -31,14 +31,17 @@ void TMidasEvent::Copy(const TMidasEvent& rhs)
 {
   fEventHeader = rhs.fEventHeader;
 
-  fData        = (char*)malloc(fEventHeader.fDataSize);
-  assert(fData);
-  memcpy(fData, rhs.fData, fEventHeader.fDataSize);
-  fAllocatedByUs = true;
+	fData        = (char*)malloc(fEventHeader.fDataSize);
+	assert(fData);
+	memcpy(fData, rhs.fData, fEventHeader.fDataSize);
+	fAllocatedByUs = true;
 
-  fBanksN      = rhs.fBanksN;
-  fBankList    = strdup(rhs.fBankList);
-  assert(fBankList);
+	fBanksN      = rhs.fBanksN;
+	if(rhs.fBankList) {
+		fBankList    = strdup(rhs.fBankList);
+		assert(fBankList);
+	}
+	else fBankList   = NULL;
 }
 
 TMidasEvent::TMidasEvent(const TMidasEvent &rhs)
@@ -153,7 +156,8 @@ int TMidasEvent::LocateBank(const void *unused, const char *name, void **pdata) 
 
   return bklen;
 }
-
+#include <iostream>
+#include <string>
 int TMidasEvent::FindBank(const char* name, int *bklen, int *bktype, void **pdata) const
 {
   /// Find a data bank.

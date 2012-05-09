@@ -2,6 +2,7 @@
 //! \brief Implements classes defined in Buffer.hxx
 #include <fstream>
 #include <memory>
+#include <algorithm>
 #include <TFile.h>
 #include <TError.h>
 #include <TString.h>
@@ -22,7 +23,14 @@ namespace { void start_save(const std::string& save_fname) {
 		rb::gApp()->GetEvent(it->first)->
 			 StartSave(file, tname.str().c_str(), ttitle.str().c_str(), rb::gApp()->GetSaveHists());
 	}
-} }
+}
+inline void call_begin_run() {
+	// call BeginRun() on all rb::Events
+	rb::EventVector_t events = rb::gApp()->GetEventVector();
+	rb::Event::RunBegin begin_run_functor;
+	std::for_each(events.begin(), events.end(), begin_run_functor);
+}
+}
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // Class                                                 //
@@ -38,6 +46,8 @@ rb::attach::File::File(const char* filename, Bool_t stopAtEnd) :
   kStopAtEnd(stopAtEnd)
 {
   fBuffer = BufferSource::New();
+	call_begin_run(); 	// call begin run on all events
+
 	if(!ListAttached()) {
 		if(gApp()->GetSignals()) gApp()->GetSignals()->Attaching(); // signal to gui
 	}
@@ -109,7 +119,6 @@ void rb::attach::File::DoInThread() {
 	if(gApp()->GetSignals())
 		 gApp()->GetSignals()->UpdateBufferCounter(nbuffers, true);
   fBuffer->CloseFile();
-	printf("here\n");
 }
 
 
@@ -193,7 +202,9 @@ rb::attach::Online::Online(const char* source, const char* other, char** others,
   fOtherArgs(others),
   fNumOthers(nothers)
 {
-  fBuffer = BufferSource::New();  
+  fBuffer = BufferSource::New();
+	call_begin_run();
+
 	if(gApp()->GetSignals())
 		 gApp()->GetSignals()->Attaching();
 

@@ -1,6 +1,7 @@
 //! \file Event.cxx
 //! \brief Implements Event.hxx
 #include "Event.hxx"
+#include "Rint.hxx"
 #include "hist/Hist.hxx"
 #include "utils/Logger.hxx"
 
@@ -139,4 +140,17 @@ void rb::Event::Save::Stop() {
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 void rb::Event::Save::Fill() {
 	if(fIsActive && fTree) fTree->Fill();
+}
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// void rb::Event::RunBegin::operator()                  //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+void rb::Event::RunBegin::operator() (const std::pair<Int_t, std::string>& e) {
+	rb::Event* event = gApp()->GetEvent(e.first);
+	if(!event) {
+		err::Error("rb::Event::RunBegin::operator()") << "gApp()->GetEvent(code = " << e.first << ") returned NULL. "
+																									<< "Skipping this event." << ERR_FILE_LINE;
+	}
+	else {
+		event->BeginRun();
+	}
 }
