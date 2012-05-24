@@ -30,6 +30,4 @@
 
 #pragma link C++ defined_in "user/User.hxx";
 
-#include "../user/UserLinkdef.h"
-
 #endif // #ifdef __CINT__

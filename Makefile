@@ -1,7 +1,13 @@
-#### TEST ####
+#### MAKEFILE FOR THE DRAGON VERSION OF ROOTBEER ####
+#### This version of rootbeer is compiled differently from the stock one;
+#### namely, the "user" portion is compiled into a separate shared libarary
+#### that is then linked into the rootbeer executable.
 
 ### Include the user-defined portion of the makefile
 include $(PWD)/user/Makefile.user
+
+### Path to DRAGON codes
+DRAGON_HOME=/Users/gchristian/soft/develop/dragon/analyzer
 
 ### Variable definitions
 SRC=$(PWD)/src
@@ -51,7 +57,7 @@ COMPILER=g++ -Wall
 DEFAULTS=$(DEF_FILE_DIR) $(DEF_SAVE_DIR) $(DEF_CONFIG_DIR)
 
 COMPILE=$(COMPILER) $(CXXFLAGS) $(RPATH) $(DEF_EXT) $(DEFAULTS) $(USER_DEFINITIONS)
-LINK=$(COMPILER) $(CXXFLAGS) $(ROOTGLIBS) $(RPATH) $(DEFAULTS) $(USER_DEFINITIONS)
+LINK=$(COMPILER) $(CXXFLAGS) $(ROOTGLIBS) $(RPATH) $(DEFAULTS) $(USER_DEFINITIONS) -L$(DRAGON_HOME)/lib
 ROOTCINT=rootcint $(USER_DEFINITIONS)
 
 
@@ -59,10 +65,10 @@ ROOTCINT=rootcint $(USER_DEFINITIONS)
 all: rootbeer rbunpack
 
 rbunpack: $(RBLIB)/libRootbeer.so $(SRC)/main.cc 
-	$(LINK) -lRootbeer -DRB_UNPACK_ONLY $(SRC)/main.cc -o rbunpack \
+	$(LINK) -lRootbeer -lDragon -DRB_UNPACK_ONLY $(SRC)/main.cc -o rbunpack \
 
 rootbeer: $(RBLIB)/libRootbeer.so $(SRC)/main.cc 
-	$(LINK) -lRootbeer $(SRC)/main.cc -o rootbeer \
+	$(LINK) -lRootbeer -lDragon $(SRC)/main.cc -o rootbeer \
 
 
 #### ROOTBEER LIBRARY ####
@@ -81,7 +87,7 @@ $(SRC)/HistGui.hxx $(SRC)/Gui.hxx $(SRC)/midas/*.h $(SRC)/utils/*.h* $(USER_HEAD
 RBlib: $(RBLIB)/libRootbeer.so
 $(RBLIB)/libRootbeer.so: $(CINT)/RBDictionary.cxx $(USER_SOURCES) $(OBJECTS)
 	$(LINK) $(DYLIB) $(FPIC) -o $@ $(MIDASLIBS) $(OBJECTS) \
--p $(CINT)/RBDictionary.cxx $(USER_SOURCES) \
+-p $(CINT)/RBDictionary.cxx \
 
 Rootbeer: $(OBJ)/Rootbeer.o
 $(OBJ)/Rootbeer.o: $(CINT)/RBDictionary.cxx $(SRC)/Rootbeer.cxx
@@ -98,22 +104,10 @@ $(OBJ)/Signals.o: $(CINT)/RBDictionary.cxx $(SRC)/Signals.cxx
 	$(COMPILE) $(FPIC) -c \
 -o $@  -p $(SRC)/Signals.cxx \
 
-# Gui: $(OBJ)/Gui.o
-# $(OBJ)/Gui.o: $(CINT)/RBDictionary.cxx $(SRC)/GuiLayout.cxx $(SRC)/MakeConnections.hxx
-# 	python gui_edit.py src/GuiLayout.cxx 
-# 	$(COMPILE) $(FPIC) -c \
-# -o $@  -p $(SRC)/Gui.cxx \
-
 Gui: $(OBJ)/Gui.o
 $(OBJ)/Gui.o: $(CINT)/RBDictionary.cxx $(SRC)/Gui.cxx
 	$(COMPILE) $(FPIC) -c \
 -o $@  -p $(SRC)/Gui.cxx \
-
-# HistGui: $(OBJ)/HistGui.o
-# $(OBJ)/HistGui.o: $(CINT)/RBDictionary.cxx $(SRC)/HistGuiLayout.cxx $(SRC)/MakeHistConnections.hxx
-# 	python gui_edit.py src/HistGuiLayout.cxx 
-# 	$(COMPILE) $(FPIC) -c \
-# -o $@  -p $(SRC)/HistGui.cxx \
 
 HistGui: $(OBJ)/HistGui.o
 $(OBJ)/HistGui.o: $(CINT)/RBDictionary.cxx $(SRC)/HistGui.cxx
@@ -207,30 +201,3 @@ clean:
 
 doc:
 	cd $(PWD)/doxygen ; doxygen Doxyfile ; cd latex; make; cd $(PWD)
-
-
-
-#### GUI STUFF ####
-
-
-# GUI=$(PWD)/rbgui
-# GUIHEADERS=$(GUI)/HistViewer.h $(GUI)/HistMaker.h $(GUI)/TH2D_SF.h $(GUI)/TH1D_SF.h $(GUI)/TH3D_SF.h
-# GUISOURCES=$(GUI)/HistViewer.cc $(GUI)/HistMaker.cc $(GUI)/TH2D_SF.cc $(GUI)/TH1D_SF.cc $(GUI)/TH3D_SF.cc
-
-# GUIROOTFLAGS=-dynamiclib -single_module -undefined dynamic_lookup `root-config --cflags --libs` -lTreePlayer
-
-# GUICXXFLAGS=$(FPIC)
-
-# gui: librbgui.so
-
-# librbgui.so: $(RBLIB)/libRBHist.so HistDict.cxx $(GUISOURCES)
-# 	g++ -L$(PWD)/lib -lRBHist -shared -o $(PWD)/lib/$@ $(GUICXXFLAGS) -I/opt/local/include/root $(GUI)/HistDict.cxx $(GUISOURCES) $(GUIROOTFLAGS) -I$(PWD)/src
-
-# HistDict.cxx: $(GUIHEADERS) rbgui/Linkdef.h
-# 	rootcint -f rbgui/$@ -c -Isrc $(GUICXXFLAGS) -p $^
-
-# #HistViewer.o:
-# #	g++ -c $(ROOTFLAGS) $(CXXFLAGS) HistViewer.cc
-
-# guiclean:
-# 	rm -f lib/librbgui.so rbgui/HistDict.*
