@@ -38,6 +38,12 @@ ifdef MIDASSYS
 MIDASLIBS = -L$(MIDASSYS)/linux/lib -lmidas -lutil -lrt
 CXXFLAGS += -DMIDAS_ONLINE -DOS_LINUX -Dextname -I$(MIDASSYS)/include
 MIDASONLINE=$(OBJ)/midas/TMidasOnline.o
+ifdef MIDAS_SERVER_HOST
+CXXFLAGS += -DMIDAS_SERVER_HOST=\"$(MIDAS_SERVER_HOST)\"
+endif
+ifdef MIDAS_EXPT_NAME
+CXXFLAGS += -DMIDAS_EXPT_NAME=\"$(MIDAS_EXPT_NAME)\"
+endif
 endif
 
 UNAME=$(shell uname)

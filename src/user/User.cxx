@@ -204,6 +204,7 @@ Bool_t GammaEvent::DoProcess(void* addr, Int_t nchar) {
   if(fEvent) {
 		fGamma->unpack(*fEvent);
 		fGamma->read_data();
+		fGamma->calculate();
     return true;
   }
   else return false;
@@ -216,6 +217,7 @@ Bool_t HeavyIonEvent::DoProcess(void* addr, Int_t nchar) {
   if(fEvent) {
 		fHeavyIon->unpack(*fEvent);
 		fHeavyIon->read_data();
+		fHeavyIon->calculate();
     return true;
   }
   else return false;
