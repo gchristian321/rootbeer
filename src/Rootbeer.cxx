@@ -20,6 +20,7 @@
 // void rb::AttachOnline                                 //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 void rb::AttachOnline(const char* host, const char* other, char** others, int nothers) {
+	/// \bug Crashes when trying to attach more than once.
 #ifdef MIDAS_BUFFERS
 #ifdef MIDAS_ONLINE // Attach to online midas files
   if(others || nothers)

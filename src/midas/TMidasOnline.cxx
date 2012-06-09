@@ -67,7 +67,6 @@ int TMidasOnline::connect(const char*hostname,const char*exptname,const char*pro
   
   //int watchdog = DEFAULT_WATCHDOG_TIMEOUT;
   int watchdog = 60*1000;
-
   status = cm_connect_experiment1((char*)fHostname.c_str(), (char*)fExptname.c_str(), (char*)progname, NULL, DEFAULT_ODB_SIZE, watchdog);
   
   if (status == CM_UNDEF_EXP)

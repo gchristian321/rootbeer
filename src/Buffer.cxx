@@ -197,11 +197,24 @@ namespace { TString get_ts_string() {
 }}
 rb::attach::Online::Online(const char* source, const char* other, char** others, int nothers) :
   rb::Thread(ONLINE_THREAD_NAME),
-  fSourceArg(source),
-  fOtherArg(other),
-  fOtherArgs(others),
+  fSourceArg(0),
+  fOtherArg(0),
+  fOtherArgs(0),
   fNumOthers(nothers)
 {
+
+	fSourceArg = new char [strlen(source)+1];
+	strcpy(fSourceArg, source);
+
+	fOtherArg = new char[strlen(other)+1];
+	strcpy(fOtherArg, other);
+
+	fOtherArgs = new char*[nothers];
+	for(int i=0; i< nothers; ++i) {
+		fOtherArgs[i] = new char[strlen(others[i])+1];
+		strcpy(fOtherArgs[i], others[i]);
+	}
+
   fBuffer = BufferSource::New();
 	call_begin_run();
 
@@ -228,14 +241,22 @@ rb::attach::Online::~Online() {
 	delete fBuffer;
 	if(gApp()->GetSignals())
 		 gApp()->GetSignals()->Unattaching();
+	if(fSourceArg) delete[] fSourceArg;
+	if(fOtherArg)  delete[] fOtherArg;
+	if(fOtherArgs) {
+		for(int i=0; i< fNumOthers; ++i) {
+			delete[] fOtherArgs[i];
+		}
+		delete[] fOtherArgs;
+	}
 }
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // void rb::attach::Online::DoInThread()                 //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 void rb::attach::Online::DoInThread() {
-  Bool_t connected = fBuffer->ConnectOnline(fSourceArg, fOtherArg, fOtherArgs, fNumOthers);
-  if (!connected) return;
+	Bool_t connected = fBuffer->ConnectOnline(fSourceArg, fOtherArg, fOtherArgs, fNumOthers);
+	if (!connected) return;
 	if(gApp()->GetSignals())
 		 gApp()->GetSignals()->AttachedOnline(fSourceArg);
 	Int_t nbuffers = 0;

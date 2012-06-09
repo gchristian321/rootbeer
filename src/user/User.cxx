@@ -33,27 +33,31 @@ rb::BufferSource* rb::BufferSource::New() {
 Bool_t rb::Midas::ConnectOnline(const char* host, const char* experiment, char** unused, int unused2) {
 #ifdef MIDAS_ONLINE
   TMidasOnline* onlineMidas = TMidasOnline::instance();
-  Int_t err = onlineMidas->connect(host, experiment, "rootbeer");
+  int err = onlineMidas->connect(host, experiment, "rootbeer");
   if (err) return kFALSE; // Message from TOnlineMidas::connect
 
   onlineMidas->setTransitionHandlers(RunStart, RunStop, RunPause, RunResume);
   onlineMidas->registerTransitions();
   fRequestId = onlineMidas->eventRequest("SYSTEM", -1, -1, (1<<1));
-  return kTRUE;
+	return kTRUE;
 #else
   return kFALSE;
 #endif
 }
 
-Bool_t rb::Midas::ReadBufferOnline() {
+namespace { inline bool isOnlineAttached() { return rb::Thread::IsRunning(rb::attach::ONLINE_THREAD_NAME); } }
+Bool_t rb::Midas::ReadBufferOnline() { /// \todo figure out poll length
 #ifdef MIDAS_ONLINE
   Bool_t ret = kFALSE;
   TMidasOnline* onlineMidas = TMidasOnline::instance();
   char pEvent[100*1024];
+
+	const int poll_length = 100;
+
   int size = 0;
   do { // loop until we get an error or event, or quit polling, or unattach
     size = onlineMidas->receiveEvent(fRequestId, pEvent, sizeof(pEvent), kTRUE);
-  } while (size == 0 && rb::Thread::IsRunning(rb::attach::ONLINE_THREAD_NAME) && onlineMidas->poll(1000));
+  } while (size == 0 && rb::Thread::IsRunning(rb::attach::ONLINE_THREAD_NAME) && onlineMidas->poll(poll_length));
 
   if(size == 0) // Unattached or stopped polling
 		 ret = kFALSE;
@@ -68,6 +72,8 @@ Bool_t rb::Midas::ReadBufferOnline() {
     ret = kFALSE;
   }
   return ret;
+
+
 #else
   return kFALSE;
 #endif
@@ -80,6 +86,7 @@ Bool_t rb::Midas::UnpackBuffer() {
 #ifdef MIDAS_BUFFERS
   // (DRAGON test setup)
   Short_t eventId = fBuffer.GetEventId();
+	// printf("eventId: %i\n", eventId);
   switch(eventId) {
   case DRAGON_EVENT: // event
 		 {

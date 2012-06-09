@@ -160,7 +160,7 @@ void rb::canvas::ClearCurrent() {
     for(Int_t i = 0; i < gPad->GetListOfPrimitives()->GetEntries(); ++i) {
       TH1*    hst = dynamic_cast<TH1*>    (gPad->GetListOfPrimitives()->At(i));
 			TArray* arr = dynamic_cast<TArray*> (gPad->GetListOfPrimitives()->At(i));
-      if(hst && arr) { printf("here\n");
+      if(hst && arr) {
 				for(long i=0; i< arr->fN; ++i) arr->SetAt(0., i);
 			}
       gPad->Modified();

@@ -28,6 +28,8 @@
 #pragma link C++ class rb::hist::Bit+;
 #pragma link C++ class AxisIndices;
 
+#pragma link C++ class TMidasOnline+;
+
 #pragma link C++ defined_in "user/User.hxx";
 
 #endif // #ifdef __CINT__
