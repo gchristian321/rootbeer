@@ -17,9 +17,10 @@
 #ifdef MIDAS_ONLINE
 #include "midas/TMidasOnline.h"
 #endif
+
 namespace rb
 {
-/// BufferSource class for the MIDAS system
+/// \brief BufferSource class for the MIDAS system
 class Midas : public rb::BufferSource
 {
 protected:
@@ -47,6 +48,11 @@ public:
 	 /// \param [in] expt MIDAS Experiment name on the host
 	 /// \param other_args Unused
 	 /// \param n_others Unused
+   /// \bug Program crashes when trying to connect online more than once in given session. This seems to be
+   /// due to defficiencies in MIDAS itself, namely that it only allows clients to connect once during the
+   /// course of an executable. Something about the way in which \c cm_connect_experiment allocates and
+   /// \c cm_disconnect_experiment de-allocates resources causes the connect...disconnect cycle to only be possible
+   /// once in an executable. Likely this is because of the use of application scope global variables in midas.
 	 virtual Bool_t ConnectOnline(const char* host, const char* expt = "", char** other_args = 0, int n_others = 0);
 
 	 /// \brief Receive a MIDAS buffer from an online source
