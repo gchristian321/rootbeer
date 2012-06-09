@@ -28,7 +28,15 @@ namespace { void error_box(const char* message, const char* title = "Error") {
 	new TGMsgBox(gClient->GetRoot(), 0, title, message);
 }
 ANSort ansort;
-}
+
+struct GlobalTPad
+{
+	 void Modified(Bool_t flag = 1) { if(gPad) gPad->Modified(flag); }
+	 void Update() { if(gPad) gPad->Update(); }
+	 TCanvas* GetCanvas() const { return gPad ? gPad->GetCanvas() : 0; }
+} global_tpad; GlobalTPad* gPadSafe = &global_tpad; 
+
+} // namespace
 
 void rb::Signals::UpdateBufferCounter(Int_t n, Bool_t force) {
 	if(!rb::gApp()->fRbeerFrame->fNbuffers) return;
@@ -111,29 +119,29 @@ void rb::Signals::Unattach() {
 }
 void rb::Signals::UpdateAll() {
 	rb::canvas::UpdateAll();
-	gPad->Modified();
-	gPad->Update();
+	gPadSafe->Modified();
+	gPadSafe->Update();
 }
 void rb::Signals::UpdateCurrent() {
 	rb::canvas::UpdateCurrent();
-	gPad->Modified();
-	gPad->Update();
+	gPadSafe->Modified();
+	gPadSafe->Update();
 }
 void rb::Signals::ZeroAll() {
 	rb::canvas::ClearAll();
-	gPad->Modified();
-	gPad->Update();
+	gPadSafe->Modified();
+	gPadSafe->Update();
 }
 void rb::Signals::ZeroCurrent() {
 	rb::canvas::ClearCurrent();
-	gPad->Modified();
-	gPad->Update();
+	gPadSafe->Modified();
+	gPadSafe->Update();
 }
 void rb::Signals::ClearCurrent() {
 	if(gPad) {
-		gPad->GetCanvas()->Clear();
-		gPad->Modified();
-		gPad->Update();
+		gPadSafe->GetCanvas()->Clear();
+		gPadSafe->Modified();
+		gPadSafe->Update();
 	}	
 }
 void rb::Signals::CreateNew() {
@@ -212,8 +220,8 @@ void rb::Signals::CdCanvas() {
 	if(which >= 0 && which < (int)names.size()) {
 		pads[names[which]]->cd();
 	}
-	gPad->Modified();
-	gPad->Update();
+	gPadSafe->Modified();
+	gPadSafe->Update();
 	rb::gApp()->fRbeerFrame->fSelectCanvas->SetDown(false);
 }
 
@@ -556,8 +564,8 @@ void rb::HistSignals::DrawHist(TGListTreeItem* item, Int_t btn) {
 	}
 	if(hist_map.count(item)) {
 		hist_map.find(item)->second->Draw(rb::gApp()->fHistFrame->fDrawOptionEntry->GetText());
-		gPad->Modified();
-		gPad->Update();
+		gPadSafe->Modified();
+		gPadSafe->Update();
 	}
 }
 

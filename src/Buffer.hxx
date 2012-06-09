@@ -175,11 +175,11 @@ class Online : public rb::Thread
 private:
 	 //! \brief The source of the online data.
 	 //! \details Usually this is the host name or ip address of where the data come in from.
-	 const char* fSourceArg;
+	 char* fSourceArg;
 
 	 //! \brief Secondary argument that might be needed to obtain online data.
 	 //! \details Examples: MIDAS experiment name, port number, etc.
-	 const char* fOtherArg;
+	 char* fOtherArg;
 
 	 //! \brief Any other arguments that are not covered by the first two.
 	 //! \details Like the arguments to main (<tt>char** argc</tt>), this can basically be used

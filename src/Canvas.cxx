@@ -3,6 +3,8 @@
 //! \details Also defines a number of internal functions to be called by the
 //! user ones.
 #include <TCanvas.h>
+#include <TArrayL.h>
+#include <TArrayL64.h>
 #include "Rint.hxx"
 #include "Rootbeer.hxx"
 #include "hist/Hist.hxx"
@@ -156,11 +158,11 @@ void rb::canvas::ClearCurrent() {
   CANVAS_LOCKGUARD;
   if(gPad) {
     for(Int_t i = 0; i < gPad->GetListOfPrimitives()->GetEntries(); ++i) {
-      TH1* hst = dynamic_cast<TH1*> (gPad->GetListOfPrimitives()->At(i));
-      if(hst) {
-				LockFreePointer<TH1D> hstd (static_cast<TH1D*>(hst));
-				for(Int_t p = 0; p < hstd->fN; ++p) hstd->fArray[p] = 0.;
-      }
+      TH1*    hst = dynamic_cast<TH1*>    (gPad->GetListOfPrimitives()->At(i));
+			TArray* arr = dynamic_cast<TArray*> (gPad->GetListOfPrimitives()->At(i));
+      if(hst && arr) {
+				for(long i=0; i< arr->fN; ++i) arr->SetAt(0., i);
+			}
       gPad->Modified();
       SendUpdate(gPad);
     }
