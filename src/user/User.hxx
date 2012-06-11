@@ -53,6 +53,20 @@ public:
    /// course of an executable. Something about the way in which \c cm_connect_experiment allocates and
    /// \c cm_disconnect_experiment de-allocates resources causes the connect...disconnect cycle to only be possible
    /// once in an executable. Likely this is because of the use of application scope global variables in midas.
+	 /// UPDATE: This issue is solved by editing \c midas.c and recompiling \c libmidas.a  Only one line needs
+	 /// changing, in the function \c cm_disconnect_experiment
+	 /// \code
+	 /// M_FREE(_net_send_buffer);
+	 /// \endcode
+	 /// needs to be changed to
+	 /// \code
+	 /// M_FREE(_net_send_buffer);
+	 /// _net_send_buffer = NULL;
+	 /// \endcode
+	 /// Alternatively, one could edit the macro \c M_FREE in \c midas.h to read
+	 /// \code
+	 /// #define M_FREE(x) free(x); x = NULL;
+	 /// \endcode
 	 virtual Bool_t ConnectOnline(const char* host, const char* expt = "", char** other_args = 0, int n_others = 0);
 
 	 /// \brief Receive a MIDAS buffer from an online source
