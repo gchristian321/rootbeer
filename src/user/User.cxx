@@ -89,7 +89,8 @@ Bool_t rb::Midas::ReadBufferOnline() {
   char pEvent[100*1024];
   int size = 0;
 
-  const int poll_length = 100;
+  const int poll_length = 0; /// \todo Figure out whether it's okay to always have this == 0.
+
   do { // loop until we get an error or event, or quit polling, or unattach                                                                                                                                         
     size = onlineMidas->receiveEvent(fRequestId, pEvent, sizeof(pEvent), kTRUE);
   } while (size == 0 && rb::Thread::IsRunning(rb::attach::ONLINE_THREAD_NAME) && onlineMidas->poll(poll_length));
