@@ -52,7 +52,7 @@ Bool_t rb::Midas::ReadBufferOnline() { /// \todo figure out poll length
   TMidasOnline* onlineMidas = TMidasOnline::instance();
   char pEvent[100*1024];
 
-	const int poll_length = 100;
+	const int poll_length = 0;
 
   int size = 0;
   do { // loop until we get an error or event, or quit polling, or unattach
@@ -91,6 +91,7 @@ Bool_t rb::Midas::UnpackBuffer() {
   case DRAGON_EVENT: // event
 		 {
 
+/*
 // #define SINGLES_ONLY
 #ifdef  SINGLES_ONLY
 			 static Long64_t fakeTS = 1;
@@ -137,9 +138,9 @@ Bool_t rb::Midas::UnpackBuffer() {
 			 std::cout << nEvts++ << std::endl;
 #undef COUNT
 #endif
+*/
 
 
-/*
 			 rb::Event* gamma_event = rb::Event::Instance<GammaEvent>();
 			 gamma_event->Process(&fBuffer, 0);
 
@@ -150,7 +151,7 @@ Bool_t rb::Midas::UnpackBuffer() {
 			 CoincEventPair_t coinc =
 					std::make_pair(static_cast<GammaEvent*>(gamma_event), static_cast<HeavyIonEvent*>(hi_event));
 			 coinc_event->Process(reinterpret_cast<void*>(&coinc), 0);
-*/
+
 		 
 			 break;
 		 }
