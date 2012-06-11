@@ -88,9 +88,11 @@ Bool_t rb::Midas::ReadBufferOnline() {
   TMidasOnline* onlineMidas = TMidasOnline::instance();
   char pEvent[100*1024];
   int size = 0;
-  do { // loop until we get an error or event, or quit polling, or unattach
+
+  const int poll_length = 100;
+  do { // loop until we get an error or event, or quit polling, or unattach                                                                                                                                         
     size = onlineMidas->receiveEvent(fRequestId, pEvent, sizeof(pEvent), kTRUE);
-  } while (size == 0 && rb::Thread::IsRunning(rb::attach::ONLINE_THREAD_NAME) && onlineMidas->poll(100));
+  } while (size == 0 && rb::Thread::IsRunning(rb::attach::ONLINE_THREAD_NAME) && onlineMidas->poll(poll_length));
 
   if(size == 0) // Unattached or stopped polling
 		 ret = kFALSE;
