@@ -54,6 +54,7 @@ TGDivideSelect::TGDivideSelect(const TGWindow *p, const TGWindow *main,
 	 fNEH->Associate(this);
    fNEH->Resize(29, 22);
 	 fNEH->SetLimits(TGNumberFormat::kNELLimitMinMax, 1, 99);
+	 fNEH->SetNumber(2);
    hf0->AddFrame(fNEH, new TGLayoutHints(kLHintsTop | kLHintsLeft, 5, 5, 5, 5));
 
 	 fX =  new TGLabel(hf0,"x");
@@ -64,6 +65,7 @@ TGDivideSelect::TGDivideSelect(const TGWindow *p, const TGWindow *main,
 	 fNEV->Associate(this);
    fNEV->Resize(29, 22);
 	 fNEV->SetLimits(TGNumberFormat::kNELLimitMinMax, 1, 99);
+	 fNEV->SetNumber(2);
    hf0->AddFrame(fNEV, new TGLayoutHints(kLHintsTop | kLHintsRight, 5, 5, 5, 5));
 
 

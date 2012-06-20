@@ -72,7 +72,7 @@ namespace err
   };
 }
 
-#define ERR_FILE_LINE "\nFile, line: " << __FILE__ << ", " << __LINE__ << "." << std::endl
+#define ERR_FILE_LINE "\nFile, line: " << __FILE__ << ", " << __LINE__ << "."
 
 
 #undef OP__
