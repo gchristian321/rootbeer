@@ -16,6 +16,7 @@
 #define CANVAS_LOCKGUARD rb::ScopedLock<rb::Mutex> LOCK__ (TTHREAD_GLOBAL_MUTEX);
 
 
+
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // Internal constants, data, functions, and classes.     //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
