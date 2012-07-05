@@ -85,12 +85,15 @@ Bool_t rb::Midas::ReadBufferOnline() { /// \todo figure out poll length
 Bool_t rb::Midas::UnpackBuffer() {
 #ifdef MIDAS_BUFFERS
   // (DRAGON test setup)
+	printf("event serial #: %u\n", fBuffer.GetSerialNumber());
   Short_t eventId = fBuffer.GetEventId();
-	// printf("eventId: %i\n", eventId);
+	if(eventId == 3) eventId = DRAGON_EVENT; // TEMPORARY!!!
+	//printf("eventId: %i\n", eventId);
   switch(eventId) {
   case DRAGON_EVENT: // event
 		 {
-
+			 // static long evtnum = 0;
+			 // cout << "Event id: " << fBuffer.GetEventId() << ", evtnum: " << evtnum++ << std::endl;
 /*
 // #define SINGLES_ONLY
 #ifdef  SINGLES_ONLY
@@ -140,18 +143,17 @@ Bool_t rb::Midas::UnpackBuffer() {
 #endif
 */
 
-
 			 rb::Event* gamma_event = rb::Event::Instance<GammaEvent>();
 			 gamma_event->Process(&fBuffer, 0);
 
 			 rb::Event* hi_event = rb::Event::Instance<HeavyIonEvent>();
 			 hi_event->Process(&fBuffer, 0);
-
+/*
 			 rb::Event* coinc_event = rb::Event::Instance<CoincidenceEvent>();
 			 CoincEventPair_t coinc =
 					std::make_pair(static_cast<GammaEvent*>(gamma_event), static_cast<HeavyIonEvent*>(hi_event));
 			 coinc_event->Process(reinterpret_cast<void*>(&coinc), 0);
-
+*/
 		 
 			 break;
 		 }

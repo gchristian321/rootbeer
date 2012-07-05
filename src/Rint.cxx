@@ -58,7 +58,7 @@ void rb::Rint::InitGui() {
 	fHistFrame->HistGuiLayout();
 }
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-// void rb::Rint::InitGui()                              //
+// void rb::Rint::CloseGui()                             //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 void rb::Rint::CloseGui() {
 	if(fRbeerFrame) { delete fRbeerFrame; fRbeerFrame = 0; }

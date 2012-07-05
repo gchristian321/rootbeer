@@ -95,20 +95,26 @@ public:
 	 //! what's present.
 	 Rint(const char* appClassName, int* argc, char** argv,
 				void* options = 0, int numOptions = 0, Bool_t noLogo = kFALSE);
+
    /// \brief Create gui windows
 	 void InitGui();
+
    /// \brief Close (delete) gui windows
 	 void CloseGui();
+
 	 /// \brief Terminate the application.
 	 //! \details Stops any running threads and frees any memory that was allocated during
 	 //! the CINT session.
 	 void Terminate(Int_t status = 0);
+
 	 /// \brief Display the \c ROOTBEER logo.
 	 //! \details ASCII art of naturally clumsy man stumbling whilst carrying two full mugs of root beer.
 	 //! \param [in] lite 'false' prints the full logo, 'true' just prints a welcome message.
 	 virtual void PrintLogo(Bool_t lite);
+
 	 /// Add something to print at startup.
 	 void AddMessage(const std::string& str);
+
 	 /// \brief Destructor
 	 //! \details Calls Terminate() with error code.
 	 ~Rint();

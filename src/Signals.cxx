@@ -1,5 +1,7 @@
 //! \file Signals.cxx
 //! \brief Implements rb::Signals
+//! \bug Many of these functions access invalid memory if 
+//! the GUI is disabled. This needs to be fixed!!!!
 #include <algorithm>
 #include <TROOT.h>
 #include <TString.h>
@@ -34,12 +36,14 @@ struct GlobalTPad
 	 void Modified(Bool_t flag = 1) { if(gPad) gPad->Modified(flag); }
 	 void Update() { if(gPad) gPad->Update(); }
 	 TCanvas* GetCanvas() const { return gPad ? gPad->GetCanvas() : 0; }
-} global_tpad; GlobalTPad* gPadSafe = &global_tpad; 
+} global_tpad;
+
+GlobalTPad* gPadSafe = &global_tpad; 
 
 } // namespace
 
 void rb::Signals::UpdateBufferCounter(Int_t n, Bool_t force) {
-	if(!rb::gApp()->fRbeerFrame->fNbuffers) return;
+	if(!rb::gApp()->fRbeerFrame || !rb::gApp()->fRbeerFrame->fNbuffers) return;
 	if(n % 1000 != 0 && !force) return;
 	std::stringstream sstr;
 	sstr << n;
