@@ -21,7 +21,9 @@ protected:
 	 //! Initializes refeerences to rb::data::Wrapper objects in rb::Rint (gApplication).
 	 BufferSource();
 public:
-	 //! \details Nothing to do.
+	 //! \brief Empty
+	 //! \warning Derives classes should \e not call virtual methods from the destructor.
+	 //! (note that disconnect online or offline are called when exiting from the event loop)
 	 virtual ~BufferSource();
 
 	 //! Open a data file

@@ -143,15 +143,8 @@ public:
 	 //! Does nothing, just here to make rootcint happy.
 	 Base() : kEventCode(0), kDimensions(0), fManager(0) {}
 
-private:
-	 /// Destruction function, acts like a normal dstructor
-	 virtual void Destruct() {}
-
 public:
 	 /// Destructor
-	 /// \warning Derived classes should not implement a destructor. If additional
-	 /// memory de-allocation is needed in addition to what's done here, they should
-	 /// instead override the virtual Destruct() member function.
 	 virtual ~Base();
 
 	 /// Returns the event code

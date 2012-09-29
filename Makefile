@@ -21,7 +21,7 @@ RPATH    += -Wl,-rpath,$(ROOTSYS)/lib -Wl,-rpath,$(PWD)/lib
 DYLIB=-shared
 FPIC=-fPIC
 INCFLAGS=-I$(SRC) -I$(CINT) -I$(USER) $(USER_INCLUDES)
-DEBUG=-O2
+DEBUG=-O3
 #-ggdb -O0 -DDEBUG -DRB_LOGGING
 #-DDEBUG
 CXXFLAGS=$(DEBUG) $(INCFLAGS) -L$(PWD)/lib $(STOCK_BUFFERS) -DBUFFER_TYPE=$(USER_BUFFER_TYPE)
@@ -72,10 +72,10 @@ ROOTCINT=rootcint $(USER_DEFINITIONS)
 all: rootbeer rbunpack
 
 rbunpack: $(RBLIB)/libRootbeer.so $(SRC)/main.cc 
-	$(LINK) -lRootbeer -lDragon -DRB_UNPACK_ONLY $(SRC)/main.cc -o rbunpack \
+	$(LINK) -lRootbeer -lDragon -lRBDragon -DRB_UNPACK_ONLY $(SRC)/main.cc -o rbunpack \
 
-rootbeer: $(RBLIB)/libRootbeer.so $(SRC)/main.cc 
-	$(LINK) -lRootbeer -lDragon $(SRC)/main.cc -o rootbeer \
+rootbeer: $(RBLIB)/libRootbeer.so $(SRC)/main.cc
+	$(LINK) -lRootbeer -lDragon -lRBDragon $(SRC)/main.cc -o rootbeer \
 
 
 #### ROOTBEER LIBRARY ####

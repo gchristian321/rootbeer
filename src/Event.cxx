@@ -25,7 +25,7 @@ rb::Event::Event(): fTree(new TTree("tree", "Rootbeer event tree")),
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // void rb::Event::Process()                             //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-void rb::Event::Process(void* event_address, Int_t nchar) {
+void rb::Event::Process(const void* event_address, Int_t nchar) {
   Bool_t success = false;
   {
     rb::ScopedLock<TVirtualMutex> cint_lock (gCINTMutex);

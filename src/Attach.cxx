@@ -17,7 +17,7 @@
 using namespace std;
 
 
-
+#error ("I am no longer in use!")
 
 //! Anonomyous namespace enclosing local (file-scope) functions and variables.
 namespace

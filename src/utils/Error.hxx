@@ -1,8 +1,8 @@
 //! \file Error.hxx
 //! \brief Defines C++ style error printing classes.
 #ifndef __MAKECINT__
-#ifndef ERROR_HXX
-#define ERROR_HXX
+#ifndef ROOTBEER_ERROR_HXX
+#define ROOTBEER_ERROR_HXX
 #include <iostream>
 #include <string>
 #include <sstream>

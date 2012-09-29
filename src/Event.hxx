@@ -61,14 +61,14 @@ public:
 	 //! of behind-the-scenes stuff like filling histograms and mutex locking.
 	 //! \param addr Address of the beginning of the event.
 	 //! \param [in] nchar length of the event in bytes.
-	 void Process(void* event_address, Int_t nchar);
+	 void Process(const void* event_address, Int_t nchar);
 
 	 //! \brief Singleton instance function.
 	 //! \details Each derived class is a singleton, with only one instance allowed.
 	 //!  Use this function to get a pointer to the single instance of derived class <i>Derived</i>.
 	 //! \tparam Derived The type of the derived class you want an instance of.
 	 //! \returns Pointer to the single instance of <i>Derived</i>
-	 template <typename Derived> static Event*& Instance();
+	 template <typename Derived> static Derived*& Instance();
 
 	 //! Get name and class name for all top level branches in fTree
 	 //! \returns vector containing pairs of <name, class_name> for each top-level
@@ -81,6 +81,8 @@ public:
 	 //! Search for a histogram by it's name
 	 rb::hist::Base* FindHistogram(const char* name, TDirectory* owner);
 
+	 //! For compile-time checks whether or not a template argument is derived from rb::Event
+   void CheckEventDerived() { }
 protected:
 	 //! Initialize data members
 	 Event();
@@ -92,7 +94,7 @@ private:
 	 //! \details Users shold implement this in derived classes to instruct the program
 	 //!  on how to unpack event data into their classes.
 	 //! \returns Error code: true upon successful unpack, false otherwise.
-	 virtual Bool_t DoProcess(void* event_address, Int_t nchar) = 0;
+	 virtual Bool_t DoProcess(const void* event_address, Int_t nchar) = 0;
 
 	 //! \brief Defines what should be done upon failure to successfully process an event.
 	 //! \details Users may want/need to handle bad events differently, e.g. by throwing an exception,
@@ -206,10 +208,11 @@ inline void rb::Event::Destructor::Operate(rb::Event*& event) {
   event = 0;
 }
 
-template <typename Derived> rb::Event*& rb::Event::Instance() {
-  static Event* event = 0;
-  if(!event) event = new Derived();
-  return event;  
+template <typename Derived> Derived*& rb::Event::Instance() {
+  static Derived* derived = 0;
+  if(!derived) derived = new Derived();
+	derived->CheckDerivedDerived();
+  return derived;  
 }
 
 #endif

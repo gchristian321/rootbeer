@@ -44,7 +44,7 @@ GlobalTPad* gPadSafe = &global_tpad;
 
 void rb::Signals::UpdateBufferCounter(Int_t n, Bool_t force) {
 	if(!rb::gApp()->fRbeerFrame || !rb::gApp()->fRbeerFrame->fNbuffers) return;
-	if(n % 1000 != 0 && !force) return;
+	if(n % 100 != 0 && !force) return;
 	std::stringstream sstr;
 	sstr << n;
 	rb::gApp()->fRbeerFrame->fNbuffers->ChangeText(sstr.str().c_str());

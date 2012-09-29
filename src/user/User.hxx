@@ -2,6 +2,9 @@
 //! \brief Definition of user's classes.
 #ifndef USER_HXX
 #define USER_HXX
+
+#if 0
+
 // Standard includes, do not remove //
 #include "Buffer.hxx"
 #include "Event.hxx"
@@ -13,44 +16,55 @@
 #ifdef MIDAS_BUFFERS
 #include "midas/TMidasFile.h"
 #include "midas/TMidasEvent.h"
+#include "dragon/MidasEvent.hxx"
 #ifdef MIDAS_ONLINE
 #include "midas/TMidasOnline.h"
 #endif
+
+class DragonQueue : public tstamp::Queue
+{
+public:
+	DragonQueue(double maxDelta) : tstamp::Queue(maxDelta) { }
+	~DragonQueue() { }
+private:
+	void HandleSingle(const dragon::MidasEvent& event1) const;
+	void HandleCoinc(const dragon::MidasEvent& event1, const dragon::MidasEvent& event2) const;
+};
+
 namespace rb
 {
 class Midas : public rb::BufferSource
 {
 protected:
-	 Int_t fRequestId; //< Return code for online event requests.
-	 TMidasFile fFile; //< Offline MIDAS file.
-	 TMidasEvent fBuffer; //< Midas event buffer.
-	 tstamp::Queue fTSQueue;
+	Int_t fRequestId; //< Return code for online event requests.
+	TMidasFile fFile; //< Offline MIDAS file.
+	char fBuffer[100*1024];
+	
 public:
-	 Midas();
-	 virtual ~Midas();
-	 virtual Bool_t OpenFile(const char* file_name, char** other = 0, int nother = 0);
-	 virtual Bool_t ConnectOnline(const char* host, const char* other_arg = "", char** other_args = 0, int n_others = 0);
-	 virtual Bool_t ReadBufferOffline();
-	 virtual Bool_t ReadBufferOnline();
-	 virtual Bool_t UnpackBuffer();
-	 virtual void CloseFile();
-	 virtual void DisconnectOnline();
+	Midas();
+	virtual ~Midas();
+	virtual Bool_t OpenFile(const char* file_name, char** other = 0, int nother = 0);
+	virtual Bool_t ConnectOnline(const char* host, const char* other_arg = "", char** other_args = 0, int n_others = 0);
+	virtual Bool_t ReadBufferOffline();
+	virtual Bool_t ReadBufferOnline();
+	virtual Bool_t UnpackBuffer();
+	virtual void CloseFile();
+	virtual void DisconnectOnline();
 protected:
-	 static void RunStop(int transition, int run_number, int trans_time);
-	 static void RunStart(int transition, int run_number, int trans_time);
-	 static void RunPause(int transition, int run_number, int trans_time);
-	 static void RunResume(int transition, int run_number, int trans_time);
+	/// \todo Switch to extern "C" free functions (technically it's not allowed as-is).
+	static void RunStop(int transition, int run_number, int trans_time);
+	static void RunStart(int transition, int run_number, int trans_time);
+	static void RunPause(int transition, int run_number, int trans_time);
+	static void RunResume(int transition, int run_number, int trans_time);
+	void FlushQueue();
+	
 };
 }
 #ifndef __MAKECINT__
-inline rb::Midas::Midas() : fRequestId(-1), fTSQueue(100) {
+inline rb::Midas::Midas() : fRequestId(-1) {
 }
 inline Bool_t rb::Midas::OpenFile(const char* file_name, char** other, int nother) {
   return fFile.Open(file_name);
-}
-inline Bool_t rb::Midas::ReadBufferOffline() {
-  fBuffer.Clear();
-  return fFile.Read(&fBuffer);
 }
 inline void rb::Midas::CloseFile() {
   fFile.Close();
@@ -58,6 +72,7 @@ inline void rb::Midas::CloseFile() {
 inline void rb::Midas::DisconnectOnline() {
 #ifdef MIDAS_ONLINE
   TMidasOnline::instance()->disconnect();
+	FlushQueue();
 #endif
 }  
 inline rb::Midas::~Midas() {
@@ -66,9 +81,6 @@ inline rb::Midas::~Midas() {
 }
 inline void rb::Midas::RunStart(int transition, int run_number, int trans_time) {
   Info("rb::Midas", "Starting run number %i.", run_number);
-}
-inline void rb::Midas::RunStop(int transition, int run_number, int trans_time) {
-  Info("rb::Midas", "Stopping run number %i.", run_number);
 }
 inline void rb::Midas::RunPause(int transition, int run_number, int trans_time) {
   Info("rb::Midas", "Pausing run number %i.", run_number);
@@ -92,44 +104,44 @@ class CoincideceEvent;
 class GammaEvent : public rb::Event
 {
 private:
-	 rb::data::Wrapper<dragon::gamma::Gamma> fGamma;
+	rb::data::Wrapper<dragon::gamma::Gamma> fGamma;
 public:
-	 GammaEvent();
-	 ~GammaEvent() {}
+	GammaEvent();
+	~GammaEvent() {}
 private:
-	 TMidasEvent* Cast(void* addr) {return reinterpret_cast<TMidasEvent*>(addr);}
-	 Bool_t DoProcess(void* event_address, Int_t nchar);
-	 void HandleBadEvent() {Error("GammaEvent", "Something went wrong!!");}
-	 friend class CoincidenceEvent;
+	const dragon::MidasEvent* Cast(const void* addr) {return reinterpret_cast<const dragon::MidasEvent*>(addr);}
+	Bool_t DoProcess(const void* event_address, Int_t nchar);
+	void HandleBadEvent() {Error("GammaEvent", "Something went wrong!!");}
+	friend class CoincidenceEvent;
 };
 
 class HeavyIonEvent : public rb::Event
 {
 private:
-	 rb::data::Wrapper<dragon::hion::HeavyIon> fHeavyIon;
+	rb::data::Wrapper<dragon::hion::HeavyIon> fHeavyIon;
 public:
-	 HeavyIonEvent();
-	 ~HeavyIonEvent() {}
+	HeavyIonEvent();
+	~HeavyIonEvent() {}
 private:
-	 TMidasEvent* Cast(void* addr) {return reinterpret_cast<TMidasEvent*>(addr);}
-	 Bool_t DoProcess(void* event_address, Int_t nchar);
-	 void HandleBadEvent() {Error("HeavyIonEvent", "Something went wrong!!");}
-	 friend class CoincidenceEvent;
+	const dragon::MidasEvent* Cast(const void* addr) {return reinterpret_cast<const dragon::MidasEvent*>(addr);}
+	Bool_t DoProcess(const void* event_address, Int_t nchar);
+	void HandleBadEvent() {Error("HeavyIonEvent", "Something went wrong!!");}
+	friend class CoincidenceEvent;
 };
 
-typedef std::pair<GammaEvent*, HeavyIonEvent*> CoincEventPair_t;
 class CoincidenceEvent : public rb::Event
 {
 private:
-	 rb::data::Wrapper<dragon::Dragon> fDragon;
+	rb::data::Wrapper<dragon::Dragon> fDragon;
 public:
-	 CoincidenceEvent();
-	 ~CoincidenceEvent() {}
+	CoincidenceEvent();
+	~CoincidenceEvent() {}
 private:
-	 CoincEventPair_t* Cast(void* addr) {return reinterpret_cast<CoincEventPair_t*>(addr);}
-	 Bool_t DoProcess(void* event_address, Int_t nchar);
-	 void HandleBadEvent() {Error("CoincidenceEvent", "Something went wrong!!");}
+	const dragon::CoincMidasEvent* Cast(const void* addr) {return reinterpret_cast<const dragon::CoincMidasEvent*>(addr);}
+	Bool_t DoProcess(const void* event_address, Int_t nchar);
+	void HandleBadEvent() {Error("CoincidenceEvent", "Something went wrong!!");}
 };
+
 
 
 #else
@@ -163,5 +175,7 @@ rb::BufferSource* rb::BufferSource::New() {
 
 #endif 
 
+
+#endif
 
 #endif

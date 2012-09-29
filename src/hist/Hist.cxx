@@ -138,7 +138,6 @@ void rb::hist::Base::Init(const char* name, const char* title, const char* param
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 rb::hist::Base::~Base() {
 	fManager->Remove(this); // locks TTHREAD_GLOBAL_MUTEX while running
-	Destruct();
 	if(gApp()->GetHistSignals()) gApp()->GetHistSignals()->NewOrDeleteHist();
 }
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
