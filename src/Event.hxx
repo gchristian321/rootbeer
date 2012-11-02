@@ -211,7 +211,7 @@ inline void rb::Event::Destructor::Operate(rb::Event*& event) {
 template <typename Derived> Derived*& rb::Event::Instance() {
   static Derived* derived = 0;
   if(!derived) derived = new Derived();
-	derived->CheckDerivedDerived();
+	derived->CheckEventDerived();
   return derived;  
 }
 

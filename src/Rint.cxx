@@ -27,7 +27,7 @@ rb::Rint::Rint(const char* appClassName, int* argc, char** argv,
   std::cout << fMessage.str() << std::endl;
 
 	std::set<std::string> flags(argv, argv + *argc);
-	if(!(flags.count("-ng") || !gClient)) InitGui();
+	if(!(flags.count("-ng") && gClient && gClient->GetRoot())) InitGui();
 }
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // void rb::Rint::Terminate()                            //

@@ -262,7 +262,7 @@ void rb::attach::Online::DoInThread() {
 	Int_t nbuffers = 0;
   while (OnlineAttached()) {
     Bool_t readSuccess = fBuffer->ReadBufferOnline();
-    if(!readSuccess) break;
+    if(!readSuccess) 	break;
     fBuffer->UnpackBuffer();
 		gApp()->GetSignals()->UpdateBufferCounter(nbuffers++);
   }
