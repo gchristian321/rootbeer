@@ -239,15 +239,16 @@ void rb::data::Mapper::ReadBranches(std::vector<std::string>& branches) {
 // void rb::data::Mapper::Message()       //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 void rb::data::Mapper::Message() {
+	char buf[4096];
   std::stringstream sstr;
   static Bool_t printHeader(kTRUE);
   if(printHeader) {
-    sstr << "\nMapping the address of user data objects:\n"
-				 << "      Name\t\t\tClass Name\n"
-				 << "      ----\t\t\t----------\n";
+		sprintf(buf, "\nMapping the address of user data objects:\n"); sstr << buf;
+		sprintf(buf, "%-30s%-30s\n", "      Name",  "Class Name");     sstr << buf;
+		sprintf(buf, "%-30s%-30s\n", "      ----",  "----------");     sstr << buf;
     printHeader = kFALSE;
   }
-  sstr << "      " << kBranchName << "\t\t\t" << kClassName << "\n";
+	sprintf(buf, "      %-24s%-30s\n", kBranchName.c_str(), kClassName.c_str()); sstr << buf;
   rb::gApp()->AddMessage(sstr.str());
 }
 
