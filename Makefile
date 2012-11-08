@@ -9,6 +9,8 @@ include $(PWD)/user/Makefile.user
 ### Path to DRAGON codes
 DRAGON_HOME=/Users/gchristian/soft/develop/dragon/analyzer
 
+MIDASLIBFILE=-lmidas-shared
+
 ### Variable definitions
 SRC=$(PWD)/src
 OBJ=$(PWD)/obj
@@ -36,7 +38,7 @@ endif
 
 # optional MIDAS libraries
 ifdef MIDASSYS
-MIDASLIBS = -L$(MIDASSYS)/linux/lib -lmidas -lutil -lrt
+MIDASLIBS = -L$(MIDASSYS)/linux/lib $(MIDASLIBFILE) -lutil -lrt
 CXXFLAGS += -DMIDAS_ONLINE -DOS_LINUX -Dextname -I$(MIDASSYS)/include
 MIDASONLINE=$(OBJ)/midas/TMidasOnline.o
 ifdef MIDAS_SERVER_HOST
@@ -51,7 +53,7 @@ UNAME=$(shell uname)
 ifeq ($(UNAME),Darwin)
 CXXFLAGS += -DOS_LINUX -DOS_DARWIN
 ifdef MIDASSYS
-MIDASLIBS = -L$(MIDASSYS)/darwin/lib -lmidas
+MIDASLIBS = -L$(MIDASSYS)/darwin/lib $(MIDASLIBFILE)
 endif
 DYLIB=-dynamiclib -single_module -undefined dynamic_lookup 
 FPIC=

@@ -23,6 +23,29 @@
 //! #defined and the appropriate branches of the code are compiled. Otherwise, rootbeer will be
 //! compiled with attaching to online data disabled.
 
+// #include <midas.h>
+// #include "utils/Error.hxx"
+// #include "midas/Database.hxx"
+
+// void dbtest()
+// {
+
+// 	midas::Database db("online");
+// 	double slope = -1;
+// 	db.ReadValue("/dragon/head/variables/xtdc/slope", slope);
+// 	printf("slope: %f\n", slope);
+
+
+// 	// int hndle;
+	
+// 	// printf("Exists? %i [ CM_SUCCESS = %i, CM_NO_CLIENT = %i ]\n", cm_exist("rootbeer", TRUE), CM_SUCCESS, CM_NO_CLIENT);
+
+// 	// cm_get_experiment_database(&hndle, 0);
+// 	// if (hndle == 0)
+// 	// 	err::Error("midas::Odb") << "Not connected to an experiment\n";
+
+// }
+
 
 #if 0
 

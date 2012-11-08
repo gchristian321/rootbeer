@@ -227,7 +227,7 @@ rb::attach::Online::Online(const char* source, const char* other, char** others,
 #else
 		std::string save_fname = "";
 #endif
-		save_fname += "Online__";
+		save_fname += "Online_";
 		save_fname += get_ts_string().Data();
 		save_fname += ".root";
 		start_save(save_fname);
@@ -250,7 +250,7 @@ rb::attach::Online::~Online() {
 		delete[] fOtherArgs;
 	}
 }
-
+#include <midas.h>
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // void rb::attach::Online::DoInThread()                 //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
