@@ -18,16 +18,19 @@ rb::Rint::Rint(const char* appClassName, int* argc, char** argv,
 	       void* options, int numOptions, Bool_t liteLogo) :
   TRint(appClassName, argc, argv, options, numOptions, kTRUE),
 	fSignals(0), fHistSignals(0),
-	fSaveData(false), fSaveHists(false),
-	fRbeerFrame(0), fHistFrame(0)
-{
-  RegisterEvents();
-  SetPrompt("rootbeer [%d] ");
-  PrintLogo(liteLogo);
-  std::cout << fMessage.str() << std::endl;
+	fSaveData(false), fSaveHists(false) {
+        RegisterEvents();
+        SetPrompt("rootbeer [%d] ");
+        PrintLogo(liteLogo);
+        std::cout << fMessage.str() << std::endl;
 
 	std::set<std::string> flags(argv, argv + *argc);
-	if(!(flags.count("-ng") && gClient && gClient->GetRoot())) InitGui();
+	if(!(flags.count("-ng") || !gClient)) InitGui();
+
+	for(EventMap_t::iterator it = fEvents.begin(); it != fEvents.end(); ++it) {
+	  Int_t key = it->first;
+	  fFilterCondition[key] = "";
+	};
 }
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // void rb::Rint::Terminate()                            //
@@ -56,14 +59,6 @@ void rb::Rint::InitGui() {
 	fRbeerFrame->GuiLayout();
 	fHistFrame = new TGHistVarFrame(gClient->GetRoot(),10,10,kMainFrame | kVerticalFrame);
 	fHistFrame->HistGuiLayout();
-}
-//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-// void rb::Rint::CloseGui()                             //
-//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-void rb::Rint::CloseGui() {
-	if(fRbeerFrame) { delete fRbeerFrame; fRbeerFrame = 0; }
-	if(fHistFrame)  { delete fHistFrame;  fHistFrame  = 0; }
-
 }
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // Events_t rb::Rint::GetEvent()                         //
@@ -120,9 +115,9 @@ void rb::Rint::PrintLogo(Bool_t lite) {
     std::cout << "                                                           \n"
 	      << "                            ___                                  \n"
 	      << "                          .'   '.                                \n"
-	      << "                         /       \\           oOoOo              \n"
+	      << "                         /       \\           oOoOo               \n"
 	      << "                        |         |       ,==|||||               \n"
-	      << "                         \\       /       _|| |||||              \n"
+	      << "                         \\       /        || |||||               \n"
 	      << "                          '.___.'    _.-'^|| |||||               \n"
 	      << "                        __/_______.-'     '==HHHHH               \n"
 	      << "                   _.-'` /                   \"\"\"\"\"          \n"

@@ -1,7 +1,5 @@
 //! \file Signals.cxx
 //! \brief Implements rb::Signals
-//! \bug Many of these functions access invalid memory if 
-//! the GUI is disabled. This needs to be fixed!!!!
 #include <algorithm>
 #include <TROOT.h>
 #include <TString.h>
@@ -20,7 +18,7 @@
 #include "hist/Hist.hxx"
 #include "utils/Error.hxx"
 #include "utils/ANSort.hxx"
-
+#include <iostream>
 
 rb::Signals::Signals() { }
 
@@ -30,21 +28,11 @@ namespace { void error_box(const char* message, const char* title = "Error") {
 	new TGMsgBox(gClient->GetRoot(), 0, title, message);
 }
 ANSort ansort;
-
-struct GlobalTPad
-{
-	 void Modified(Bool_t flag = 1) { if(gPad) gPad->Modified(flag); }
-	 void Update() { if(gPad) gPad->Update(); }
-	 TCanvas* GetCanvas() const { return gPad ? gPad->GetCanvas() : 0; }
-} global_tpad;
-
-GlobalTPad* gPadSafe = &global_tpad; 
-
-} // namespace
+}
 
 void rb::Signals::UpdateBufferCounter(Int_t n, Bool_t force) {
-	if(!rb::gApp()->fRbeerFrame || !rb::gApp()->fRbeerFrame->fNbuffers) return;
-	if(n % 100 != 0 && !force) return;
+	if(!rb::gApp()->fRbeerFrame->fNbuffers) return;
+	if(n % 1000 != 0 && !force) return;
 	std::stringstream sstr;
 	sstr << n;
 	rb::gApp()->fRbeerFrame->fNbuffers->ChangeText(sstr.str().c_str());
@@ -53,7 +41,7 @@ void rb::Signals::UpdateBufferCounter(Int_t n, Bool_t force) {
 void rb::Signals::SaveData() {
 	EnableSaveHists();
 	if(rb::gApp()->fRbeerFrame->fSaveData->IsOn()) {
-		rb::gApp()->StartSave(rb::gApp()->fRbeerFrame->fSaveHist->IsOn());
+	        rb::gApp()->StartSave(rb::gApp()->fRbeerFrame->fSaveHist->IsOn());
 	}
 	else {
 		rb::gApp()->StopSave();
@@ -62,8 +50,12 @@ void rb::Signals::SaveData() {
 
 void rb::Signals::SaveHists() {
 	if(rb::gApp()->fRbeerFrame->fSaveData->IsOn()) {
-		rb::gApp()->StartSave(rb::gApp()->fRbeerFrame->fSaveHist->IsOn());
+	        rb::gApp()->StartSave(rb::gApp()->fRbeerFrame->fSaveHist->IsOn());
 	}
+}
+
+void rb::Signals::SetFilterCondition(Int_t key, std::string filter) {
+        rb::gApp()->SetFilterCondition(key, filter);
 }
 
 void rb::Signals::EnableSaveHists() {
@@ -96,6 +88,7 @@ void rb::Signals::AttachFile() {
 	if(fileInfo.fFilename != 0)
 		 rb::AttachFile(fileInfo.fFilename, continuous);
 	rb::gApp()->fRbeerFrame->fAttachFile->SetDown(false);
+
 }
 
 void rb::Signals::AttachList() {
@@ -123,29 +116,29 @@ void rb::Signals::Unattach() {
 }
 void rb::Signals::UpdateAll() {
 	rb::canvas::UpdateAll();
-	gPadSafe->Modified();
-	gPadSafe->Update();
+	gPad->Modified();
+	gPad->Update();
 }
 void rb::Signals::UpdateCurrent() {
 	rb::canvas::UpdateCurrent();
-	gPadSafe->Modified();
-	gPadSafe->Update();
+	gPad->Modified();
+	gPad->Update();
 }
 void rb::Signals::ZeroAll() {
 	rb::canvas::ClearAll();
-	gPadSafe->Modified();
-	gPadSafe->Update();
+	gPad->Modified();
+	gPad->Update();
 }
 void rb::Signals::ZeroCurrent() {
 	rb::canvas::ClearCurrent();
-	gPadSafe->Modified();
-	gPadSafe->Update();
+	gPad->Modified();
+	gPad->Update();
 }
 void rb::Signals::ClearCurrent() {
 	if(gPad) {
-		gPadSafe->GetCanvas()->Clear();
-		gPadSafe->Modified();
-		gPadSafe->Update();
+		gPad->GetCanvas()->Clear();
+		gPad->Modified();
+		gPad->Update();
 	}	
 }
 void rb::Signals::CreateNew() {
@@ -224,8 +217,8 @@ void rb::Signals::CdCanvas() {
 	if(which >= 0 && which < (int)names.size()) {
 		pads[names[which]]->cd();
 	}
-	gPadSafe->Modified();
-	gPadSafe->Update();
+	gPad->Modified();
+	gPad->Update();
 	rb::gApp()->fRbeerFrame->fSelectCanvas->SetDown(false);
 }
 
@@ -244,7 +237,32 @@ void rb::Signals::DivideCurrent() {
 	rb::gApp()->fRbeerFrame->fDivideCurrent->SetDown(false);
 }
 
+void rb::Signals::PopulateEvents() {
+	rb::gApp()->fRbeerFrame->fFilterType->RemoveAll();
+	rb::EventVector_t events = rb::gApp()->GetEventVector();
+	if(!events.size()) return;
+	std::stringstream entry;
+	for(unsigned i=0; i< events.size(); ++i) {
+		entry.str("");
+		entry << events[i].second << " [ code: "
+					<< events[i].first  << " ]";
+		rb::gApp()->fRbeerFrame->fFilterType->AddEntry(entry.str().c_str(), events[i].first);
+	}
+	rb::gApp()->fRbeerFrame->fFilterType->Select(events[0].first);
+	rb::gApp()->fRbeerFrame->fFilterType->Selected(events[0].first);
+}
 
+void rb::Signals::SetFilter() {
+  std::string filter = rb::gApp()->fRbeerFrame->fFilterEntry->GetText();
+  Int_t filter_type = rb::gApp()->fRbeerFrame->fFilterType->GetSelected();
+  
+  rb::gApp()->SetFilterCondition(filter_type, filter);
+  
+  TGTextLBEntry *filter_text_entry = (TGTextLBEntry *)rb::gApp()->fRbeerFrame->fFilterType->GetSelectedEntry();
+  std::string filter_text = filter_text_entry->GetTitle();
+  cout << "Filter type: " << filter_text << ".\tValue: " << filter << ".\n";
+  
+}
 
 // =========== HIST ============ //
 rb::HistSignals::HistSignals():
@@ -364,11 +382,13 @@ void rb::HistSignals::PopulateEvents() {
 	rb::gApp()->fHistFrame->fEventEntry->Select(events[0].first);
 	rb::gApp()->fHistFrame->fEventEntry->Selected(events[0].first);
 }
+
 Bool_t rb::HistSignals::IsHistFromGui() {
 	Bool_t ret = fHistFromGui;
 	fHistFromGui = false;
 	return ret;
 }
+
 void rb::HistSignals::EnableHistFields(Int_t code) {
 //	1d, 2d, 3d, summary [h], summary [v], gamma1, gamma2, gamma3, bit
 //   0,  1,  2,     3,          4,          5,      6,      7,     8
@@ -568,8 +588,8 @@ void rb::HistSignals::DrawHist(TGListTreeItem* item, Int_t btn) {
 	}
 	if(hist_map.count(item)) {
 		hist_map.find(item)->second->Draw(rb::gApp()->fHistFrame->fDrawOptionEntry->GetText());
-		gPadSafe->Modified();
-		gPadSafe->Update();
+		gPad->Modified();
+		gPad->Update();
 	}
 }
 

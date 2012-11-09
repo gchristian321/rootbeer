@@ -164,8 +164,13 @@ private:
 	 TGTextButton *fUnattach; // "Unattach"
 	 TGTextEntry *fEntryHost;
 	 TGLabel *fLabelHost; // "Host:"
-	 TGTextEntry *fEntryPort;
-	 TGLabel *fLabelPort; // "Expt:"
+         TGTextEntry *fEntryPort;
+         TGLabel *fFilterLabel;
+         TGTextEntry *fFilterEntry;
+         TGLabel *fFilterTypeLabel;	 
+         TGComboBox *fFilterType;
+         TGTextButton *fSetFilter;
+         TGLabel *fLabelPort; // "Expt:"
 	 TGCheckButton *fIsContinuous; // "Continuous"
 	 TGCheckButton *fSaveData; // "Save Data"
 	 TGCheckButton *fSaveHist; // "Save Histograms"
@@ -182,14 +187,11 @@ public:
 		 TGMainFrame(p, w, h, options) { }
 
 	 /// \brief Free all resources upon window destruction.
-	 /// \details Closes all signal/socket connections (by calling destructors of TQObjects).
+	 /// \details Closes all signal/socket onnections (by calling destructors of TQObjects).
 	 /// \todo Currently, the destructor does \e not free any memory resources allocated to owned gui objects.
 	 /// Effectively, this means that the gui window is the source of a memory leak. In practice, this is of
 	 /// minor consequence since gui windows are typically created/destroyed rarely (if at all) within a program
 	 /// instance. However, it should be addressed at some point!
-	 /// UPDATE: Now calling \c delete on all allocated elements in the destructor. This greatly reduces the amount
-	 /// of memory leaked, but there still is some. Not sure if this is due to leaks in the gui classes themselves
-	 /// or something I'm doing wrong.
 	 ~TGRbeerFrame();
 
 	 /// \brief Set up the layout of the gui components.
@@ -200,11 +202,6 @@ public:
 	 /// \brief Create all TQObject connections between signals emitted from gui objects and rb::Signals
 	 void MakeConnections();
 
-private:
-	 /// Memory cleanup
-	 void DeleteMembers();
-
-public:
 	 /// Allow rb::Signals access to class data.
 	 friend class rb::Signals;
 };

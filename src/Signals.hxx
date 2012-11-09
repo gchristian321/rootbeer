@@ -28,6 +28,7 @@ public:
 	 void UpdateBufferCounter(Int_t n, Bool_t force = false);
 	 void SaveData();
 	 void SaveHists();
+         void SetFilterCondition(Int_t key, std::string);
 	 void EnableSaveHists();
 	 void AttachOnline();
 	 void AttachFile();
@@ -43,6 +44,8 @@ public:
 	 void Update();
 	 void SyncCanvases();
 	 void CdCanvas();
+	 void PopulateEvents();
+         void SetFilter();
 
 	 ClassDef(rb::Signals, 0);
 };
