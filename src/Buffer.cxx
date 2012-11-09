@@ -42,7 +42,7 @@ inline void call_begin_run() {
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 rb::attach::File::File(const char* filename, Bool_t stopAtEnd) :
   rb::Thread(FILE_THREAD_NAME),
-  kFileName(gSystem->ExpandPathName(filename)),
+	kFileName(gSystem->ExpandPathName(filename)),
   kStopAtEnd(stopAtEnd)
 {
   fBuffer = BufferSource::New();
@@ -91,9 +91,9 @@ rb::attach::File::~File() {
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 void rb::attach::File::DoInThread() {
 
-  Bool_t open = fBuffer->OpenFile(kFileName);
+  Bool_t open = fBuffer->OpenFile(kFileName.c_str());
   if(!open) {
-    Error("AttachFile", "File %s not readable.", kFileName);
+    Error("AttachFile", "File %s not readable.", kFileName.c_str());
     return;
   }
 
@@ -109,11 +109,11 @@ void rb::attach::File::DoInThread() {
   }
 
   if(FileAttached()) { // read the complete file
-    Info("AttachFile", "Done reading %s", kFileName);
+    Info("AttachFile", "Done reading %s", kFileName.c_str());
 	}
   else {
     if(!ListAttached()) { // told to stop externally
-      Info("AttachFile", "Connection to %s aborted.", kFileName);
+      Info("AttachFile", "Connection to %s aborted.", kFileName.c_str());
 		}
   }
 	if(gApp()->GetSignals())
