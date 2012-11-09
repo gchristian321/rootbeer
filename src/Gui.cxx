@@ -377,14 +377,15 @@ void TGRbeerFrame::GuiLayout()
 
    ufont = gClient->GetFont("-*-helvetica--*-*-12-*-*-*-*-*-*-*");
 
-   /* TGTextButton* */ fSetFilter = new TGTextButton(fGroupData,"  Set \n Filter");
+   /* TGTextButton* */ fSetFilter = new TGTextButton(fGroupData,"Set Filter");
    fSetFilter->SetFont(ufont->GetFontStruct());
    fSetFilter->SetTextJustify(36);
    fSetFilter->SetMargins(0,0,0,0);
    fSetFilter->SetWrapLength(-1);
    fSetFilter->Resize(91,24);
    fGroupData->AddFrame(fSetFilter, new TGLayoutHints(kLHintsLeft | kLHintsTop,2,2,2,2));
-   fSetFilter->MoveResize(277,120,52,44);
+	 int WW = 80;
+   fSetFilter->MoveResize(330-WW,125,WW,24);
 
 
    /* TGCheckButton* */ fSaveData = new TGCheckButton(fGroupData,"Save Data");   fSaveData->ChangeBackground(ucolor);
