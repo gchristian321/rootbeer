@@ -95,35 +95,45 @@ TVirtualPad* rb::CdPad(TVirtualPad* owner, Int_t* subpad_numbers, Int_t depth) {
 // TDirectory* rb::Cd                                    //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 TDirectory* rb::Cd(const char* path_, Bool_t silent) {
-	gROOT->cd();
-	std::string path(path_);
-	path = path.substr(std::string(gROOT->GetName()).size()+2);
-	if(path.size() == 0) {
-		gROOT->cd(); return gROOT;
-	}
-	TDirectory* dir = 0;
-	Bool_t quit = false;
-	while(1) {
-		unsigned long pos = path.find("/");
-		std::string this_path = "";
-		if(pos > path.size()) {
-			quit = true;
-			this_path = path;
-		} else {
-			this_path = path.substr(0, pos);
-			path = path.substr(this_path.size()+1);
-		}	
-		dir = dynamic_cast<TDirectory*>(gROOT->FindObject(this_path.c_str()));
-		if(!dir) {
-			if(!silent)
-				 err::Error("rb::Cd") << "A portion of the path (" << this_path << ") is invalid.\n"
-															<< "Full path = " << path_;
-			break;
+	/*!
+	 * \bug This doesn't seem to work at all! It says the path is invalid if specified
+	 * a full "terminal" path ("home/sub") or throws an exception if specified a non-terminal
+	 * path ("home"). Maybe the best fix is to re-visit why we need this function at all....
+	 */
+	try {
+		gROOT->cd();
+		std::string path(path_);
+		path = path.substr(std::string(gROOT->GetName()).size()+2);
+		if(path.size() == 0) {
+			gROOT->cd(); return gROOT;
 		}
-		dir->cd();
-		if(quit) break;
+		TDirectory* dir = 0;
+		Bool_t quit = false;
+		while(1) {
+			unsigned long pos = path.find("/");
+			std::string this_path = "";
+			if(pos > path.size()) {
+				quit = true;
+				this_path = path;
+			} else {
+				this_path = path.substr(0, pos);
+				path = path.substr(this_path.size()+1);
+			}	
+			dir = dynamic_cast<TDirectory*>(gROOT->FindObject(this_path.c_str()));
+			if(!dir) {
+				if(!silent)
+					err::Error("rb::Cd") << "A portion of the path (" << this_path << ") is invalid.\n"
+															 << "Full path = " << path_;
+				break;
+			}
+			dir->cd();
+			if(quit) break;
+		}
+		return dir;
+	} catch (std::exception& e) {
+		err::Error("rb::Cd") << "Caught an exception: " << e.what();
+		return 0;
 	}
-	return dir;
 }
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
