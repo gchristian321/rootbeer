@@ -80,7 +80,8 @@ rb::hist::Base::Base(const char* name, const char* title, const char* param, con
 		     Int_t nbinsx, Double_t xlow, Double_t xhigh):
   kEventCode(event_code), kDimensions(1), fManager(manager), fHistogramClone(0), kInitialParams(param), fParams(0), fGate(0),
   fHistVariant(TH1D(name, title, nbinsx, xlow, xhigh))
-{ }
+{  }
+
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // Constructor (2d)                                      //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
@@ -90,7 +91,8 @@ rb::hist::Base::Base(const char* name, const char* title, const char* param, con
 		     Int_t nbinsy, Double_t ylow, Double_t yhigh):
   kEventCode(event_code), kDimensions(2), fManager(manager), fHistogramClone(0), kInitialParams(param), fParams(0), fGate(0),
   fHistVariant(TH2D(name, title, nbinsx, xlow, xhigh, nbinsy, ylow, yhigh))
-{ }
+{  }
+
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // Constructor (3d)                                      //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
@@ -101,7 +103,8 @@ rb::hist::Base::Base(const char* name, const char* title, const char* param, con
 		     Int_t nbinsz, Double_t zlow, Double_t zhigh):
   kEventCode(event_code), kDimensions(3), fManager(manager), fHistogramClone(0), kInitialParams(param), fParams(0), fGate(0),
   fHistVariant(TH3D(name, title, nbinsx, xlow, xhigh, nbinsy, ylow, yhigh, nbinsz, zlow, zhigh))
-{ }
+{  }
+
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // void rb::hist::Base::Init()                           //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
@@ -225,11 +228,8 @@ rb::hist::Summary::Summary (const char* name, const char* title, const char* par
 			    Int_t nbins, Double_t low, Double_t high, Option_t* orientation):
   Base(name, title, param, gate, manager, event_code, 1, 0, 1, 1, 0, 1),
   fBins(nbins), fLow(low), fHigh(high), kOrientArg(orientation)
-{
-//  SetOrientation(orientation);
-//  Init(name, title, param, gate, event_code);
-//  fLockOnConstruction.Unlock();
-}
+{  }
+
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // void rb::hist::Summary::SetOrientation()              //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
@@ -330,10 +330,8 @@ rb::hist::Gamma::Gamma (const char* name, const char* title, const char* param, 
 			hist::Manager* manager, Int_t event_code,
 			Int_t nbins, Double_t low, Double_t high):
   Base(name, title, param, gate, manager, event_code, nbins, low, high)
-{
-//  Init(name, title, param, gate, event_code);
-//  fLockOnConstruction.Unlock();
-}
+{  }
+
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // Constructor (2d)                                      //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
@@ -343,10 +341,8 @@ rb::hist::Gamma::Gamma (const char* name, const char* title, const char* param, 
 			Int_t nbinsy, Double_t ylow, Double_t yhigh,
 			Int_t nbinsz, Double_t zlow, Double_t zhigh):
   Base(name, title, param, gate, manager, event_code, nbinsx, xlow, xhigh, nbinsy, ylow, yhigh, nbinsz, zlow, zhigh)
-{
-//  Init(name, title, param, gate, event_code);
-//  fLockOnConstruction.Unlock();
-}
+{  }
+
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // Constructor (2d)                                      //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
@@ -355,10 +351,8 @@ rb::hist::Gamma::Gamma (const char* name, const char* title, const char* param, 
 			Int_t nbinsx, Double_t xlow, Double_t xhigh,
 			Int_t nbinsy, Double_t ylow, Double_t yhigh):
   Base(name, title, param, gate, manager, event_code, nbinsx, xlow, xhigh, nbinsy, ylow, yhigh)
-{
-//  Init(name, title, param, gate, event_code);
-//  fLockOnConstruction.Unlock();
-}
+{  }
+
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // void rb::hist::Gamma::InitParams() [virtual]          //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
@@ -407,10 +401,8 @@ rb::hist::Bit::Bit(const char* name, const char* title, const char* param, const
 		   Int_t n_bits, Double_t ignored1, Double_t ignored2):
   Base(name, title, param, gate, manager, event_code, n_bits, 0, n_bits),
 	kNumBits(n_bits)
-{
-//  Init(name, title, param, gate, event_code);
-//  fLockOnConstruction.Unlock();
-}
+{  }
+
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // void rb::hist::Bit::InitParams() [virtual]            //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
@@ -450,11 +442,8 @@ rb::hist::Scaler::Scaler(const char* name, const char* title, const char* param,
 												 Int_t nbins, Double_t low, Double_t high):
   Base(name, title, param, gate, manager, event_code, nbins, low, high),
 	fNumEvents(0)
-{
-//  Init(name, title, param, gate, event_code);
-//	visit::hist::Cast::Do(fHistVariant)->SetFillColor(30);
-//  fLockOnConstruction.Unlock();
-}
+{  }
+
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // void rb::hist::Scaler::Clear() [virtual]              //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//

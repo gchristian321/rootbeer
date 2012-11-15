@@ -82,8 +82,6 @@ struct LockOnConstruction
 //! wrapped histogram as a critical object shared between threads. Wrapping also allows the cration of
 //! just one rb::hist::Base class rather than one for each dimension, since we can simply polymorphically cast
 //! the wrapped TH1* to the right type in the constructor.
-//!
-//! \todo Stop calling virtual functions from the constructor!!!
 class Base : public TNamed
 {
 protected:
@@ -102,8 +100,8 @@ protected:
 	/// The histogram manager responsible for this instance
 	hist::Manager* const fManager;
 
-	/// Clone of the internal histogram.
-	//! This is basically the only thing that CINT users can access, via the GetHist() function.
+	/// \brief Clone of the internal histogram.
+	//! \details This is basically the only thing that CINT users can access, via the GetHist() function.
 	//! The reason for doing it this way is thread safety. By only allowing CINT users access to
 	//! a copy of fHistogram (created within a mutex lock), we ensure that there will never be any
 	//! conflicts between the main thread and others that can modify the internal histogram.
@@ -131,8 +129,8 @@ protected:
 	//! \details Variant class covers all possible dimensions from 1-3 in one object.
 	HistVariant fHistVariant;
 
-	/// Construction mode for duplicates
-	//! true means overwrite duplicate names in the same directory, false means append _1, _2, etc. until unique
+	/// \brief Construction mode for duplicates
+	//! \details true means overwrite duplicate names in the same directory, false means append _1, _2, etc. until unique
 	static Bool_t fgOverwrite;
 
 	/// Constructor (1d)
@@ -154,8 +152,8 @@ protected:
 			 Int_t nbinsz, Double_t zlow, Double_t zhigh);
 
 public:
-	/// Default constructor.
-	//! Does nothing, just here to make rootcint happy.
+	/// \brief Default constructor.
+	//! \details Does nothing, just here to make rootcint happy.
 	Base() : kEventCode(0), kDimensions(0), fManager(0) {}
 
 public:
@@ -175,13 +173,13 @@ public:
 		else return false;
 	}
 
-	/// Function to change the histogram gate.
-	//! Updates \c fGate to reflect the new gate formula. Returns 0 if successful,
+	/// \brief Function to change the histogram gate.
+	//! \details Updates \c fGate to reflect the new gate formula. Returns 0 if successful,
 	//!  -1 if \c newgate isn't valid. In case of invalid \c newgate, the histogram
 	//!  gate condition remains unchanged.
 	virtual Int_t Regate(const char* newgate);
 
-	/// Fill the histogram from its internal parameter value(s).
+	/// \brief Fill the histogram from its internal parameter value(s).
 	//! \note This function locks the mutex passed to the histogram in the constructor
 	//! (the mutex which protects the data).  If you are calling from an already locked
 	//! section of code, use FillUnlocked() instead.
@@ -195,7 +193,7 @@ public:
 	Int_t FillUnlocked();
 #endif
 
-	/// Returns a copy of fHistogram.
+	/// \brief Returns a copy of fHistogram.
 	//! \Warning users should \em not delete the returned histogram. Internally, the class
 	//! maintains only a single copy; successive calls to GetHist() delete the copy currently
 	//! in memory and creates a new one.
@@ -231,7 +229,7 @@ public:
 		return fDirectory;
 	}
 
-	/// Turn on/off overwriting for duplicate names
+	/// \brief Turn on/off overwriting for duplicate names
 	//! \returns true if the condition was changed by calling the function, false otherwise
 	static Bool_t SetOverwrite(Bool_t on = true) {
 		Bool_t ret = (on != fgOverwrite);
@@ -254,8 +252,8 @@ private:
 	Base& operator= (const Base& other) { return *this; }
 	/// Prevent copying
 	Base(const Base& other) : kEventCode(other.kEventCode), kDimensions(other.kDimensions), fManager(other.fManager) {}
-	/// Internal function to fill the histogram.
-	//! Called from the public Fill() and FillAll(), does not do any mutex locking,
+	/// \brief Internal function to fill the histogram.
+	//! \details Called from the public Fill() and FillAll(), does not do any mutex locking,
 	//! instead relies on being passed already locked components.
 	virtual Int_t DoFill(const std::vector<Double_t>& params);
 public:
@@ -272,10 +270,8 @@ public:
 			hist::Manager* manager, Int_t event_code,
 			Int_t nbinsx, Double_t xlow, Double_t xhigh):
 		Base(name, title, param, gate, manager, event_code, nbinsx, xlow, xhigh)
-		{
-//			Init(name, title, param, gate, event_code);
-//			fLockOnConstruction.Unlock();
-		}
+		{ }
+
 	ClassDef(rb::hist::D1, 0);
 };
 /// Two-dimensional derived implementaion
@@ -287,10 +283,8 @@ public:
 			Int_t nbinsx, Double_t xlow, Double_t xhigh,
 			Int_t nbinsy, Double_t ylow, Double_t yhigh):
 		Base(name, title, param, gate, manager, event_code, nbinsx, xlow, xhigh, nbinsy, ylow, yhigh)
-		{
-//			Init(name, title, param, gate, event_code);
-//			fLockOnConstruction.Unlock();
-		}
+		{ }
+
 	ClassDef(rb::hist::D2, 0);
 };
 /// Three-dimensional derived implementation
@@ -304,10 +298,8 @@ public:
 			Int_t nbinsz, Double_t zlow, Double_t zhigh):
 		Base(name, title, param, gate, manager, event_code, nbinsx, xlow, xhigh,
 				 nbinsy, ylow, yhigh, nbinsz, zlow, zhigh)
-		{
-//			Init(name, title, param, gate, event_code);
-//			fLockOnConstruction.Unlock();
-		}
+		{ }
+
 	ClassDef(rb::hist::D3, 0);
 };
 /// \brief Summary histogram
@@ -315,33 +307,33 @@ public:
 class Summary: public Base
 {
 public:
-	//! Orientation codes
+	/// Orientation codes
 	enum { VERTICAL, HORIZONTAL };
 private:
-	//! Orientation of the histogram
+	/// Orientation of the histogram
 	Int_t kOrientation;
-	//! Number of bins along the parameter axis
+	/// Number of bins along the parameter axis
 	Int_t fBins;
-	//! Low end of the parameter axis
+	/// Low end of the parameter axis
 	Double_t fLow;
-	//! High end of the parameter axis
+	/// High end of the parameter axis
 	Double_t fHigh;
-	//! Initial parameter argument
+	/// Initial parameter argument
 	std::string kParamArg;
-	//! Orientation argument
+	/// Orientation argument
 	const std::string kOrientArg;
 public:
-	//! Calls base 2d constructor with junk bin arguments, sets constants
+	/// Calls base 2d constructor with junk bin arguments, sets constants
 	Summary (const char* name, const char* title, const char* param, const char* gate,
 					 hist::Manager* manager, Int_t event_code,
 					 Int_t nbins, Double_t low, Double_t high, Option_t* orientation);
-	//! Override hist::Base parameter initialization
+	/// Override hist::Base parameter initialization
 	virtual void InitParams(const char* params, Int_t event_code);
-	//! Override hist::Base filling procedure
+	/// Override hist::Base filling procedure
 	virtual Int_t DoFill(const std::vector<Double_t>& params);
-	//! Return kOrientation
+	/// Return kOrientation
 	Int_t GetOrientation() { return kOrientation; }
-	//! Return parameter arguments
+	/// Return parameter arguments
 	virtual std::string GetParam(Int_t axis = 0) {
 		if(axis != 0) {
 			err::Error("GetParam")  << "Invalid axis specification; only 0 is allowed for summary histograms.";
@@ -350,14 +342,14 @@ public:
 		return kParamArg;
 	}
 protected:
-	//! Sets orientation in addition to calling Base::Init()
+	/// Sets orientation in addition to calling Base::Init()
 	virtual void Init(const char* name, const char* title, const char* param, const char* gate, Int_t event_code)
 		{
 			SetOrientation(kOrientArg.c_str());
 			rb::hist::Base::Init(name, title, param, gate, event_code);
 		}
 private:
-	//! Set the orientation (horizontal or vertical)
+	/// Set the orientation (horizontal or vertical)
 	void SetOrientation(Option_t* orientation);
 	ClassDef(rb::hist::Summary, 0);
 };
@@ -368,7 +360,7 @@ private:
 class Gamma: public Base
 {
 private:
-	//! "Stops" between different axis parameters
+	/// "Stops" between different axis parameters
 	std::vector<Int_t> fStops;
 public:
 	/// Constructor (1d)
@@ -386,15 +378,14 @@ public:
 				 Int_t nbinsx, Double_t xlow, Double_t xhigh,
 				 Int_t nbinsy, Double_t ylow, Double_t yhigh,
 				 Int_t nbinsz, Double_t zlow, Double_t zhigh);
-	//! Override hist::Base parameter initialization
+	/// Override hist::Base parameter initialization
 	virtual void InitParams(const char* params, Int_t event_code);
-	//! Override hist::Base filling procedure
+	/// Override hist::Base filling procedure
 	virtual Int_t DoFill(const std::vector<Double_t>& params);
 	ClassDef(rb::hist::Gamma, 0);
 };
 
 /// \brief Bitmask histogram class.
-
 //! \details A bitmask histogram displays the true bits in a parameter.  For each event,
 //! the bin corresponding to a given bit in a word increments if that bit is set to 1.
 class Bit: public Base
@@ -407,42 +398,41 @@ public:
 	Bit (const char* name, const char* title, const char* param, const char* gate,
 			 hist::Manager* manager, Int_t event_code,
 			 Int_t n_bits, Double_t ignored1 = 0, Double_t ignored2 = 1);
-	//! Override hist::Base parameter initialization
+	/// Override hist::Base parameter initialization
 	virtual void InitParams(const char* params, Int_t event_code);
-	//! Override hist::Base filling procedure
+	/// Override hist::Base filling procedure
 	virtual Int_t DoFill(const std::vector<Double_t>& params);
 	ClassDef(rb::hist::Bit, 0);
 };
 
 
 /// \brief Scaler histogram class.
-
 //! \details Displays event number on the x-axis and number of counts
 //! on the y-axis.
 class Scaler: public Base
 {
 private:
-	//! Event counter
+	/// Event counter
 	Long64_t fNumEvents;
 public:
 	/// Constructor
 	Scaler (const char* name, const char* title, const char* param, const char* gate,
 					hist::Manager* manager, Int_t event_code,
 					Int_t nbins, Double_t low, Double_t high);
-	//! Override clear, needs to also set fNumEvents = 0
+	/// Override clear, needs to also set fNumEvents = 0
 	virtual void Clear();
-	//! Override filling procedure
+	/// Override filling procedure
 	virtual Int_t DoFill(const std::vector<Double_t>& params);
 	ClassDef(rb::hist::Scaler, 0);
 protected:
-	//! Sets fill color in addition to calling Base::Init()
+	/// Sets fill color in addition to calling Base::Init()
 	virtual void Init(const char* name, const char* title, const char* param, const char* gate, Int_t event_code)
 		{
 			rb::hist::Base::Init(name, title, param, gate, event_code);
 			visit::hist::Cast::Do(fHistVariant)->SetFillColor(30);
 		}			
 private:
-	//! Extend the x-axis length by factor, keeping the same binning
+	/// Extend the x-axis length by factor, keeping the same binning
 	void Extend(double factor);
 };
 
