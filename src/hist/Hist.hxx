@@ -21,7 +21,6 @@
 #include <TVirtualHistPainter.h>
 #include "Formula.hxx"
 #include "hist/Visitor.hxx"
-#include "hist/Manager.hxx"
 #include "utils/Error.hxx"
 #include "utils/LockingPointer.hxx"
 #include "utils/Critical.hxx"
@@ -31,13 +30,21 @@ namespace rb
 {
 namespace hist
 {
+
+// ====== Forward Declarations ====== //
+class Base;
+class Manager;
+
+/// Container of histogram pointers
 typedef std::set<rb::hist::Base*> Container_t;
+
 struct StopAddDirectory
 {
 	StopAddDirectory() { TH1::AddDirectory(false); }
 	void BackOn() { TH1::AddDirectory(true); }
 	~StopAddDirectory() { BackOn(); }
 };
+
 struct LockOnConstruction
 {
 	Bool_t kIsLocked;
@@ -45,6 +52,12 @@ struct LockOnConstruction
 	LockOnConstruction(rb::Mutex* mutex = 0): kIsLocked(true), fMutex(mutex) {
 		if(!fMutex) rb::TThreadMutex::Instance()->Lock();
 		else        fMutex->Lock();
+	}
+	void Lock() {
+		assert(!kIsLocked);
+		if(!fMutex) rb::TThreadMutex::Instance()->Lock();
+		else        fMutex->Lock();
+		kIsLocked = true;
 	}
 	void Unlock() {
 		if(!fMutex) rb::TThreadMutex::Instance()->UnLock();
@@ -228,7 +241,7 @@ public:
 
 protected:
 	/// Set name and title
-	void Init(const char* name, const char* title, const char* param, const char* gate, Int_t event_code);
+	virtual void Init(const char* name, const char* title, const char* param, const char* gate, Int_t event_code);
 
 	/// Set paramater formulae
 	virtual void InitParams(const char* param, Int_t event_code);
@@ -260,8 +273,8 @@ public:
 			Int_t nbinsx, Double_t xlow, Double_t xhigh):
 		Base(name, title, param, gate, manager, event_code, nbinsx, xlow, xhigh)
 		{
-			Init(name, title, param, gate, event_code);
-			fLockOnConstruction.Unlock();
+//			Init(name, title, param, gate, event_code);
+//			fLockOnConstruction.Unlock();
 		}
 	ClassDef(rb::hist::D1, 0);
 };
@@ -275,8 +288,8 @@ public:
 			Int_t nbinsy, Double_t ylow, Double_t yhigh):
 		Base(name, title, param, gate, manager, event_code, nbinsx, xlow, xhigh, nbinsy, ylow, yhigh)
 		{
-			Init(name, title, param, gate, event_code);
-			fLockOnConstruction.Unlock();
+//			Init(name, title, param, gate, event_code);
+//			fLockOnConstruction.Unlock();
 		}
 	ClassDef(rb::hist::D2, 0);
 };
@@ -292,8 +305,8 @@ public:
 		Base(name, title, param, gate, manager, event_code, nbinsx, xlow, xhigh,
 				 nbinsy, ylow, yhigh, nbinsz, zlow, zhigh)
 		{
-			Init(name, title, param, gate, event_code);
-			fLockOnConstruction.Unlock();
+//			Init(name, title, param, gate, event_code);
+//			fLockOnConstruction.Unlock();
 		}
 	ClassDef(rb::hist::D3, 0);
 };
@@ -315,6 +328,8 @@ private:
 	Double_t fHigh;
 	//! Initial parameter argument
 	std::string kParamArg;
+	//! Orientation argument
+	const std::string kOrientArg;
 public:
 	//! Calls base 2d constructor with junk bin arguments, sets constants
 	Summary (const char* name, const char* title, const char* param, const char* gate,
@@ -334,7 +349,13 @@ public:
 		}
 		return kParamArg;
 	}
-
+protected:
+	//! Sets orientation in addition to calling Base::Init()
+	virtual void Init(const char* name, const char* title, const char* param, const char* gate, Int_t event_code)
+		{
+			SetOrientation(kOrientArg.c_str());
+			rb::hist::Base::Init(name, title, param, gate, event_code);
+		}
 private:
 	//! Set the orientation (horizontal or vertical)
 	void SetOrientation(Option_t* orientation);
@@ -413,6 +434,13 @@ public:
 	//! Override filling procedure
 	virtual Int_t DoFill(const std::vector<Double_t>& params);
 	ClassDef(rb::hist::Scaler, 0);
+protected:
+	//! Sets fill color in addition to calling Base::Init()
+	virtual void Init(const char* name, const char* title, const char* param, const char* gate, Int_t event_code)
+		{
+			rb::hist::Base::Init(name, title, param, gate, event_code);
+			visit::hist::Cast::Do(fHistVariant)->SetFillColor(30);
+		}			
 private:
 	//! Extend the x-axis length by factor, keeping the same binning
 	void Extend(double factor);

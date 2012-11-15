@@ -5,14 +5,12 @@
 #define HIST_MANAGER_HXX
 #include <typeinfo>
 #include "utils/Mutex.hxx"
-
+#include "Hist.hxx"
 
 namespace rb
 {
 namespace hist
 {
-// ========= Forward Declarations ========= //
-class Base;
 
 // ========= Typedefs ========= //
 typedef std::set<rb::hist::Base*> Container_t;
@@ -48,6 +46,8 @@ public:
 													Int_t nbinsx, Double_t xlow, Double_t xhigh) {
 		 rb::hist::Base* hist =
 				new T(name, title, param, gate, this, event_code, nbinsx, xlow, xhigh);
+		 hist->Init(name, title, param, gate, event_code);
+		 hist->fLockOnConstruction.Unlock();
 		 Add(hist); return hist;
 	 }
 	 //! Create a new 1d histogram and add to fSet, with optional extra specifications
@@ -56,6 +56,8 @@ public:
 													Int_t nbinsx, Double_t xlow, Double_t xhigh, const OPTIONAL& optional) {
 		 rb::hist::Base* hist =
 				new T(name, title, param, gate, this, event_code, nbinsx, xlow, xhigh, optional);
+		 hist->Init(name, title, param, gate, event_code);
+		 hist->fLockOnConstruction.Unlock();
 		 Add(hist); return hist;
 	 }
 	 //! Create a new 2d histogram and add to fSet
@@ -65,6 +67,8 @@ public:
 													Int_t nbinsy, Double_t ylow, Double_t yhigh) {
 		 rb::hist::Base* hist =
 				new T(name, title, param, gate, this, event_code, nbinsx, xlow, xhigh, nbinsy, ylow, yhigh);
+		 hist->Init(name, title, param, gate, event_code);
+		 hist->fLockOnConstruction.Unlock();
 		 Add(hist); return hist;
 	 }
 	 //! Create a new 2d histogram and add to fSet, with optional extra specifications
@@ -74,6 +78,8 @@ public:
 													Int_t nbinsy, Double_t ylow, Double_t yhigh, const OPTIONAL& optional) {
 		 rb::hist::Base* hist =
 				new T(name, title, param, gate, this, event_code, nbinsx, xlow, xhigh, nbinsy, ylow, yhigh, optional);
+		 hist->Init(name, title, param, gate, event_code);
+		 hist->fLockOnConstruction.Unlock();
 		 Add(hist); return hist;
 	 }
 	 //! Create a new 3d histogram and add to fSet
@@ -84,6 +90,8 @@ public:
 													Int_t nbinsz, Double_t zlow, Double_t zhigh) {
 		 rb::hist::Base* hist =
 				new T(name, title, param, gate, this, event_code, nbinsx, xlow, xhigh, nbinsy, ylow, yhigh, nbinsz, zlow, zhigh);
+		 hist->Init(name, title, param, gate, event_code);
+		 hist->fLockOnConstruction.Unlock();
 		 Add(hist); return hist;
 	 }
 	 //! Create a new 3d histogram and add to fSet, with optional extra specifications
@@ -94,6 +102,8 @@ public:
 													Int_t nbinsz, Double_t zlow, Double_t zhigh, const OPTIONAL& optional) {
 		 rb::hist::Base* hist =
 				new T(name, title, param, gate, this, event_code, nbinsx, xlow, xhigh, nbinsy, ylow, yhigh, nbinsz, zlow, zhigh, optional);
+		 hist->Init(name, title, param, gate, event_code);
+		 hist->fLockOnConstruction.Unlock();
 		 Add(hist); return hist;
 	 }
 	 //! Delete all histogram instances
