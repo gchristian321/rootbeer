@@ -1,7 +1,10 @@
 //! \file Rootbeer.cxx 
 //! \brief Implements the user interface functions.
+#include <memory>
 #include <iostream>
 #include <TCutG.h>
+#include <TString.h>
+#include <TObjArray.h>
 #include <TVirtualPad.h>
 #include "Rootbeer.hxx"
 #include "Rint.hxx"
@@ -131,17 +134,25 @@ TDirectory* rb::Mkdir(const char* name, const char* title) {
 		Error("rb::Mkdir", "gDirectory == 0");
 		return 0;
 	}
-	if(gDirectory->FindObject(name)) {
-		TDirectory* old_dir = dynamic_cast<TDirectory*>(gDirectory->FindObject(name));
-		if(old_dir) {
-			old_dir->cd();
-			return old_dir;
+
+	TDirectory* current = gDirectory;
+	current->cd();
+	TString sdp(name);
+	std::auto_ptr<TObjArray> dirs (sdp.Tokenize("/"));
+	for (int i=0; i< dirs->GetEntries(); ++i) {
+		TString dirname = static_cast<TObjString*>(dirs->At(i))->GetString();
+		TDirectory* dir = dynamic_cast<TDirectory*>(gDirectory->FindObject(dirname.Data()));
+		if(dir) dir->cd();
+		else {
+			TDirectory* d = gDirectory->mkdir(dirname.Data());
+			d->cd();
 		}
 	}
-	TDirectory* new_dir = gDirectory->mkdir(name, title);
-	if(new_dir) new_dir->cd();
+	TDirectory* newDir = gDirectory;
+	if(newDir) newDir->cd();
 	if(gApp()->GetHistSignals()) gApp()->GetHistSignals()->SyncHistTree();
-	return new_dir;
+	return newDir;
+
 }
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
