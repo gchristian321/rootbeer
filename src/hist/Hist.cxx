@@ -452,6 +452,8 @@ rb::hist::Scaler::Scaler(const char* name, const char* title, const char* param,
 	fNumEvents(0)
 {
   Init(name, title, param, gate, event_code);
+	visit::hist::Cast::Do(fHistVariant)->SetFillColor(30);
+
   fLockOnConstruction.Unlock();
 }
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
