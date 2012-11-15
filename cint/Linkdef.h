@@ -24,6 +24,7 @@
 #pragma link C++ class rb::hist::D2+;
 #pragma link C++ class rb::hist::D3+;
 #pragma link C++ class rb::hist::Summary+;
+#pragma link C++ class rb::hist::Scaler+;
 #pragma link C++ class rb::hist::Gamma+;
 #pragma link C++ class rb::hist::Bit+;
 #pragma link C++ class AxisIndices;

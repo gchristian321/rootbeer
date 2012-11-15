@@ -276,9 +276,21 @@ void rb::HistSignals::Quit() {
 }
 namespace {
 Int_t get_dim(Int_t code) {
-	if (code == 0 || code == 3 || code == 4 || code == 5 || code == 8)
+/*
+	 fTypeEntry->AddEntry("1D ", ne++); //0
+   fTypeEntry->AddEntry("2D ", ne++); //1
+   fTypeEntry->AddEntry("3D ", ne++); //2
+	 fTypeEntry->AddEntry("Scaler", ne++); //3
+   fTypeEntry->AddEntry("Summary [h]", ne++); //4
+   fTypeEntry->AddEntry("Summary [v]", ne++); //5
+   fTypeEntry->AddEntry("1D gamma ", ne++); //6
+   fTypeEntry->AddEntry("2D gamma ", ne++); //7
+   fTypeEntry->AddEntry("3D gamma ", ne++); //8
+   fTypeEntry->AddEntry("Bit ", ne++); //9
+*/
+	if (code == 0 || code == 3 || code == 4 || code == 5 || code == 6 || code == 9)
 		 return 1;
-	if (code == 1 || code == 6)
+	if (code == 1 || code == 7)
 		 return 2;
 	return 3;
 }
@@ -390,8 +402,8 @@ Bool_t rb::HistSignals::IsHistFromGui() {
 }
 
 void rb::HistSignals::EnableHistFields(Int_t code) {
-//	1d, 2d, 3d, summary [h], summary [v], gamma1, gamma2, gamma3, bit
-//   0,  1,  2,     3,          4,          5,      6,      7,     8
+//	1d, 2d, 3d, scaler, summary [h], summary [v], gamma1, gamma2, gamma3, bit
+//   0,  1,  2,    3,       4,          5,          6,      7,      8      9
 	if (get_dim(code) == 1) {
 		hist_field_enable(false, 1);
 		hist_field_enable(false, 2);
@@ -463,22 +475,25 @@ void rb::HistSignals::CreateHistogram() {
 		case 2: // 3D
 			rb::hist::New(name.c_str(), title.c_str(), bins[0], low[0], high[0], bins[1], low[1], high[1], bins[2], low[2], high[2], paramarg.c_str(), gate.c_str(), evt);
 			break;
-		case 3: // summary [h]
+		case 3: // scaler
+			rb::hist::NewScaler(name.c_str(), title.c_str(), bins[0], low[0], high[0], paramarg.c_str(), gate.c_str(), evt);
+			break;
+		case 4: // summary [h]
 			rb::hist::NewSummary(name.c_str(), title.c_str(), bins[0], low[0], high[0], paramarg.c_str(), gate.c_str(), evt, "h");
 			break;
-		case 4: // summary [v]
+		case 5: // summary [v]
 			rb::hist::NewSummary(name.c_str(), title.c_str(), bins[0], low[0], high[0], paramarg.c_str(), gate.c_str(), evt, "v");
 			break;
-		case 5: // 1D gamma
+		case 6: // 1D gamma
 			rb::hist::NewGamma(name.c_str(), title.c_str(), bins[0], low[0], high[0], paramarg.c_str(), gate.c_str(), evt);
 			break;
-		case 6: // 2D gamma
+		case 7: // 2D gamma
 			rb::hist::NewGamma(name.c_str(), title.c_str(), bins[0], low[0], high[0], bins[1], low[1], high[1], paramarg.c_str(), gate.c_str(), evt);
 			break;
-		case 7: // 3D gamma
+		case 8: // 3D gamma
 			rb::hist::NewGamma(name.c_str(), title.c_str(), bins[0], low[0], high[0], bins[1], low[1], high[1], bins[2], low[2], high[2], paramarg.c_str(), gate.c_str(), evt);
 			break;
-		case 8: // Bit
+		case 9: // Bit
 			rb::hist::NewBit(name.c_str(), title.c_str(), bins[0], paramarg.c_str(), gate.c_str(), evt);
 			break;
 		default:

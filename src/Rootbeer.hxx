@@ -201,6 +201,12 @@ extern rb::hist::Base* NewGamma(const char* name, const char* title,
 																Int_t nbinsz, Double_t zlow, Double_t zhigh,
 																const char* params,  const char* gate = "", Int_t event_code = 1);
 
+/// Scaler hist creation
+extern rb::hist::Base* NewScaler(const char* name, const char* title,
+																 Int_t nbins, Double_t low, Double_t high,
+																 const char* params, const char* gate = "", Int_t event_code = 1);
+																 
+
 /// Bit hist creation
 rb::hist::Base* NewBit (const char* name, const char* title, Int_t nbits, const char* param,
 												const char* gate = "", Int_t event_code = 1);

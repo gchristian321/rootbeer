@@ -405,13 +405,14 @@ Int_t rb::hist::Gamma::DoFill(const std::vector<Double_t>& params) {
 rb::hist::Bit::Bit(const char* name, const char* title, const char* param, const char* gate,
 		   hist::Manager* manager, Int_t event_code,
 		   Int_t n_bits, Double_t ignored1, Double_t ignored2):
-  Base(name, title, param, gate, manager, event_code, n_bits, 0, n_bits), kNumBits(n_bits)
+  Base(name, title, param, gate, manager, event_code, n_bits, 0, n_bits),
+	kNumBits(n_bits)
 {
   Init(name, title, param, gate, event_code);
   fLockOnConstruction.Unlock();
 }
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-// void rb::hist::Summary::InitParams() [virtual]        //
+// void rb::hist::Bit::InitParams() [virtual]            //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 void rb::hist::Bit::InitParams(const char* params, Int_t event_code) {
   std::vector<std::string> par(1, params);
@@ -421,7 +422,7 @@ void rb::hist::Bit::InitParams(const char* params, Int_t event_code) {
   if(paxis) paxis->SetNdivisions(119);
 }
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-// Int_t rb::hist::Summary::DoFill() [virtual]           //
+// Int_t rb::hist::Bit::DoFill() [virtual]               //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 Int_t rb::hist::Bit::DoFill(const std::vector<Double_t>& params) {
   Int_t ret = 0;
@@ -433,5 +434,57 @@ Int_t rb::hist::Bit::DoFill(const std::vector<Double_t>& params) {
     }
   }
   return ret;
+}
+
+
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// Class                                                 //
+// rb::hist::Scaler                                      //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// Constructor                                           //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+rb::hist::Scaler::Scaler(const char* name, const char* title, const char* param, const char* gate,
+												 hist::Manager* manager, Int_t event_code,
+												 Int_t nbins, Double_t low, Double_t high):
+  Base(name, title, param, gate, manager, event_code, nbins, low, high),
+	fNumEvents(0)
+{
+  Init(name, title, param, gate, event_code);
+  fLockOnConstruction.Unlock();
+}
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// void rb::hist::Scaler::Clear() [virtual]              //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+void rb::hist::Scaler::Clear() {
+	rb::hist::Base::Clear();
+	fNumEvents = 0;
+}
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// Int_t rb::hist::Scaler::DoFill() [virtual]            //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+Int_t rb::hist::Scaler::DoFill(const std::vector<Double_t>& params) {
+	this->Extend(1.5);
+	visit::hist::SetBinContent::Do(fHistVariant, fNumEvents++, params[0]);
+	return params[0];
+}
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// Int_t rb::hist::Scaler::Extend() [private]            //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+void rb::hist::Scaler::Extend(double factor) {
+	rb::ScopedLock<rb::Mutex> LOCK (TTHREAD_GLOBAL_MUTEX);
+	TH1* pHist = visit::hist::Cast::Do(fHistVariant);
+
+	if (pHist->GetNbinsX() <= fNumEvents) {
+		const double Max = pHist->GetBinLowEdge(pHist->GetNbinsX() + 1);
+		const double Min = pHist->GetBinLowEdge(1);
+		const double binWidth = (Max - Min) / pHist->GetNbinsX();
+
+		const double newMax = Max*factor;
+		const Int_t newBins = (newMax - Min) / binWidth;
+
+		pHist->SetBins(newBins, Min, newMax);
+	}
 }
 

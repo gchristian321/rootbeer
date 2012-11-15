@@ -379,6 +379,26 @@ rb::hist::Base* rb::hist::NewGamma(const char* name, const char* title,
 }
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+//  rb::hist::NewScaler                                  //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+rb::hist::Base* rb::hist::NewScaler(const char* name, const char* title,
+																		Int_t nbins, Double_t low, Double_t high,
+																		const char* params,  const char* gate, Int_t event_code) {
+	Bool_t from_gui =
+		gApp()->GetHistSignals() ? gApp()->GetHistSignals()->IsHistFromGui() : 0;
+
+  rb::hist::Base* hist = 0;
+  try {
+    hist = find_manager(event_code)->Create<Scaler>(name, title, params, gate, event_code, nbins, low, high);
+  }
+  catch (std::exception& e) {
+		if(!from_gui) err::Error("rb::hist::New") << e.what();
+		else throw;
+  }
+  return hist;
+}
+
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 //  rb::hist::NewBit                                     //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 rb::hist::Base* rb::hist::NewBit(const char* name, const char* title, Int_t nbits, const char* param, const char* gate,

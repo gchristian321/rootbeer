@@ -360,15 +360,18 @@ fDeleteButton->SetFont(ufont->GetFontStruct());
    gClient->GetColorByName("#ffffff",ucolor);
 
    // combo box
-   /* TGComboBox* */ fTypeEntry = new TGComboBox(fHistCreateFrame,-1,kHorizontalFrame | kSunkenFrame | kDoubleBorder | kOwnBackground);   fTypeEntry->AddEntry("1D ",0);
-   fTypeEntry->AddEntry("2D ",1);
-   fTypeEntry->AddEntry("3D ",2);
-   fTypeEntry->AddEntry("Summary [h]",3);
-   fTypeEntry->AddEntry("Summary [v]",4);
-   fTypeEntry->AddEntry("1D gamma ",5);
-   fTypeEntry->AddEntry("2D gamma ",6);
-   fTypeEntry->AddEntry("3D gamma ",7);
-   fTypeEntry->AddEntry("Bit ",8);
+   /* TGComboBox* */ fTypeEntry = new TGComboBox(fHistCreateFrame,-1,kHorizontalFrame | kSunkenFrame | kDoubleBorder | kOwnBackground);
+	 int ne = 0;
+	 fTypeEntry->AddEntry("1D ", ne++); //0
+   fTypeEntry->AddEntry("2D ", ne++); //1
+   fTypeEntry->AddEntry("3D ", ne++); //2
+	 fTypeEntry->AddEntry("Scaler", ne++); //3
+   fTypeEntry->AddEntry("Summary [h]", ne++); //4
+   fTypeEntry->AddEntry("Summary [v]", ne++); //5
+   fTypeEntry->AddEntry("1D gamma ", ne++); //6
+   fTypeEntry->AddEntry("2D gamma ", ne++); //7
+   fTypeEntry->AddEntry("3D gamma ", ne++); //8
+   fTypeEntry->AddEntry("Bit ", ne++); //9
    fTypeEntry->Resize(102,22);
    fTypeEntry->Select(0);
    fHistCreateFrame->AddFrame(fTypeEntry, new TGLayoutHints(kLHintsLeft | kLHintsTop,2,2,2,2));

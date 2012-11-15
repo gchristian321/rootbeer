@@ -296,7 +296,11 @@ void TGRbeerFrame::GuiLayout()
    uGC = gClient->GetGC(&valEntry1876, kTRUE);
    /* TGTextEntry* */ fEntryHost = new TGTextEntry(fGroupData, new TGTextBuffer(14),-1,uGC->GetGC(),ufont->GetFontStruct(),kSunkenFrame | kDoubleBorder | kOwnBackground);   fEntryHost->SetMaxLength(4096);
    fEntryHost->SetAlignment(kTextLeft);
+#ifdef MIDAS_SERVER_HOST
+   fEntryHost->SetText(MIDAS_SERVER_HOST);
+#else
    fEntryHost->SetText("");
+#endif
    fEntryHost->Resize(176,fEntryHost->GetDefaultHeight());
    fGroupData->AddFrame(fEntryHost, new TGLayoutHints(kLHintsLeft | kLHintsTop,2,2,2,2));
    fEntryHost->MoveResize(144,20,176,22);
@@ -321,7 +325,11 @@ void TGRbeerFrame::GuiLayout()
    uGC = gClient->GetGC(&valEntry1878, kTRUE);
    /* TGTextEntry* */ fEntryPort = new TGTextEntry(fGroupData, new TGTextBuffer(14),-1,uGC->GetGC(),ufont->GetFontStruct(),kSunkenFrame | kDoubleBorder | kOwnBackground);   fEntryPort->SetMaxLength(4096);
    fEntryPort->SetAlignment(kTextLeft);
+#ifdef MIDAS_EXPT_NAME
+	 fEntryPort->SetText(MIDAS_EXPT_NAME);
+#else
    fEntryPort->SetText("");
+#endif
    fEntryPort->Resize(88,fEntryPort->GetDefaultHeight());
    fGroupData->AddFrame(fEntryPort, new TGLayoutHints(kLHintsLeft | kLHintsTop,2,2,2,2));
    fEntryPort->MoveResize(144,44,88,22);
