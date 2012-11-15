@@ -265,32 +265,34 @@ public:
 /// One-dimensional derived implementation
 class D1: public Base
 {
-public:
+protected:
 	D1 (const char* name, const char* title, const char* param, const char* gate,
 			hist::Manager* manager, Int_t event_code,
 			Int_t nbinsx, Double_t xlow, Double_t xhigh):
 		Base(name, title, param, gate, manager, event_code, nbinsx, xlow, xhigh)
 		{ }
-
+public:
+	friend class rb::hist::Manager;
 	ClassDef(rb::hist::D1, 0);
 };
 /// Two-dimensional derived implementaion
 class D2: public Base
 {
-public:
+protected:
 	D2 (const char* name, const char* title, const char* param, const char* gate,
 			hist::Manager* manager, Int_t event_code,
 			Int_t nbinsx, Double_t xlow, Double_t xhigh,
 			Int_t nbinsy, Double_t ylow, Double_t yhigh):
 		Base(name, title, param, gate, manager, event_code, nbinsx, xlow, xhigh, nbinsy, ylow, yhigh)
 		{ }
-
+public:
+	friend class rb::hist::Manager;
 	ClassDef(rb::hist::D2, 0);
 };
 /// Three-dimensional derived implementation
 class D3: public Base
 {
-public:
+protected:
 	D3 (const char* name, const char* title, const char* param, const char* gate,
 			hist::Manager* manager, Int_t event_code,
 			Int_t nbinsx, Double_t xlow, Double_t xhigh,
@@ -300,8 +302,11 @@ public:
 				 nbinsy, ylow, yhigh, nbinsz, zlow, zhigh)
 		{ }
 
+public:
+	friend class rb::hist::Manager;
 	ClassDef(rb::hist::D3, 0);
 };
+
 /// \brief Summary histogram
 //! \details Histogram displaying multiple parameters at once.
 class Summary: public Base
@@ -309,6 +314,7 @@ class Summary: public Base
 public:
 	/// Orientation codes
 	enum { VERTICAL, HORIZONTAL };
+
 private:
 	/// Orientation of the histogram
 	Int_t kOrientation;
@@ -322,11 +328,8 @@ private:
 	std::string kParamArg;
 	/// Orientation argument
 	const std::string kOrientArg;
+
 public:
-	/// Calls base 2d constructor with junk bin arguments, sets constants
-	Summary (const char* name, const char* title, const char* param, const char* gate,
-					 hist::Manager* manager, Int_t event_code,
-					 Int_t nbins, Double_t low, Double_t high, Option_t* orientation);
 	/// Override hist::Base parameter initialization
 	virtual void InitParams(const char* params, Int_t event_code);
 	/// Override hist::Base filling procedure
@@ -341,16 +344,25 @@ public:
 		}
 		return kParamArg;
 	}
+
 protected:
+	/// Calls base 2d constructor with junk bin arguments, sets constants
+	Summary (const char* name, const char* title, const char* param, const char* gate,
+					 hist::Manager* manager, Int_t event_code,
+					 Int_t nbins, Double_t low, Double_t high, Option_t* orientation);
 	/// Sets orientation in addition to calling Base::Init()
 	virtual void Init(const char* name, const char* title, const char* param, const char* gate, Int_t event_code)
 		{
 			SetOrientation(kOrientArg.c_str());
 			rb::hist::Base::Init(name, title, param, gate, event_code);
 		}
+
 private:
 	/// Set the orientation (horizontal or vertical)
 	void SetOrientation(Option_t* orientation);
+
+public:
+	friend class rb::hist::Manager;
 	ClassDef(rb::hist::Summary, 0);
 };
 
@@ -393,7 +405,7 @@ class Bit: public Base
 private:
 	/// The number of bits displayed
 	const Int_t kNumBits;
-public:
+protected:
 	/// Constructor (1d)
 	Bit (const char* name, const char* title, const char* param, const char* gate,
 			 hist::Manager* manager, Int_t event_code,
@@ -402,6 +414,9 @@ public:
 	virtual void InitParams(const char* params, Int_t event_code);
 	/// Override hist::Base filling procedure
 	virtual Int_t DoFill(const std::vector<Double_t>& params);
+
+public:
+	friend class rb::hist::Manager;
 	ClassDef(rb::hist::Bit, 0);
 };
 
@@ -415,25 +430,28 @@ private:
 	/// Event counter
 	Long64_t fNumEvents;
 public:
+	/// Override clear, needs to also set fNumEvents = 0
+	virtual void Clear();
+protected:
 	/// Constructor
 	Scaler (const char* name, const char* title, const char* param, const char* gate,
 					hist::Manager* manager, Int_t event_code,
 					Int_t nbins, Double_t low, Double_t high);
-	/// Override clear, needs to also set fNumEvents = 0
-	virtual void Clear();
-	/// Override filling procedure
-	virtual Int_t DoFill(const std::vector<Double_t>& params);
-	ClassDef(rb::hist::Scaler, 0);
-protected:
 	/// Sets fill color in addition to calling Base::Init()
 	virtual void Init(const char* name, const char* title, const char* param, const char* gate, Int_t event_code)
 		{
 			rb::hist::Base::Init(name, title, param, gate, event_code);
 			visit::hist::Cast::Do(fHistVariant)->SetFillColor(30);
 		}			
+	/// Override filling procedure
+	virtual Int_t DoFill(const std::vector<Double_t>& params);
 private:
 	/// Extend the x-axis length by factor, keeping the same binning
 	void Extend(double factor);
+
+public:
+	friend class rb::hist::Manager;
+	ClassDef(rb::hist::Scaler, 0);
 };
 
 } // namespace hist
