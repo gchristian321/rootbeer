@@ -146,7 +146,7 @@ TDirectory* rb::Mkdir(const char* name, const char* title) {
 	}
 
 	TDirectory* current = gDirectory;
-	current->cd();
+	gROOT->cd();
 	TString sdp(name);
 	std::auto_ptr<TObjArray> dirs (sdp.Tokenize("/"));
 	for (int i=0; i< dirs->GetEntries(); ++i) {
@@ -160,6 +160,7 @@ TDirectory* rb::Mkdir(const char* name, const char* title) {
 	}
 	TDirectory* newDir = gDirectory;
 	if(newDir) newDir->cd();
+	else current->cd();
 	if(gApp()->GetHistSignals()) gApp()->GetHistSignals()->SyncHistTree();
 	return newDir;
 
