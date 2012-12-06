@@ -206,7 +206,7 @@ void rb::data::Mapper::MapClass() {
 
     std::string newName = append_name(kBranchName, d->GetName());
     if(d->IsBasic())
-			 HandleBasic(d, newName.c_str());
+			HandleBasic(d, newName.c_str());
     else {
       Long_t addr = kBase + d->GetOffset();
       Mapper sub_mapper(newName.c_str(), d->GetTrueTypeName(), addr, false);

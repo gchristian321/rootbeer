@@ -7,6 +7,7 @@
 #define DATA_HXX
 #include <iostream>
 #include <sstream>
+#include <cassert>
 #include <vector>
 #include <TROOT.h>
 #include <TTree.h>
@@ -275,6 +276,15 @@ public:
 	//! without any arguments, i.e. <tt>new MyClass()</tt>.
 	Wrapper(const char* name, Event* event = 0, Bool_t makeVisible = true, const char* args = "", Int_t bufsize = 32000);
 
+	/// \brief Constructor version for when no default constructor is available for class \e T
+	//! \details Overloads the constructor for cases where no default constructor is available
+	//! for the wrapped class. This is done by adding a "dummy" bool as the second argument, but
+	//! other than that the use is identical to the other constructor. The reason this is needed is
+	//! to allow \e static (compile time) decisions about how to construct the object (new T() vs.
+	//! gROOT->ProcessLineFast()). Previously this was only done at runtime which only will compile
+	//! if a dfault construtor exists for the class \e T.
+	Wrapper(const char* name, Bool_t, Event* event = 0, Bool_t makeVisible = true, const char* args = "", Int_t bufsize = 32000);
+
 	/// \details Frees memory allocated to the user class.
 	virtual ~Wrapper();
 
@@ -358,6 +368,7 @@ inline void rb::data::Basic<T>::SetValue(Double_t newval) {
 namespace
 {
 #ifndef RB_DATA_ON_STACK
+// Optional CINT contstruction
 template<class T> T* Construct(const char* args) {
 	// Allocate new instance of T
 	T* data = 0;
@@ -375,6 +386,23 @@ template<class T> T* Construct(const char* args) {
 	}
 	return data;
 }
+// Force CINT construction
+template<class T> T* Construct(const char* args, Bool_t) {
+	// Allocate new instance of T
+	T* data = 0;
+	// Force use of CINT to construct
+	std::stringstream cmd;
+	cmd << "new " << TClass::GetClass(typeid(T))->GetName() << "(" << args  << ");";
+	data = reinterpret_cast<T*> (gROOT->ProcessLineFast(cmd.str().c_str()));
+
+	if (!data) {
+		err::Error("Data::Init") <<
+			"Couldn't create a new instance of the template class " << "(typeid.name(): "<< 
+			typeid(T).name() << ", constructor arguments: " << args << ").";
+		data = 0;
+	}
+	return data;
+}
 #endif
 }
 
@@ -382,7 +410,8 @@ template<class T> T* Construct(const char* args) {
 // Constructor                //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 template <class T>
-inline rb::data::Wrapper<T>::Wrapper(const char* name, Event* event, Bool_t makeVisible, const char* args, Int_t bufsize):
+inline rb::data::Wrapper<T>::Wrapper(const char* name, Event* event, Bool_t makeVisible,
+																		 const char* args, Int_t bufsize):
   kBranchName(name),
 #ifdef RB_DATA_ON_STACK
   fData(),  fDataVoidPtr(&fData)
@@ -392,6 +421,25 @@ inline rb::data::Wrapper<T>::Wrapper(const char* name, Event* event, Bool_t make
 {
   Init(event, makeVisible, args, bufsize);
 }
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// Constructor (v2)           //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+template <class T>
+inline rb::data::Wrapper<T>::Wrapper(const char* name, Bool_t, Event* event,
+																		 Bool_t makeVisible, const char* args, Int_t bufsize):
+	kBranchName(name),
+#ifdef RB_DATA_ON_STACK
+	fData(), fDataVoidPtr(&fData)
+#else
+	fData(Construct<T>(args, true)), fDataVoidPtr(fData.get())
+#endif
+{
+#ifdef RB_DATA_ON_STACK
+	assert(0 && "Dynamic constructor not available with stack data, recompile with RB_DATA_ON_STACK not defined.");
+#endif
+	Init(event, makeVisible, args, bufsize);
+}
+
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // Destructor                 //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
