@@ -1,0 +1,17 @@
+analyzer
+cint/RBDictionary.cxx
+cint/RBDictionary.h
+config
+data
+doxygen/.DS_Store
+doxygen/Doxyfile.bak
+longAttach.dat
+*.log
+rbu
+*.dSYM
+rbunpack
+rootbeer
+.DS_Store
+*/.DS_Store
+*/*/.DS_Store
+etc
