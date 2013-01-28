@@ -35,16 +35,20 @@ namespace
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // Constructor                                           //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-rb::DirectDataFormula::DirectDataFormula(const char* branchName, const char* className, void* addr, const char* formula):
-	fReader(0) {
+rb::DirectDataFormula::DirectDataFormula(const char* branchName, const char* className, void* addr, const char* formula) {
 	rb::data::Mapper mapper (branchName, className, reinterpret_cast<Long_t>(addr), false);
-	fReader.reset(mapper.FindBasicReader(formula));
+	fReader = mapper.FindBasicReader(formula);
+}
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// Constructor                                           //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+rb::DirectDataFormula::~DirectDataFormula() {
+	if(fReader) delete fReader;
 }
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // Double_t rb::DirectDataFormula::Evaluate()            //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-Double_t rb::DirectDataFormula::Evaluate()
-{
+Double_t rb::DirectDataFormula::Evaluate() {
 	return fReader->ReadValue();
 }
 
@@ -57,18 +61,18 @@ Double_t rb::DirectDataFormula::Evaluate()
 // Constructor                                           //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 rb::TreeFormulae::TreeFormulae(std::vector<std::string>& params, Int_t event_code):
-  kEventCode(event_code), fTreeFormulae(new boost::ptr_vector<TTreeFormula>(), gDataMutex) {
+  kEventCode(event_code), fDataFormulae(new boost::ptr_vector<rb::DataFormula>(), gDataMutex) {
 
   RB_LOCKGUARD(gDataMutex);
   std::vector<std::string>::iterator it;
   for(it = params.begin(); it != params.end(); ++it) {
     modify_formula_arg(*it);
     fFormulaArgs.push_back(*it);
-    TTreeFormula* formula = 
+    rb::DataFormula* formula = 
       rb::Event::InitFormula::Operate(rb::gApp()->GetEvent(kEventCode), it->c_str());
 
-    if(!formula->GetNdim()) ThrowBad(it->c_str(), it-params.begin());
-    else fTreeFormulae->push_back(formula);
+    if(formula->IsZombie()) ThrowBad(it->c_str(), it-params.begin());
+    else fDataFormulae->push_back(formula);
   }
 }
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
@@ -89,15 +93,15 @@ Bool_t rb::TreeFormulae::Change(Int_t index, std::string new_formula) {
   modify_formula_arg(new_formula);
 
   // check that new gate formula is valid
-  boost::scoped_ptr<TTreeFormula>
+  boost::scoped_ptr<rb::DataFormula>
     temp (rb::Event::InitFormula::Operate(rb::gApp()->GetEvent(kEventCode), new_formula.c_str()));
 
-  if(!temp->GetNdim())
+  if(temp->IsZombie())
     return false;
   else {
     try {
       RB_LOCKGUARD(gDataMutex);
-      fTreeFormulae->replace(index, rb::Event::InitFormula::Operate(rb::gApp()->GetEvent(kEventCode), new_formula.c_str()));
+      fDataFormulae->replace(index, rb::Event::InitFormula::Operate(rb::gApp()->GetEvent(kEventCode), new_formula.c_str()));
       fFormulaArgs.at(index) = new_formula;
     } catch(std::exception& e) {
       err::Error("rb::TreeFormulae::Change()") << "Invalid index " << index;
@@ -127,7 +131,7 @@ Double_t rb::TreeFormulae::Eval(Int_t index) {
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 Double_t rb::TreeFormulae::EvalUnlocked(Int_t index) {
   Double_t ret = -1;
-  try { ret = fTreeFormulae->at(index).EvalInstance(0); }
+  try { ret = fDataFormulae->at(index).Evaluate(); }
   catch (std::exception& e) {
     err::Error("rb::TreeFormulae::Eval") << "Invalid index " << index;
     ret = -1;
@@ -145,8 +149,8 @@ void rb::TreeFormulae::EvalAll(std::vector<Double_t>& out) {
 // void rb::TreeFormulae::EvalAllUnlocked()              //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 void rb::TreeFormulae::EvalAllUnlocked(std::vector<Double_t>& out) {
-  boost::ptr_vector<TTreeFormula>::iterator it;
+  boost::ptr_vector<rb::DataFormula>::iterator it;
   out.clear();
-  for(it = fTreeFormulae->begin(); it != fTreeFormulae->end(); ++it)
-    out.push_back(it->EvalInstance(0));
+  for(it = fDataFormulae->begin(); it != fDataFormulae->end(); ++it)
+    out.push_back(it->Evaluate());
 }

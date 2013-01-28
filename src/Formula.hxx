@@ -70,7 +70,7 @@ class DirectDataFormula : public DataFormula
 {
 private:
 	/// "Reader" for the values stored at the address corresponding to the desired formula
-	boost::scoped_ptr<rb::data::MReader> fReader;
+	rb::data::MReader* fReader;
 public:
 	/// \brief Creates fReader
 	//! \param branchName name of the "top level" branch in which the formula's data is contained
@@ -78,10 +78,12 @@ public:
 	//! \param addr Pointer to the class instance storing the formula's data
 	//! \param formula The formula to evaluate.
 	DirectDataFormula(const char* branchName, const char* className, void* addr, const char* formula);
+	/// Deletes fReader
+	virtual ~DirectDataFormula();
 	/// \brief Calls fReader->ReadValue();
 	virtual Double_t Evaluate();
-	/// \brief Returns true if fReader.get() == 0
-	virtual Bool_t IsZombie() { return fReader.get() == 0; }
+	/// \brief Returns true if fReader == 0
+	virtual Bool_t IsZombie() { return fReader == 0; }
 };
 	// 	rb::data::Mapper mapper ("gamma", "dragon::Head", reinterpret_cast<Long_t>(head), false);
 
@@ -90,12 +92,12 @@ class TreeFormulae
 {
 private:
 	const Int_t kEventCode;
-	rb::Critical<boost::ptr_vector<TTreeFormula> > fTreeFormulae;
+	rb::Critical<boost::ptr_vector<rb::DataFormula> > fDataFormulae;
 	std::vector<std::string> fFormulaArgs;
 public:
-	TreeFormulae(): kEventCode(-1001), fTreeFormulae(0, gDataMutex) {}
+	TreeFormulae(): kEventCode(-1001), fDataFormulae(0, gDataMutex) {}
 	TreeFormulae(std::vector<std::string>& params, Int_t event_code);
-	Int_t GetN() { return fTreeFormulae->size(); }
+	Int_t GetN() { return fDataFormulae->size(); }
 	std::string Get(Int_t index);
 	Double_t Eval(Int_t index);
 	Double_t EvalUnlocked(Int_t index);
@@ -104,9 +106,10 @@ public:
 	Bool_t Change(Int_t index, std::string new_formula);
 private:
 	void ThrowBad(const char* formula, Int_t index);
-	TreeFormulae(const TreeFormulae& other): kEventCode(-1001), fTreeFormulae(0, gDataMutex) {}
+	TreeFormulae(const TreeFormulae& other): kEventCode(-1001), fDataFormulae(0, gDataMutex) {}
 	TreeFormulae& operator= (const TreeFormulae& other) { return *this; }
 };
-}
+
+} // namespace rb
 
 #endif

@@ -1,5 +1,6 @@
 //! \file Event.cxx
 //! \brief Implements Event.hxx
+#include <cassert>
 #include "Event.hxx"
 #include "Rint.hxx"
 #include "hist/Hist.hxx"
@@ -39,8 +40,8 @@ void rb::Event::Process(const void* event_address, Int_t nchar) {
 			pSave->Fill();
     }
   } // Locks go out of scope & unlock
-  if(success) fHistManager.FillAll();
-  else HandleBadEvent();
+ if(success) fHistManager.FillAll();
+ else HandleBadEvent();
 }
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // void rb::Event::StartSave()                           //
@@ -83,9 +84,19 @@ rb::hist::Base* rb::Event::FindHistogram(const char* name, TDirectory* owner) {
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // Bool_t rb::Event::InitFormula::Operate()              //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-TTreeFormula* rb::Event::InitFormula::Operate(rb::Event* const event, const char* formula_arg) {
+rb::DataFormula* rb::Event::InitFormula::Operate(rb::Event* const event, const char* formula_arg) {
   LockFreePointer<TTree> pTree(event->fTree);
-  return new TTreeFormula(formula_arg, formula_arg, pTree.Get());
+	TBranch* branch = reinterpret_cast<TBranch*>(pTree->GetListOfBranches()->At(0));
+	assert(branch);
+	assert(pTree->GetListOfBranches()->GetEntries() == 1);
+
+	LockFreePointer<Long_t> pAddr(event->fClassAddr);
+	rb::DirectDataFormula* direct =
+		new rb::DirectDataFormula(branch->GetName(), branch->GetClassName(), reinterpret_cast<void*>(*pAddr), formula_arg);
+	if(direct->IsZombie() == false) return direct;
+
+	delete direct;
+  return new rb::TTreeDataFormula(formula_arg, formula_arg, pTree.Get());
 }
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // Bool_t rb::Event::BranchAdd::Operate()                //
@@ -93,6 +104,10 @@ TTreeFormula* rb::Event::InitFormula::Operate(rb::Event* const event, const char
 Bool_t rb::Event::BranchAdd::Operate(rb::Event* const event, const char* name, const char* classname, void** address, Int_t bufsize) {
   TBranch* branch =
     LockingPointer<TTree>(event->fTree, gDataMutex)->Branch(name, classname, address, bufsize, 0);
+	if(branch) {
+		LockingPointer<Long_t> pAddr(event->fClassAddr, gDataMutex);
+		*pAddr = reinterpret_cast<Long_t>(*address);
+	}
   return branch != 0;
 }
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
