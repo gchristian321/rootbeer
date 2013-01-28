@@ -1,10 +1,45 @@
 //! \file Data.cxx
 //! \brief Implements Data.hxx
 #include <algorithm>
+#include <TRealData.h>
 #include "Rint.hxx"
 #include "Data.hxx"
+#include "utils/Error.hxx"
 #include "utils/ANSort.hxx"
 
+
+
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// Class                                 //
+// rb::data::MReader Implementation      //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+
+#define GET_READER(addr, type)																					\
+  else if (!strcmp(typeName, #type))																		\
+    retval = new rb::data::Reader<type> (addr)
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// MReader* rb::data::MReader::New() [static]  //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+rb::data::MReader* rb::data::MReader::New(const char* typeName, Long_t dataAddress) {
+	MReader* retval = 0;
+	if(!dataAddress) {}
+	GET_READER(dataAddress, double);
+	GET_READER(dataAddress, float);
+	GET_READER(dataAddress, long long);
+	GET_READER(dataAddress, long);
+	GET_READER(dataAddress, int);
+	GET_READER(dataAddress, short);
+	GET_READER(dataAddress, char);
+	GET_READER(dataAddress, bool);
+	GET_READER(dataAddress, unsigned long long);
+	GET_READER(dataAddress, unsigned long);
+	GET_READER(dataAddress, unsigned int);
+	GET_READER(dataAddress, unsigned short);
+	GET_READER(dataAddress, unsigned char);
+	else {}
+	return retval;
+}
+#undef GET_READER
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // Class                                 //
@@ -21,18 +56,18 @@ void rb::data::MBasic::New(const char* name, volatile void* addr, TDataMember* d
     if(!m) err::Error("data::MBasic::New") << "Constructor returned a NULL pointer"; }
   if(0);
   CHECK_TYPE(double)
-		 CHECK_TYPE(float)
-		 CHECK_TYPE(long long)
-		 CHECK_TYPE(long)
-		 CHECK_TYPE(int)
-		 CHECK_TYPE(short)
-		 CHECK_TYPE(char)
-		 CHECK_TYPE(bool)
-		 CHECK_TYPE(unsigned long long)
-		 CHECK_TYPE(unsigned long)
-		 CHECK_TYPE(unsigned int)
-		 CHECK_TYPE(unsigned short)
-		 CHECK_TYPE(unsigned char)
+		CHECK_TYPE(float)
+		CHECK_TYPE(long long)
+		CHECK_TYPE(long)
+		CHECK_TYPE(int)
+		CHECK_TYPE(short)
+		CHECK_TYPE(char)
+		CHECK_TYPE(bool)
+		CHECK_TYPE(unsigned long long)
+		CHECK_TYPE(unsigned long)
+		CHECK_TYPE(unsigned int)
+		CHECK_TYPE(unsigned short)
+		CHECK_TYPE(unsigned char)
   else;
 #undef CHECK_TYPE
 }
@@ -127,7 +162,7 @@ inline Bool_t ShouldBeMapped(TDataMember* d, bool exclude_hash = true) {
 	if(exclude_hash) return !(title[0] == '#');
 	else             return !(title[0] == '!');
 }
-class ArrayConverter // Class to reconstruct the original indices				       
+class ArrayConverter // Class to reconstruct the original indices
 {		       // of a multi-dimensional array that has been flattened by TStreamerElements.
 public:	       // Gives us strings with the original indices in brackets.
 	 ArrayConverter(TDataMember* d);
@@ -149,10 +184,12 @@ void rb::data::Mapper::HandleBasic(TDataMember* d, const char* name) {
   if(nDim == 0) { // not an array
     rb::data::MBasic::New(name, reinterpret_cast<void*>(addr), d);
   }
-  else if(d->GetArrayDim() > 4) // too big
-		 Warning("MapData",
-						 "No support for arrays > 4 dimensions. The array %s is %d and will not be mapped!",
-						 name, d->GetArrayDim());
+  else if(d->GetArrayDim() > 4) { // too big
+		err::Warning("MapData")
+			<< "No support for arrays > 4 dimensions. The array " << name
+			<< " is " << d->GetArrayDim() << " dimensions and will not be mapped!"
+			<< ERR_FILE_LINE;
+	}
   else {
     ArrayConverter ac(d);
     Int_t arrayLen = ac.GetArrayLength();
@@ -161,7 +198,7 @@ void rb::data::Mapper::HandleBasic(TDataMember* d, const char* name) {
       addr += size*(i>0);
       rb::data::MBasic::New(ac.GetFullName(name, i).c_str(), reinterpret_cast<void*>(addr), d);
     }
-  }  
+  }
 }
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // void rb::data::Mapper::InsertBasic()   //
@@ -172,10 +209,12 @@ void rb::data::Mapper::InsertBasic(TDataMember* d, std::vector<std::string>& v_n
   if(nDim == 0) { // not an array
 		v_names.push_back(name);
   }
-  else if(d->GetArrayDim() > 4) // too big
-		 Warning("MapData",
-						 "No support for arrays > 4 dimensions. The array %s is %d and will not be mapped!",
-						 name, d->GetArrayDim());
+  else if(d->GetArrayDim() > 4) { // too big
+		err::Warning("MapData")
+			<< "No support for arrays > 4 dimensions. The array " << name
+			<< " is " << d->GetArrayDim() << " dimensions and will not be mapped!"
+			<< ERR_FILE_LINE;
+	}
   else {
     ArrayConverter ac(d);
     Int_t arrayLen = ac.GetArrayLength();
@@ -184,7 +223,7 @@ void rb::data::Mapper::InsertBasic(TDataMember* d, std::vector<std::string>& v_n
       addr += size*(i>0);
 			v_names.push_back(ac.GetFullName(name, i).c_str());
     }
-  }  
+  }
 }
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // void rb::data::Mapper::MapClass()      //
@@ -234,6 +273,84 @@ void rb::data::Mapper::ReadBranches(std::vector<std::string>& branches) {
       sub_mapper.ReadBranches(branches);
     }
   }
+}
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// Long_t rb::data::Mapper::FindBasic()   //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+Long_t rb::data::Mapper::FindBasic(const char* name) {
+  TClass* cl = TClass::GetClass(kClassName.c_str());
+	TRealData* realData = cl ? cl->GetRealData(name) : 0;
+	TDataMember* dataMember = realData ? realData->GetDataMember() : 0;
+	if(!dataMember) return 0;
+
+	Long_t retval = 0;
+  Int_t nDim = dataMember->GetArrayDim();
+  if(nDim == 0) { // not an array
+		retval = kBase + realData->GetThisOffset();
+  }
+  else if(dataMember->GetArrayDim() > 4) { // too big
+		Warning("FindBasic",
+						"No support for arrays > 4 dimensions. The array %s is %d and will not be mapped!",
+						name, dataMember->GetArrayDim());
+	}
+  else {
+    ArrayConverter ac(dataMember);
+    Int_t arrayLen = ac.GetArrayLength();
+    Int_t size = dataMember->GetUnitSize();
+		Long_t addr = kBase + realData->GetThisOffset();
+    for(Int_t i=0; i< arrayLen; ++i) {
+      addr += size*(i>0);
+
+			std::string strName(name);
+			std::string nnn = strName.rfind(".") < strName.size() ? strName.substr(0, strName.rfind(".") + 1) : "";
+			nnn += dataMember->GetName();
+			printf("%s\t%s\n", ac.GetFullName(nnn.c_str(), i).c_str(), name);
+			if(ac.GetFullName(nnn.c_str(), i) == strName) {
+				retval = addr;
+				break;
+			}
+		}
+	}
+	return retval;
+}
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// rb::data::MReader* rb::data::Mapper::FindBasic()   //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+rb::data::MReader* rb::data::Mapper::FindBasic2(const char* name) {
+  TClass* cl = TClass::GetClass(kClassName.c_str());
+	TRealData* realData = cl ? cl->GetRealData(name) : 0;
+	TDataMember* dataMember = realData ? realData->GetDataMember() : 0;
+	if(!dataMember) return 0;
+
+	Long_t retval = 0;
+  Int_t nDim = dataMember->GetArrayDim();
+  if(nDim == 0) { // not an array
+		retval = kBase + realData->GetThisOffset();
+  }
+  else if(dataMember->GetArrayDim() > 4) { // too big
+		Warning("FindBasic",
+						"No support for arrays > 4 dimensions. The array %s is %d and will not be mapped!",
+						name, dataMember->GetArrayDim());
+	}
+  else {
+    ArrayConverter ac(dataMember);
+    Int_t arrayLen = ac.GetArrayLength();
+    Int_t size = dataMember->GetUnitSize();
+		Long_t addr = kBase + realData->GetThisOffset();
+    for(Int_t i=0; i< arrayLen; ++i) {
+      addr += size*(i>0);
+
+			std::string strName(name);
+			std::string nnn = strName.rfind(".") < strName.size() ? strName.substr(0, strName.rfind(".") + 1) : "";
+			nnn += dataMember->GetName();
+			printf("%s\t%s\n", ac.GetFullName(nnn.c_str(), i).c_str(), name);
+			if(ac.GetFullName(nnn.c_str(), i) == strName) {
+				retval = addr;
+				break;
+			}
+		}
+	}
+	return rb::data::MReader::New(dataMember->GetTrueTypeName(), retval);
 }
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // void rb::data::Mapper::Message()       //

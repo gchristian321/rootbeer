@@ -37,18 +37,23 @@ public:
 protected:
 	//! Maps the base name of each data class to a pointer to its corresponding
 	//! data::MBasic instance
-	static MBasic::Map_t& fgAll();
+	static MBasic::Map_t& fgAll() {
+		static MBasic::Map_t* m = new MBasic::Map_t();
+		return *m;
+	}
 	//! The type of basic data (int, double, etc.)
 	const TDataMember* fDataMember;
 public:
 	//! Sets fDataMember
-	MBasic(const TDataMember* d);
+	MBasic(const TDataMember* d): fDataMember(d) {}
 	//! Nothing to do
 	virtual ~MBasic() {}
 	//! Pure virtual, see rb::data::Basic
 	virtual Double_t GetValue() = 0;
 	//! Pure virtual, see rb::data::Basic
 	virtual void SetValue(Double_t newval) = 0;
+	//! Pure virtual, see rb::data::Basic
+	virtual Long_t GetAddress() = 0;
 	//! Returns a vector containing the names of all variables.
 	static std::vector<std::string> GetAll();
 	//! Search for an instance of Basic*
@@ -59,7 +64,7 @@ public:
 	//! automatically caseted to the correct type based on the <i>basic_type_name</i> input parameter.
 	static void New(const char* name, volatile void* addr, TDataMember* element);
 
-	//! Prints or writes to a stream information on each entry in fgAll.
+  //! Prints or writes to a stream information on each entry in fgAll.
 	class Printer
 	{
  public:
@@ -68,13 +73,47 @@ public:
 		//! Print the full name and value of each data::MBasic instance
 		void PrintAll();
 	};
+
 };
-inline rb::data::MBasic::MBasic(const TDataMember* d) :
-	fDataMember(d) {}
-inline MBasic::Map_t& MBasic::fgAll() {
-	static MBasic::Map_t* m = new MBasic::Map_t();
-	return *m;
-}
+
+/// \brief Class to read the data contained at a memory address, and translate it into a Double_t.
+//! \details This is an abstract class: implementations are templates that act on the actual type
+//! stored at the address.
+class MReader
+{
+public:
+	/// \brief Constructor, empty
+	MReader() { }
+	/// \brief Destructor, empty
+	virtual ~MReader() { }
+	/// \brief Casts the value at address to a Double_t
+	virtual Double_t ReadValue() = 0;
+	/// \brief Static "creation" function
+	//! \details Returns the appropriate derived type based on the passed string.
+	//! The string should correspond to the return value of TDataMember::GetRealTypeName().
+	//! \returns Address of the newly created MBasic; 0 if passed an invalid type name.
+	static MReader* New(const char* typeName, Long_t dataAddress);
+};
+
+/// \brief Derived classes of MReader for the various basic data types.
+template <class T>
+class Reader: public MReader
+{
+private:
+	/// \brief Address where the data of interest are stored.
+	Long_t fAddress;
+public:
+	/// \brief Sets fAddress
+	Reader(Long_t address): fAddress(address) { }
+	/// \brief Empty
+	~Reader() { }
+	/// Casts the data at fAddress first to \e T, then to Double_t
+	virtual Double_t ReadValue() {
+		T* pData = reinterpret_cast<T*>(fAddress);
+		return static_cast<Double_t>(*pData);
+	}
+};
+
 
 /// \brief Allows access to basic data members of user classes in CINT.
 //! \details The motivation behind this class is to allow users to have safe
@@ -167,6 +206,8 @@ public:
 	Double_t GetValue();
 	//! Change the value of the data stored at fAddress
 	void SetValue(Double_t newval);
+	//! Return the memory location of the basic data
+	Long_t GetAddress();
 	//! Nothing to do
 	virtual ~Basic();
 };
@@ -189,6 +230,12 @@ public:
 	void MapClass();
 	//! Similar to MapClass(), except if isn't concerned with addresses and it fills an external vector.
 	void ReadBranches(std::vector<std::string>& branches);
+	//! \brief Finds the address of a specific piece of data.
+	//! \returns The address at which the indicated datum is located, or 0 if the data isn't present.
+	Long_t FindBasic(const char* name);
+	//! \brief Finds the address of a specific piece of data.
+	//! \returns The address at which the indicated datum is located, or 0 if the data isn't present.
+	MReader* FindBasic2(const char* name);
 private:
 	//! Handle a basic element, create a new instance of MBasic data for each array element.
 	void HandleBasic(TDataMember* d, const char* name);
@@ -359,6 +406,14 @@ template <class T>
 inline void rb::data::Basic<T>::SetValue(Double_t newval) {
   LockingPointer<T> p(fAddress, gDataMutex);
   *p = T(newval);
+}
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// Long_t rb::data::Basic<T>::GetAddress()   //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+template <class T>
+inline Long_t rb::data::Basic<T>::GetAddress() {
+  LockingPointer<T> p(fAddress, gDataMutex);
+  return reinterpret_cast<Long_t>(p.Get());
 }
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
