@@ -16,6 +16,7 @@ int main(int argc, char** argv)
 	Bool_t lite = args.count("-l");
   rb::Rint rbApp("Rootbeer", &argc, argv, 0, 0, lite);
   gROOT->ProcessLine("gStyle->SetOptTitle(kTRUE)");
+  gROOT->ProcessLine("gStyle->SetOptStat(kTRUE)");
   rbApp.Run();
   return 0;
 }
