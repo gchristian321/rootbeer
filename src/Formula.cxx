@@ -9,6 +9,7 @@
 #include <TTreeFormula.h>
 #include "Formula.hxx"
 #include "Rint.hxx"
+#include "Data.hxx"
 #include "utils/Mutex.hxx"
 #include "utils/Error.hxx"
 
@@ -25,6 +26,28 @@ namespace
     else;                              // don't modify
   }
 }
+
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// Class                                                 //
+// rb::DirectDataFormula                                 //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// Constructor                                           //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+rb::DirectDataFormula::DirectDataFormula(const char* branchName, const char* className, void* addr, const char* formula):
+	fReader(0) {
+	rb::data::Mapper mapper (branchName, className, reinterpret_cast<Long_t>(addr), false);
+	fReader.reset(mapper.FindBasicReader(formula));
+}
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// Double_t rb::DirectDataFormula::Evaluate()            //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+Double_t rb::DirectDataFormula::Evaluate()
+{
+	return fReader->ReadValue();
+}
+
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // Class                                                 //
 // rb::TreeFormulae                                      //
