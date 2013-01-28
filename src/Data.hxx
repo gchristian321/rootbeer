@@ -232,10 +232,14 @@ public:
 	void ReadBranches(std::vector<std::string>& branches);
 	//! \brief Finds the address of a specific piece of data.
 	//! \returns The address at which the indicated datum is located, or 0 if the data isn't present.
-	Long_t FindBasic(const char* name);
+	//! \param [in] name Name of the data to search for
+	//! \param [out] data_member Optional, is set to the TDataMember corresponding to \e name
+	Long_t FindBasicAddr(const char* name, TDataMember** data_member = 0);
 	//! \brief Finds the address of a specific piece of data.
 	//! \returns The address at which the indicated datum is located, or 0 if the data isn't present.
-	MReader* FindBasic2(const char* name);
+	//! \param [in] name Name of the data to search for
+	//! \param [out] data_member Optional, is set to the TDataMember corresponding to \e name
+	MReader* FindBasicReader(const char* name, TDataMember** data_member = 0);
 private:
 	//! Handle a basic element, create a new instance of MBasic data for each array element.
 	void HandleBasic(TDataMember* d, const char* name);

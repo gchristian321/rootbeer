@@ -1,5 +1,6 @@
 //! \file Data.cxx
 //! \brief Implements Data.hxx
+#include <cassert>
 #include <algorithm>
 #include <TRealData.h>
 #include "Rint.hxx"
@@ -274,15 +275,16 @@ void rb::data::Mapper::ReadBranches(std::vector<std::string>& branches) {
     }
   }
 }
-//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-// Long_t rb::data::Mapper::FindBasic()   //
-//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-Long_t rb::data::Mapper::FindBasic(const char* name) {
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// Long_t rb::data::Mapper::FindBasicAddr()   //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+Long_t rb::data::Mapper::FindBasicAddr(const char* name, TDataMember** data_member) {
   TClass* cl = TClass::GetClass(kClassName.c_str());
 	TRealData* realData = cl ? cl->GetRealData(name) : 0;
 	TDataMember* dataMember = realData ? realData->GetDataMember() : 0;
 	if(!dataMember) return 0;
 
+	if(data_member) *data_member = dataMember;
 	Long_t retval = 0;
   Int_t nDim = dataMember->GetArrayDim();
   if(nDim == 0) { // not an array
@@ -304,7 +306,6 @@ Long_t rb::data::Mapper::FindBasic(const char* name) {
 			std::string strName(name);
 			std::string nnn = strName.rfind(".") < strName.size() ? strName.substr(0, strName.rfind(".") + 1) : "";
 			nnn += dataMember->GetName();
-			printf("%s\t%s\n", ac.GetFullName(nnn.c_str(), i).c_str(), name);
 			if(ac.GetFullName(nnn.c_str(), i) == strName) {
 				retval = addr;
 				break;
@@ -313,44 +314,14 @@ Long_t rb::data::Mapper::FindBasic(const char* name) {
 	}
 	return retval;
 }
-//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-// rb::data::MReader* rb::data::Mapper::FindBasic()   //
-//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-rb::data::MReader* rb::data::Mapper::FindBasic2(const char* name) {
-  TClass* cl = TClass::GetClass(kClassName.c_str());
-	TRealData* realData = cl ? cl->GetRealData(name) : 0;
-	TDataMember* dataMember = realData ? realData->GetDataMember() : 0;
-	if(!dataMember) return 0;
-
-	Long_t retval = 0;
-  Int_t nDim = dataMember->GetArrayDim();
-  if(nDim == 0) { // not an array
-		retval = kBase + realData->GetThisOffset();
-  }
-  else if(dataMember->GetArrayDim() > 4) { // too big
-		Warning("FindBasic",
-						"No support for arrays > 4 dimensions. The array %s is %d and will not be mapped!",
-						name, dataMember->GetArrayDim());
-	}
-  else {
-    ArrayConverter ac(dataMember);
-    Int_t arrayLen = ac.GetArrayLength();
-    Int_t size = dataMember->GetUnitSize();
-		Long_t addr = kBase + realData->GetThisOffset();
-    for(Int_t i=0; i< arrayLen; ++i) {
-      addr += size*(i>0);
-
-			std::string strName(name);
-			std::string nnn = strName.rfind(".") < strName.size() ? strName.substr(0, strName.rfind(".") + 1) : "";
-			nnn += dataMember->GetName();
-			printf("%s\t%s\n", ac.GetFullName(nnn.c_str(), i).c_str(), name);
-			if(ac.GetFullName(nnn.c_str(), i) == strName) {
-				retval = addr;
-				break;
-			}
-		}
-	}
-	return rb::data::MReader::New(dataMember->GetTrueTypeName(), retval);
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// rb::data::MReader* rb::data::Mapper::FindBasicReader()   //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+rb::data::MReader* rb::data::Mapper::FindBasicReader(const char* name, TDataMember** data_member) {
+	TDataMember* d = 0;
+	Long_t retval = FindBasicAddr(name, &d);
+	if(data_member) *data_member = d;
+	return retval ? rb::data::MReader::New(d->GetTrueTypeName(), retval) : 0;
 }
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // void rb::data::Mapper::Message()       //
