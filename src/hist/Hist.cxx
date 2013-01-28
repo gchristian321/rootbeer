@@ -201,6 +201,7 @@ Int_t rb::hist::Base::FillUnlocked() {
 // rb::hist::Base::Fill() [locked data]                  //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 Int_t rb::hist::Base::Fill() {
+	RB_LOG << "Filling...\n";
   Double_t gate = fGate->Eval(0);
   if(!Bool_t(gate)) return 0;
   std::vector<Double_t> axes;
