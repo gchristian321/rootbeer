@@ -77,10 +77,6 @@ rbunpack: $(RBLIB)/libRootbeer.so $(SRC)/main.cc
 rootbeer: $(RBLIB)/libRootbeer.so $(SRC)/main.cc
 	$(LINK) $(USER_LIBS) -lRootbeer -lmidas $(MIDASLIBS) $(SRC)/main.cc -o rootbeer \
 
-testFormula: testFormula.cxx
-	$(COMPILER) -I$(DRAGON_HOME)/src $(CXXFLAGS) $(ROOTGLIBS) $(RPATH) $(DEFAULTS) $(USER_DEFINITIONS) -L$(PWD)/lib -L$(DRAGON_HOME)/lib -lDragon -lRBDragon -lRootbeer -lmidas $(MIDASLIBS) testFormula.cxx -o testFormula  -DPRIVATE=public -DPROTECTED=public -I$(ROOTSYS)/include \
-
-
 #### ROOTBEER LIBRARY ####
 OBJECTS=$(OBJ)/hist/Hist.o $(OBJ)/hist/Manager.o \
 $(OBJ)/Formula.o $(OBJ)/midas/TMidasEvent.o $(OBJ)/midas/TMidasFile.o $(MIDASONLINE) \
