@@ -59,7 +59,6 @@ endif
 
 COMPILER=g++ -Wall
 #COMPILER=clang++
-# -I/opt/local/include/ -I/opt/local/include/root
 
 DEFAULTS=$(DEF_FILE_DIR) $(DEF_SAVE_DIR) $(DEF_CONFIG_DIR)
 
@@ -106,6 +105,10 @@ $(OBJ)/midas/%.o: $(SRC)/midas/%.cxx $(CINT)/RBDictionary.cxx
 
 $(OBJ)/hist/%.o: $(SRC)/hist/%.cxx $(CINT)/RBDictionary.cxx
 	$(COMPILE) $(FPIC) -c \
+-o $@ $< \
+
+testing/%: $(PWD)/testing/%.cxx
+	$(LINK) $(USER_LIBS) -lRootbeer -lmidas $(MIDASLIBS) \
 -o $@ $< \
 
 RBdict: $(CINT)/RBDictionary.cxx

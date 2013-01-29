@@ -2,6 +2,10 @@
 //! \brief Implements Data.hxx
 //! \todo Handle arrays at a level lower than the final one.
 //! \todo Support for STL members (at least).
+#include <set>
+#include <list>
+#include <deque>
+#include <vector>
 #include <cassert>
 #include <sstream>
 #include <algorithm>
@@ -11,6 +15,81 @@
 #include "utils/Error.hxx"
 #include "utils/ANSort.hxx"
 
+#define ADD_STL(CONTAINER, TYPE) do {																		\
+		std::stringstream typeStr;																					\
+		typeStr << #CONTAINER << "<"	<< #TYPE << ">";											\
+		TClass* cl = TClass::GetClass(typeStr.str().c_str());								\
+		if(!cl) err::Error("ADD_STL") << "No TClass for " << typeStr.str();	\
+		assert(cl);																													\
+		fAddMap.insert(std::make_pair(cl, AddSTL<std::CONTAINER<TYPE>, TYPE>)); \
+		fLengthMap.insert(std::make_pair(cl, LengthSTL<std::CONTAINER<TYPE> >)); \
+	} while(0)
+
+#define ADD_CONTAINERS(TYPE) do {								\
+		ADD_STL(set, TYPE);													\
+		ADD_STL(list, TYPE);												\
+		ADD_STL(deque, TYPE);												\
+		ADD_STL(vector, TYPE);											\
+		ADD_STL(multiset, TYPE);										\
+	} while(0)
+
+namespace {
+
+typedef void   (*STLAdd_t)(const char*, volatile void*, TDataMember*);
+typedef size_t (*LengthSTL_t)(volatile void*);
+typedef std::map<TClass*, STLAdd_t> STLAddMap_t;
+typedef std::map<TClass*, LengthSTL_t> STLLengthMap_t;
+
+template <class T, class B>
+void AddSTL(const char* name, volatile void* addr, TDataMember* d)
+{
+	T* pSTL = (T*)addr;
+	int i = 0;
+	for(typename T::iterator it = pSTL->begin(); it != pSTL->end(); ++it) {
+		Long_t addrThis = reinterpret_cast<Long_t>(&(*it));
+		std::stringstream fullName;
+		fullName << name << "[" << i++ << "]";
+		rb::data::MBasic* m =
+			new rb::data::Basic<B>(fullName.str().c_str(), (volatile void*)addrThis, d);
+		if(!m) err::Error("AddSTL") << "Constructor returned a NULL pointer" << ERR_FILE_LINE;
+	}
+}
+
+template <class T>
+size_t LengthSTL(volatile void* addr)
+{
+	T* p = (T*)addr;
+	return p->size();
+}
+
+class STLAddMap
+{
+private:
+	STLAddMap_t fAddMap;
+	STLLengthMap_t fLengthMap;
+public:
+	STLAddMap_t* Get() { return &fAddMap; }
+	STLLengthMap_t* GetLengthMap() { return &fLengthMap; }
+	STLAddMap() {
+		ADD_CONTAINERS(double);
+		ADD_CONTAINERS(float);
+		ADD_CONTAINERS(long long);
+		ADD_CONTAINERS(long);
+		ADD_CONTAINERS(int);
+		ADD_CONTAINERS(short);
+		ADD_CONTAINERS(char);
+		ADD_CONTAINERS(unsigned long long);
+		ADD_CONTAINERS(unsigned long);
+		ADD_CONTAINERS(unsigned int);
+		ADD_CONTAINERS(unsigned short);
+		ADD_CONTAINERS(unsigned char);
+	}
+};
+
+} // namespace 
+
+#undef ADD_CONTAINERS
+#undef ADD_STL
 
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
@@ -54,60 +133,42 @@ rb::data::MReader* rb::data::MReader::New(const char* typeName, Long_t dataAddre
 // MBasic* rb::data::MBasic::New() [static]    //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 void rb::data::MBasic::New(const char* name, volatile void* addr, TDataMember* d) {
-#define CHECK_TYPE(type)																								\
-  else if (!strcmp(d->GetTrueTypeName(), #type)) {											\
-    rb::data::MBasic* m = new rb::data::Basic<type> (name, addr, d);		\
-    if(!m) err::Error("data::MBasic::New") << "Constructor returned a NULL pointer"; }
-  if(0);
-  CHECK_TYPE(double)
-		CHECK_TYPE(float)
-		CHECK_TYPE(long long)
-		CHECK_TYPE(long)
-		CHECK_TYPE(int)
-		CHECK_TYPE(short)
-		CHECK_TYPE(char)
-		CHECK_TYPE(bool)
-		CHECK_TYPE(unsigned long long)
-		CHECK_TYPE(unsigned long)
-		CHECK_TYPE(unsigned int)
-		CHECK_TYPE(unsigned short)
-		CHECK_TYPE(unsigned char)
-  else;
-#undef CHECK_TYPE
 
-#define CHECK_VECTOR(type) do {																					\
-		std::stringstream typeName;																					\
-		typeName << "vector<" << #type << ",allocator<" << #type << "> >";	\
-		if(!strcmp(typeName.str().c_str(), d->GetTrueTypeName())) {					\
-			std::vector<type>* pVect = (std::vector<type>*)addr;							\
-			for(size_t i=0; i< pVect->size(); ++i) {													\
-				Long_t addrThis = (Long_t)(&(pVect->operator[](i)));						\
-				std::stringstream fullName; fullName << name << "["<<i<<"]";		\
-				rb::data::MBasic* m = new rb::data::Basic<type>									\
-					(fullName.str().c_str(), (volatile void*)addrThis, d);				\
-				printf("Adding: %s\n", fullName.str().c_str());									\
-				if(!m) err::Error("data::MBasic::New") << "Constructor returned a NULL pointer"; \
-			}																																	\
+#define CHECK_TYPE(type) do {																						\
+		if (!strcmp(d->GetTrueTypeName(), #type)) {													\
+			rb::data::MBasic* m = new rb::data::Basic<type> (name, addr, d);	\
+			if(!m) err::Error("data::MBasic::New") << "Constructor returned a NULL pointer"; \
 			return;																														\
-		}																																		\
-	} while(0)
+		}	 } while(0)
 
-  CHECK_VECTOR(double);
-	CHECK_VECTOR(float);
-	CHECK_VECTOR(long long);
-	CHECK_VECTOR(long);
-	CHECK_VECTOR(int);
-	CHECK_VECTOR(short);
-	CHECK_VECTOR(char);
-	/// \note vector<bool> not supported b/c it's really a bitset.
-	// CHECK_VECTOR(bool);
-	CHECK_VECTOR(unsigned long long);
-	CHECK_VECTOR(unsigned long);
-	CHECK_VECTOR(unsigned int);
-	CHECK_VECTOR(unsigned short);
-	CHECK_VECTOR(unsigned char);
+	
+	CHECK_TYPE(double);
+	CHECK_TYPE(float);
+	CHECK_TYPE(long long);
+	CHECK_TYPE(long);
+	CHECK_TYPE(int);
+	CHECK_TYPE(short);
+	CHECK_TYPE(char);
+	CHECK_TYPE(bool);
+	CHECK_TYPE(unsigned long long);
+	CHECK_TYPE(unsigned long);
+	CHECK_TYPE(unsigned int);
+	CHECK_TYPE(unsigned short);
+	CHECK_TYPE(unsigned char);
 
-#undef CHECK_VECTOR	
+	static STLAddMap gSTLAddMap;
+	STLAddMap_t::iterator it = gSTLAddMap.Get()->find(TClass::GetClass(d->GetTrueTypeName()));
+	if(it == gSTLAddMap.Get()->end()) { // no support for the requested STL container
+		err::Error("MReader::New") << "No support for STL class: \"" << d->GetTrueTypeName()
+															 << "\"." << ERR_FILE_LINE;
+		return;
+	}
+	else { // call "adder" function
+		it->second(name, addr, d);
+		return;
+	}
+
+#undef CHECK_TYPE
 }
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // rb::data::MBasic::GetAll() [static]         //
@@ -242,12 +303,6 @@ void rb::data::Mapper::HandleBasic(TDataMember* d, const char* name) {
 // void rb::data::Mapper::HandleSTL()     //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 void rb::data::Mapper::HandleSTL(TDataMember* d, const char* name) {
-	/// \note Only support std::vector right now because other containers have memory
-	/// non-continuity issues that I don't want to worry about for the time being.
-	if (d->IsSTLContainer() != TDictionary::kVector) {
-		err::Warning("MapData")	<< "No support for STL containers other than std::vector." << ERR_FILE_LINE;
-		return;
-	}
   Long_t addr = kBase + d->GetOffset();
   Int_t nDim = d->GetArrayDim();
   if(nDim == 0) { // not an array
@@ -298,6 +353,8 @@ void rb::data::Mapper::InsertBasic(TDataMember* d, std::vector<std::string>& v_n
 // void rb::data::Mapper::InsertSTL()     //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 void rb::data::Mapper::InsertSTL(TDataMember* d, std::vector<std::string>& v_names, const char* name) {
+	static STLAddMap gSTLAddMap;
+
   Long_t addr = kBase + d->GetOffset();
   Int_t nDim = d->GetArrayDim();
   if(nDim == 0) { // not an array
@@ -312,10 +369,27 @@ void rb::data::Mapper::InsertSTL(TDataMember* d, std::vector<std::string>& v_nam
   else {
     ArrayConverter ac(d);
     Int_t arrayLen = ac.GetArrayLength();
-    Int_t size = d->GetUnitSize();
+		Int_t size = d->GetUnitSize();
+
+		// Loop over array elements
     for(Int_t i=0; i< arrayLen; ++i) {
-      addr += size*(i>0);
-			v_names.push_back(ac.GetFullName(name, i).c_str());
+			addr += size*(i>0); // address of the STL container
+			size_t lengthSTL = 0; // STL container length
+			STLLengthMap_t::iterator it =
+				gSTLAddMap.GetLengthMap()->find(TClass::GetClass(d->GetTrueTypeName()));
+
+			if(it == gSTLAddMap.GetLengthMap()->end()) { // no support for the requested STL container
+				err::Error("MReader::New") << "No support for STL class: \"" << d->GetTrueTypeName()
+																	 << "\"." << ERR_FILE_LINE;
+				return;
+			}
+
+			lengthSTL = it->second((volatile void*)addr);
+			for(size_t j=0; j< lengthSTL; ++j) {
+				std::stringstream fullname;
+				fullname << ac.GetFullName(name, i) << "[" << j << "]";
+				v_names.push_back(fullname.str());
+			}
     }
   }
 }

@@ -245,6 +245,10 @@ private:
 	void HandleBasic(TDataMember* d, const char* name);
 	//! Insert basic element names into a vector of strings, handles arrays similar to HandleBasic
 	void InsertBasic(TDataMember* d, std::vector<std::string>& v_names, const char* name);
+	//! Handle a STL element, create a new instance of MBasic data for each array element.
+	void HandleSTL(TDataMember* d, const char* name);
+	//! Insert STL element names into a vector of strings, handles arrays similar to HandleSTL
+	void InsertSTL(TDataMember* d, std::vector<std::string>& v_names, const char* name);
 	//! Adds a message to rb::Rint::fMessage indicating that a class's basic data has been mapped out.
 	void Message();
 };
