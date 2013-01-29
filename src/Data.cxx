@@ -1,5 +1,7 @@
 //! \file Data.cxx
 //! \brief Implements Data.hxx
+//! \todo Handle arrays at a level lower than the final one.
+//! \todo Support for STL members (at least).
 #include <cassert>
 #include <algorithm>
 #include <TRealData.h>
