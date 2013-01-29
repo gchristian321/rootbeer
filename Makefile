@@ -91,7 +91,7 @@ $(OBJ)/TGSelectDialog.o $(OBJ)/TGDivideSelect.o
 HEADERS=$(SRC)/Rootbeer.hxx $(SRC)/Rint.hxx $(SRC)/Data.hxx $(SRC)/Buffer.hxx $(SRC)/Event.hxx \
 $(SRC)/Signals.hxx $(SRC)/Formula.hxx $(SRC)/utils/LockingPointer.hxx $(SRC)/utils/Mutex.hxx \
 $(SRC)/hist/Hist.hxx $(SRC)/hist/Visitor.hxx $(SRC)/hist/Manager.hxx $(SRC)/TGSelectDialog.h $(SRC)/TGDivideSelect.h \
-$(SRC)/HistGui.hxx $(SRC)/Gui.hxx $(SRC)/midas/*.h $(SRC)/utils/*.h* $(USER_HEADERS)
+$(SRC)/HistGui.hxx $(SRC)/Gui.hxx $(SRC)/midas/*.h $(SRC)/utils/*.h*
 
 
 RBlib: $(RBLIB)/libRootbeer.so
@@ -99,95 +99,18 @@ $(RBLIB)/libRootbeer.so: $(CINT)/RBDictionary.cxx $(USER_SOURCES) $(OBJECTS)
 	$(LINK) $(DYLIB) $(FPIC) -o $@ $(MIDASLIBS) $(OBJECTS) \
 $(CINT)/RBDictionary.cxx \
 
-Rootbeer: $(OBJ)/Rootbeer.o
-$(OBJ)/Rootbeer.o: $(CINT)/RBDictionary.cxx $(SRC)/Rootbeer.cxx
-	$(COMPILE) $(FPIC) -c \
--o $@  $(SRC)/Rootbeer.cxx \
 
-Rint: $(OBJ)/Rint.o
-$(OBJ)/Rint.o: $(CINT)/RBDictionary.cxx $(SRC)/Rint.cxx $(OBJ)/Gui.o $(OBJ)/HistGui.o
+$(OBJ)/%.o: $(SRC)/%.cxx $(CINT)/RBDictionary.cxx
 	$(COMPILE) $(FPIC) -c \
--o $@  $(SRC)/Rint.cxx \
+-o $@ $< \
 
-Signals: $(OBJ)/Signals.o
-$(OBJ)/Signals.o: $(CINT)/RBDictionary.cxx $(SRC)/Signals.cxx
+$(OBJ)/midas/%.o: $(SRC)/midas/%.cxx $(CINT)/RBDictionary.cxx
 	$(COMPILE) $(FPIC) -c \
--o $@  $(SRC)/Signals.cxx \
+-o $@ $< \
 
-Gui: $(OBJ)/Gui.o
-$(OBJ)/Gui.o: $(CINT)/RBDictionary.cxx $(SRC)/Gui.cxx
+$(OBJ)/hist/%.o: $(SRC)/hist/%.cxx $(CINT)/RBDictionary.cxx
 	$(COMPILE) $(FPIC) -c \
--o $@  $(SRC)/Gui.cxx \
-
-HistGui: $(OBJ)/HistGui.o
-$(OBJ)/HistGui.o: $(CINT)/RBDictionary.cxx $(SRC)/HistGui.cxx
-	$(COMPILE) $(FPIC) -c \
--o $@  $(SRC)/HistGui.cxx \
-
-TGSelectDialog: $(OBJ)/TGSelectDialog.o
-$(OBJ)/TGSelectDialog.o: $(CINT)/RBDictionary.cxx $(SRC)/TGSelectDialog.cxx
-	$(COMPILE) $(FPIC) -c \
--o $@  $(SRC)/TGSelectDialog.cxx \
-
-TGDivideSelect: $(OBJ)/TGDivideSelect.o
-$(OBJ)/TGDivideSelect.o: $(CINT)/RBDictionary.cxx $(SRC)/TGDivideSelect.cxx
-	$(COMPILE) $(FPIC) -c \
--o $@  $(SRC)/TGDivideSelect.cxx \
-
-WriteConfig: $(OBJ)/WriteConfig.o
-$(OBJ)/WriteConfig.o: $(CINT)/RBDictionary.cxx $(SRC)/WriteConfig.cxx
-	$(COMPILE) $(FPIC) -c \
--o $@  $(SRC)/WriteConfig.cxx \
-
-Canvas: $(OBJ)/Canvas.o
-$(OBJ)/Canvas.o: $(CINT)/RBDictionary.cxx $(SRC)/Canvas.cxx
-	$(COMPILE) $(FPIC) -c \
--o $@  $(SRC)/Canvas.cxx \
-
-Buffer: $(OBJ)/Buffer.o
-$(OBJ)/Buffer.o: $(CINT)/RBDictionary.cxx $(SRC)/Buffer.cxx
-	$(COMPILE) $(FPIC) -c \
--o $@  $(SRC)/Buffer.cxx \
-
-Event: $(OBJ)/Event.o
-$(OBJ)/Event.o: $(CINT)/RBDictionary.cxx $(SRC)/Event.cxx
-	$(COMPILE) $(FPIC) -c \
--o $@  $(SRC)/Event.cxx \
-
-Data: $(OBJ)/Data.o
-$(OBJ)/Data.o: $(CINT)/RBDictionary.cxx $(SRC)/Data.cxx
-	$(COMPILE) $(FPIC) -c \
--o $@  $(SRC)/Data.cxx \
-
-TMidasFile: $(OBJ)/midas/TMidasFile.o
-$(OBJ)/midas/TMidasFile.o: $(CINT)/RBDictionary.cxx $(SRC)/midas/TMidasFile.cxx
-	$(COMPILE) $(FPIC) -c \
--o $@  $(SRC)/midas/TMidasFile.cxx \
-
-TMidasEvent: $(OBJ)/midas/TMidasEvent.o
-$(OBJ)/midas/TMidasEvent.o: $(CINT)/RBDictionary.cxx $(SRC)/midas/TMidasEvent.cxx
-	$(COMPILE) $(FPIC) -c \
--o $@  $(SRC)/midas/TMidasEvent.cxx \
-
-TMidasOnline: $(OBJ)/midas/TMidasOnline.o
-$(OBJ)/midas/TMidasOnline.o: $(CINT)/RBDictionary.cxx $(SRC)/midas/TMidasOnline.cxx
-	$(COMPILE) $(FPIC) -c \
--o $@  $(SRC)/midas/TMidasOnline.cxx \
-
-Hist: $(OBJ)/hist/Hist.o $(SRC)/hist/WrapTH1.hxx 
-$(OBJ)/hist/Hist.o: $(CINT)/RBDictionary.cxx $(SRC)/hist/Hist.cxx
-	$(COMPILE) $(FPIC) -c \
--o $@  $(SRC)/hist/Hist.cxx \
-
-Manager: $(OBJ)/hist/Manager.o
-$(OBJ)/hist/Manager.o: $(CINT)/RBDictionary.cxx $(SRC)/hist/Manager.cxx
-	$(COMPILE) $(FPIC) -c \
--o $@  $(SRC)/hist/Manager.cxx \
-
-Formula: $(OBJ)/Formula.o
-$(OBJ)/Formula.o: $(CINT)/RBDictionary.cxx $(SRC)/Formula.cxx
-	$(COMPILE) $(FPIC) -c \
--o $@  $(SRC)/Formula.cxx \
+-o $@ $< \
 
 RBdict: $(CINT)/RBDictionary.cxx
 $(CINT)/RBDictionary.cxx:  $(HEADERS) $(USER)/UserLinkdef.h $(CINT)/Linkdef.h \
