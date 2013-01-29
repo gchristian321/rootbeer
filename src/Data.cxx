@@ -3,6 +3,7 @@
 //! \todo Handle arrays at a level lower than the final one.
 //! \todo Support for STL members (at least).
 #include <cassert>
+#include <sstream>
 #include <algorithm>
 #include <TRealData.h>
 #include "Rint.hxx"
@@ -73,6 +74,40 @@ void rb::data::MBasic::New(const char* name, volatile void* addr, TDataMember* d
 		CHECK_TYPE(unsigned char)
   else;
 #undef CHECK_TYPE
+
+#define CHECK_VECTOR(type) do {																					\
+		std::stringstream typeName;																					\
+		typeName << "vector<" << #type << ",allocator<" << #type << "> >";	\
+		if(!strcmp(typeName.str().c_str(), d->GetTrueTypeName())) {					\
+			std::vector<type>* pVect = (std::vector<type>*)addr;							\
+			for(size_t i=0; i< pVect->size(); ++i) {													\
+				Long_t addrThis = (Long_t)(&(pVect->operator[](i)));						\
+				std::stringstream fullName; fullName << name << "["<<i<<"]";		\
+				rb::data::MBasic* m = new rb::data::Basic<type>									\
+					(fullName.str().c_str(), (volatile void*)addrThis, d);				\
+				printf("Adding: %s\n", fullName.str().c_str());									\
+				if(!m) err::Error("data::MBasic::New") << "Constructor returned a NULL pointer"; \
+			}																																	\
+			return;																														\
+		}																																		\
+	} while(0)
+
+  CHECK_VECTOR(double);
+	CHECK_VECTOR(float);
+	CHECK_VECTOR(long long);
+	CHECK_VECTOR(long);
+	CHECK_VECTOR(int);
+	CHECK_VECTOR(short);
+	CHECK_VECTOR(char);
+	/// \note vector<bool> not supported b/c it's really a bitset.
+	// CHECK_VECTOR(bool);
+	CHECK_VECTOR(unsigned long long);
+	CHECK_VECTOR(unsigned long);
+	CHECK_VECTOR(unsigned int);
+	CHECK_VECTOR(unsigned short);
+	CHECK_VECTOR(unsigned char);
+
+#undef CHECK_VECTOR	
 }
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // rb::data::MBasic::GetAll() [static]         //
@@ -204,9 +239,65 @@ void rb::data::Mapper::HandleBasic(TDataMember* d, const char* name) {
   }
 }
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// void rb::data::Mapper::HandleSTL()     //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+void rb::data::Mapper::HandleSTL(TDataMember* d, const char* name) {
+	/// \note Only support std::vector right now because other containers have memory
+	/// non-continuity issues that I don't want to worry about for the time being.
+	if (d->IsSTLContainer() != TDictionary::kVector) {
+		err::Warning("MapData")	<< "No support for STL containers other than std::vector." << ERR_FILE_LINE;
+		return;
+	}
+  Long_t addr = kBase + d->GetOffset();
+  Int_t nDim = d->GetArrayDim();
+  if(nDim == 0) { // not an array
+    rb::data::MBasic::New(name, reinterpret_cast<void*>(addr), d);
+  }
+  else if(d->GetArrayDim() > 4) { // too big
+		err::Warning("MapData")
+			<< "No support for arrays > 4 dimensions. The array " << name
+			<< " is " << d->GetArrayDim() << " dimensions and will not be mapped!"
+			<< ERR_FILE_LINE;
+	}
+  else {
+    ArrayConverter ac(d);
+    Int_t arrayLen = ac.GetArrayLength();
+    Int_t size = d->GetUnitSize();
+    for(Int_t i=0; i< arrayLen; ++i) {
+      addr += size*(i>0);
+      rb::data::MBasic::New(ac.GetFullName(name, i).c_str(), reinterpret_cast<void*>(addr), d);
+    }
+  }
+}
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // void rb::data::Mapper::InsertBasic()   //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 void rb::data::Mapper::InsertBasic(TDataMember* d, std::vector<std::string>& v_names, const char* name) {
+  Long_t addr = kBase + d->GetOffset();
+  Int_t nDim = d->GetArrayDim();
+  if(nDim == 0) { // not an array
+		v_names.push_back(name);
+  }
+  else if(d->GetArrayDim() > 4) { // too big
+		err::Warning("MapData")
+			<< "No support for arrays > 4 dimensions. The array " << name
+			<< " is " << d->GetArrayDim() << " dimensions and will not be mapped!"
+			<< ERR_FILE_LINE;
+	}
+  else {
+    ArrayConverter ac(d);
+    Int_t arrayLen = ac.GetArrayLength();
+    Int_t size = d->GetUnitSize();
+    for(Int_t i=0; i< arrayLen; ++i) {
+      addr += size*(i>0);
+			v_names.push_back(ac.GetFullName(name, i).c_str());
+    }
+  }
+}
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// void rb::data::Mapper::InsertSTL()     //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+void rb::data::Mapper::InsertSTL(TDataMember* d, std::vector<std::string>& v_names, const char* name) {
   Long_t addr = kBase + d->GetOffset();
   Int_t nDim = d->GetArrayDim();
   if(nDim == 0) { // not an array
@@ -240,15 +331,21 @@ inline std::string append_name(const std::string& base, const char* toAppend) {
 }
 void rb::data::Mapper::MapClass() {
   TClass* cl = TClass::GetClass(kClassName.c_str());
-  if(!cl) return;
+  if(!cl) {
+		err::Warning("MapClass")
+			<< "Unable to map the class \"" << kClassName << "\" because it doesn not "
+			<< "have a ROOT Dictionary." << ERR_FILE_LINE;
+		return;
+	}
   TList* dataMembers = cl->GetListOfDataMembers();
   for(Int_t i=0; i< dataMembers->GetEntries(); ++i) {
     TDataMember* d = reinterpret_cast<TDataMember*>(dataMembers->At(i));
     if(!ShouldBeMapped(d)) continue;
-
     std::string newName = append_name(kBranchName, d->GetName());
     if(d->IsBasic())
 			HandleBasic(d, newName.c_str());
+		else if(d->IsSTLContainer())
+			HandleSTL(d, newName.c_str());
     else {
       Long_t addr = kBase + d->GetOffset();
       Mapper sub_mapper(newName.c_str(), d->GetTrueTypeName(), addr, false);
@@ -269,7 +366,9 @@ void rb::data::Mapper::ReadBranches(std::vector<std::string>& branches) {
 
     std::string newName = append_name(kBranchName, d->GetName());
     if(d->IsBasic())
-			 InsertBasic(d, branches, newName.c_str());
+			InsertBasic(d, branches, newName.c_str());
+		else if(d->IsSTLContainer())
+			InsertSTL(d, branches, newName.c_str());
     else {
       Long_t addr = kBase + d->GetOffset();
       Mapper sub_mapper(newName.c_str(), d->GetTrueTypeName(), addr, false);
