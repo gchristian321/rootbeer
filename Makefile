@@ -6,10 +6,7 @@
 ### Include the user-defined portion of the makefile
 include $(PWD)/user/Makefile.user
 
-### Path to DRAGON codes
-DRAGON_HOME=/Users/gchristian/soft/develop/dragon/analyzer
-
-MIDASLIBFILE=-lmidas-shared
+MIDASLIBFILE=-lmidas
 
 ### Variable definitions
 SRC=$(PWD)/src
@@ -23,7 +20,7 @@ RPATH    += -Wl,-rpath,$(ROOTSYS)/lib -Wl,-rpath,$(PWD)/lib
 DYLIB=-shared
 FPIC=-fPIC
 INCFLAGS=-I$(SRC) -I$(CINT) -I$(USER) $(USER_INCLUDES)
-DEBUG=-O3
+DEBUG=-O3 
 #-ggdb -O0 -DDEBUG -DRB_LOGGING
 #-DDEBUG
 CXXFLAGS=$(DEBUG) $(INCFLAGS) $(STOCK_BUFFERS) -DBUFFER_TYPE=$(USER_BUFFER_TYPE)
@@ -60,14 +57,14 @@ FPIC=
 RPATH=
 endif
 
-#COMPILER=g++ -Wall
-COMPILER=clang++
+COMPILER=g++ -Wall
+#COMPILER=clang++
 # -I/opt/local/include/ -I/opt/local/include/root
 
 DEFAULTS=$(DEF_FILE_DIR) $(DEF_SAVE_DIR) $(DEF_CONFIG_DIR)
 
 COMPILE=$(COMPILER) $(CXXFLAGS) $(RPATH) $(DEF_EXT) $(DEFAULTS) $(USER_DEFINITIONS) -I$(ROOTSYS)/include
-LINK=$(COMPILER) $(CXXFLAGS) $(ROOTGLIBS) $(RPATH) $(DEFAULTS) $(USER_DEFINITIONS) -L$(PWD)/lib -L$(DRAGON_HOME)/lib
+LINK=$(COMPILER) $(CXXFLAGS) $(ROOTGLIBS) $(RPATH) $(DEFAULTS) $(USER_DEFINITIONS) -L$(PWD)/lib $(USER_LIB_DIRS)
 ROOTCINT=rootcint $(USER_DEFINITIONS)
 
 
@@ -75,20 +72,23 @@ ROOTCINT=rootcint $(USER_DEFINITIONS)
 all: rootbeer rbunpack
 
 rbunpack: $(RBLIB)/libRootbeer.so $(SRC)/main.cc 
-	$(LINK) -lRootbeer -lDragon -lRBDragon -DRB_UNPACK_ONLY $(SRC)/main.cc -o rbunpack \
+	$(LINK) $(USER_LIBS) -lRootbeer -lmidas $(MIDASLIBS) -DRB_UNPACK_ONLY $(SRC)/main.cc -o rbunpack \
 
 rootbeer: $(RBLIB)/libRootbeer.so $(SRC)/main.cc
-	$(LINK) -lRootbeer -lDragon -lRBDragon $(SRC)/main.cc -o rootbeer \
+	$(LINK) $(USER_LIBS) -lRootbeer -lmidas $(MIDASLIBS) $(SRC)/main.cc -o rootbeer \
+
+testFormula: testFormula.cxx
+	$(COMPILER) -I$(DRAGON_HOME)/src $(CXXFLAGS) $(ROOTGLIBS) $(RPATH) $(DEFAULTS) $(USER_DEFINITIONS) -L$(PWD)/lib -L$(DRAGON_HOME)/lib -lDragon -lRBDragon -lRootbeer -lmidas $(MIDASLIBS) testFormula.cxx -o testFormula  -DPRIVATE=public -DPROTECTED=public -I$(ROOTSYS)/include \
 
 
 #### ROOTBEER LIBRARY ####
 OBJECTS=$(OBJ)/hist/Hist.o $(OBJ)/hist/Manager.o \
 $(OBJ)/Formula.o $(OBJ)/midas/TMidasEvent.o $(OBJ)/midas/TMidasFile.o $(MIDASONLINE) \
-$(OBJ)/Data.o $(OBJ)/Event.o $(OBJ)/Buffer.o $(OBJ)/user/User.o $(OBJ)/Canvas.o $(OBJ)/WriteConfig.o \
+$(OBJ)/Data.o $(OBJ)/Event.o $(OBJ)/Buffer.o $(OBJ)/Canvas.o $(OBJ)/WriteConfig.o \
 $(OBJ)/Rint.o $(OBJ)/Signals.o $(OBJ)/Rootbeer.o $(OBJ)/Gui.o $(OBJ)/HistGui.o \
 $(OBJ)/TGSelectDialog.o $(OBJ)/TGDivideSelect.o
 
-HEADERS=$(SRC)/Rootbeer.hxx $(SRC)/Rint.hxx $(SRC)/Data.hxx $(SRC)/Buffer.hxx $(SRC)/Event.hxx $(SRC)/user/User.hxx \
+HEADERS=$(SRC)/Rootbeer.hxx $(SRC)/Rint.hxx $(SRC)/Data.hxx $(SRC)/Buffer.hxx $(SRC)/Event.hxx \
 $(SRC)/Signals.hxx $(SRC)/Formula.hxx $(SRC)/utils/LockingPointer.hxx $(SRC)/utils/Mutex.hxx \
 $(SRC)/hist/Hist.hxx $(SRC)/hist/Visitor.hxx $(SRC)/hist/Manager.hxx $(SRC)/TGSelectDialog.h $(SRC)/TGDivideSelect.h \
 $(SRC)/HistGui.hxx $(SRC)/Gui.hxx $(SRC)/midas/*.h $(SRC)/utils/*.h* $(USER_HEADERS)
@@ -143,11 +143,6 @@ Canvas: $(OBJ)/Canvas.o
 $(OBJ)/Canvas.o: $(CINT)/RBDictionary.cxx $(SRC)/Canvas.cxx
 	$(COMPILE) $(FPIC) -c \
 -o $@  $(SRC)/Canvas.cxx \
-
-User: $(OBJ)/user/User.o
-$(OBJ)/user/User.o: $(CINT)/RBDictionary.cxx $(SRC)/user/User.cxx
-	$(COMPILE) $(FPIC) -c \
--o $@  $(SRC)/user/User.cxx \
 
 Buffer: $(OBJ)/Buffer.o
 $(OBJ)/Buffer.o: $(CINT)/RBDictionary.cxx $(SRC)/Buffer.cxx

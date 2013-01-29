@@ -7,7 +7,7 @@
 ### Note that the present directory (where this makefile segment is located)
 ### has already been defined as USER
 
-DRAGON_SRC=$(HOME)/soft/develop/dragon/analyzer/src
+DRAGON_HOME=$(HOME)/packages/dragon/analyzer
 
 
 ############################
@@ -16,36 +16,22 @@ DRAGON_SRC=$(HOME)/soft/develop/dragon/analyzer/src
 ### USER_INCLUDES=-I/path/to/some/sources/ -I/path/to/some/other/sources/
 ### Note that the present directory $(USER) has already been taken care of elsewhere.
 
-USER_INCLUDES=-I$(DRAGON_SRC)
-
-
-############################
-### Use the USER_HEADERS variable to tell the compiler where all of your header files are located.
-### Specify the full path for each header. Example:
-### USER_HEADERS=/path/to/headers/header1.hxx /path/to/headers/header2.hxx
-
-USER_HEADERS=
-#$(DRAGON_SRC)/utils/Bits.hxx $(DRAGON_SRC)/vme/Vme.hxx $(DRAGON_SRC)/vme/IO32.hxx \
-#$(DRAGON_SRC)/vme/caen/V1190.hxx $(DRAGON_SRC)/vme/caen/Adc.hxx \
-#$(DRAGON_SRC)/dragon/Modules.hxx $(DRAGON_SRC)/dragon/Dragon.hxx \
-#$(DRAGON_SRC)/dragon/heavy_ion/HeavyIon.hxx \
-#$(DRAGON_SRC)/dragon/heavy_ion/DSSSD.hxx $(DRAGON_SRC)/dragon/heavy_ion/IonChamber.hxx \
-#$(DRAGON_SRC)/dragon/heavy_ion/MCP.hxx $(DRAGON_SRC)/dragon/heavy_ion/SurfaceBarrier.hxx \
-#$(DRAGON_SRC)/dragon/gamma/Gamma.hxx $(DRAGON_SRC)/dragon/gamma/Bgo.hxx \
-#$(DRAGON_SRC)/tstamp/TStamp.hxx
+USER_INCLUDES=-I$(DRAGON_HOME)/src
 
 ############################
-### Use the USER_SOURCES variable to tell the compiler where all of your source (compile) files are located.
-### Specify the full path for each file. Example:
-### USER_HEADERS=/path/to/sources/source1.cxx /path/to/sources/source2.cxx
-USER_SOURCES=
-#$(DRAGON_SRC)/vme/caen/Adc.cxx $(DRAGON_SRC)/vme/caen/V1190.cxx \
-#$(DRAGON_SRC)/dragon/Modules.cxx $(DRAGON_SRC)/dragon/Dragon.cxx \
-#$(DRAGON_SRC)/dragon/heavy_ion/HeavyIon.cxx \
-#$(DRAGON_SRC)/dragon/heavy_ion/DSSSD.cxx $(DRAGON_SRC)/dragon/heavy_ion/IonChamber.cxx \
-#$(DRAGON_SRC)/dragon/heavy_ion/MCP.cxx $(DRAGON_SRC)/dragon/heavy_ion/SurfaceBarrier.cxx \
-#$(DRAGON_SRC)/dragon/gamma/Gamma.cxx $(DRAGON_SRC)/dragon/gamma/Bgo.cxx  \
-#$(DRAGON_SRC)/tstamp/TStamp.cxx
+### Use the USER_LIB_DIRS variable to tell the compiler where to look
+### for your shared libraries.  Example:
+### USER_LIB_DIRS=-L/path/to/some/libraries/
+
+USER_LIB_DIRS=-L$(DRAGON_HOME)/lib
+
+############################
+### Use the USER_LIBS variable to tell the compiler what shared libraries you need to link to
+### Example:
+### USER_LIBS=-lMyLibrary
+
+USER_LIBS=-lDragon -lRBDragon
+
 
 ############################
 ### If you want to use the stock routines for extracting MIDAS data buffers, uncomment the following
