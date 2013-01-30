@@ -1,6 +1,5 @@
 //! \file Data.cxx
 //! \brief Implements Data.hxx
-//! \todo Handle arrays at a level lower than the final one.
 #include <set>
 #include <list>
 #include <deque>
@@ -18,9 +17,9 @@
 
 
 
-#define ERR_ARRAY_GREATER_4(FUNC, NAME, DATA_ELEMENT) do {							\
+#define ERR_ARRAY_GREATER(FUNC, NAME, DATA_ELEMENT, NDIM) do {					\
 		err::Error(FUNC)																										\
-			<< "No support for arrays > 4 dimensions. "												\
+			<< "No support for arrays > " << NDIM << " dimensions. "					\
 			<< "The array " << NAME << " is " << DATA_ELEMENT->GetArrayDim()	\
 			<< " dimensions and will not be mapped." << ERR_FILE_LINE;				\
 	} while(0)
@@ -118,7 +117,22 @@ public:
 	}
 };
 
+
+int get_final_index(std::string* name) {
+	// Example: *name [in] == "a.b.c.d[12]"
+	// return value = 12
+	// *name [out] = "a.b.c.d"
+
+	size_t bp0 = name->rfind("["), bp1 = name->rfind("]");
+	if(bp0 > name->size() || bp1 > name->size()) return -1;
+	
+	std::string indxStr = name->substr(bp0 + 1, bp1 - bp0 - 1);
+	*name = name->substr(0, bp0);
+	return atoi(indxStr.c_str());
+}
+
 } // namespace
+
 
 #undef ADD_CONTAINERS
 #undef ADD_STL
@@ -345,7 +359,7 @@ void rb::data::Mapper::HandleBasic(TDataMember* d, const char* name) {
     rb::data::MBasic::New(name, reinterpret_cast<void*>(addr), d);
   }
   else if(d->GetArrayDim() > 4) { // too big
-		ERR_ARRAY_GREATER_4("HandleBasic", name, d);
+		ERR_ARRAY_GREATER("HandleBasic", name, d, 4);
 	}
   else {
     ArrayConverter ac(d);
@@ -367,7 +381,7 @@ void rb::data::Mapper::HandleSTL(TDataMember* d, const char* name) {
     rb::data::MBasic::New(name, reinterpret_cast<void*>(addr), d);
   }
   else if(d->GetArrayDim() > 4) { // too big
-		ERR_ARRAY_GREATER_4("HandleSTL", name, d);
+		ERR_ARRAY_GREATER("HandleSTL", name, d, 4);
 	}
   else {
     ArrayConverter ac(d);
@@ -389,7 +403,7 @@ void rb::data::Mapper::InsertBasic(TDataMember* d, std::vector<std::string>& v_n
 		v_names.push_back(name);
   }
   else if(d->GetArrayDim() > 4) { // too big
-		ERR_ARRAY_GREATER_4("InsertBasic", name, d);
+		ERR_ARRAY_GREATER("InsertBasic", name, d, 4);
 	}
   else {
     ArrayConverter ac(d);
@@ -413,7 +427,7 @@ void rb::data::Mapper::InsertSTL(TDataMember* d, std::vector<std::string>& v_nam
 		v_names.push_back(name);
   }
   else if(d->GetArrayDim() > 4) { // too big
-		ERR_ARRAY_GREATER_4("InsertSTL", name, d);
+		ERR_ARRAY_GREATER("InsertSTL", name, d, 4);
 	}
   else {
     ArrayConverter ac(d);
@@ -477,7 +491,7 @@ void rb::data::Mapper::MapClass() {
 				sub_mapper.MapClass();
 			}
 			else if (nDim > 4) { // array to many dimensions - bail out
-				ERR_ARRAY_GREATER_4("MapClass", newName, d);
+				ERR_ARRAY_GREATER("MapClass", newName, d, 4);
 			}
 			else { // valid array, recurse into every element
 				ArrayConverter ac(d);
@@ -517,7 +531,7 @@ void rb::data::Mapper::ReadBranches(std::vector<std::string>& branches) {
 				sub_mapper.ReadBranches(branches);
 			}
 			else if (nDim > 4) { // too large, error message and bail out
-				ERR_ARRAY_GREATER_4("ReadBranches", newName, d);
+				ERR_ARRAY_GREATER("ReadBranches", newName, d, 4);
 			}
 			else { // valid array
 				ArrayConverter ac(d);
@@ -536,6 +550,10 @@ void rb::data::Mapper::ReadBranches(std::vector<std::string>& branches) {
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // Long_t rb::data::Mapper::FindBasicAddr()   //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// Helper Function for STL containers         //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 namespace {
 inline Long_t FindSTLAddr(const char* name, Long_t baseAddr, TDataMember* dataMember, TRealData* realData) {
 	Long_t retval = 0;
@@ -543,7 +561,7 @@ inline Long_t FindSTLAddr(const char* name, Long_t baseAddr, TDataMember* dataMe
 	static STLMaps stlMaps;
 
 	if(nDim > 4) { // too big
-		ERR_ARRAY_GREATER_4("FindSTLAddr", name, dataMember);
+		ERR_ARRAY_GREATER("FindSTLAddr", name, dataMember, 4);
 	}
 	else if (nDim == 0) { // single element
 		STLAddrMap_t::iterator it = stlMaps.GetAddrMap()->find(TClass::GetClass(dataMember->GetTrueTypeName()));
@@ -554,8 +572,7 @@ inline Long_t FindSTLAddr(const char* name, Long_t baseAddr, TDataMember* dataMe
 		else {
 			Long_t thisAddr = baseAddr + realData->GetThisOffset();
 			std::string strName(name);
-			int indx =
-				atoi( strName.substr(strName.find("[")+1, strName.find("]") - strName.find("[")-1).c_str() );
+			int indx = get_final_index(&strName);
 			retval = it->second((volatile void*)thisAddr, indx);
 		}
 	}
@@ -565,10 +582,9 @@ inline Long_t FindSTLAddr(const char* name, Long_t baseAddr, TDataMember* dataMe
 		Int_t size = dataMember->GetUnitSize();
 		Long_t thisAddr = baseAddr + realData->GetThisOffset();
 
-		std::string name0 = name;
+		std::string name0 = name, name0_2 = name;
 		std::string strName = name0.substr(0, name0.rfind("["));
-		int indx =
-			atoi ( name0.substr(name0.rfind("[") + 1, name0.rfind("]") - name0.rfind("[") - 1).c_str() );
+		int indx = get_final_index(&name0_2);
 
 		for(Int_t i=0; i< arrayLen; ++i) {
 			thisAddr += size*(i>0);
@@ -590,7 +606,6 @@ inline Long_t FindSTLAddr(const char* name, Long_t baseAddr, TDataMember* dataMe
 	}
 	return retval;
 }
-
 } // namespace
 
 Long_t rb::data::Mapper::FindBasicAddr(const char* name, TDataMember** data_member) {
@@ -612,7 +627,7 @@ Long_t rb::data::Mapper::FindBasicAddr(const char* name, TDataMember** data_memb
 			retval = kBase + realData->GetThisOffset();
 		}
 		else if(dataMember->GetArrayDim() > 4) { // too big
-			ERR_ARRAY_GREATER_4("FindBasic", name, dataMember);
+			ERR_ARRAY_GREATER("FindBasic", name, dataMember, 4);
 		}
 		else {
 			ArrayConverter ac(dataMember);
@@ -634,6 +649,23 @@ Long_t rb::data::Mapper::FindBasicAddr(const char* name, TDataMember** data_memb
 
 	else if (dataMember->IsSTLContainer()) { // delegate to FindSTLAddr function
 		retval = FindSTLAddr(name, kBase, dataMember, realData);
+	}
+
+	else if (dataMember->GetArrayDim() > 0) { // upper-level array
+		if(dataMember->GetArrayDim() > 4) { // to large
+			ERR_ARRAY_GREATER("FindBasic", name, dataMember, 4);
+		}
+		else { // okay - parse as array
+			std::string strName = name, strName2(name), strName3(name);
+			strName = strName.substr(0, strName.find("]") + 1); // name of this element
+			strName2 = strName2.substr(strName2.find("]") + 2); // name of next elements
+			strName3 = strName2.substr(0, strName2.find("."));  // name of next element, top level only
+
+			size_t index = get_final_index(&strName);
+			Long_t addr = kBase + realData->GetThisOffset() + index*dataMember->GetUnitSize();
+			Mapper sub_mapper(strName3.c_str(), dataMember->GetTrueTypeName(), addr, false);
+			retval = sub_mapper.FindBasicAddr(strName2.c_str(), data_member);
+		}
 	}
 
 	else { // bail out
@@ -725,4 +757,5 @@ std::string ArrayConverter::GetFullName(const char* baseName, UInt_t index)  {
 }
 
 
-#undef ERR_ARRAY_GREATER_4
+#undef ERR_ARRAY_GREATER
+
