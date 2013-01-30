@@ -510,9 +510,26 @@ void rb::data::Mapper::ReadBranches(std::vector<std::string>& branches) {
 		else if(d->IsSTLContainer())
 			InsertSTL(d, branches, newName.c_str());
     else {
+			Int_t nDim = d->GetArrayDim();		
       Long_t addr = kBase + d->GetOffset();
-      Mapper sub_mapper(newName.c_str(), d->GetTrueTypeName(), addr, false);
-      sub_mapper.ReadBranches(branches);
+			if (nDim == 0) { // single element
+				Mapper sub_mapper(newName.c_str(), d->GetTrueTypeName(), addr, false);
+				sub_mapper.ReadBranches(branches);
+			}
+			else if (nDim > 4) { // too large, error message and bail out
+				ERR_ARRAY_GREATER_4("ReadBranches", newName, d);
+			}
+			else { // valid array
+				ArrayConverter ac(d);
+				Int_t arrayLen = ac.GetArrayLength();
+				Int_t size = d->GetUnitSize();
+				for(Int_t i=0; i< arrayLen; ++i) {
+					Long_t addr_i = addr + size*i;
+					std::string name_i = ac.GetFullName(newName.c_str(), i); 
+					Mapper sub_mapper_i(name_i.c_str(), d->GetTrueTypeName(), addr_i, false);
+					sub_mapper_i.ReadBranches(branches);
+				}				
+			}
     }
   }
 }
