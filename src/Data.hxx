@@ -474,7 +474,7 @@ inline rb::data::ConstBasic<T>::~ConstBasic() {
 template <class T>
 inline Double_t rb::data::ConstBasic<T>::GetValue() {
 	RB_LOCKGUARD(gDataMutex);
-  return *fAddress;
+  return *((T*)fAddress);
 }
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // void rb::data::ConstBasic<T>::SetValue()       //

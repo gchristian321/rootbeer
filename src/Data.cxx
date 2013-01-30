@@ -353,6 +353,7 @@ private:
 // void rb::data::Mapper::HandleBasic()   //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 void rb::data::Mapper::HandleBasic(TDataMember* d, const char* name) {
+	if(d->IsPersistent() == false) return;
   Long_t addr = kBase + d->GetOffset();
   Int_t nDim = d->GetArrayDim();
   if(nDim == 0) { // not an array
@@ -375,6 +376,7 @@ void rb::data::Mapper::HandleBasic(TDataMember* d, const char* name) {
 // void rb::data::Mapper::HandleSTL()     //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 void rb::data::Mapper::HandleSTL(TDataMember* d, const char* name) {
+	if(d->IsPersistent() == false) return;
   Long_t addr = kBase + d->GetOffset();
   Int_t nDim = d->GetArrayDim();
   if(nDim == 0) { // not an array
@@ -397,6 +399,7 @@ void rb::data::Mapper::HandleSTL(TDataMember* d, const char* name) {
 // void rb::data::Mapper::InsertBasic()   //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 void rb::data::Mapper::InsertBasic(TDataMember* d, std::vector<std::string>& v_names, const char* name) {
+	if(d->IsPersistent() == false) return;
   Long_t addr = kBase + d->GetOffset();
   Int_t nDim = d->GetArrayDim();
   if(nDim == 0) { // not an array
@@ -419,6 +422,7 @@ void rb::data::Mapper::InsertBasic(TDataMember* d, std::vector<std::string>& v_n
 // void rb::data::Mapper::InsertSTL()     //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 void rb::data::Mapper::InsertSTL(TDataMember* d, std::vector<std::string>& v_names, const char* name) {
+	if(d->IsPersistent() == false) return;
 	static STLMaps stlMaps;
 
   Long_t addr = kBase + d->GetOffset();
@@ -621,7 +625,7 @@ Long_t rb::data::Mapper::FindBasicAddr(const char* name, TDataMember** data_memb
 	if(data_member) *data_member = dataMember;
 	Long_t retval = 0;
 
-	if(dataMember->IsBasic()) { // Handle Basic Data Types inline
+	if( dataMember->IsBasic() && dataMember->IsPersistent() ) { // Handle Basic Data Types inline
 		Int_t nDim = dataMember->GetArrayDim();
 		if(nDim == 0) { // not an array
 			retval = kBase + realData->GetThisOffset();
@@ -647,7 +651,7 @@ Long_t rb::data::Mapper::FindBasicAddr(const char* name, TDataMember** data_memb
 		}
 	}
 
-	else if (dataMember->IsSTLContainer()) { // delegate to FindSTLAddr function
+	else if (dataMember->IsSTLContainer()  && dataMember->IsPersistent() ) { // delegate to FindSTLAddr function
 		retval = FindSTLAddr(name, kBase, dataMember, realData);
 	}
 
