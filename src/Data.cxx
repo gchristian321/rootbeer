@@ -22,7 +22,9 @@
 		if(!cl) err::Error("ADD_STL") << "No TClass for " << typeStr.str();	\
 		assert(cl);																													\
 		fAddMap.insert(std::make_pair(cl, AddSTL<std::CONTAINER<TYPE>, TYPE>)); \
-		fLengthMap.insert(std::make_pair(cl, LengthSTL<std::CONTAINER<TYPE> >)); \
+		fAddrMap.insert(std::make_pair(cl, AddrSTL<std::CONTAINER<TYPE> >)); \
+		fLengthMap.insert(std::make_pair(cl, STLLength<std::CONTAINER<TYPE> >)); \
+		fBasicTypeMap.insert(std::make_pair(cl, #TYPE));										\
 	} while(0)
 
 #define ADD_CONTAINERS(TYPE) do {								\
@@ -36,13 +38,16 @@
 namespace {
 
 typedef void   (*STLAdd_t)(const char*, volatile void*, TDataMember*);
-typedef size_t (*LengthSTL_t)(volatile void*);
+typedef Long_t (*STLAddr_t)(volatile void*, size_t);
+typedef size_t (*STLLength_t)(volatile void*);
 typedef std::map<TClass*, STLAdd_t> STLAddMap_t;
-typedef std::map<TClass*, LengthSTL_t> STLLengthMap_t;
+typedef std::map<TClass*, STLAddr_t> STLAddrMap_t;
+typedef std::map<TClass*, STLLength_t> STLLengthMap_t;
+typedef std::map<TClass*, std::string> STLBasicTypeMap_t;
 
+/// Add all elements of an STL container to MBasic::fgData()
 template <class T, class B>
-void AddSTL(const char* name, volatile void* addr, TDataMember* d)
-{
+void AddSTL(const char* name, volatile void* addr, TDataMember* d) {
 	T* pSTL = (T*)addr;
 	int i = 0;
 	for(typename T::iterator it = pSTL->begin(); it != pSTL->end(); ++it) {
@@ -55,22 +60,39 @@ void AddSTL(const char* name, volatile void* addr, TDataMember* d)
 	}
 }
 
+/// Get the length of an STL container at address addr
 template <class T>
-size_t LengthSTL(volatile void* addr)
-{
+size_t STLLength(volatile void* addr) {
 	T* p = (T*)addr;
 	return p->size();
 }
 
-class STLAddMap
+/// Get the address of element i in STL container at address addr
+template <class T>
+Long_t AddrSTL(volatile void* addr, size_t i) {
+  T* p = (T*)addr;
+  typename T::iterator it = p->begin();
+  size_t indx = 0;
+  while(indx != i && it != p->end()) {
+    it++; indx++;
+  }
+  return it == p->end() ? 0 :  reinterpret_cast<Long_t>(&(*it));
+}
+
+
+class STLMaps
 {
 private:
 	STLAddMap_t fAddMap;
+	STLAddrMap_t fAddrMap;
 	STLLengthMap_t fLengthMap;
+	STLBasicTypeMap_t fBasicTypeMap;
 public:
-	STLAddMap_t* Get() { return &fAddMap; }
+	STLAddMap_t* GetAddMap() { return &fAddMap; }
+	STLAddrMap_t* GetAddrMap() { return &fAddrMap; }
 	STLLengthMap_t* GetLengthMap() { return &fLengthMap; }
-	STLAddMap() {
+	STLBasicTypeMap_t* GetBasicTypeMap() { return &fBasicTypeMap; }
+	STLMaps() {
 		ADD_CONTAINERS(double);
 		ADD_CONTAINERS(float);
 		ADD_CONTAINERS(long long);
@@ -86,7 +108,7 @@ public:
 	}
 };
 
-} // namespace 
+} // namespace
 
 #undef ADD_CONTAINERS
 #undef ADD_STL
@@ -141,7 +163,7 @@ void rb::data::MBasic::New(const char* name, volatile void* addr, TDataMember* d
 			return;																														\
 		}	 } while(0)
 
-	
+
 	CHECK_TYPE(double);
 	CHECK_TYPE(float);
 	CHECK_TYPE(long long);
@@ -156,9 +178,9 @@ void rb::data::MBasic::New(const char* name, volatile void* addr, TDataMember* d
 	CHECK_TYPE(unsigned short);
 	CHECK_TYPE(unsigned char);
 
-	static STLAddMap gSTLAddMap;
-	STLAddMap_t::iterator it = gSTLAddMap.Get()->find(TClass::GetClass(d->GetTrueTypeName()));
-	if(it == gSTLAddMap.Get()->end()) { // no support for the requested STL container
+	static STLMaps stlMaps;
+	STLAddMap_t::iterator it = stlMaps.GetAddMap()->find(TClass::GetClass(d->GetTrueTypeName()));
+	if(it == stlMaps.GetAddMap()->end()) { // no support for the requested STL container
 		err::Error("MReader::New") << "No support for STL class: \"" << d->GetTrueTypeName()
 															 << "\"." << ERR_FILE_LINE;
 		return;
@@ -353,7 +375,7 @@ void rb::data::Mapper::InsertBasic(TDataMember* d, std::vector<std::string>& v_n
 // void rb::data::Mapper::InsertSTL()     //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 void rb::data::Mapper::InsertSTL(TDataMember* d, std::vector<std::string>& v_names, const char* name) {
-	static STLAddMap gSTLAddMap;
+	static STLMaps stlMaps;
 
   Long_t addr = kBase + d->GetOffset();
   Int_t nDim = d->GetArrayDim();
@@ -376,9 +398,9 @@ void rb::data::Mapper::InsertSTL(TDataMember* d, std::vector<std::string>& v_nam
 			addr += size*(i>0); // address of the STL container
 			size_t lengthSTL = 0; // STL container length
 			STLLengthMap_t::iterator it =
-				gSTLAddMap.GetLengthMap()->find(TClass::GetClass(d->GetTrueTypeName()));
+				stlMaps.GetLengthMap()->find(TClass::GetClass(d->GetTrueTypeName()));
 
-			if(it == gSTLAddMap.GetLengthMap()->end()) { // no support for the requested STL container
+			if(it == stlMaps.GetLengthMap()->end()) { // no support for the requested STL container
 				err::Error("MReader::New") << "No support for STL class: \"" << d->GetTrueTypeName()
 																	 << "\"." << ERR_FILE_LINE;
 				return;
@@ -453,40 +475,115 @@ void rb::data::Mapper::ReadBranches(std::vector<std::string>& branches) {
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // Long_t rb::data::Mapper::FindBasicAddr()   //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+namespace {
+inline Long_t FindSTLAddr(const char* name, Long_t baseAddr, TDataMember* dataMember, TRealData* realData) {
+	Long_t retval = 0;
+	Int_t nDim = dataMember->GetArrayDim();
+	static STLMaps stlMaps;
+
+	if(nDim > 4) { // too big
+		Warning("FindSTLAddr",
+						"No support for arrays > 4 dimensions. The array %s is %d and will not be mapped!",
+						name, dataMember->GetArrayDim());
+	}
+	else if (nDim == 0) { // single element
+		STLAddrMap_t::iterator it = stlMaps.GetAddrMap()->find(TClass::GetClass(dataMember->GetTrueTypeName()));
+		if (it == stlMaps.GetAddrMap()->end()) {
+			err::Error("FindSTLAddr")
+				<< "No support for the STL class: " << dataMember->GetTrueTypeName() << ERR_FILE_LINE;
+		}
+		else {
+			Long_t thisAddr = baseAddr + realData->GetThisOffset();
+			std::string strName(name);
+			int indx =
+				atoi( strName.substr(strName.find("[")+1, strName.find("]") - strName.find("[")-1).c_str() );
+			retval = it->second((volatile void*)thisAddr, indx);
+		}
+	}
+	else { // valid aray
+		ArrayConverter ac(dataMember);
+		Int_t arrayLen = ac.GetArrayLength();
+		Int_t size = dataMember->GetUnitSize();
+		Long_t thisAddr = baseAddr + realData->GetThisOffset();
+
+		std::string name0 = name;
+		std::string strName = name0.substr(0, name0.rfind("["));
+		int indx =
+			atoi ( name0.substr(name0.rfind("[") + 1, name0.rfind("]") - name0.rfind("[") - 1).c_str() );
+
+		for(Int_t i=0; i< arrayLen; ++i) {
+			thisAddr += size*(i>0);
+			std::string nnn = name0.rfind(".") < name0.size() ? name0.substr(0, name0.rfind(".") + 1) : "";
+			nnn += dataMember->GetName();
+
+			if(ac.GetFullName(nnn.c_str(), i) == strName) {
+				STLAddrMap_t::iterator it = stlMaps.GetAddrMap()->find(TClass::GetClass(dataMember->GetTrueTypeName()));
+				if (it == stlMaps.GetAddrMap()->end()) {
+					err::Error("FindSTLAddr")
+						<< "No support for the STL class: " << dataMember->GetTrueTypeName() << ERR_FILE_LINE;
+				}
+				else {
+					retval = it->second((volatile void*)thisAddr, indx);
+					break;
+				}
+			}
+		}
+	}
+	return retval;
+}
+
+} // namespace
+
 Long_t rb::data::Mapper::FindBasicAddr(const char* name, TDataMember** data_member) {
   TClass* cl = TClass::GetClass(kClassName.c_str());
 	TRealData* realData = cl ? cl->GetRealData(name) : 0;
+	if(!realData && cl) { // try w/o brackets
+		std::string name2 = std::string(name).substr(0, std::string(name).find("["));
+		realData = cl->GetRealData(name2.c_str());
+	}
 	TDataMember* dataMember = realData ? realData->GetDataMember() : 0;
 	if(!dataMember) return 0;
 
 	if(data_member) *data_member = dataMember;
 	Long_t retval = 0;
-  Int_t nDim = dataMember->GetArrayDim();
-  if(nDim == 0) { // not an array
-		retval = kBase + realData->GetThisOffset();
-  }
-  else if(dataMember->GetArrayDim() > 4) { // too big
-		Warning("FindBasic",
-						"No support for arrays > 4 dimensions. The array %s is %d and will not be mapped!",
-						name, dataMember->GetArrayDim());
-	}
-  else {
-    ArrayConverter ac(dataMember);
-    Int_t arrayLen = ac.GetArrayLength();
-    Int_t size = dataMember->GetUnitSize();
-		Long_t addr = kBase + realData->GetThisOffset();
-    for(Int_t i=0; i< arrayLen; ++i) {
-      addr += size*(i>0);
 
-			std::string strName(name);
-			std::string nnn = strName.rfind(".") < strName.size() ? strName.substr(0, strName.rfind(".") + 1) : "";
-			nnn += dataMember->GetName();
-			if(ac.GetFullName(nnn.c_str(), i) == strName) {
-				retval = addr;
-				break;
+	if(dataMember->IsBasic()) { // Handle Basic Data Types inline
+		Int_t nDim = dataMember->GetArrayDim();
+		if(nDim == 0) { // not an array
+			retval = kBase + realData->GetThisOffset();
+		}
+		else if(dataMember->GetArrayDim() > 4) { // too big
+			Warning("FindBasic",
+							"No support for arrays > 4 dimensions. The array %s is %d and will not be mapped!",
+							name, dataMember->GetArrayDim());
+		}
+		else {
+			ArrayConverter ac(dataMember);
+			Int_t arrayLen = ac.GetArrayLength();
+			Int_t size = dataMember->GetUnitSize();
+			Long_t addr = kBase + realData->GetThisOffset();
+			for(Int_t i=0; i< arrayLen; ++i) {
+				addr += size*(i>0);
+				std::string strName(name);
+				std::string nnn = strName.rfind(".") < strName.size() ? strName.substr(0, strName.rfind(".") + 1) : "";
+				nnn += dataMember->GetName();
+				if(ac.GetFullName(nnn.c_str(), i) == strName) {
+					retval = addr;
+					break;
+				}
 			}
 		}
 	}
+
+	else if (dataMember->IsSTLContainer()) { // delegate to FindSTLAddr function
+		retval = FindSTLAddr(name, kBase, dataMember, realData);
+	}
+
+	else { // bail out
+		err::Error("FindBasicAddr") << "Unsupported \"final\" data type: "
+																<< dataMember->GetTrueTypeName() << ERR_FILE_LINE;
+	}
+
 	return retval;
 }
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
@@ -496,7 +593,20 @@ rb::data::MReader* rb::data::Mapper::FindBasicReader(const char* name, TDataMemb
 	TDataMember* d = 0;
 	Long_t retval = FindBasicAddr(name, &d);
 	if(data_member) *data_member = d;
-	return retval ? rb::data::MReader::New(d->GetTrueTypeName(), retval) : 0;
+	if(d && d->IsBasic())
+		return retval ? rb::data::MReader::New(d->GetTrueTypeName(), retval) : 0;
+	else {
+		static STLMaps stlMaps;
+		STLBasicTypeMap_t::iterator it = stlMaps.GetBasicTypeMap()->find(TClass::GetClass(d->GetTrueTypeName()));
+		if(it == stlMaps.GetBasicTypeMap()->end()) {
+			err::Error("FindBasicReader")
+				<< "Couldn't figure out the basic type stored in container: \""
+				<< d->GetTrueTypeName() << "\"" << ERR_FILE_LINE;
+			return 0;
+		}
+		std::string strType = it->second;
+		return retval ? rb::data::MReader::New(strType.c_str(), retval) : 0;
+	}
 }
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // void rb::data::Mapper::Message()       //
