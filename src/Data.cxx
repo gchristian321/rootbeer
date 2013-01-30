@@ -14,6 +14,17 @@
 #include "utils/Error.hxx"
 #include "utils/ANSort.hxx"
 
+
+
+
+
+#define ERR_ARRAY_GREATER_4(FUNC, NAME, DATA_ELEMENT) do {							\
+		err::Error(FUNC)																										\
+			<< "No support for arrays > 4 dimensions. "												\
+			<< "The array " << NAME << " is " << DATA_ELEMENT->GetArrayDim()	\
+			<< " dimensions and will not be mapped." << ERR_FILE_LINE;				\
+	} while(0)
+
 #define ADD_STL(CONTAINER, TYPE) do {																		\
 		std::stringstream typeStr;																					\
 		typeStr << #CONTAINER << "<"	<< #TYPE << ">";											\
@@ -118,15 +129,19 @@ public:
 // rb::data::MReader Implementation      //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 
-#define GET_READER(addr, type)																					\
-  else if (!strcmp(typeName, #type))																		\
-    retval = new rb::data::Reader<type> (addr)
+#define GET_READER(addr, type)	do {																		\
+		if (!strcmp(typeName, #type)) {																			\
+			retval = new rb::data::Reader<type> (addr);												\
+			return retval;																										\
+		}																																		\
+	} while(0)
+
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // MReader* rb::data::MReader::New() [static]  //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 rb::data::MReader* rb::data::MReader::New(const char* typeName, Long_t dataAddress) {
 	MReader* retval = 0;
-	if(!dataAddress) {}
+	if(!dataAddress) return retval;
 	GET_READER(dataAddress, double);
 	GET_READER(dataAddress, float);
 	GET_READER(dataAddress, long long);
@@ -140,7 +155,6 @@ rb::data::MReader* rb::data::MReader::New(const char* typeName, Long_t dataAddre
 	GET_READER(dataAddress, unsigned int);
 	GET_READER(dataAddress, unsigned short);
 	GET_READER(dataAddress, unsigned char);
-	else {}
 	return retval;
 }
 #undef GET_READER
@@ -153,42 +167,58 @@ rb::data::MReader* rb::data::MReader::New(const char* typeName, Long_t dataAddre
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // MBasic* rb::data::MBasic::New() [static]    //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-void rb::data::MBasic::New(const char* name, volatile void* addr, TDataMember* d) {
 
 #define CHECK_TYPE(type) do {																						\
-		if (!strcmp(d->GetTrueTypeName(), #type)) {													\
+		if ( !strcmp(d->GetTrueTypeName(), #type) ) {												\
 			rb::data::MBasic* m = new rb::data::Basic<type> (name, addr, d);	\
 			if(!m) err::Error("data::MBasic::New") << "Constructor returned a NULL pointer"; \
 			return;																														\
-		}	 } while(0)
+		}																																		\
+		std::string typeConst = "const "; typeConst += #type;								\
+		if ( !strcmp(d->GetTrueTypeName(), typeConst.c_str()) ) {						\
+			rb::data::MBasic* m =																							\
+				new rb::data::ConstBasic<type> (name, addr, d);									\
+			if(!m) err::Error("data::MBasic::New") << "Constructor returned a NULL pointer"; \
+			return;																														\
+		}																																		\
+	} while(0)
 
+void rb::data::MBasic::New(const char* name, volatile void* addr, TDataMember* d) {
 
-	CHECK_TYPE(double);
-	CHECK_TYPE(float);
-	CHECK_TYPE(long long);
-	CHECK_TYPE(long);
-	CHECK_TYPE(int);
-	CHECK_TYPE(short);
-	CHECK_TYPE(char);
-	CHECK_TYPE(bool);
-	CHECK_TYPE(unsigned long long);
-	CHECK_TYPE(unsigned long);
-	CHECK_TYPE(unsigned int);
-	CHECK_TYPE(unsigned short);
-	CHECK_TYPE(unsigned char);
-
-	static STLMaps stlMaps;
-	STLAddMap_t::iterator it = stlMaps.GetAddMap()->find(TClass::GetClass(d->GetTrueTypeName()));
-	if(it == stlMaps.GetAddMap()->end()) { // no support for the requested STL container
-		err::Error("MReader::New") << "No support for STL class: \"" << d->GetTrueTypeName()
-															 << "\"." << ERR_FILE_LINE;
-		return;
+	if(d->IsBasic()) {
+		CHECK_TYPE(double);
+		CHECK_TYPE(float);
+		CHECK_TYPE(long long);
+		CHECK_TYPE(long);
+		CHECK_TYPE(int);
+		CHECK_TYPE(short);
+		CHECK_TYPE(char);
+		CHECK_TYPE(bool);
+		CHECK_TYPE(unsigned long long);
+		CHECK_TYPE(unsigned long);
+		CHECK_TYPE(unsigned int);
+		CHECK_TYPE(unsigned short);
+		CHECK_TYPE(unsigned char);
+		err::Error("MReader::New")
+			<< "No support for basic type: \"" << d->GetTrueTypeName() << "\"." << ERR_FILE_LINE;
 	}
-	else { // call "adder" function
-		it->second(name, addr, d);
-		return;
+	else if(d->IsSTLContainer()) {
+		static STLMaps stlMaps;
+		STLAddMap_t::iterator it = stlMaps.GetAddMap()->find(TClass::GetClass(d->GetTrueTypeName()));
+		if(it == stlMaps.GetAddMap()->end()) { // no support for the requested STL container
+			err::Error("MReader::New")
+				<< "No support for STL class: \"" << d->GetTrueTypeName() << "\"." << ERR_FILE_LINE;
+			return;
+		}
+		else { // call "adder" function
+			it->second(name, addr, d);
+			return;
+		}
 	}
-
+	else {
+		err::Error("MReader::New")
+			<< "No support for class: \"" << d->GetTrueTypeName() << "\"." << ERR_FILE_LINE;
+	}
 #undef CHECK_TYPE
 }
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
@@ -270,6 +300,16 @@ void rb::data::MBasic::Printer::PrintAll() {
   } printf("\n");
 }
 
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// const char* rb::data::MBasic::GetLeafName() //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+const char* rb::data::MBasic::GetLeafName() {
+	for (Map_t::iterator it = fgAll().begin(); it != fgAll().end(); ++it) {
+		if(it->second == this) return it->first.c_str();
+	}
+	return "NOT FOUND";
+}
+
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // Class                                 //
@@ -305,10 +345,7 @@ void rb::data::Mapper::HandleBasic(TDataMember* d, const char* name) {
     rb::data::MBasic::New(name, reinterpret_cast<void*>(addr), d);
   }
   else if(d->GetArrayDim() > 4) { // too big
-		err::Warning("MapData")
-			<< "No support for arrays > 4 dimensions. The array " << name
-			<< " is " << d->GetArrayDim() << " dimensions and will not be mapped!"
-			<< ERR_FILE_LINE;
+		ERR_ARRAY_GREATER_4("HandleBasic", name, d);
 	}
   else {
     ArrayConverter ac(d);
@@ -330,10 +367,7 @@ void rb::data::Mapper::HandleSTL(TDataMember* d, const char* name) {
     rb::data::MBasic::New(name, reinterpret_cast<void*>(addr), d);
   }
   else if(d->GetArrayDim() > 4) { // too big
-		err::Warning("MapData")
-			<< "No support for arrays > 4 dimensions. The array " << name
-			<< " is " << d->GetArrayDim() << " dimensions and will not be mapped!"
-			<< ERR_FILE_LINE;
+		ERR_ARRAY_GREATER_4("HandleSTL", name, d);
 	}
   else {
     ArrayConverter ac(d);
@@ -355,10 +389,7 @@ void rb::data::Mapper::InsertBasic(TDataMember* d, std::vector<std::string>& v_n
 		v_names.push_back(name);
   }
   else if(d->GetArrayDim() > 4) { // too big
-		err::Warning("MapData")
-			<< "No support for arrays > 4 dimensions. The array " << name
-			<< " is " << d->GetArrayDim() << " dimensions and will not be mapped!"
-			<< ERR_FILE_LINE;
+		ERR_ARRAY_GREATER_4("InsertBasic", name, d);
 	}
   else {
     ArrayConverter ac(d);
@@ -382,10 +413,7 @@ void rb::data::Mapper::InsertSTL(TDataMember* d, std::vector<std::string>& v_nam
 		v_names.push_back(name);
   }
   else if(d->GetArrayDim() > 4) { // too big
-		err::Warning("MapData")
-			<< "No support for arrays > 4 dimensions. The array " << name
-			<< " is " << d->GetArrayDim() << " dimensions and will not be mapped!"
-			<< ERR_FILE_LINE;
+		ERR_ARRAY_GREATER_4("InsertSTL", name, d);
 	}
   else {
     ArrayConverter ac(d);
@@ -442,9 +470,26 @@ void rb::data::Mapper::MapClass() {
 		else if(d->IsSTLContainer())
 			HandleSTL(d, newName.c_str());
     else {
-      Long_t addr = kBase + d->GetOffset();
-      Mapper sub_mapper(newName.c_str(), d->GetTrueTypeName(), addr, false);
-      sub_mapper.MapClass();
+			Int_t nDim = d->GetArrayDim();
+			Long_t addr = kBase + d->GetOffset();
+			if(nDim == 0) { // single element, recurse into this class
+				Mapper sub_mapper(newName.c_str(), d->GetTrueTypeName(), addr, false);
+				sub_mapper.MapClass();
+			}
+			else if (nDim > 4) { // array to many dimensions - bail out
+				ERR_ARRAY_GREATER_4("MapClass", newName, d);
+			}
+			else { // valid array, recurse into every element
+				ArrayConverter ac(d);
+				Int_t arrayLen = ac.GetArrayLength();
+				Int_t size = d->GetUnitSize();
+				for(Int_t i=0; i< arrayLen; ++i) {
+					Long_t addr_i = addr + size*i;
+					std::string name_i = ac.GetFullName(newName.c_str(), i); 
+					Mapper sub_mapper_i(name_i.c_str(), d->GetTrueTypeName(), addr_i, false);
+					sub_mapper_i.MapClass();
+				}
+			}
     }
   }
 }
@@ -481,9 +526,7 @@ inline Long_t FindSTLAddr(const char* name, Long_t baseAddr, TDataMember* dataMe
 	static STLMaps stlMaps;
 
 	if(nDim > 4) { // too big
-		Warning("FindSTLAddr",
-						"No support for arrays > 4 dimensions. The array %s is %d and will not be mapped!",
-						name, dataMember->GetArrayDim());
+		ERR_ARRAY_GREATER_4("FindSTLAddr", name, dataMember);
 	}
 	else if (nDim == 0) { // single element
 		STLAddrMap_t::iterator it = stlMaps.GetAddrMap()->find(TClass::GetClass(dataMember->GetTrueTypeName()));
@@ -552,9 +595,7 @@ Long_t rb::data::Mapper::FindBasicAddr(const char* name, TDataMember** data_memb
 			retval = kBase + realData->GetThisOffset();
 		}
 		else if(dataMember->GetArrayDim() > 4) { // too big
-			Warning("FindBasic",
-							"No support for arrays > 4 dimensions. The array %s is %d and will not be mapped!",
-							name, dataMember->GetArrayDim());
+			ERR_ARRAY_GREATER_4("FindBasic", name, dataMember);
 		}
 		else {
 			ArrayConverter ac(dataMember);
@@ -665,3 +706,6 @@ std::string ArrayConverter::GetFullName(const char* baseName, UInt_t index)  {
     return "";
   }
 }
+
+
+#undef ERR_ARRAY_GREATER_4

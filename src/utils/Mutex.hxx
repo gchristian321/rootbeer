@@ -210,6 +210,6 @@ namespace {
 }
 
 #define RB_LOCKGUARD(mutex)			\
-  rb::ScopedLock<rb::Mutex> rb__lock(mutex)
+  rb::ScopedLock<rb::Mutex> rb_lock_guard_for_scoped_lock(mutex)
 
 #endif

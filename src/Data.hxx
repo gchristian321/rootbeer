@@ -54,6 +54,8 @@ public:
 	virtual void SetValue(Double_t newval) = 0;
 	//! Pure virtual, see rb::data::Basic
 	virtual Long_t GetAddress() = 0;
+	//! Returns the leaf name of this instance
+	const char* GetLeafName();
 	//! Returns a vector containing the names of all variables.
 	static std::vector<std::string> GetAll();
 	//! Search for an instance of Basic*
@@ -210,6 +212,29 @@ public:
 	Long_t GetAddress();
 	//! Nothing to do
 	virtual ~Basic();
+};
+
+/// \brief Const version of Basic<T>
+template <class T>
+class ConstBasic : public MBasic
+{
+private:
+	//! Memory address of the basic data
+	//! \note Marked volatile so that all access has to be through LockingPointers.
+	const T* const fAddress;
+public:
+	/// \brief Sets fAddress and inserts \c this into data::MBasic::fgAll.
+	//! \details Also, in the case of an array, it iterates through the whole array and
+	//! creates a new instance of data::Basic for each element.
+	ConstBasic(const char* name, volatile void* addr, const TDataMember* d);
+	//! Return the value of the data stored at fAddress
+	Double_t GetValue();
+	//! Not allowed - gives warning message
+	void SetValue(Double_t);
+	//! Return the memory location of the basic data
+	Long_t GetAddress();
+	//! Nothing to do
+	virtual ~ConstBasic();
 };
 
 //! Helper class to perform the actual mapping of name -> address for basic data members of user classes.
@@ -389,7 +414,7 @@ public:
 // Constructor                //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 template <class T>
-rb::data::Basic<T>::Basic(const char* name, volatile void* addr, const TDataMember* d) :
+inline rb::data::Basic<T>::Basic(const char* name, volatile void* addr, const TDataMember* d) :
   MBasic(d), fAddress(reinterpret_cast<volatile T*>(addr)) {
   fgAll().insert(std::make_pair<std::string, MBasic*>(name, this));
 }
@@ -422,6 +447,51 @@ template <class T>
 inline Long_t rb::data::Basic<T>::GetAddress() {
   LockingPointer<T> p(fAddress, gDataMutex);
   return reinterpret_cast<Long_t>(p.Get());
+}
+
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// Template Class                         //
+// rb::data::ConstBasic<T> Implementation //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// Constructor                //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+template <class T>
+inline rb::data::ConstBasic<T>::ConstBasic(const char* name, volatile void* addr, const TDataMember* d) :
+  MBasic(d), fAddress((const T*)fAddress) {
+  fgAll().insert(std::make_pair<std::string, MBasic*>(name, this));
+}
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// Destructor                 //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+template <class T>
+inline rb::data::ConstBasic<T>::~ConstBasic() {
+}
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// Double_t rb::data::ConstBasic<T>::GetValue()   //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+template <class T>
+inline Double_t rb::data::ConstBasic<T>::GetValue() {
+	RB_LOCKGUARD(gDataMutex);
+  return *fAddress;
+}
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// void rb::data::ConstBasic<T>::SetValue()       //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+template <class T>
+inline void rb::data::ConstBasic<T>::SetValue(Double_t) {
+	err::Error("SetValue")
+		<< "Cannot change the value of const data member: \""
+		<< GetLeafName() << "\"";
+}
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// Long_t rb::data::ConstBasic<T>::GetAddress()   //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+template <class T>
+inline Long_t rb::data::ConstBasic<T>::GetAddress() {
+	RB_LOCKGUARD(gDataMutex);
+  return (Long_t)fAddress;
 }
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
