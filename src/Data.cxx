@@ -1,5 +1,6 @@
 //! \file Data.cxx
 //! \brief Implements Data.hxx
+//! \todo Proper suport for pointers...
 #include <set>
 #include <list>
 #include <deque>
@@ -473,9 +474,9 @@ inline std::string append_name(const std::string& base, const char* toAppend) {
 void rb::data::Mapper::MapClass() {
   TClass* cl = TClass::GetClass(kClassName.c_str());
   if(!cl) {
-		err::Warning("MapClass")
-			<< "Unable to map the class \"" << kClassName << "\" because it doesn not "
-			<< "have a ROOT Dictionary." << ERR_FILE_LINE;
+		if(0)	err::Warning("MapClass")
+						<< "Unable to map the class \"" << kClassName << "\" because it does not "
+						<< "have a ROOT Dictionary." << ERR_FILE_LINE;
 		return;
 	}
   TList* dataMembers = cl->GetListOfDataMembers();
