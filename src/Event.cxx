@@ -6,6 +6,10 @@
 #include "hist/Hist.hxx"
 #include "utils/Logger.hxx"
 
+namespace {
+const bool formulaPrint = false;
+}
+
 namespace rb { rb::Mutex gDataMutex("gDataMutex"); }
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
@@ -91,12 +95,27 @@ rb::DataFormula* rb::Event::InitFormula::Operate(rb::Event* const event, const c
 	assert(pTree->GetListOfBranches()->GetEntries() == 1);
 
 	LockFreePointer<Long_t> pAddr(event->fClassAddr);
+	// Try constant 
+	rb::ConstantDataFormula* constant = new rb::ConstantDataFormula(formula_arg);
+	if(constant->IsZombie() == false) {
+		if(formulaPrint) err::Info("InitFormula") << "Using constant " << constant->Evaluate()
+																							<< " to evaluate \"" << formula_arg << "\"";
+		return constant;
+	}
+	delete constant; // didn't work
+
+	// try direct
 	rb::DirectDataFormula* direct =
 		new rb::DirectDataFormula(branch->GetName(), branch->GetClassName(), reinterpret_cast<void*>(*pAddr), formula_arg);
-	if(direct->IsZombie() == false) return direct;
+	if(direct->IsZombie() == false) {
+		if(formulaPrint) err::Info("InitFormula") << "Using direct address to evaluate \"" << formula_arg << "\"";
+		return direct;
+	}
+	delete direct; // didn't work
 
-	delete direct;
-  return new rb::TTreeDataFormula(formula_arg, formula_arg, pTree.Get());
+	// resort to TTreeFormula
+	if(formulaPrint) err::Info("InitFormula") << "Using TTreeFormula to evaluate \"" << formula_arg << "\"";
+	return new rb::TTreeDataFormula(formula_arg, formula_arg, pTree.Get());
 }
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // Bool_t rb::Event::BranchAdd::Operate()                //

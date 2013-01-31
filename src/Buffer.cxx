@@ -250,7 +250,7 @@ rb::attach::Online::~Online() {
 		delete[] fOtherArgs;
 	}
 }
-#include <midas.h>
+
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // void rb::attach::Online::DoInThread()                 //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//

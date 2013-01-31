@@ -85,7 +85,27 @@ public:
 	/// \brief Returns true if fReader == 0
 	virtual Bool_t IsZombie() { return fReader == 0; }
 };
-	// 	rb::data::Mapper mapper ("gamma", "dragon::Head", reinterpret_cast<Long_t>(head), false);
+
+/// \brief Derived class of DataFormula evaluating a constant
+class ConstantDataFormula : public DataFormula
+{
+private:
+	/// The constant value
+	Double_t fValue;
+	/// Tells whether or not the passed value was actually a constant
+	Bool_t fIsFormulaConstant;
+public:
+	/// \brief Fills fValue with the correct amount, sets fIsFormulaConstant
+	//! \param formula The formula to evaluate.
+	ConstantDataFormula(const char* formula);
+	/// \brief Empty
+	virtual ~ConstantDataFormula() { }
+	/// \brief Returns fValue
+	virtual Double_t Evaluate() { return fValue; }
+	/// \brief Returns true if fIsFormulaConstant == false
+	virtual Bool_t IsZombie() { return fIsFormulaConstant == false; }
+};
+
 
 /// \brief Wrapper for histogram TTreeFormulae
 class TreeFormulae

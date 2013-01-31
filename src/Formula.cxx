@@ -20,10 +20,11 @@
 namespace
 {
   inline void modify_formula_arg(std::string& formula) {
-    std::string f = TString(formula).ReplaceAll(" ","").Data();
-    if      (f ==  "") formula = "1";  // Null field means no gate, i.e. always true.
-    else if (f == "0") formula ="!1";  // Somehow "0" evaluates to true, should be false.
-    else;                              // don't modify
+		return;
+    // std::string f = TString(formula).ReplaceAll(" ","").Data();
+    // if      (f ==  "") formula = "1";  // Null field means no gate, i.e. always true.
+    // else if (f == "0") formula ="!1";  // Somehow "0" evaluates to true, should be false.
+    // else;                              // don't modify
   }
 }
 
@@ -50,6 +51,27 @@ rb::DirectDataFormula::~DirectDataFormula() {
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 Double_t rb::DirectDataFormula::Evaluate() {
 	return fReader->ReadValue();
+}
+
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// Class                                                 //
+// rb::ConstantDataFormula                               //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// Constructor                                           //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+rb::ConstantDataFormula::ConstantDataFormula(const char* formula):
+	fValue(-1.), fIsFormulaConstant(false) {
+	TString tsFormula(formula);
+	if (tsFormula.IsFloat()) {
+		fValue = tsFormula.Atof();
+		fIsFormulaConstant = true;
+	}
+	else if (tsFormula.IsWhitespace()) {
+		fValue = 1.0;
+		fIsFormulaConstant = true;
+	}
 }
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//

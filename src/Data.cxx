@@ -676,7 +676,6 @@ Long_t rb::data::Mapper::FindBasicAddr(const char* name, TDataMember** data_memb
 		err::Error("FindBasicAddr") << "Unsupported \"final\" data type: "
 																<< dataMember->GetTrueTypeName() << ERR_FILE_LINE;
 	}
-
 	return retval;
 }
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
@@ -685,9 +684,12 @@ Long_t rb::data::Mapper::FindBasicAddr(const char* name, TDataMember** data_memb
 rb::data::MReader* rb::data::Mapper::FindBasicReader(const char* name, TDataMember** data_member) {
 	TDataMember* d = 0;
 	Long_t retval = FindBasicAddr(name, &d);
+	if(!retval) return 0;
+	assert(retval);
 	if(data_member) *data_member = d;
-	if(d && d->IsBasic())
+	if(d && d->IsBasic()) {
 		return retval ? rb::data::MReader::New(d->GetTrueTypeName(), retval) : 0;
+	}
 	else {
 		static STLMaps stlMaps;
 		STLBasicTypeMap_t::iterator it = stlMaps.GetBasicTypeMap()->find(TClass::GetClass(d->GetTrueTypeName()));
