@@ -89,6 +89,17 @@ rb::attach::File::~File() {
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // void rb::attach::File::DoInThread()                   //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+namespace {
+inline void printCounter(Int_t n, bool force = false) {
+	if (TString(rb::gApp()->ApplicationName()) != "Rbunpack") return;
+	if(n == 0) {
+		std::cerr << "Buffers unpacked: ";
+		std::flush(std::cerr);
+	}
+	if(n % 1000 != 0 && !force) return;
+	std::cerr << n << "... ";
+	std::flush(std::cerr);
+} }
 void rb::attach::File::DoInThread() {
 
   Bool_t open = fBuffer->OpenFile(kFileName.c_str());
@@ -103,11 +114,15 @@ void rb::attach::File::DoInThread() {
     if (read_success) {
 			fBuffer->UnpackBuffer();
 			if(gApp()->GetSignals()) gApp()->GetSignals()->UpdateBufferCounter(nbuffers++);
+			else printCounter(nbuffers++);
 		}
     else if (kStopAtEnd) break; // we're done
     else gSystem->Sleep(10e3); // wait 10 sec. for more data
   }
-
+	if (1) {
+		printCounter(nbuffers, true);
+		std::cerr << "\n";
+	}
   if(FileAttached()) { // read the complete file
     Info("AttachFile", "Done reading %s", kFileName.c_str());
 	}
@@ -117,7 +132,7 @@ void rb::attach::File::DoInThread() {
 		}
   }
 	if(gApp()->GetSignals())
-		 gApp()->GetSignals()->UpdateBufferCounter(nbuffers, true);
+		gApp()->GetSignals()->UpdateBufferCounter(nbuffers, true);
   fBuffer->CloseFile();
 }
 

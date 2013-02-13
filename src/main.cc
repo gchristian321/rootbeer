@@ -42,7 +42,7 @@ int main(int argc, char** argv)
 	handle_args(argc, argv, fin);
 	assert(strlen(argv[0]) > 3);
 	sprintf(argv[0], "-ng");
-	rb::Rint rbApp("Rootbeer", &argc, argv, 0, 0, true);
+	rb::Rint rbApp("Rbunpack", &argc, argv, 0, 0, true);
 	rbApp.StartSave(false);
 	rb::AttachFile(fin.c_str());
 	gSystem->Sleep(1e2);
