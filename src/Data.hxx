@@ -514,7 +514,7 @@ template<class T> T* Construct(const char* args) {
 	if (!data) {
 		err::Error("Data::Init") <<
 			"Couldn't create a new instance of the template class " << "(typeid.name(): "<< 
-			typeid(T).name() << ", constructor arguments: " << args << ").";
+			typeid(T).name() << ", constructor arguments: " << args << ")." << ERR_FILE_LINE;
 		data = 0;
 	}
 	return data;
@@ -531,7 +531,7 @@ template<class T> T* Construct(const char* args, Bool_t) {
 	if (!data) {
 		err::Error("Data::Init") <<
 			"Couldn't create a new instance of the template class " << "(typeid.name(): "<< 
-			typeid(T).name() << ", constructor arguments: " << args << ").";
+			typeid(T).name() << ", constructor arguments: " << args << ")." << ERR_FILE_LINE;
 		data = 0;
 	}
 	return data;
@@ -654,16 +654,16 @@ inline T& rb::data::Wrapper<T>::operator* () const {
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // void rb::data::Wrapper<T>::Init()                               //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+
 template <class T>
 void rb::data::Wrapper<T>::Init(Event* event, Bool_t makeVisible, const char* args, Int_t bufsize) {
   // Figure out class name
   TClass* cl = TClass::GetClass(typeid(T));
   if(!cl) {
-    Error("Data::Init",
-					"CINT Does not know about a class you asked it to create "
-					"(typeid.name(): %s, constructor arguments: %s). "
-					"Check UserLinkdef.h to make sure a dictionary is properly generated.",
-					typeid(T).name(), args);
+    err::Error("Data::Init")
+			<< "CINT Does not know about a class you asked it to create "
+			<<"(typeid.name(): " << typeid(T).name() <<", constructor arguments: " << args << "). "
+			"Check UserLinkdef.h to make sure a dictionary is properly generated." << ERR_FILE_LINE;
     return;
   }
   // Map "visible" classes for CINT
@@ -678,9 +678,10 @@ void rb::data::Wrapper<T>::Init(Event* event, Bool_t makeVisible, const char* ar
   // Add as a branch in the event's internal tree.
   if(event) {
     Bool_t add_success = Event::BranchAdd::Operate(event, kBranchName, cl->GetName(), &fDataVoidPtr, bufsize);
-    if(!add_success) err::Error("data::Wrapper::Init") << "Unsuccessful attempt to add the branch " << kBranchName;
+    if(!add_success)
+			err::Error("data::Wrapper::Init") << "Unsuccessful attempt to add the branch " << kBranchName << ERR_FILE_LINE;
   }
-  else err::Error("data::Wrapper::Init") << "Event pointer == 0";
+  else err::Error("data::Wrapper::Init") << "Event pointer == 0" << ERR_FILE_LINE;
 }
 
 #endif // #ifndef __MAKECINT__

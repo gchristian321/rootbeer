@@ -5,6 +5,7 @@
 #include <map>
 #include <vector>
 #include <sstream>
+#include <typeinfo>
 #include <TRint.h>
 #include "Event.hxx"
 #include "Signals.hxx"
@@ -162,6 +163,14 @@ inline void rb::Rint::AddMessage(const std::string& str) {
 }
 template <typename T>
 void rb::Rint::RegisterEvent(Int_t code, const char* name) {
+	for(EventMap_t::iterator it = fEvents.begin(); it != fEvents.end(); ++it) {
+		if (typeid(it->second.first) == typeid(T)) {
+			err::Error("RegisterEvent")
+				<< "Attempting to register the same event processor twice. This is not allowed.\n"
+				<< "typeid.name() = " << typeid(T).name() << "\n";
+			exit(1);
+		}
+	}
 	if(code == -1) {
 		err::Error("RegisterEvent")
 			 << "Event code -1 is reserved and cannot be set by users.\n"
@@ -170,7 +179,13 @@ void rb::Rint::RegisterEvent(Int_t code, const char* name) {
 	}
 	std::pair<Event*, std::string> second = std::make_pair(rb::Event::Instance<T>(),
 																												 std::string(name));
-  fEvents.insert(std::make_pair(code, second));
+  std::pair<EventMap_t::iterator, bool> iresult = fEvents.insert(std::make_pair(code, second));
+	if (iresult.second == false) {
+		err::Error("RegisterEvent")
+			<< "Attempted to use the same event processor code twice. This is not allowed.\n"
+			<< "Code value: " << code << "\n";
+		exit(1);		
+	}
 }
 inline rb::Signals* rb::Rint::GetSignals() {
 	return fSignals;

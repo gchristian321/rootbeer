@@ -2,6 +2,7 @@
 //! \brief Implements classes defined in Buffer.hxx
 #include <fstream>
 #include <memory>
+#include <sstream>
 #include <algorithm>
 #include <TFile.h>
 #include <TError.h>
@@ -97,7 +98,15 @@ inline void printCounter(Int_t n, bool force = false) {
 		std::flush(std::cerr);
 	}
 	if(n % 1000 != 0 && !force) return;
-	std::cerr << n << "... ";
+
+	static int nOut = 0;
+	std::stringstream out; out << n;
+	if(nOut) {
+		for(int i=0; i< nOut; ++i)
+			std::cerr << "\b";
+	}
+	nOut = out.str().size();
+	std::cerr << n;
 	std::flush(std::cerr);
 } }
 void rb::attach::File::DoInThread() {
