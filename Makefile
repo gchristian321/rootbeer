@@ -20,10 +20,10 @@ RPATH    += -Wl,-rpath,$(ROOTSYS)/lib -Wl,-rpath,$(PWD)/lib
 DYLIB=-shared
 FPIC=-fPIC
 INCFLAGS=-I$(SRC) -I$(CINT) -I$(USER) $(USER_INCLUDES)
-DEBUG=-ggdb -O0
+OPTIMIZE=-O3
+DEBUG=-ggdb
 #-ggdb -O0 -DDEBUG -DRB_LOGGING
-#-DDEBUG
-CXXFLAGS=$(DEBUG) $(INCFLAGS) $(STOCK_BUFFERS) -DBUFFER_TYPE=$(USER_BUFFER_TYPE)
+CXXFLAGS=$(DEBUG) $(OPTIMIZE) $(INCFLAGS) $(STOCK_BUFFERS) -DBUFFER_TYPE=$(USER_BUFFER_TYPE)
 
 
 ifdef ROOTSYS
@@ -57,13 +57,12 @@ FPIC=
 RPATH=
 endif
 
-COMPILER=g++ -Wall
-##COMPILER=clang++
+#CXX=g++ -Wall
 
 DEFAULTS=$(DEF_FILE_DIR) $(DEF_SAVE_DIR) $(DEF_CONFIG_DIR)
 
-COMPILE=$(COMPILER) $(CXXFLAGS) $(RPATH) $(DEF_EXT) $(DEFAULTS) $(USER_DEFINITIONS) -I$(ROOTSYS)/include
-LINK=$(COMPILER) $(CXXFLAGS) $(ROOTGLIBS) $(RPATH) $(DEFAULTS) $(USER_DEFINITIONS) -L$(PWD)/lib $(USER_LIB_DIRS)
+COMPILE=$(CXX) $(CXXFLAGS) $(RPATH) $(DEF_EXT) $(DEFAULTS) $(USER_DEFINITIONS) -I$(ROOTSYS)/include
+LINK=$(CXX) $(CXXFLAGS) $(ROOTGLIBS) $(RPATH) $(DEFAULTS) $(USER_DEFINITIONS) -L$(PWD)/lib $(USER_LIB_DIRS)
 ROOTCINT=rootcint $(USER_DEFINITIONS)
 
 
@@ -84,7 +83,7 @@ $(OBJ)/Data.o $(OBJ)/Event.o $(OBJ)/Buffer.o $(OBJ)/Canvas.o $(OBJ)/WriteConfig.
 $(OBJ)/Rint.o $(OBJ)/Signals.o $(OBJ)/Rootbeer.o $(OBJ)/Gui.o $(OBJ)/HistGui.o \
 $(OBJ)/TGSelectDialog.o $(OBJ)/TGDivideSelect.o $(OBJ)/Main.o
 
-HEADERS=$(SRC)/Rootbeer.hxx $(SRC)/Rint.hxx $(SRC)/Data.hxx $(SRC)/Buffer.hxx $(SRC)/Event.hxx \
+HEADERS=$(SRC)/Main.hxx $(SRC)/Rootbeer.hxx $(SRC)/Rint.hxx $(SRC)/Data.hxx $(SRC)/Buffer.hxx $(SRC)/Event.hxx \
 $(SRC)/Signals.hxx $(SRC)/Formula.hxx $(SRC)/utils/LockingPointer.hxx $(SRC)/utils/Mutex.hxx \
 $(SRC)/hist/Hist.hxx $(SRC)/hist/Visitor.hxx $(SRC)/hist/Manager.hxx $(SRC)/TGSelectDialog.h $(SRC)/TGDivideSelect.h \
 $(SRC)/HistGui.hxx $(SRC)/Gui.hxx $(SRC)/midas/*.h $(SRC)/utils/*.h*

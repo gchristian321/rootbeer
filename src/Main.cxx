@@ -4,8 +4,10 @@
 #include <set>
 #include <string>
 #include <TROOT.h>
+#include "boost/scoped_ptr.hpp"
 #include "Rint.hxx"
 #include "Rootbeer.hxx"
+#include "Main.hxx"
 
 namespace {
 void usage(const char* arg0) {
@@ -23,7 +25,7 @@ void handle_args(int argc, char** argv, std::string& fin) {
 
 /// \brief The \c main ROOTBEER function.
 //! \details Creates an instance of \c rb::Rint and runs it.
-int main(int argc, char** argv)
+int rb::Main::Run(int argc, char** argv)
 {
 
  if (argc > 1 && !strcmp(argv[1], "--unpack")) { // 'rbunpack'
@@ -38,6 +40,7 @@ int main(int argc, char** argv)
 	 gSystem->Sleep(1e2);
 	 while(TThread::GetThread("AttachFile"));
 	 rbApp.Terminate(0);
+	 return 0;
 
  } else { // Standard ROOTBEER
 
@@ -49,6 +52,12 @@ int main(int argc, char** argv)
 	 rbApp.Run();
 	 return 0;
 
+ }
 }
 
+
+int main(int argc, char** argv)
+{
+	boost::scoped_ptr<rb::Main> m (rb::GetMain());
+	return m->Run(argc, argv);
 }

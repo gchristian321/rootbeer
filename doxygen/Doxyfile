@@ -610,7 +610,7 @@ WARN_LOGFILE           =
 # directories like "/usr/src/myproject". Separate the files or directories
 # with spaces.
 
-INPUT                  = /user/gchristian/soft/develop/rootbeer/src /user/gchristian/soft/develop/rootbeer/user /user/gchristian/soft/develop/rootbeer/src/utils /user/gchristian/soft/develop/rootbeer/src/user /user/gchristian/soft/develop/rootbeer/src/hist /user/gchristian/soft/develop/rootbeer/user/Makefile.user
+INPUT                  = /Users/dragon/packages/rootbeer/src /Users/dragon/packages/rootbeer/user /Users/dragon/packages/rootbeer/src/utils /Users/dragon/packages/rootbeer/src/user /Users/dragon/packages/rootbeer/src/hist /Users/dragon/packages/rootbeer/user/Makefile.user /Users/dragon/packages/rootbeer/doxygen
 
 # This tag can be used to specify the character encoding of the source files
 # that doxygen parses. Internally doxygen uses the UTF-8 encoding, which is
@@ -640,7 +640,7 @@ RECURSIVE              = NO
 # excluded from the INPUT source files. This way you can easily exclude a
 # subdirectory from a directory tree whose root is specified with the INPUT tag.
 
-EXCLUDE                = /user/gchristian/soft/develop/rootbeer/src/utils/counted_ptr.h
+EXCLUDE                = /Users/dragon/packages/rootbeer/src/utils/counted_ptr.h
 
 # The EXCLUDE_SYMLINKS tag can be used select whether or not files or
 # directories that are symbolic links (a Unix file system feature) are excluded
