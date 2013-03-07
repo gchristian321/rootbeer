@@ -55,8 +55,7 @@ private:
 public:
 	/// \brief Creates internal TTreeFormula
 	//! \details Parameters are the same as for ROOT's TTreeFormula.
-	TTreeDataFormula(const char* name, const char* formula, TTree* tree):
-		fTTreeFormula(new TTreeFormula(name, formula, tree)) { }
+	TTreeDataFormula(const char* name, const char* formula, TTree* tree);
 	/// \brief Calls fFormula->EvalInstance(0)
 	virtual Double_t Evaluate() { return fTTreeFormula->EvalInstance(0); }
 	/// \brief Returns true if GetNdim() == 0

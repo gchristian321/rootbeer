@@ -356,7 +356,7 @@ void rb::HistSignals::hist_error(const char* message) {
 void rb::HistSignals::PopulateParameters(Int_t event_code) {
 	rb::Event* event = gApp()->GetEvent(event_code);
 	if(!event) {
-		err::Error("rb::HistSignals::PopulateParameters")
+		rb::err::Error("rb::HistSignals::PopulateParameters")
 			 << "Invalid event code (" << event_code << ") recieved from rb::gApp()->fHistFrame->fEventEntry.";
 		rb::gApp()->fHistFrame->fParamX->RemoveAll();
 		rb::gApp()->fHistFrame->fParamY->RemoveAll();

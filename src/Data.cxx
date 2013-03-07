@@ -19,7 +19,7 @@
 
 
 #define ERR_ARRAY_GREATER(FUNC, NAME, DATA_ELEMENT, NDIM) do {					\
-		err::Error(FUNC)																										\
+		rb::err::Error(FUNC)																										\
 			<< "No support for arrays > " << NDIM << " dimensions. "					\
 			<< "The array " << NAME << " is " << DATA_ELEMENT->GetArrayDim()	\
 			<< " dimensions and will not be mapped." << ERR_FILE_LINE;				\
@@ -29,7 +29,7 @@
 		std::stringstream typeStr;																					\
 		typeStr << #CONTAINER << "<"	<< #TYPE << ">";											\
 		TClass* cl = TClass::GetClass(typeStr.str().c_str());								\
-		if(!cl) err::Error("ADD_STL") << "No TClass for " << typeStr.str();	\
+		if(!cl) rb::err::Error("ADD_STL") << "No TClass for " << typeStr.str();	\
 		assert(cl);																													\
 		fAddMap.insert(std::make_pair(cl, AddSTL<std::CONTAINER<TYPE>, TYPE>)); \
 		fAddrMap.insert(std::make_pair(cl, AddrSTL<std::CONTAINER<TYPE> >)); \
@@ -66,7 +66,7 @@ void AddSTL(const char* name, volatile void* addr, TDataMember* d) {
 		fullName << name << "[" << i++ << "]";
 		rb::data::MBasic* m =
 			new rb::data::Basic<B>(fullName.str().c_str(), (volatile void*)addrThis, d);
-		if(!m) err::Error("AddSTL") << "Constructor returned a NULL pointer" << ERR_FILE_LINE;
+		if(!m) rb::err::Error("AddSTL") << "Constructor returned a NULL pointer" << ERR_FILE_LINE;
 	}
 }
 
@@ -186,14 +186,14 @@ rb::data::MReader* rb::data::MReader::New(const char* typeName, Long_t dataAddre
 #define CHECK_TYPE(type) do {																						\
 		if ( !strcmp(d->GetTrueTypeName(), #type) ) {												\
 			rb::data::MBasic* m = new rb::data::Basic<type> (name, addr, d);	\
-			if(!m) err::Error("data::MBasic::New") << "Constructor returned a NULL pointer"; \
+			if(!m) rb::err::Error("data::MBasic::New") << "Constructor returned a NULL pointer"; \
 			return;																														\
 		}																																		\
 		std::string typeConst = "const "; typeConst += #type;								\
 		if ( !strcmp(d->GetTrueTypeName(), typeConst.c_str()) ) {						\
 			rb::data::MBasic* m =																							\
 				new rb::data::ConstBasic<type> (name, addr, d);									\
-			if(!m) err::Error("data::MBasic::New") << "Constructor returned a NULL pointer"; \
+			if(!m) rb::err::Error("data::MBasic::New") << "Constructor returned a NULL pointer"; \
 			return;																														\
 		}																																		\
 	} while(0)
@@ -214,14 +214,14 @@ void rb::data::MBasic::New(const char* name, volatile void* addr, TDataMember* d
 		CHECK_TYPE(unsigned int);
 		CHECK_TYPE(unsigned short);
 		CHECK_TYPE(unsigned char);
-		err::Error("MReader::New")
+		rb::err::Error("MReader::New")
 			<< "No support for basic type: \"" << d->GetTrueTypeName() << "\"." << ERR_FILE_LINE;
 	}
 	else if(d->IsSTLContainer()) {
 		static STLMaps stlMaps;
 		STLAddMap_t::iterator it = stlMaps.GetAddMap()->find(TClass::GetClass(d->GetTrueTypeName()));
 		if(it == stlMaps.GetAddMap()->end()) { // no support for the requested STL container
-			err::Error("MReader::New")
+			rb::err::Error("MReader::New")
 				<< "No support for STL class: \"" << d->GetTrueTypeName() << "\"." << ERR_FILE_LINE;
 			return;
 		}
@@ -231,7 +231,7 @@ void rb::data::MBasic::New(const char* name, volatile void* addr, TDataMember* d
 		}
 	}
 	else {
-		err::Error("MReader::New")
+		rb::err::Error("MReader::New")
 			<< "No support for class: \"" << d->GetTrueTypeName() << "\"." << ERR_FILE_LINE;
 	}
 #undef CHECK_TYPE
@@ -447,7 +447,7 @@ void rb::data::Mapper::InsertSTL(TDataMember* d, std::vector<std::string>& v_nam
 				stlMaps.GetLengthMap()->find(TClass::GetClass(d->GetTrueTypeName()));
 
 			if(it == stlMaps.GetLengthMap()->end()) { // no support for the requested STL container
-				err::Error("MReader::New") << "No support for STL class: \"" << d->GetTrueTypeName()
+				rb::err::Error("MReader::New") << "No support for STL class: \"" << d->GetTrueTypeName()
 																	 << "\"." << ERR_FILE_LINE;
 				return;
 			}
@@ -474,7 +474,7 @@ inline std::string append_name(const std::string& base, const char* toAppend) {
 void rb::data::Mapper::MapClass() {
   TClass* cl = TClass::GetClass(kClassName.c_str());
   if(!cl) {
-		if(0)	err::Warning("MapClass")
+		if(0)	rb::err::Warning("MapClass")
 						<< "Unable to map the class \"" << kClassName << "\" because it does not "
 						<< "have a ROOT Dictionary." << ERR_FILE_LINE;
 		return;
@@ -571,7 +571,7 @@ inline Long_t FindSTLAddr(const char* name, Long_t baseAddr, TDataMember* dataMe
 	else if (nDim == 0) { // single element
 		STLAddrMap_t::iterator it = stlMaps.GetAddrMap()->find(TClass::GetClass(dataMember->GetTrueTypeName()));
 		if (it == stlMaps.GetAddrMap()->end()) {
-			err::Error("FindSTLAddr")
+			rb::err::Error("FindSTLAddr")
 				<< "No support for the STL class: " << dataMember->GetTrueTypeName() << ERR_FILE_LINE;
 		}
 		else {
@@ -599,7 +599,7 @@ inline Long_t FindSTLAddr(const char* name, Long_t baseAddr, TDataMember* dataMe
 			if(ac.GetFullName(nnn.c_str(), i) == strName) {
 				STLAddrMap_t::iterator it = stlMaps.GetAddrMap()->find(TClass::GetClass(dataMember->GetTrueTypeName()));
 				if (it == stlMaps.GetAddrMap()->end()) {
-					err::Error("FindSTLAddr")
+					rb::err::Error("FindSTLAddr")
 						<< "No support for the STL class: " << dataMember->GetTrueTypeName() << ERR_FILE_LINE;
 				}
 				else {
@@ -674,7 +674,7 @@ Long_t rb::data::Mapper::FindBasicAddr(const char* name, TDataMember** data_memb
 	}
 
 	else { // bail out
-		err::Error("FindBasicAddr") << "Unsupported \"final\" data type: "
+		rb::err::Error("FindBasicAddr") << "Unsupported \"final\" data type: "
 																<< dataMember->GetTrueTypeName() << ERR_FILE_LINE;
 	}
 	return retval;
@@ -695,7 +695,7 @@ rb::data::MReader* rb::data::Mapper::FindBasicReader(const char* name, TDataMemb
 		static STLMaps stlMaps;
 		STLBasicTypeMap_t::iterator it = stlMaps.GetBasicTypeMap()->find(TClass::GetClass(d->GetTrueTypeName()));
 		if(it == stlMaps.GetBasicTypeMap()->end()) {
-			err::Error("FindBasicReader")
+			rb::err::Error("FindBasicReader")
 				<< "Couldn't figure out the basic type stored in container: \""
 				<< d->GetTrueTypeName() << "\"" << ERR_FILE_LINE;
 			return 0;

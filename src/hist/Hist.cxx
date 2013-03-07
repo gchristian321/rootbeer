@@ -27,7 +27,7 @@ namespace
 	ret = sstr.str();
 	if(!gROOT->FindObject(ret.c_str())) break;
       }
-      err::Info("rb::hist::Base") << "The name " << name <<
+      rb::err::Info("rb::hist::Base") << "The name " << name <<
 	" is already in use, creating " << name << "_" << n-1 << " instead.";
     }
     return ret;
@@ -58,7 +58,7 @@ namespace
     StringVector_t par = tokenize(param, ':');
     reverse_vector(par);
     if(par.size() != ndimensions)
-      err::Throw() << "Invalid parameter specificaton: \"" << param << "\" for a(n) "
+      rb::err::Throw() << "Invalid parameter specificaton: \"" << param << "\" for a(n) "
 		   << ndimensions << " dimensional histogram.";
     return par;
   }
@@ -132,7 +132,7 @@ void rb::hist::Base::Init(const char* name, const char* title, const char* param
 		if(gApp()->GetHistSignals()) gApp()->GetHistSignals()->NewOrDeleteHist();
   }
   else {
-    err::Warning("Hist::Init") << "gDirectory == 0; not adding to any ROOT collections.";
+    rb::err::Warning("Hist::Init") << "gDirectory == 0; not adding to any ROOT collections.";
     fDirectory = gDirectory;
   }
 }
@@ -240,7 +240,7 @@ void rb::hist::Summary::SetOrientation(Option_t* orientation) {
   if(orient == "v") kOrientation = VERTICAL;
   else if(orient == "h") kOrientation = HORIZONTAL;
   else {
-    err::Warning("rb::hist::Summary::Summary")
+    rb::err::Warning("rb::hist::Summary::Summary")
       << "Orientation specification " << orientation
       << " is not understood. Defaulting to vertical.";
     kOrientation = VERTICAL;
@@ -265,7 +265,7 @@ namespace
   inline void add_range(long* pos, StringVector_t::iterator& it, StringVector_t& pars) {
     Int_t lower = str2int(subrange(pos[0]+1, pos[1], *it));
     Int_t upper = str2int(subrange(pos[1]+1, pos[2], *it));
-    if(lower > upper)	err::Throw() << "Invalid parameter specification: lower index ("
+    if(lower > upper)	rb::err::Throw() << "Invalid parameter specification: lower index ("
 				     << lower << ") > upper index (" << upper << ").";
     std::string base = subrange(0, pos[0], *it);
     for(Int_t i=lower; i <= upper; ++i) {
@@ -366,7 +366,7 @@ void rb::hist::Gamma::InitParams(const char* params, Int_t event_code) {
     fStops.push_back(temp.size());
     if(kDimensions > 0) {
       if(*(fStops.end()-1) != *(fStops.begin()))
-	err::Throw() << "Invalid parameter specification (\"" << params << "\").\n"
+	rb::err::Throw() << "Invalid parameter specification (\"" << params << "\").\n"
 		     << "Multiple dimensional gamma histograms must consist of ordered pairs of parameters\n"
 		     << "(i.e. you need to specify the same number of paramaters for each side of the ':').\n";
     }

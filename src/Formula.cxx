@@ -76,6 +76,22 @@ rb::ConstantDataFormula::ConstantDataFormula(const char* formula):
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // Class                                                 //
+// rb::TTreeDataFormula                                  //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// Constructor                                           //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+rb::TTreeDataFormula::TTreeDataFormula(const char* name, const char* formula, TTree* tree):
+	fTTreeFormula(new TTreeFormula(name, formula, tree)) {
+
+	if (0)
+		rb::err::Info("TTreeDataFormula") << "Resorting to TTreeFormula for \"" << formula << "\"";
+}
+
+
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// Class                                                 //
 // rb::TreeFormulae                                      //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 
@@ -126,7 +142,7 @@ Bool_t rb::TreeFormulae::Change(Int_t index, std::string new_formula) {
       fDataFormulae->replace(index, rb::Event::InitFormula::Operate(rb::gApp()->GetEvent(kEventCode), new_formula.c_str()));
       fFormulaArgs.at(index) = new_formula;
     } catch(std::exception& e) {
-      err::Error("rb::TreeFormulae::Change()") << "Invalid index " << index;
+      rb::err::Error("rb::TreeFormulae::Change()") << "Invalid index " << index;
     }
     return true;
   }
@@ -136,7 +152,7 @@ Bool_t rb::TreeFormulae::Change(Int_t index, std::string new_formula) {
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 std::string rb::TreeFormulae::Get(Int_t index) {
   if(index < 0 || index > GATE) {
-    err::Info("Formula::Get") << "Invalid index: " << index;
+    rb::err::Info("Formula::Get") << "Invalid index: " << index;
     return "NULL";
   }
   return fFormulaArgs[index];
@@ -155,7 +171,7 @@ Double_t rb::TreeFormulae::EvalUnlocked(Int_t index) {
   Double_t ret = -1;
   try { ret = fDataFormulae->at(index).Evaluate(); }
   catch (std::exception& e) {
-    err::Error("rb::TreeFormulae::Eval") << "Invalid index " << index;
+    rb::err::Error("rb::TreeFormulae::Eval") << "Invalid index " << index;
     ret = -1;
   }
   return ret;

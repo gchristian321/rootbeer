@@ -98,7 +98,7 @@ rb::DataFormula* rb::Event::InitFormula::Operate(rb::Event* const event, const c
 	// Try constant 
 	rb::ConstantDataFormula* constant = new rb::ConstantDataFormula(formula_arg);
 	if(constant->IsZombie() == false) {
-		if(formulaPrint) err::Info("InitFormula") << "Using constant " << constant->Evaluate()
+		if(formulaPrint) rb::err::Info("InitFormula") << "Using constant " << constant->Evaluate()
 																							<< " to evaluate \"" << formula_arg << "\"";
 		return constant;
 	}
@@ -108,13 +108,13 @@ rb::DataFormula* rb::Event::InitFormula::Operate(rb::Event* const event, const c
 	rb::DirectDataFormula* direct =
 		new rb::DirectDataFormula(branch->GetName(), branch->GetClassName(), reinterpret_cast<void*>(*pAddr), formula_arg);
 	if(direct->IsZombie() == false) {
-		if(formulaPrint) err::Info("InitFormula") << "Using direct address to evaluate \"" << formula_arg << "\"";
+		if(formulaPrint) rb::err::Info("InitFormula") << "Using direct address to evaluate \"" << formula_arg << "\"";
 		return direct;
 	}
 	delete direct; // didn't work
 
 	// resort to TTreeFormula
-	if(formulaPrint) err::Info("InitFormula") << "Using TTreeFormula to evaluate \"" << formula_arg << "\"";
+	if(formulaPrint) rb::err::Info("InitFormula") << "Using TTreeFormula to evaluate \"" << formula_arg << "\"";
 	return new rb::TTreeDataFormula(formula_arg, formula_arg, pTree.Get());
 }
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
@@ -182,7 +182,7 @@ void rb::Event::Save::Fill() {
 void rb::Event::RunBegin::operator() (const std::pair<Int_t, std::string>& e) {
 	rb::Event* event = gApp()->GetEvent(e.first);
 	if(!event) {
-		err::Error("rb::Event::RunBegin::operator()") << "gApp()->GetEvent(code = " << e.first << ") returned NULL. "
+		rb::err::Error("rb::Event::RunBegin::operator()") << "gApp()->GetEvent(code = " << e.first << ") returned NULL. "
 																									<< "Skipping this event." << ERR_FILE_LINE;
 	}
 	else {

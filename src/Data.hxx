@@ -481,7 +481,7 @@ inline Double_t rb::data::ConstBasic<T>::GetValue() {
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 template <class T>
 inline void rb::data::ConstBasic<T>::SetValue(Double_t) {
-	err::Error("SetValue")
+	rb::err::Error("SetValue")
 		<< "Cannot change the value of const data member: \""
 		<< GetLeafName() << "\"";
 }
@@ -512,7 +512,7 @@ template<class T> T* Construct(const char* args) {
 		data = reinterpret_cast<T*> (gROOT->ProcessLineFast(cmd.str().c_str()));
 	}
 	if (!data) {
-		err::Error("Data::Init") <<
+		rb::err::Error("Data::Init") <<
 			"Couldn't create a new instance of the template class " << "(typeid.name(): "<< 
 			typeid(T).name() << ", constructor arguments: " << args << ")." << ERR_FILE_LINE;
 		data = 0;
@@ -529,7 +529,7 @@ template<class T> T* Construct(const char* args, Bool_t) {
 	data = reinterpret_cast<T*> (gROOT->ProcessLineFast(cmd.str().c_str()));
 
 	if (!data) {
-		err::Error("Data::Init") <<
+		rb::err::Error("Data::Init") <<
 			"Couldn't create a new instance of the template class " << "(typeid.name(): "<< 
 			typeid(T).name() << ", constructor arguments: " << args << ")." << ERR_FILE_LINE;
 		data = 0;
@@ -660,7 +660,7 @@ void rb::data::Wrapper<T>::Init(Event* event, Bool_t makeVisible, const char* ar
   // Figure out class name
   TClass* cl = TClass::GetClass(typeid(T));
   if(!cl) {
-    err::Error("Data::Init")
+    rb::err::Error("Data::Init")
 			<< "CINT Does not know about a class you asked it to create "
 			<<"(typeid.name(): " << typeid(T).name() <<", constructor arguments: " << args << "). "
 			"Check UserLinkdef.h to make sure a dictionary is properly generated." << ERR_FILE_LINE;
@@ -679,9 +679,9 @@ void rb::data::Wrapper<T>::Init(Event* event, Bool_t makeVisible, const char* ar
   if(event) {
     Bool_t add_success = Event::BranchAdd::Operate(event, kBranchName, cl->GetName(), &fDataVoidPtr, bufsize);
     if(!add_success)
-			err::Error("data::Wrapper::Init") << "Unsuccessful attempt to add the branch " << kBranchName << ERR_FILE_LINE;
+			rb::err::Error("data::Wrapper::Init") << "Unsuccessful attempt to add the branch " << kBranchName << ERR_FILE_LINE;
   }
-  else err::Error("data::Wrapper::Init") << "Event pointer == 0" << ERR_FILE_LINE;
+  else rb::err::Error("data::Wrapper::Init") << "Event pointer == 0" << ERR_FILE_LINE;
 }
 
 #endif // #ifndef __MAKECINT__

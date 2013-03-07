@@ -30,7 +30,7 @@ void RecursiveUpdatePad(TVirtualPad* pad) {
 	{
 		if(!pad || !dynamic_cast<TPad*>(pad)) {
 			std::string cl = pad ? pad->ClassName() : "N/A";
-			err::Error("RecursiveUpdatePad")
+			rb::err::Error("RecursiveUpdatePad")
 				 << "Passed an invalid TVirtualPad* pointer: "
 				 << pad << ", Class Name: " << cl << ERR_FILE_LINE;
 			return;
@@ -54,7 +54,7 @@ void RecursiveUpdatePad(TVirtualPad* pad) {
 void RecursiveClearPad(TVirtualPad* pad) {
 	if(!pad || !dynamic_cast<TPad*>(pad)) {
 		std::string cl = pad ? pad->ClassName() : "N/A";
-		err::Error("RecursiveClearPad")
+		rb::err::Error("RecursiveClearPad")
 			 << "Passed an invalid TVirtualPad* pointer: "
 			 << pad << ", Class Name: " << cl << ERR_FILE_LINE;
 		return;
@@ -147,7 +147,7 @@ Int_t rb::canvas::StopUpdate() {
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 Int_t rb::canvas::StartUpdate(Int_t rate) {
   if(rate < kMaxRate) {
-		err::Error("StartUpdate") << "Passed an invalid update rate: " << rate
+		rb::err::Error("StartUpdate") << "Passed an invalid update rate: " << rate
 															<< ". Must be >= " << kMaxRate << " second(s).";
     return -1;
   }

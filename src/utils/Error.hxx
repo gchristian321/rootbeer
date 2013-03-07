@@ -28,6 +28,8 @@
   OP__(STRM, CL, float)				\
   OP__(STRM, CL, const std::string&)
 
+namespace rb
+{
 namespace err
 {
   struct Strm
@@ -70,6 +72,7 @@ namespace err
       throw(std::invalid_argument(fStrm.str().c_str()));
     }
   };
+}
 }
 
 #define ERR_FILE_LINE "\nFile, line: " << __FILE__ << ", " << __LINE__ << "."
