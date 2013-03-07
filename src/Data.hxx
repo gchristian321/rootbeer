@@ -459,7 +459,7 @@ inline Long_t rb::data::Basic<T>::GetAddress() {
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 template <class T>
 inline rb::data::ConstBasic<T>::ConstBasic(const char* name, volatile void* addr, const TDataMember* d) :
-  MBasic(d), fAddress((const T*)fAddress) {
+  MBasic(d), fAddress((const T*)addr) {
   fgAll().insert(std::make_pair<std::string, MBasic*>(name, this));
 }
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\//

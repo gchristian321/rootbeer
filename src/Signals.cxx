@@ -535,7 +535,8 @@ void rb::HistSignals::recurse_directory(TDirectory* dir, TGListTreeItem* item) {
   for(Int_t i=0; i< dir->GetList()->GetEntries(); ++i) {
 		TDirectory* directory = dynamic_cast<TDirectory*>(dir->GetList()->At(i));
 		if(directory) {
-			if(!rb::gApp()->fHistFrame->fHistTree->FindChildByName(item, dir->GetName()));
+			if(!rb::gApp()->fHistFrame->fHistTree->FindChildByName(item, dir->GetName()))
+				;
 			TGListTreeItem* this_ = rb::gApp()->fHistFrame->fHistTree->AddItem(item, directory->GetName(), p_ofolder, p_folder);
 			directory_map.insert(std::make_pair(this_, directory));
 			this_->SetOpen(true);
@@ -597,7 +598,8 @@ void rb::HistSignals::DrawHist() {
 }
 
 void rb::HistSignals::DrawHist(TGListTreeItem* item, Int_t btn) {
-	if(btn);
+	if(btn)
+		;
 	if(!gPad) {
 		if(gApp()->GetSignals()) gApp()->GetSignals()->CreateNew();
 	}
@@ -751,7 +753,8 @@ void rb::HistSignals::ReadVariable() {
 	ReadVariable(item, 1);
 }
 void rb::HistSignals::ReadVariable(TGListTreeItem* item, Int_t nbd) {
-	if(nbd);
+	if(nbd)
+		;
 	std::string varname = get_variable(item);
 	if(!varname.empty()) {
 		Double_t val = rb::data::GetValue(varname.c_str());
