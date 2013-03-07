@@ -68,20 +68,21 @@ ROOTCINT=rootcint $(USER_DEFINITIONS)
 
 
 #### MAIN PROGRAM ####
-all: rootbeer rbunpack
+all:  $(RBLIB)/libRootbeer.so
+## rootbeer rbunpack
 
-rbunpack: $(RBLIB)/libRootbeer.so $(SRC)/main.cc 
-	$(LINK) $(USER_LIBS) -lRootbeer -lmidas $(MIDASLIBS) -DRB_UNPACK_ONLY $(SRC)/main.cc -o rbunpack \
+# rbunpack: $(RBLIB)/libRootbeer.so $(SRC)/main.cc 
+# 	$(LINK) $(USER_LIBS) -lRootbeer -lmidas $(MIDASLIBS) -DRB_UNPACK_ONLY $(SRC)/main.cc -o rbunpack \
 
-rootbeer: $(RBLIB)/libRootbeer.so $(SRC)/main.cc
-	$(LINK) $(USER_LIBS) -lRootbeer -lmidas $(MIDASLIBS) $(SRC)/main.cc -o rootbeer \
+# rootbeer: $(RBLIB)/libRootbeer.so $(SRC)/main.cc
+# 	$(LINK) $(USER_LIBS) -lRootbeer -lmidas $(MIDASLIBS) $(SRC)/main.cc -o rootbeer \
 
 #### ROOTBEER LIBRARY ####
 OBJECTS=$(OBJ)/hist/Hist.o $(OBJ)/hist/Manager.o \
 $(OBJ)/Formula.o $(OBJ)/midas/TMidasEvent.o $(OBJ)/midas/TMidasFile.o $(MIDASONLINE) \
 $(OBJ)/Data.o $(OBJ)/Event.o $(OBJ)/Buffer.o $(OBJ)/Canvas.o $(OBJ)/WriteConfig.o \
 $(OBJ)/Rint.o $(OBJ)/Signals.o $(OBJ)/Rootbeer.o $(OBJ)/Gui.o $(OBJ)/HistGui.o \
-$(OBJ)/TGSelectDialog.o $(OBJ)/TGDivideSelect.o
+$(OBJ)/TGSelectDialog.o $(OBJ)/TGDivideSelect.o $(OBJ)/Main.o
 
 HEADERS=$(SRC)/Rootbeer.hxx $(SRC)/Rint.hxx $(SRC)/Data.hxx $(SRC)/Buffer.hxx $(SRC)/Event.hxx \
 $(SRC)/Signals.hxx $(SRC)/Formula.hxx $(SRC)/utils/LockingPointer.hxx $(SRC)/utils/Mutex.hxx \
@@ -91,25 +92,24 @@ $(SRC)/HistGui.hxx $(SRC)/Gui.hxx $(SRC)/midas/*.h $(SRC)/utils/*.h*
 
 RBlib: $(RBLIB)/libRootbeer.so
 $(RBLIB)/libRootbeer.so: $(CINT)/RBDictionary.cxx $(USER_SOURCES) $(OBJECTS)
-	$(LINK) $(DYLIB) $(FPIC) -o $@ $(MIDASLIBS) $(OBJECTS) \
-$(CINT)/RBDictionary.cxx \
-
+	$(LINK) $(DYLIB) $(FPIC) $(MIDASLIBS) $(OBJECTS) $(CINT)/RBDictionary.cxx \
+-o $@ \
 
 $(OBJ)/%.o: $(SRC)/%.cxx $(CINT)/RBDictionary.cxx
-	$(COMPILE) $(FPIC) -c \
--o $@ $< \
+	$(COMPILE) $(FPIC) -c $< \
+-o $@  \
 
 $(OBJ)/midas/%.o: $(SRC)/midas/%.cxx $(CINT)/RBDictionary.cxx
-	$(COMPILE) $(FPIC) -c \
--o $@ $< \
+	$(COMPILE) $(FPIC) -c $< \
+-o $@  \
 
 $(OBJ)/hist/%.o: $(SRC)/hist/%.cxx $(CINT)/RBDictionary.cxx
-	$(COMPILE) $(FPIC) -c \
--o $@ $< \
+	$(COMPILE) $(FPIC) -c $< \
+-o $@ \
 
 testing/%: $(PWD)/testing/%.cxx
-	$(LINK) $(USER_LIBS) -lRootbeer -lmidas $(MIDASLIBS) \
--o $@ $< \
+	$(LINK) $(USER_LIBS) -lRootbeer -lmidas $(MIDASLIBS) $< \
+-o $@ \
 
 RBdict: $(CINT)/RBDictionary.cxx
 $(CINT)/RBDictionary.cxx:  $(HEADERS) $(USER)/UserLinkdef.h $(CINT)/Linkdef.h \
