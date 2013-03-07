@@ -26,28 +26,28 @@ void handle_args(int argc, char** argv, std::string& fin) {
 int main(int argc, char** argv)
 {
 
-if (argc > 1 && !strcmp(argv[1], "--unpack")) { // 'rbunpack'
+ if (argc > 1 && !strcmp(argv[1], "--unpack")) { // 'rbunpack'
 
-	std::string fin;
-	handle_args(argc, argv, fin);
-	assert(strlen(argv[0]) > 3);
-	sprintf(argv[0], "-ng");
-	rb::Rint rbApp("Rbunpack", &argc, argv, 0, 0, true);
-	rbApp.StartSave(false);
-	rb::AttachFile(fin.c_str());
-	gSystem->Sleep(1e2);
-	while(TThread::GetThread("AttachFile"));
-	rbApp.Terminate(0);
+	 std::string fin;
+	 handle_args(argc, argv, fin);
+	 assert(strlen(argv[0]) > 3);
+	 sprintf(argv[0], "-ng");
+	 rb::Rint rbApp("Rbunpack", &argc, argv, 0, 0, true);
+	 rbApp.StartSave(false);
+	 rb::AttachFile(fin.c_str());
+	 gSystem->Sleep(1e2);
+	 while(TThread::GetThread("AttachFile"));
+	 rbApp.Terminate(0);
 
-} else { // Standard ROOTBEER
+ } else { // Standard ROOTBEER
 
-	std::set<std::string> args(argv, argv+argc);
-	Bool_t lite = args.count("-l");
-  rb::Rint rbApp("Rootbeer", &argc, argv, 0, 0, lite);
-  gROOT->ProcessLine("gStyle->SetOptTitle(kTRUE)");
-  gROOT->ProcessLine("gStyle->SetOptStat(kTRUE)");
-  rbApp.Run();
-  return 0;
+	 std::set<std::string> args(argv, argv+argc);
+	 Bool_t lite = args.count("-l");
+	 rb::Rint rbApp("Rootbeer", &argc, argv, 0, 0, lite);
+	 gROOT->ProcessLine("gStyle->SetOptTitle(kTRUE)");
+	 gROOT->ProcessLine("gStyle->SetOptStat(kTRUE)");
+	 rbApp.Run();
+	 return 0;
 
 }
 

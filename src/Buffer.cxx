@@ -2,6 +2,7 @@
 //! \brief Implements classes defined in Buffer.hxx
 #include <fstream>
 #include <memory>
+#include <string>
 #include <sstream>
 #include <algorithm>
 #include <TFile.h>
@@ -57,10 +58,9 @@ rb::attach::File::File(const char* filename, Bool_t stopAtEnd) :
 		 fname = fname.substr(fname.find_last_of("/")+1);
 	if(gApp()->GetSignals())
 		 gApp()->GetSignals()->AttachedFile(fname.c_str());
-
 	if(gApp()->GetSaveData()) {
 #ifdef RB_DEFAULT_SAVE_DIRECTORY
-		std::string save_fname = RB_DEFAULT_SAVE_DIRECTORY ;
+		std::string save_fname = RB_DEFAULT_SAVE_DIRECTORY;
 		save_fname += "/";
 		save_fname += fname;
 #else

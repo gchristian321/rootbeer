@@ -85,7 +85,7 @@ rb::ConstantDataFormula::ConstantDataFormula(const char* formula):
 rb::TTreeDataFormula::TTreeDataFormula(const char* name, const char* formula, TTree* tree):
 	fTTreeFormula(new TTreeFormula(name, formula, tree)) {
 
-	if (0)
+	if (1)
 		rb::err::Info("TTreeDataFormula") << "Resorting to TTreeFormula for \"" << formula << "\"";
 }
 

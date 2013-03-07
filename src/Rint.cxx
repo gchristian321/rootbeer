@@ -70,10 +70,10 @@ rb::Event* rb::Rint::GetEvent(Int_t code) {
 // EventVector_t rb::Rint::GetEventVector()              //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 rb::EventVector_t rb::Rint::GetEventVector() {
+	EventVector_t out;
 	EventMap_t::iterator it = fEvents.begin();
-	EventVector_t out; if(!fEvents.size()) return out;
-	while(it != fEvents.end()) {
-		out.push_back(std::make_pair(it->first, it->second.second)); ++it;
+	for (; it != fEvents.end(); ++it) {
+		out.push_back(std::make_pair(it->first, it->second.second));
 	}
 	return out;
 }
