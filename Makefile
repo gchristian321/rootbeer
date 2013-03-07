@@ -57,8 +57,8 @@ FPIC=
 RPATH=
 endif
 
-COMPILER=g++ -Wall
-#COMPILER=clang++
+##COMPILER=g++ -Wall
+COMPILER=clang++
 
 DEFAULTS=$(DEF_FILE_DIR) $(DEF_SAVE_DIR) $(DEF_CONFIG_DIR)
 

@@ -115,6 +115,7 @@ public:
 	/// Adds a branch to the event tree.
 	class BranchAdd
 	{
+ public:
 		/// Perform the branch adding
 		//! \returns true upon successful branch creation, false otherwise
 		static Bool_t Operate(rb::Event* const event, const char* name, const char* classname, void** address, Int_t bufsize);
@@ -126,6 +127,7 @@ public:
 	/// Deletes an event and sets the pointer to NULL.
 	class Destructor
 	{
+ public:
 		/// Perform the destruction
 		static void Operate(rb::Event*& event);
 
@@ -137,6 +139,7 @@ public:
 	/// Initialize a TTreeFormula
 	class InitFormula
 	{
+ public:
 		/// Perform the initialization
 		//! \param [in] formula_arg String specifying the formula argument
 		static rb::DataFormula* Operate(rb::Event* const event, const char* formula_arg);
