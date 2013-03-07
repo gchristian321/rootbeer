@@ -301,12 +301,15 @@ void rb::ReadConfig(const char* filename, Option_t* option) {
   else if(!opt.CompareTo("r")) {
 		std::vector<TObject*> objects = get_object_vector(gROOT->GetList());
 		for(std::vector<TObject*>::iterator it = objects.begin(); it != objects.end(); ++it) {
-			if (try_delete<TDirectory>(*it));
-			else if (try_delete<rb::hist::Base>(*it));
+			if (try_delete<TDirectory>(*it))
+				;
+			else if (try_delete<rb::hist::Base>(*it))
+				;
 		}
 		std::vector<TObject*> specials = get_object_vector(gROOT->GetList());
 		for(std::vector<TObject*>::iterator it = specials.begin(); it != specials.end(); ++it) {
-			try_delete<TCutG>(*it);
+			try_delete<TCutG>(*it)
+				;
 		}
     ReadConfig(filename, "c");
   }
@@ -459,7 +462,8 @@ Int_t rb::WriteCanvases(const char* fname, Bool_t prompt) {
 Int_t rb::ReadCanvases(const char* fname) {
 	std::vector<TObject*> canvases = get_object_vector(gROOT->GetListOfCanvases());
 	for(std::vector<TObject*>::iterator it = canvases.begin(); it != canvases.end(); ++it)
-		 try_delete<TCanvas>(*it);
+		try_delete<TCanvas>(*it)
+			;
 	std::string cmd = ".x "; cmd += fname;
 	gROOT->ProcessLine(cmd.c_str());
   return 0;
