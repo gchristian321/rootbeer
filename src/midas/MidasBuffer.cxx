@@ -95,8 +95,13 @@ Bool_t rb::MidasBuffer::OpenFile(const char* file_name, char** other, int nother
 	RunStartTransition(0);
 	TMidasFile* f = new TMidasFile();
 	bool status = f->Open(file_name);
-	if (status) fFile = f;
-	else delete f;
+	if (status == kTRUE) {
+		fFile = f;
+	}
+	else {
+		delete f;
+		fType = MidasBuffer::NONE;
+	}
 	return status;
 }
 
@@ -127,7 +132,7 @@ void rb::MidasBuffer::SetTransitionPriorities(Int_t prStart, Int_t prStop,
 // ================ ONLINE ============ //
 #ifdef MIDASSYS
 
-#define M_ONLINE_BAIL_OUT cm_disconnect_experiment(); return false
+#define M_ONLINE_BAIL_OUT fType = MidasBuffer::NONE; cm_disconnect_experiment(); return false
 
 Bool_t rb::MidasBuffer::ConnectOnline(const char* host, const char* experiment, char**, int)
 {
@@ -139,6 +144,7 @@ Bool_t rb::MidasBuffer::ConnectOnline(const char* host, const char* experiment, 
 	 */
 	INT status;
 	char syncbuf[] = "SYSTEM";
+	fType = MidasBuffer::ONLINE;
 
 	/// - Connect to MIDAS experiment
 	status = cm_connect_experiment (host, experiment, "rootbeer", NULL);
@@ -196,7 +202,6 @@ Bool_t rb::MidasBuffer::ConnectOnline(const char* host, const char* experiment, 
 			RunStartTransition(runnumber);
 	}
 
-	fType = MidasBuffer::ONLINE;
 	return true;
 }
 		
