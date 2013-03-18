@@ -135,8 +135,8 @@ Int_t rb::canvas::StopUpdate() {
 	if(gUpdateRate) {
 		gUpdateTimer.Stop();
 		gUpdateRate = 0;
-		if(gApp()->GetSignals()) {
-			gApp()->GetSignals()->StoppingUpdate();
+		if(Rint::gApp()->GetSignals()) {
+			Rint::gApp()->GetSignals()->StoppingUpdate();
 		}
 	}
   return gUpdateRate;
@@ -155,8 +155,8 @@ Int_t rb::canvas::StartUpdate(Int_t rate) {
     StopUpdate();
     gUpdateRate = rate;
 		gUpdateTimer.Start(rate*1000);
-		if(gApp()->GetSignals()) {
-			gApp()->GetSignals()->StartingUpdate(rate);
+		if(Rint::gApp()->GetSignals()) {
+			Rint::gApp()->GetSignals()->StartingUpdate(rate);
 		}
     return 0;
   }

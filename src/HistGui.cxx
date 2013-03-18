@@ -1000,7 +1000,7 @@ fConfigAllLoadButton->SetFont(ufont->GetFontStruct());
 	};
 	B.G. Color = 0xd4cf87
 	}*/
-#define RB_HIST_SIGNALS static_cast<rb::Rint*>(gApplication)->GetHistSignals()
+#define RB_HIST_SIGNALS rb::Rint::gApp()->GetHistSignals()
 
 void TGHistVarFrame::MakeHistConnections() {
    // Define actions to take when buttons are pressed:
@@ -1074,7 +1074,7 @@ void TGHistVarFrame::MakeHistConnections() {
 
 
 TGHistVarFrame::~TGHistVarFrame() {
-	rb::gApp()->DeleteHistSignals();
+	rb::Rint::gApp()->DeleteHistSignals();
 	DeleteMembers();
 }
 

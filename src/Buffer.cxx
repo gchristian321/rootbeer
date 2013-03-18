@@ -18,17 +18,17 @@ namespace { void start_save(const std::string& save_fname) {
 	if(!current) current = gROOT;
 	boost::shared_ptr<TFile> file (new TFile(save_fname.c_str(), "recreate"));
 	current->cd();
-	rb::EventVector_t events = rb::gApp()->GetEventVector();
+	rb::EventVector_t events = rb::Rint::gApp()->GetEventVector();
 	for(rb::EventVector_t::iterator it = events.begin(); it != events.end(); ++it) {
 		std::stringstream tname; tname << "t" << it->first;
 		std::stringstream ttitle; ttitle << it->second << " data";
-		rb::gApp()->GetEvent(it->first)->
-			 StartSave(file, tname.str().c_str(), ttitle.str().c_str(), rb::gApp()->GetSaveHists());
+		rb::Rint::gApp()->GetEvent(it->first)->
+			 StartSave(file, tname.str().c_str(), ttitle.str().c_str(), rb::Rint::gApp()->GetSaveHists());
 	}
 }
 inline void call_begin_run() {
 	// call BeginRun() on all rb::Events
-	rb::EventVector_t events = rb::gApp()->GetEventVector();
+	rb::EventVector_t events = rb::Rint::gApp()->GetEventVector();
 	rb::Event::RunBegin begin_run_functor;
 	std::for_each(events.begin(), events.end(), begin_run_functor);
 }
@@ -51,14 +51,14 @@ rb::attach::File::File(const char* filename, Bool_t stopAtEnd) :
 	call_begin_run(); 	// call begin run on all events
 
 	if(!ListAttached()) {
-		if(gApp()->GetSignals()) gApp()->GetSignals()->Attaching(); // signal to gui
+		if(Rint::gApp()->GetSignals()) Rint::gApp()->GetSignals()->Attaching(); // signal to gui
 	}
 	std::string fname(kFileName);
 	if(fname.find_last_of("/") < fname.size())
 		 fname = fname.substr(fname.find_last_of("/")+1);
-	if(gApp()->GetSignals())
-		 gApp()->GetSignals()->AttachedFile(fname.c_str());
-	if(gApp()->GetSaveData()) {
+	if(Rint::gApp()->GetSignals())
+		 Rint::gApp()->GetSignals()->AttachedFile(fname.c_str());
+	if(Rint::gApp()->GetSaveData()) {
 #ifdef RB_DEFAULT_SAVE_DIRECTORY
 		std::string save_fname = RB_DEFAULT_SAVE_DIRECTORY;
 		save_fname += "/";
@@ -77,12 +77,12 @@ rb::attach::File::File(const char* filename, Bool_t stopAtEnd) :
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 rb::attach::File::~File() {
 	if(!ListAttached()) {
-		if(gApp()->GetSignals())
-			 gApp()->GetSignals()->Unattaching(); // signal to gui
+		if(Rint::gApp()->GetSignals())
+			 Rint::gApp()->GetSignals()->Unattaching(); // signal to gui
 	}
-	EventVector_t events = gApp()->GetEventVector();
+	EventVector_t events = Rint::gApp()->GetEventVector();
 	for(EventVector_t::iterator it = events.begin(); it != events.end(); ++it) {
-		gApp()->GetEvent(it->first)->StopSave();
+		Rint::gApp()->GetEvent(it->first)->StopSave();
 	}
 	delete fBuffer;
 }
@@ -92,7 +92,7 @@ rb::attach::File::~File() {
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 namespace {
 inline void printCounter(Int_t n, bool force = false) {
-	if (TString(rb::gApp()->ApplicationName()) != "Rbunpack") return;
+	if (TString(rb::Rint::gApp()->ApplicationName()) != "Rbunpack") return;
 	if(n == 0) {
 		std::cerr << "Buffers unpacked: ";
 		std::flush(std::cerr);
@@ -122,7 +122,7 @@ void rb::attach::File::DoInThread() {
     bool read_success = fBuffer->ReadBufferOffline();
     if (read_success) {
 			fBuffer->UnpackBuffer();
-			if(gApp()->GetSignals()) gApp()->GetSignals()->UpdateBufferCounter(nbuffers++);
+			if(Rint::gApp()->GetSignals()) Rint::gApp()->GetSignals()->UpdateBufferCounter(nbuffers++);
 			else printCounter(nbuffers++);
 		}
     else if (kStopAtEnd) break; // we're done
@@ -140,8 +140,8 @@ void rb::attach::File::DoInThread() {
       Info("AttachFile", "Connection to %s aborted.", kFileName.c_str());
 		}
   }
-	if(gApp()->GetSignals())
-		gApp()->GetSignals()->UpdateBufferCounter(nbuffers, true);
+	if(Rint::gApp()->GetSignals())
+		Rint::gApp()->GetSignals()->UpdateBufferCounter(nbuffers, true);
   fBuffer->CloseFile();
 }
 
@@ -160,16 +160,16 @@ rb::attach::List::List(const char* filename) :
   kListFileName(gSystem->ExpandPathName(filename)) {
 
   fBuffer = BufferSource::New();
-	if(gApp()->GetSignals())
-		 gApp()->GetSignals()->Attaching();
+	if(Rint::gApp()->GetSignals())
+		 Rint::gApp()->GetSignals()->Attaching();
 }
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // Destructor                                            //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 rb::attach::List::~List() {
-	if(gApp()->GetSignals())
-		 gApp()->GetSignals()->Unattaching();
+	if(Rint::gApp()->GetSignals())
+		 Rint::gApp()->GetSignals()->Unattaching();
 	delete fBuffer;
 }
 
@@ -242,10 +242,10 @@ rb::attach::Online::Online(const char* source, const char* other, char** others,
   fBuffer = BufferSource::New();
 	call_begin_run();
 
-	if(gApp()->GetSignals())
-		 gApp()->GetSignals()->Attaching();
+	if(Rint::gApp()->GetSignals())
+		 Rint::gApp()->GetSignals()->Attaching();
 
-	if(gApp()->GetSaveData()) {
+	if(Rint::gApp()->GetSaveData()) {
 #ifdef RB_DEFAULT_SAVE_DIR
 		std::string save_fname = RB_DEFAULT_SAVE_DIR ;
 #else
@@ -263,8 +263,8 @@ rb::attach::Online::Online(const char* source, const char* other, char** others,
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 rb::attach::Online::~Online() {
 	delete fBuffer;
-	if(gApp()->GetSignals())
-		 gApp()->GetSignals()->Unattaching();
+	if(Rint::gApp()->GetSignals())
+		 Rint::gApp()->GetSignals()->Unattaching();
 	if(fSourceArg) delete[] fSourceArg;
 	if(fOtherArg)  delete[] fOtherArg;
 	if(fOtherArgs) {
@@ -281,16 +281,16 @@ rb::attach::Online::~Online() {
 void rb::attach::Online::DoInThread() {
 	Bool_t connected = fBuffer->ConnectOnline(fSourceArg, fOtherArg, fOtherArgs, fNumOthers);
 	if (!connected) return;
-	if(gApp()->GetSignals())
-		 gApp()->GetSignals()->AttachedOnline(fSourceArg);
+	if(Rint::gApp()->GetSignals())
+		 Rint::gApp()->GetSignals()->AttachedOnline(fSourceArg);
 	Int_t nbuffers = 0;
   while (OnlineAttached()) {
     Bool_t readSuccess = fBuffer->ReadBufferOnline();
     if(!readSuccess) 	break;
     fBuffer->UnpackBuffer();
-		gApp()->GetSignals()->UpdateBufferCounter(nbuffers++);
+		Rint::gApp()->GetSignals()->UpdateBufferCounter(nbuffers++);
   }
   fBuffer->DisconnectOnline();
-	if(gApp()->GetSignals())
-		 gApp()->GetSignals()->UpdateBufferCounter(nbuffers, true);
+	if(Rint::gApp()->GetSignals())
+		 Rint::gApp()->GetSignals()->UpdateBufferCounter(nbuffers, true);
 }

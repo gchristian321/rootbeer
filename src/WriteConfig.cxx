@@ -316,7 +316,7 @@ void rb::ReadConfig(const char* filename, Option_t* option) {
   else {
     Error("ReadConfig", "Valid options are: \"r\" (reset), \"o\" (overwrite), and \"c\" (cumulate).");
   }
-	if(gApp()->GetHistSignals()) gApp()->GetHistSignals()->SyncHistTree();
+	if(Rint::gApp()->GetHistSignals()) Rint::gApp()->GetHistSignals()->SyncHistTree();
 }
 
 namespace {
@@ -330,15 +330,15 @@ Int_t get_n_subpads(TPad* pad) {
 void write_canvas_hist(TH1* th1, std::ostream& ofs) {
 	rb::hist::Base* hist = 0;
 	if(th1) {
-		rb::EventVector_t events = rb::gApp()->GetEventVector();
+		rb::EventVector_t events = rb::Rint::gApp()->GetEventVector();
 		for(UInt_t k = 0; k< events.size(); ++k) {
-			hist = rb::gApp()->GetEvent(events[k].first)->FindHistogram(th1);
+			hist = rb::Rint::gApp()->GetEvent(events[k].first)->FindHistogram(th1);
 			if(hist) {
 				TDirectory* dir = hist->GetDirectory();
 				const std::string dir_path = dir->GetPath();
 						
-				ofs << "  if(rb::Cd(\"" << dir_path << "\", true) &&  rb::gApp()->FindHistogram(\"" << hist->GetName() << "\"))\n"
-						<< "      rb::gApp()->FindHistogram(\"" << hist->GetName() << "\")->Draw();\n";
+				ofs << "  if(rb::Cd(\"" << dir_path << "\", true) &&  rb::Rint::gApp()->FindHistogram(\"" << hist->GetName() << "\"))\n"
+						<< "      rb::Rint::gApp()->FindHistogram(\"" << hist->GetName() << "\")->Draw();\n";
 				break;
 			}
 		}

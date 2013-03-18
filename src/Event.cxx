@@ -180,9 +180,9 @@ void rb::Event::Save::Fill() {
 // void rb::Event::RunBegin::operator()                  //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 void rb::Event::RunBegin::operator() (const std::pair<Int_t, std::string>& e) {
-	rb::Event* event = gApp()->GetEvent(e.first);
+	rb::Event* event = Rint::gApp()->GetEvent(e.first);
 	if(!event) {
-		rb::err::Error("rb::Event::RunBegin::operator()") << "gApp()->GetEvent(code = " << e.first << ") returned NULL. "
+		rb::err::Error("rb::Event::RunBegin::operator()") << "Rint::gApp()->GetEvent(code = " << e.first << ") returned NULL. "
 																									<< "Skipping this event." << ERR_FILE_LINE;
 	}
 	else {

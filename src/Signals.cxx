@@ -31,43 +31,43 @@ ANSort ansort;
 }
 
 void rb::Signals::UpdateBufferCounter(Int_t n, Bool_t force) {
-	if(!rb::gApp()->fRbeerFrame->fNbuffers) return;
+	if(!rb::Rint::gApp()->fRbeerFrame->fNbuffers) return;
 	if(n % 1000 != 0 && !force) return;
 	std::stringstream sstr;
 	sstr << n;
-	rb::gApp()->fRbeerFrame->fNbuffers->ChangeText(sstr.str().c_str());
+	rb::Rint::gApp()->fRbeerFrame->fNbuffers->ChangeText(sstr.str().c_str());
 }
 
 void rb::Signals::SaveData() {
 	EnableSaveHists();
-	if(rb::gApp()->fRbeerFrame->fSaveData->IsOn()) {
-	        rb::gApp()->StartSave(rb::gApp()->fRbeerFrame->fSaveHist->IsOn());
+	if(rb::Rint::gApp()->fRbeerFrame->fSaveData->IsOn()) {
+	        rb::Rint::gApp()->StartSave(rb::Rint::gApp()->fRbeerFrame->fSaveHist->IsOn());
 	}
 	else {
-		rb::gApp()->StopSave();
+		rb::Rint::gApp()->StopSave();
 	}
 }
 
 void rb::Signals::SaveHists() {
-	if(rb::gApp()->fRbeerFrame->fSaveData->IsOn()) {
-	        rb::gApp()->StartSave(rb::gApp()->fRbeerFrame->fSaveHist->IsOn());
+	if(rb::Rint::gApp()->fRbeerFrame->fSaveData->IsOn()) {
+	        rb::Rint::gApp()->StartSave(rb::Rint::gApp()->fRbeerFrame->fSaveHist->IsOn());
 	}
 }
 
 void rb::Signals::SetFilterCondition(Int_t key, std::string filter) {
-        rb::gApp()->SetFilterCondition(key, filter);
+        rb::Rint::gApp()->SetFilterCondition(key, filter);
 }
 
 void rb::Signals::EnableSaveHists() {
-	rb::gApp()->fRbeerFrame->fSaveHist->SetEnabled(rb::gApp()->fRbeerFrame->fSaveData->IsOn());
+	rb::Rint::gApp()->fRbeerFrame->fSaveHist->SetEnabled(rb::Rint::gApp()->fRbeerFrame->fSaveData->IsOn());
 }
 
 void rb::Signals::AttachOnline() {
-	rb::AttachOnline(rb::gApp()->fRbeerFrame->fEntryHost->GetText(), rb::gApp()->fRbeerFrame->fEntryPort->GetText());
+	rb::AttachOnline(rb::Rint::gApp()->fRbeerFrame->fEntryHost->GetText(), rb::Rint::gApp()->fRbeerFrame->fEntryPort->GetText());
 }
 
 void rb::Signals::AttachFile() {
-	Bool_t continuous = !rb::gApp()->fRbeerFrame->fIsContinuous->IsOn();
+	Bool_t continuous = !rb::Rint::gApp()->fRbeerFrame->fIsContinuous->IsOn();
 
 	TGFileInfo fileInfo;
 	const char* ext[] =
@@ -87,7 +87,7 @@ void rb::Signals::AttachFile() {
 	new TGFileDialog(gClient->GetRoot(), 0, kFDOpen, &fileInfo);
 	if(fileInfo.fFilename != 0)
 		 rb::AttachFile(fileInfo.fFilename, continuous);
-	rb::gApp()->fRbeerFrame->fAttachFile->SetDown(false);
+	rb::Rint::gApp()->fRbeerFrame->fAttachFile->SetDown(false);
 
 }
 
@@ -109,7 +109,7 @@ void rb::Signals::AttachList() {
 	new TGFileDialog(gClient->GetRoot(), 0, kFDOpen, &fileInfo);
 	if(fileInfo.fFilename != 0)
 		 rb::AttachList(fileInfo.fFilename);
-	rb::gApp()->fRbeerFrame->fAttachList->SetDown(false);
+	rb::Rint::gApp()->fRbeerFrame->fAttachList->SetDown(false);
 }
 void rb::Signals::Unattach() {
 	rb::Unattach();
@@ -142,7 +142,7 @@ void rb::Signals::ClearCurrent() {
 	}	
 }
 void rb::Signals::CreateNew() {
-	std::string name = rb::gApp()->fRbeerFrame->fEntryName->GetText();
+	std::string name = rb::Rint::gApp()->fRbeerFrame->fEntryName->GetText();
 	if(name == "") name = "c1";
 	std::stringstream ssname(name);
 	int nn = 1;
@@ -163,7 +163,7 @@ void rb::Signals::CreateNew() {
 }
 void rb::Signals::Update() {
 	if(!rb::canvas::GetUpdateRate()) {
-		int rate = rb::gApp()->fRbeerFrame->fUpdateRate->GetIntNumber();
+		int rate = rb::Rint::gApp()->fRbeerFrame->fUpdateRate->GetIntNumber();
 		rb::canvas::StartUpdate(rate);
 	}
 	else
@@ -171,7 +171,7 @@ void rb::Signals::Update() {
 }
 void rb::Signals::ChangeUpdateRate(Long_t rate) {
 	if(rb::canvas::GetUpdateRate())
-		 rb::canvas::StartUpdate(rb::gApp()->fRbeerFrame->fUpdateRate->GetIntNumber());
+		 rb::canvas::StartUpdate(rb::Rint::gApp()->fRbeerFrame->fUpdateRate->GetIntNumber());
 }
 
 
@@ -219,7 +219,7 @@ void rb::Signals::CdCanvas() {
 	}
 	gPad->Modified();
 	gPad->Update();
-	rb::gApp()->fRbeerFrame->fSelectCanvas->SetDown(false);
+	rb::Rint::gApp()->fRbeerFrame->fSelectCanvas->SetDown(false);
 }
 
 void rb::Signals::DivideCurrent() {
@@ -234,31 +234,31 @@ void rb::Signals::DivideCurrent() {
 	}
 	gPad->Modified();
 	gPad->Update();
-	rb::gApp()->fRbeerFrame->fDivideCurrent->SetDown(false);
+	rb::Rint::gApp()->fRbeerFrame->fDivideCurrent->SetDown(false);
 }
 
 void rb::Signals::PopulateEvents() {
-	rb::gApp()->fRbeerFrame->fFilterType->RemoveAll();
-	rb::EventVector_t events = rb::gApp()->GetEventVector();
+	rb::Rint::gApp()->fRbeerFrame->fFilterType->RemoveAll();
+	rb::EventVector_t events = rb::Rint::gApp()->GetEventVector();
 	if(!events.size()) return;
 	std::stringstream entry;
 	for(unsigned i=0; i< events.size(); ++i) {
 		entry.str("");
 		entry << events[i].second << " [ code: "
 					<< events[i].first  << " ]";
-		rb::gApp()->fRbeerFrame->fFilterType->AddEntry(entry.str().c_str(), events[i].first);
+		rb::Rint::gApp()->fRbeerFrame->fFilterType->AddEntry(entry.str().c_str(), events[i].first);
 	}
-	rb::gApp()->fRbeerFrame->fFilterType->Select(events[0].first);
-	rb::gApp()->fRbeerFrame->fFilterType->Selected(events[0].first);
+	rb::Rint::gApp()->fRbeerFrame->fFilterType->Select(events[0].first);
+	rb::Rint::gApp()->fRbeerFrame->fFilterType->Selected(events[0].first);
 }
 
 void rb::Signals::SetFilter() {
-  std::string filter = rb::gApp()->fRbeerFrame->fFilterEntry->GetText();
-  Int_t filter_type = rb::gApp()->fRbeerFrame->fFilterType->GetSelected();
+  std::string filter = rb::Rint::gApp()->fRbeerFrame->fFilterEntry->GetText();
+  Int_t filter_type = rb::Rint::gApp()->fRbeerFrame->fFilterType->GetSelected();
   
-  rb::gApp()->SetFilterCondition(filter_type, filter);
+  rb::Rint::gApp()->SetFilterCondition(filter_type, filter);
   
-  TGTextLBEntry *filter_text_entry = (TGTextLBEntry *)rb::gApp()->fRbeerFrame->fFilterType->GetSelectedEntry();
+  TGTextLBEntry *filter_text_entry = (TGTextLBEntry *)rb::Rint::gApp()->fRbeerFrame->fFilterType->GetSelectedEntry();
   std::string filter_text = filter_text_entry->GetTitle();
   cout << "Filter type: " << filter_text << ".\tValue: " << filter << ".\n";
   
@@ -272,7 +272,7 @@ rb::HistSignals::~HistSignals() { }
 
 void rb::HistSignals::Quit() {
 	std::cout << "\n";
-	gApp()->Terminate(0);
+	Rint::gApp()->Terminate(0);
 }
 namespace {
 Int_t get_dim(Int_t code) {
@@ -327,9 +327,9 @@ void populate_combo(TGComboBox* combo, const std::vector<std::string>& entries, 
 
 void rb::HistSignals::hist_field_enable(bool onoff, int which) {
 	void* fields[3][4] =
-		 { { (void*)rb::gApp()->fHistFrame->fParamX, (void*)rb::gApp()->fHistFrame->fBinsX, (void*)rb::gApp()->fHistFrame->fLowX, (void*)rb::gApp()->fHistFrame->fHighX },
-			 { (void*)rb::gApp()->fHistFrame->fParamY, (void*)rb::gApp()->fHistFrame->fBinsY, (void*)rb::gApp()->fHistFrame->fLowY, (void*)rb::gApp()->fHistFrame->fHighY },
-			 { (void*)rb::gApp()->fHistFrame->fParamZ, (void*)rb::gApp()->fHistFrame->fBinsZ, (void*)rb::gApp()->fHistFrame->fLowZ, (void*)rb::gApp()->fHistFrame->fHighZ } };
+		 { { (void*)rb::Rint::gApp()->fHistFrame->fParamX, (void*)rb::Rint::gApp()->fHistFrame->fBinsX, (void*)rb::Rint::gApp()->fHistFrame->fLowX, (void*)rb::Rint::gApp()->fHistFrame->fHighX },
+			 { (void*)rb::Rint::gApp()->fHistFrame->fParamY, (void*)rb::Rint::gApp()->fHistFrame->fBinsY, (void*)rb::Rint::gApp()->fHistFrame->fLowY, (void*)rb::Rint::gApp()->fHistFrame->fHighY },
+			 { (void*)rb::Rint::gApp()->fHistFrame->fParamZ, (void*)rb::Rint::gApp()->fHistFrame->fBinsZ, (void*)rb::Rint::gApp()->fHistFrame->fLowZ, (void*)rb::Rint::gApp()->fHistFrame->fHighZ } };
 	TGComboBox* param = ((TGComboBox*)fields[which][0]);
 	if(param->IsEnabled() != onoff) {
 		if(!onoff) { // disabling
@@ -349,18 +349,18 @@ void rb::HistSignals::hist_field_enable(bool onoff, int which) {
 
 void rb::HistSignals::hist_error(const char* message) {
 	error_box(message);
-	rb::gApp()->fHistFrame->fHistCreateButton->SetDown(false);
+	rb::Rint::gApp()->fHistFrame->fHistCreateButton->SetDown(false);
 }
 
 
 void rb::HistSignals::PopulateParameters(Int_t event_code) {
-	rb::Event* event = gApp()->GetEvent(event_code);
+	rb::Event* event = Rint::gApp()->GetEvent(event_code);
 	if(!event) {
 		rb::err::Error("rb::HistSignals::PopulateParameters")
-			 << "Invalid event code (" << event_code << ") recieved from rb::gApp()->fHistFrame->fEventEntry.";
-		rb::gApp()->fHistFrame->fParamX->RemoveAll();
-		rb::gApp()->fHistFrame->fParamY->RemoveAll();
-		rb::gApp()->fHistFrame->fParamZ->RemoveAll();
+			 << "Invalid event code (" << event_code << ") recieved from rb::Rint::gApp()->fHistFrame->fEventEntry.";
+		rb::Rint::gApp()->fHistFrame->fParamX->RemoveAll();
+		rb::Rint::gApp()->fHistFrame->fParamY->RemoveAll();
+		rb::Rint::gApp()->fHistFrame->fParamZ->RemoveAll();
 		return;
 	}
 	static std::map<Int_t, std::vector<std::string> > branches;
@@ -375,24 +375,24 @@ void rb::HistSignals::PopulateParameters(Int_t event_code) {
 		std::sort(event_branches.begin(), event_branches.end(), ansort);
 		branches.insert(std::make_pair(event_code, event_branches));
 	}
-	populate_combo(rb::gApp()->fHistFrame->fParamX, branches[event_code], 400);
-	populate_combo(rb::gApp()->fHistFrame->fParamY, branches[event_code], 400);
-	populate_combo(rb::gApp()->fHistFrame->fParamZ, branches[event_code], 400);
+	populate_combo(rb::Rint::gApp()->fHistFrame->fParamX, branches[event_code], 400);
+	populate_combo(rb::Rint::gApp()->fHistFrame->fParamY, branches[event_code], 400);
+	populate_combo(rb::Rint::gApp()->fHistFrame->fParamZ, branches[event_code], 400);
 }
 
 void rb::HistSignals::PopulateEvents() {
-	rb::gApp()->fHistFrame->fEventEntry->RemoveAll();
-	rb::EventVector_t events = rb::gApp()->GetEventVector();
+	rb::Rint::gApp()->fHistFrame->fEventEntry->RemoveAll();
+	rb::EventVector_t events = rb::Rint::gApp()->GetEventVector();
 	if(!events.size()) return;
 	std::stringstream entry;
 	for(unsigned i=0; i< events.size(); ++i) {
 		entry.str("");
 		entry << events[i].second << " [ code: "
 					<< events[i].first  << " ]";
-		rb::gApp()->fHistFrame->fEventEntry->AddEntry(entry.str().c_str(), events[i].first);
+		rb::Rint::gApp()->fHistFrame->fEventEntry->AddEntry(entry.str().c_str(), events[i].first);
 	}
-	rb::gApp()->fHistFrame->fEventEntry->Select(events[0].first);
-	rb::gApp()->fHistFrame->fEventEntry->Selected(events[0].first);
+	rb::Rint::gApp()->fHistFrame->fEventEntry->Select(events[0].first);
+	rb::Rint::gApp()->fHistFrame->fEventEntry->Selected(events[0].first);
 }
 
 Bool_t rb::HistSignals::IsHistFromGui() {
@@ -424,19 +424,19 @@ void rb::HistSignals::CreateHistogram() {
 		delete GetSelectedHist();
 	};
 
-	Int_t type = rb::gApp()->fHistFrame->fTypeEntry->GetSelected();
-	Int_t bins[3] = { rb::gApp()->fHistFrame->fBinsX->GetNumber(), rb::gApp()->fHistFrame->fBinsY->GetNumber(), rb::gApp()->fHistFrame->fBinsZ->GetNumber() };
-	Int_t evt = rb::gApp()->fHistFrame->fEventEntry->GetSelected();
-	Double_t low[3]  = { rb::gApp()->fHistFrame->fLowX->GetNumber(), rb::gApp()->fHistFrame->fLowY->GetNumber(), rb::gApp()->fHistFrame->fLowZ->GetNumber() };
-	Double_t high[3] = { rb::gApp()->fHistFrame->fHighX->GetNumber(), rb::gApp()->fHistFrame->fHighY->GetNumber(), rb::gApp()->fHistFrame->fHighZ->GetNumber() };
+	Int_t type = rb::Rint::gApp()->fHistFrame->fTypeEntry->GetSelected();
+	Int_t bins[3] = { rb::Rint::gApp()->fHistFrame->fBinsX->GetNumber(), rb::Rint::gApp()->fHistFrame->fBinsY->GetNumber(), rb::Rint::gApp()->fHistFrame->fBinsZ->GetNumber() };
+	Int_t evt = rb::Rint::gApp()->fHistFrame->fEventEntry->GetSelected();
+	Double_t low[3]  = { rb::Rint::gApp()->fHistFrame->fLowX->GetNumber(), rb::Rint::gApp()->fHistFrame->fLowY->GetNumber(), rb::Rint::gApp()->fHistFrame->fLowZ->GetNumber() };
+	Double_t high[3] = { rb::Rint::gApp()->fHistFrame->fHighX->GetNumber(), rb::Rint::gApp()->fHistFrame->fHighY->GetNumber(), rb::Rint::gApp()->fHistFrame->fHighZ->GetNumber() };
 	std::string param[3] = { "", "", "" };
-	if(rb::gApp()->fHistFrame->fParamX->GetTextEntry()) param[0] = rb::gApp()->fHistFrame->fParamX->GetTextEntry()->GetText();
-	if(rb::gApp()->fHistFrame->fParamY->GetTextEntry()) param[1] = rb::gApp()->fHistFrame->fParamY->GetTextEntry()->GetText();
-	if(rb::gApp()->fHistFrame->fParamZ->GetTextEntry()) param[2] = rb::gApp()->fHistFrame->fParamZ->GetTextEntry()->GetText();
+	if(rb::Rint::gApp()->fHistFrame->fParamX->GetTextEntry()) param[0] = rb::Rint::gApp()->fHistFrame->fParamX->GetTextEntry()->GetText();
+	if(rb::Rint::gApp()->fHistFrame->fParamY->GetTextEntry()) param[1] = rb::Rint::gApp()->fHistFrame->fParamY->GetTextEntry()->GetText();
+	if(rb::Rint::gApp()->fHistFrame->fParamZ->GetTextEntry()) param[2] = rb::Rint::gApp()->fHistFrame->fParamZ->GetTextEntry()->GetText();
 
-	std::string gate = rb::gApp()->fHistFrame->fGateEntry->GetText(),
-		 name = rb::gApp()->fHistFrame->fNameEntry->GetText(),
-		 title = rb::gApp()->fHistFrame->fTitleEntry->GetText();
+	std::string gate = rb::Rint::gApp()->fHistFrame->fGateEntry->GetText(),
+		 name = rb::Rint::gApp()->fHistFrame->fNameEntry->GetText(),
+		 title = rb::Rint::gApp()->fHistFrame->fTitleEntry->GetText();
 
 	if(name.empty()) {
 		hist_error("Please specify a histogram name.");
@@ -507,9 +507,9 @@ void rb::HistSignals::CreateHistogram() {
 
 
 void rb::HistSignals::ClickedLoadButton(Int_t which) {
-	TGRadioButton* buttons[3] = {	rb::gApp()->fHistFrame->fConfigLoadMethodReset,
-																rb::gApp()->fHistFrame->fConfigLoadMethodOverwrite,
-																rb::gApp()->fHistFrame->fConfigLoadMethodCumulate };
+	TGRadioButton* buttons[3] = {	rb::Rint::gApp()->fHistFrame->fConfigLoadMethodReset,
+																rb::Rint::gApp()->fHistFrame->fConfigLoadMethodOverwrite,
+																rb::Rint::gApp()->fHistFrame->fConfigLoadMethodCumulate };
 	for(int i=0; i< 3; ++i) {
 		if(i != which) buttons[i]->SetOn(false);
 		else buttons[i]->SetOn(true);
@@ -528,16 +528,16 @@ void rb::HistSignals::recurse_directory(TDirectory* dir, TGListTreeItem* item) {
   for(Int_t i=0; i< dir->GetList()->GetEntries(); ++i) {
 		rb::hist::Base* hist = dynamic_cast<rb::hist::Base*>(dir->GetList()->At(i));
     if(hist) {
-			TGListTreeItem* hist_item = rb::gApp()->fHistFrame->fHistTree->AddItem(item, hist->GetName(), p_hist, p_hist);
+			TGListTreeItem* hist_item = rb::Rint::gApp()->fHistFrame->fHistTree->AddItem(item, hist->GetName(), p_hist, p_hist);
 			hist_map.insert(std::make_pair(hist_item, hist));
 		}
 	}
   for(Int_t i=0; i< dir->GetList()->GetEntries(); ++i) {
 		TDirectory* directory = dynamic_cast<TDirectory*>(dir->GetList()->At(i));
 		if(directory) {
-			if(!rb::gApp()->fHistFrame->fHistTree->FindChildByName(item, dir->GetName()))
+			if(!rb::Rint::gApp()->fHistFrame->fHistTree->FindChildByName(item, dir->GetName()))
 				;
-			TGListTreeItem* this_ = rb::gApp()->fHistFrame->fHistTree->AddItem(item, directory->GetName(), p_ofolder, p_folder);
+			TGListTreeItem* this_ = rb::Rint::gApp()->fHistFrame->fHistTree->AddItem(item, directory->GetName(), p_ofolder, p_folder);
 			directory_map.insert(std::make_pair(this_, directory));
 			this_->SetOpen(true);
       recurse_directory(directory, this_);
@@ -546,17 +546,17 @@ void rb::HistSignals::recurse_directory(TDirectory* dir, TGListTreeItem* item) {
 }
 
 void rb::HistSignals::SyncHistTree() {
-	TGListTreeItem* fRootbeer = rb::gApp()->fHistFrame->fHistTree->FindItemByPathname(gROOT->GetName());
-	rb::gApp()->fHistFrame->fHistTree->DeleteChildren(fRootbeer);
+	TGListTreeItem* fRootbeer = rb::Rint::gApp()->fHistFrame->fHistTree->FindItemByPathname(gROOT->GetName());
+	rb::Rint::gApp()->fHistFrame->fHistTree->DeleteChildren(fRootbeer);
 	hist_map.clear();
 	directory_map.clear();
 	directory_map.insert(std::make_pair(fRootbeer, gROOT));
 	recurse_directory(gROOT, fRootbeer);
-	rb::gApp()->fHistFrame->fHistTree->ClearViewPort();
+	rb::Rint::gApp()->fHistFrame->fHistTree->ClearViewPort();
 }
 
 void rb::HistSignals::Cd() {
-	TGListTreeItem* item = rb::gApp()->fHistFrame->fHistTree->GetSelected();
+	TGListTreeItem* item = rb::Rint::gApp()->fHistFrame->fHistTree->GetSelected();
 	return Cd(item, 1);
 }
 
@@ -572,10 +572,10 @@ void rb::HistSignals::Cd(TGListTreeItem* item, Int_t btn) {
 void rb::HistSignals::Mkdir() {
 	char name[500];
 	new TGInputDialog(gClient->GetRoot(), 0, "Enter Directory Name: ", 0, name);
-	rb::gApp()->fHistFrame->fMkdirButton->SetDown(false);
+	rb::Rint::gApp()->fHistFrame->fMkdirButton->SetDown(false);
 	if(name[0] == 0 && name[1] == 0) // "Cancel" pressed
 		 return;
-	TGListTreeItem* current = rb::gApp()->fHistFrame->fHistTree->GetSelected();
+	TGListTreeItem* current = rb::Rint::gApp()->fHistFrame->fHistTree->GetSelected();
 	mkdir:
 	if(directory_map.count(current)) {
 		directory_map.find(current)->second->mkdir(name);
@@ -586,14 +586,14 @@ void rb::HistSignals::Mkdir() {
 		goto mkdir;
 	}
 	else {
-		current = rb::gApp()->fHistFrame->fHistTree->FindItemByPathname(gROOT->GetName());
+		current = rb::Rint::gApp()->fHistFrame->fHistTree->FindItemByPathname(gROOT->GetName());
 		goto mkdir;
 	}
 	SyncHistTree();
 }
 
 void rb::HistSignals::DrawHist() {
-	TGListTreeItem* item = rb::gApp()->fHistFrame->fHistTree->GetSelected();
+	TGListTreeItem* item = rb::Rint::gApp()->fHistFrame->fHistTree->GetSelected();
 	return DrawHist(item, 1);
 }
 
@@ -601,10 +601,10 @@ void rb::HistSignals::DrawHist(TGListTreeItem* item, Int_t btn) {
 	if(btn)
 		;
 	if(!gPad) {
-		if(gApp()->GetSignals()) gApp()->GetSignals()->CreateNew();
+		if(Rint::gApp()->GetSignals()) Rint::gApp()->GetSignals()->CreateNew();
 	}
 	if(hist_map.count(item)) {
-		hist_map.find(item)->second->Draw(rb::gApp()->fHistFrame->fDrawOptionEntry->GetText());
+		hist_map.find(item)->second->Draw(rb::Rint::gApp()->fHistFrame->fDrawOptionEntry->GetText());
 		gPad->Modified();
 		gPad->Update();
 	}
@@ -612,7 +612,7 @@ void rb::HistSignals::DrawHist(TGListTreeItem* item, Int_t btn) {
 
 void rb::HistSignals::RegateHist() {
 	if(!GetSelectedHist()) return;
-	GetSelectedHist()->Regate(rb::gApp()->fHistFrame->fGateEntry->GetText());
+	GetSelectedHist()->Regate(rb::Rint::gApp()->fHistFrame->fGateEntry->GetText());
 }
 
 void rb::HistSignals::SyncHistMenu(rb::hist::Base* hist) {
@@ -622,52 +622,52 @@ void rb::HistSignals::SyncHistMenu(rb::hist::Base* hist) {
 	int code = -1;
 	if(0);
 	else if(dynamic_cast<rb::hist::D1*>(hist)) {
-		rb::gApp()->fHistFrame->fTypeEntry->Select(0);
+		rb::Rint::gApp()->fHistFrame->fTypeEntry->Select(0);
 		code = 0;
 	}
 	else if(dynamic_cast<rb::hist::D2*>(hist)) {
-		rb::gApp()->fHistFrame->fTypeEntry->Select(1);
+		rb::Rint::gApp()->fHistFrame->fTypeEntry->Select(1);
 		code = 1;
 	}
 	else if(dynamic_cast<rb::hist::D3*>(hist)) {
-		rb::gApp()->fHistFrame->fTypeEntry->Select(2);
+		rb::Rint::gApp()->fHistFrame->fTypeEntry->Select(2);
 		code = 2;
 	}
 	else if(dynamic_cast<rb::hist::Summary*>(hist)) {
 		if(!dynamic_cast<rb::hist::Summary*>(hist)->GetOrientation()) {
-			rb::gApp()->fHistFrame->fTypeEntry->Select(3);
+			rb::Rint::gApp()->fHistFrame->fTypeEntry->Select(3);
 			code = 3;
 		}
 		else {
-			rb::gApp()->fHistFrame->fTypeEntry->Select(4);
+			rb::Rint::gApp()->fHistFrame->fTypeEntry->Select(4);
 			code = 4;
 		}
 	}
 	else if(dynamic_cast<rb::hist::Gamma*>(hist)) {
-		rb::gApp()->fHistFrame->fTypeEntry->Select(4 + hist->GetNdimensions());
+		rb::Rint::gApp()->fHistFrame->fTypeEntry->Select(4 + hist->GetNdimensions());
 		code = 4 + hist->GetNdimensions();
 	}
 	else { // bit
-		rb::gApp()->fHistFrame->fTypeEntry->Select(8);
+		rb::Rint::gApp()->fHistFrame->fTypeEntry->Select(8);
 		code = 8;
 	}	
 
-	rb::gApp()->fHistFrame->fNameEntry->SetText(hist->GetName());
+	rb::Rint::gApp()->fHistFrame->fNameEntry->SetText(hist->GetName());
 	if(!hist->UseDefaultTitle()) {
-		rb::gApp()->fHistFrame->fTitleEntry->SetText(hist->GetTitle());
+		rb::Rint::gApp()->fHistFrame->fTitleEntry->SetText(hist->GetTitle());
 	} else {
-		rb::gApp()->fHistFrame->fTitleEntry->SetText("");
+		rb::Rint::gApp()->fHistFrame->fTitleEntry->SetText("");
 	}
 	if(hist->GetGate() != "1") {
-		rb::gApp()->fHistFrame->fGateEntry->SetText(hist->GetGate().c_str());
+		rb::Rint::gApp()->fHistFrame->fGateEntry->SetText(hist->GetGate().c_str());
 	}
 	else {
-		rb::gApp()->fHistFrame->fGateEntry->SetText("");
+		rb::Rint::gApp()->fHistFrame->fGateEntry->SetText("");
 	}
-	rb::gApp()->fHistFrame->fEventEntry->Select(hist->GetEventCode());
+	rb::Rint::gApp()->fHistFrame->fEventEntry->Select(hist->GetEventCode());
 
 /*
-	TGComboBox* par_boxes[] = { rb::gApp()->fHistFrame->fParamX, rb::gApp()->fHistFrame->fParamY, rb::gApp()->fHistFrame->fParamZ };
+	TGComboBox* par_boxes[] = { rb::Rint::gApp()->fHistFrame->fParamX, rb::Rint::gApp()->fHistFrame->fParamY, rb::Rint::gApp()->fHistFrame->fParamZ };
 	for(int i=0; i< get_dim(code); ++i) {
 		TGLBEntry* entry = par_boxes[i]->FindEntry(hist->GetParam(i).c_str());
 		if(entry) {
@@ -703,8 +703,8 @@ void rb::HistSignals::DeleteHist() {
 	if(GetSelectedHist()) {
 		delete GetSelectedHist();
 	}
-	else if(directory_map.count(rb::gApp()->fHistFrame->fHistTree->GetSelected())) {
-		TDirectory* directory = directory_map.find(rb::gApp()->fHistFrame->fHistTree->GetSelected())->second;
+	else if(directory_map.count(rb::Rint::gApp()->fHistFrame->fHistTree->GetSelected())) {
+		TDirectory* directory = directory_map.find(rb::Rint::gApp()->fHistFrame->fHistTree->GetSelected())->second;
 		if(directory != gROOT) delete directory;
 		SyncHistTree();
 	}
@@ -712,26 +712,26 @@ void rb::HistSignals::DeleteHist() {
 }
 
 rb::hist::Base* rb::HistSignals::GetSelectedHist() {
-	TGListTreeItem* item = rb::gApp()->fHistFrame->fHistTree->GetSelected();
+	TGListTreeItem* item = rb::Rint::gApp()->fHistFrame->fHistTree->GetSelected();
 	return hist_map.count(item) ? hist_map.find(item)->second : 0;
 }
 
 void rb::HistSignals::HistMemberFn() {
 	if(!GetSelectedHist()) return;
-	std::string method = rb::gApp()->fHistFrame->fCommandEntry->GetText();
+	std::string method = rb::Rint::gApp()->fHistFrame->fCommandEntry->GetText();
 	TClass* cl_hist = TClass::GetClass("rb::hist::Base");
 	if(cl_hist) { if (!cl_hist->GetMethodAny(method.substr(0, method.find("(")).c_str())) {
 			std::stringstream msg;
-			msg << rb::gApp()->fHistFrame->fCommandEntry->GetText() << " is an invalid command. Commands must be a valid member function of "
+			msg << rb::Rint::gApp()->fHistFrame->fCommandEntry->GetText() << " is an invalid command. Commands must be a valid member function of "
 					<< "rb::hist::Base*. For a complete list see:\n"
 					<< "http://trshare.triumf.ca/~gchristian/rootbeer/doc/html/classrb_1_1hist_1_1_base.html";
 			error_box(msg.str().c_str(), "Invalid Command");
-			rb::gApp()->fHistFrame->fCommandOk->SetDown(false);
+			rb::Rint::gApp()->fHistFrame->fCommandOk->SetDown(false);
 			return;
 		}
 	}
 	std::stringstream cmd;
-	cmd << "rb::gApp()->GetHistSignals()->GetSelectedHist()->" << rb::gApp()->fHistFrame->fCommandEntry->GetText();
+	cmd << "rb::Rint::gApp()->GetHistSignals()->GetSelectedHist()->" << rb::Rint::gApp()->fHistFrame->fCommandEntry->GetText();
 	gROOT->ProcessLineFast(cmd.str().c_str());
 	rb::canvas::UpdateAll();
 }
@@ -741,7 +741,7 @@ void rb::HistSignals::HistMemberFn() {
 std::string rb::HistSignals::get_variable(TGListTreeItem* item) {
 	static std::vector<std::string> variables = rb::data::MBasic::GetAll();
 	char path[1000];
-	rb::gApp()->fHistFrame->fVariablesTree->GetPathnameFromItem(item, path);
+	rb::Rint::gApp()->fHistFrame->fVariablesTree->GetPathnameFromItem(item, path);
 	TString sPath(&path[1]);
 	sPath.ReplaceAll("/", ".");
 	if(std::find(variables.begin(), variables.end(), sPath.Data()) == variables.end())
@@ -749,7 +749,7 @@ std::string rb::HistSignals::get_variable(TGListTreeItem* item) {
 	return sPath.Data();
 }
 void rb::HistSignals::ReadVariable() {
-	TGListTreeItem* item = rb::gApp()->fHistFrame->fVariablesTree->GetSelected();
+	TGListTreeItem* item = rb::Rint::gApp()->fHistFrame->fVariablesTree->GetSelected();
 	ReadVariable(item, 1);
 }
 void rb::HistSignals::ReadVariable(TGListTreeItem* item, Int_t nbd) {
@@ -758,13 +758,13 @@ void rb::HistSignals::ReadVariable(TGListTreeItem* item, Int_t nbd) {
 	std::string varname = get_variable(item);
 	if(!varname.empty()) {
 		Double_t val = rb::data::GetValue(varname.c_str());
-		rb::gApp()->fHistFrame->fVarEntry->SetNumber(val);
+		rb::Rint::gApp()->fHistFrame->fVarEntry->SetNumber(val);
 	}
 }
 void rb::HistSignals::SetVariable() {
-	std::string varname = get_variable(rb::gApp()->fHistFrame->fVariablesTree->GetSelected());
+	std::string varname = get_variable(rb::Rint::gApp()->fHistFrame->fVariablesTree->GetSelected());
 	if(!varname.empty()) {
-		rb::data::SetValue(varname.c_str(), rb::gApp()->fHistFrame->fVarEntry->GetNumber());
+		rb::data::SetValue(varname.c_str(), rb::Rint::gApp()->fHistFrame->fVarEntry->GetNumber());
 	}
 }
 
@@ -780,22 +780,22 @@ void rb::HistSignals::SyncVariables() {
 		while(name.find(".") < name.size()) {
 			std::string name0 = name.substr(0, name.find("."));
 			if(name == variables[i]) {
-				if(!rb::gApp()->fHistFrame->fVariablesTree->FindItemByPathname(name0.c_str())) {
-					rb::gApp()->fHistFrame->fVariablesTree->AddRoot(name0.c_str());
-					rb::gApp()->fHistFrame->fVariablesTree->FindItemByPathname(name0.c_str())->SetPictures(pbr_o, pbr_c);
+				if(!rb::Rint::gApp()->fHistFrame->fVariablesTree->FindItemByPathname(name0.c_str())) {
+					rb::Rint::gApp()->fHistFrame->fVariablesTree->AddRoot(name0.c_str());
+					rb::Rint::gApp()->fHistFrame->fVariablesTree->FindItemByPathname(name0.c_str())->SetPictures(pbr_o, pbr_c);
 				}
-				item = rb::gApp()->fHistFrame->fVariablesTree->FindItemByPathname(name0.c_str());
+				item = rb::Rint::gApp()->fHistFrame->fVariablesTree->FindItemByPathname(name0.c_str());
 				item->SetOpen(true);
 			}
 			else {
-				item = rb::gApp()->fHistFrame->fVariablesTree->FindChildByName(item, name0.c_str()) ?
-					 rb::gApp()->fHistFrame->fVariablesTree->FindChildByName(item, name0.c_str()) :
-					 rb::gApp()->fHistFrame->fVariablesTree->AddItem(item, name0.c_str(), pbr_o, pbr_c);
+				item = rb::Rint::gApp()->fHistFrame->fVariablesTree->FindChildByName(item, name0.c_str()) ?
+					 rb::Rint::gApp()->fHistFrame->fVariablesTree->FindChildByName(item, name0.c_str()) :
+					 rb::Rint::gApp()->fHistFrame->fVariablesTree->AddItem(item, name0.c_str(), pbr_o, pbr_c);
 				item->SetOpen(true);
 			}
 			name = name.substr(name.find(".") + 1);
 		}
-		rb::gApp()->fHistFrame->fVariablesTree->AddItem(item, name.c_str(), pvar, pvar);
+		rb::Rint::gApp()->fHistFrame->fVariablesTree->AddItem(item, name.c_str(), pvar, pvar);
 	}
 }
 
@@ -832,9 +832,9 @@ void rb::HistSignals::WriteConfig(Int_t which) {
 }
 
 void rb::HistSignals::ReadConfig(Bool_t type_prompt) {
-	TGRadioButton* buttons[3] = {	rb::gApp()->fHistFrame->fConfigLoadMethodReset,
-																rb::gApp()->fHistFrame->fConfigLoadMethodOverwrite,
-																rb::gApp()->fHistFrame->fConfigLoadMethodCumulate };
+	TGRadioButton* buttons[3] = {	rb::Rint::gApp()->fHistFrame->fConfigLoadMethodReset,
+																rb::Rint::gApp()->fHistFrame->fConfigLoadMethodOverwrite,
+																rb::Rint::gApp()->fHistFrame->fConfigLoadMethodCumulate };
 	std::string opt[3] = {"r", "o", "c"};
 	int which = 0;
 	if(!type_prompt) {

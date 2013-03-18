@@ -718,7 +718,7 @@ void rb::data::Mapper::Message() {
     printHeader = kFALSE;
   }
 	sprintf(buf, "      %-24s%-30s\n", kBranchName.c_str(), kClassName.c_str()); sstr << buf;
-  rb::gApp()->AddMessage(sstr.str());
+  rb::Rint::gApp()->AddMessage(sstr.str());
 }
 
 

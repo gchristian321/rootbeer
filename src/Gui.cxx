@@ -551,7 +551,7 @@ void TGRbeerFrame::GuiLayout()
 	}*/
 
 
-#define RB_SIGNALS static_cast<rb::Rint*>(gApplication)->GetSignals()
+#define RB_SIGNALS rb::Rint::gApp()->GetSignals()
 #define RB_BUTTON_CONNECT(button, function) this->Connect(button, "Pressed()", "rb::Signals", RB_SIGNALS, function);
 
 void TGRbeerFrame::MakeConnections() {
@@ -614,7 +614,7 @@ void TGRbeerFrame::MakeConnections() {
 }
  
 TGRbeerFrame::~TGRbeerFrame() {
-	rb::gApp()->DeleteSignals();
+	rb::Rint::gApp()->DeleteSignals();
 }
 
 

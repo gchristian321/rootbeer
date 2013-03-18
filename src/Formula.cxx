@@ -107,7 +107,7 @@ rb::TreeFormulae::TreeFormulae(std::vector<std::string>& params, Int_t event_cod
     modify_formula_arg(*it);
     fFormulaArgs.push_back(*it);
     rb::DataFormula* formula = 
-      rb::Event::InitFormula::Operate(rb::gApp()->GetEvent(kEventCode), it->c_str());
+      rb::Event::InitFormula::Operate(rb::Rint::gApp()->GetEvent(kEventCode), it->c_str());
 
     if(formula->IsZombie()) ThrowBad(it->c_str(), it-params.begin());
     else fDataFormulae->push_back(formula);
@@ -132,14 +132,14 @@ Bool_t rb::TreeFormulae::Change(Int_t index, std::string new_formula) {
 
   // check that new gate formula is valid
   boost::scoped_ptr<rb::DataFormula>
-    temp (rb::Event::InitFormula::Operate(rb::gApp()->GetEvent(kEventCode), new_formula.c_str()));
+    temp (rb::Event::InitFormula::Operate(rb::Rint::gApp()->GetEvent(kEventCode), new_formula.c_str()));
 
   if(temp->IsZombie())
     return false;
   else {
     try {
       RB_LOCKGUARD(gDataMutex);
-      fDataFormulae->replace(index, rb::Event::InitFormula::Operate(rb::gApp()->GetEvent(kEventCode), new_formula.c_str()));
+      fDataFormulae->replace(index, rb::Event::InitFormula::Operate(rb::Rint::gApp()->GetEvent(kEventCode), new_formula.c_str()));
       fFormulaArgs.at(index) = new_formula;
     } catch(std::exception& e) {
       rb::err::Error("rb::TreeFormulae::Change()") << "Invalid index " << index;
