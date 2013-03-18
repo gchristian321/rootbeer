@@ -44,9 +44,9 @@ STOCK_BUFFERS=-DMIDAS_BUFFERS
 
 
 ## DEF_EXT=-DRB_DEFAULT_FILE_EXTENSION=.mid
-DEF_FILE_DIR=-DRB_DEFAULT_FILE_DIRECTORY=\"/Users/dragon/nfstest\"
-DEF_SAVE_DIR=-DRB_DEFAULT_SAVE_DIRECTORY=\"/Users/dragon/nfstest\"
-DEF_CONFIG_DIR=-DRB_DEFAULT_CONFIG_DIRECTORY=\"/home/dragon/packages/rootbeer/config\"
+DEF_FILE_DIR=-DRB_DEFAULT_FILE_DIRECTORY=\"/expdata/dragon/DAQ_test/\"
+DEF_SAVE_DIR=-DRB_DEFAULT_SAVE_DIRECTORY=\"/expdata/dragon/DAQ_test/rootfiles\"
+DEF_CONFIG_DIR=-DRB_DEFAULT_CONFIG_DIRECTORY=\"/Users/dragon/packages/rootbeer/config\"
 USER_DEFINITIONS=
 
 

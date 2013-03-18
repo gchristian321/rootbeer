@@ -1,6 +1,6 @@
 analyzer
-cint/RBDictionary.cxx
-cint/RBDictionary.h
+cint/*Dict*.cxx
+cint/*Dict*.h
 config
 data
 doxygen/.DS_Store

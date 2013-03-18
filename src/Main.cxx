@@ -32,14 +32,24 @@ int rb::Main::Run(int argc, char** argv)
 
 	 std::string fin;
 	 handle_args(argc, argv, fin);
-	 assert(strlen(argv[0]) > 3);
-	 sprintf(argv[0], "-ng");
-	 rb::Rint rbApp("Rbunpack", &argc, argv, 0, 0, true);
+	 int argc2 = argc + 1;
+	 char** argv2 = (char**)malloc(argc2*sizeof(char*));
+	 for(int i=0; i< argc; ++i) {
+		 argv2[i] = (char*)malloc(strlen(argv[i]+1));
+		 strcpy(argv2[i], argv[i]);
+	 }
+	 argv2[argc] = (char*)malloc(4);
+	 strcpy(argv2[argc], "-ng");
+
+	 rb::Rint rbApp("Rbunpack", &argc2, argv2, 0, 0, true);
 	 rbApp.StartSave(false);
 	 rb::AttachFile(fin.c_str());
 	 gSystem->Sleep(1e2);
 	 while(TThread::GetThread("AttachFile"));
 	 rbApp.Terminate(0);
+	 for(int i=0; i< argc2; ++i)
+		 free(argv2[i]);
+	 free(argv2);
 	 return 0;
 
  } else { // Standard ROOTBEER

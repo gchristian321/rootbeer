@@ -29,7 +29,7 @@
 #pragma link C++ class rb::hist::Bit+;
 #pragma link C++ class AxisIndices;
 
-#pragma link C++ class TMidasOnline+;
+// #pragma link C++ class TMidasOnline+;
 
 
 #endif // #ifdef __CINT__

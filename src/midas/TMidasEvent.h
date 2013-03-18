@@ -5,7 +5,9 @@
 #ifndef TMIDASEVENT_H
 #define TMIDASEVENT_H
 
-#include "TMidasBanks.h"
+#include "TMidasStructs.h"
+
+namespace rb {
 
 ///
 /// C++ class representing one midas event.
@@ -26,7 +28,7 @@ class TMidasEvent
 
   TMidasEvent(); ///< default constructor
   TMidasEvent(const TMidasEvent &); ///< copy constructor
-  ~TMidasEvent(); ///< destructor
+  virtual ~TMidasEvent(); ///< destructor
   TMidasEvent& operator=(const TMidasEvent &); ///< assignement operator
   void Clear(); ///< clear event for reuse
   void Copy(const TMidasEvent &); ///< copy helper
@@ -47,12 +49,12 @@ class TMidasEvent
   int LocateBank(const void *unused, const char* bankName, void **bankPtr) const;
 
   bool IsBank32() const; ///< returns "true" if event uses 32-bit banks
-  int IterateBank(Bank_t **, char **pdata) const; ///< iterate through 16-bit data banks
-  int IterateBank32(Bank32_t **, char **pdata) const; ///< iterate through 32-bit data banks
+  int IterateBank(TMidas_BANK **, char **pdata) const; ///< iterate through 16-bit data banks
+  int IterateBank32(TMidas_BANK32 **, char **pdata) const; ///< iterate through 32-bit data banks
 
   // helpers for event creation
 
-  EventHeader_t* GetEventHeader(); ///< return pointer to the event header
+  TMidas_EVENT_HEADER* GetEventHeader(); ///< return pointer to the event header
   char* GetData(); ///< return pointer to the data buffer
 
   void AllocateData(); ///< allocate data buffer using the existing event header
@@ -66,11 +68,13 @@ class TMidasEvent
 
 protected:
 
-  EventHeader_t fEventHeader; ///< event header
+  TMidas_EVENT_HEADER fEventHeader; ///< event header
   char* fData;     ///< event data buffer
   int  fBanksN;    ///< number of banks in this event
   char* fBankList; ///< list of bank names in this event
   bool fAllocatedByUs; ///< "true" if we own the data buffer
 };
+
+}
 
 #endif // TMidasEvent.h

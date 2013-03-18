@@ -1,0 +1,346 @@
+/// \file MidasBuffer.cxx
+/// \author G. Christian
+/// \brief Implements MidasBuffer.hxx
+#include <cassert>
+#include "MidasBuffer.hxx"
+
+#ifdef MIDASSYS
+#include "midas.h"
+#endif
+
+
+rb::MidasBuffer* rb::MidasBuffer::fgInstance = 0;
+
+
+rb::MidasBuffer::MidasBuffer(ULong_t size):
+	fBufferSize(size),
+	fIsTruncated(false),
+	fType(MidasBuffer::NONE)
+{
+	/*!
+	 * \param size Size of the internal buffer in bytes. This should be larger than the
+	 * biggest expected event.
+	 */
+	assert(fgInstance == 0);
+	try {
+		fBuffer = new char[size];
+	} catch (std::bad_alloc& e) { ///\todo Better (non-fatal) error handling for bad alloc.
+		err::Error("rb::Midas::Buffer::MidasBuffer") << "Couldn't allocate memory!";
+		throw (e);
+	}
+}
+
+rb::MidasBuffer::~MidasBuffer()
+{
+	if(fgInstance) {
+		delete[] fBuffer;
+		fgInstance = 0;
+	}
+}
+
+Bool_t rb::MidasBuffer::ReadBufferOffline()
+{
+	/*!
+	 * Reads event data into fBuffer
+	 * \todo Could be made more efficient (no copy)??
+	 */
+	rb::TMidasEvent temp;
+	Bool_t have_event = fFile.Read(&temp);
+
+	if(have_event) {
+		memcpy (fBuffer, temp.GetEventHeader(), sizeof(rb::TMidas_EVENT_HEADER));
+		memcpy (fBuffer + sizeof(rb::TMidas_EVENT_HEADER), temp.GetData(), temp.GetDataSize());
+
+		if ( temp.GetDataSize() + sizeof(rb::TMidas_EVENT_HEADER) > fBufferSize ) {
+			err::Warning("rb::MidasBuffer::ReadBufferOffline")
+				<< "Received a truncated event: event size = "
+				<< ( temp.GetDataSize() + sizeof(rb::TMidas_EVENT_HEADER) )
+				<< ", max size = " << fBufferSize << " (Id, serial = "
+				<< temp.GetEventId() << ", " << temp.GetSerialNumber() << ")";
+			fIsTruncated = true;
+		}
+	}
+
+	return have_event;
+}
+
+Bool_t rb::MidasBuffer::UnpackBuffer()
+{
+	/*!
+	 * Compose a TMidasEvent and then let the user handle it.
+	 */
+	UInt_t datasize = reinterpret_cast<rb::TMidas_EVENT_HEADER*>(fBuffer)->fDataSize;
+	rb::TMidasEvent event;
+	memcpy (event.GetEventHeader(), fBuffer, sizeof(rb::TMidas_EVENT_HEADER));
+	memcpy (event.GetData(), fBuffer + sizeof(rb::TMidas_EVENT_HEADER), datasize);
+	return UnpackEvent(&event);
+}
+
+#ifdef MIDASSYS
+#define M_ONLINE_BAIL_OUT cm_disconnect_experiment(); return false
+
+Bool_t rb::MidasBuffer::ConnectOnline(const char* host, const char* experiment, char**, int)
+{
+	/*!
+	 * \param host hostname:port where the experiment is running (e.g. ladd06:7071)
+	 * \param experiment Experiment name on \e host (e.g. "dragon")
+	 *
+	 * See list below for what's specifically handled by this function.
+	 */
+	INT status;
+	char syncbuf[] = "SYSTEM";
+
+	/// - Connect to MIDAS experiment
+	status = cm_connect_experiment (host, experiment, "rootbeer", NULL);
+	if (status != CM_SUCCESS) {
+		err::Error("rb::MidasBuffer::ConnectOnline")
+			<< "Couldn't connect to experiment \"" << experiment << "\" on host \""
+			<<  host << "\", status = " << status;
+		return false;
+	}
+	err::Info("rb::MidasBuffer::ConnectOnline")
+		<< "Connected to experiment \"" << experiment << "\" on host \"" << host;
+
+	/// - Get database handle
+	status = cm_get_experiment_database(&fDb, 0);
+	if (status != CM_SUCCESS) {
+		err::Error("rb::MidasBuffer::ConnectOnline")
+			<< "Couldn't read experiment database";
+		M_ONLINE_BAIL_OUT;
+	}
+
+	/// - Connect to "SYNC" shared memory buffer
+  status = bm_open_buffer(syncbuf, 2*MAX_EVENT_SIZE, &fBufferHandle);
+	if (status != CM_SUCCESS) {
+		err::Error("rb::MidasBuffer::ConnectOnline")
+			<< "Error opening \"" << syncbuf << "\" shared memory buffer, status = "
+			<< status;
+		M_ONLINE_BAIL_OUT;
+	}
+
+	/// - Request (nonblocking) all types of events from the "SYNC" buffer
+	status = bm_request_event(fBufferHandle, -1, -1, GET_NONBLOCKING, &fRequestId, NULL);
+	if (status != CM_SUCCESS) {
+		err::Error("rb::MidasBuffer::ConnectOnline")
+			<< "Error requesting events from \"" << syncbuf << "\", status = "
+			<< status;
+		M_ONLINE_BAIL_OUT;
+	}
+
+	/// - Register transition handlers
+	/// \note Stop transition needs to have a 'late' (>700) priority to receive
+	///  events flushed from the "SYNC" buffer at the end of the run
+	cm_register_transition(TR_START,  rb_run_start,  fTransitionPriorities[0]);
+	cm_register_transition(TR_STOP,   rb_run_stop,   fTransitionPriorities[1]);
+	cm_register_transition(TR_PAUSE,  rb_run_pause,  fTransitionPriorities[2]);
+	cm_register_transition(TR_RESUME, rb_run_resume, fTransitionPriorities[3]);
+
+	/// - Call run start transition handler
+	Int_t runstate, isize = sizeof(Int_t);
+	status = db_get_value (fDb, 0, "/Runinfo/State", &runstate, &isize, TID_INT, false);
+	if(status == CM_SUCCESS && runstate == 0x3) {
+		Int_t runnumber, isize = sizeof(Int_t);
+		status = db_get_value (fDb, 0, "/Runinfo/Run number",
+													 &runnumber, &isize, TID_INT, false);
+		if(status == CM_SUCCESS)
+			RunStartTransition(runnumber);
+	}
+
+	fType = MidasBuffer::ONLINE;
+	return true;
+}
+
+void rb::MidasBuffer::SetTransitionPriorities(Int_t prStart, Int_t prStop,
+																							Int_t prPause, Int_t prResume)
+{
+	fTransitionPriorities[0] = prStart;
+	fTransitionPriorities[1] = prStop;
+	fTransitionPriorities[2] = prPause;
+	fTransitionPriorities[3] = prResume;
+}
+		
+Bool_t rb::MidasBuffer::OpenFile(const char* file_name, char** other, int nother)
+{
+	/*!
+	 * Open MIDAS file w/ TMidasFile::Open(), call run start transition handler.
+	 */
+	RunStartTransition(0);
+	fType = MidasBuffer::OFFLINE;
+	bool status = fFile.Open(file_name);
+	return status;
+}
+
+void rb::MidasBuffer::DisconnectOnline()
+{
+	/*! Calls cm_disconnect_experiment() and run stop handler */
+	Int_t runnumber, isize = sizeof(Int_t), status;
+	status = db_get_value (fDb, 0, "/Runinfo/Run number",
+												 &runnumber, &isize, TID_INT, false);
+	cm_disconnect_experiment();
+	if(status == CM_SUCCESS)
+		RunStopTransition(runnumber);
+	fType = MidasBuffer::NONE;
+	err::Info("rb::MidasBuffer::DisconnectOnline")
+		<< "Disconnecting from experiment";
+}
+
+void rb::MidasBuffer::CloseFile()
+{
+	/*! Close file, do run stop transition */
+	err::Info("rb::MidasBuffer::CloseFile")
+		<< "Closing MIDAS file: \"" << fFile.GetFilename() << "\"";
+	fFile.Close();
+	RunStopTransition(0);
+	fType = MidasBuffer::NONE;
+}
+
+Bool_t rb::MidasBuffer::ReadBufferOnline()
+{
+	/*!
+	 * Uses bm_receive_event to directly receive events from "SYNC" shared memory. The function
+	 * requests events in a loop until it either gets one or receives a signal to exit.
+	 *
+	 * See the list below for what is done in the request loop.
+	 */
+	bool have_event = false;
+	const int timeout = 10;
+	INT size, status;
+	do {
+		size = fBufferSize;
+
+		/// - Check status of client w/ cm_yield()
+		status = cm_yield(timeout);
+
+		/// - Then check for an event
+		if (status != RPC_SHUTDOWN) status = bm_receive_event (fBufferHandle, fBuffer, &size, ASYNC);
+
+		/// - If we have an event (full or partial), return to outer loop (rb::attach::Online)
+		if (status == BM_SUCCESS || status == BM_TRUNCATED) have_event = true;
+
+		/// - Exit loop if any of the following are true:
+		///     - We have an event
+		///     - We receive SS_ABORT from bm_receive_event()
+		///     - We receive RPC_SHUTDOWN from cm_yield [odb shutdown signal]
+		///     - We have requested events using an invalid buffer handle
+		///     - We receive an Unattach() signal from ROOTBEER
+	} while ( !have_event &&
+						status != SS_ABORT &&
+						status != RPC_SHUTDOWN && 
+						status != BM_INVALID_HANDLE &&
+						rb::Thread::IsRunning(rb::attach::ONLINE_THREAD_NAME) );
+
+	/// - Print a warning message if the event was truncated
+	if (status == BM_TRUNCATED) {
+		err::Warning("rb::MidasBuffer::ReadBufferOnline")
+			<< "Received a truncated event: event size = "
+			<< ( reinterpret_cast<rb::TMidas_EVENT_HEADER*>(fBuffer)->fDataSize + sizeof(rb::TMidas_EVENT_HEADER) )
+			<< ", max size = " << fBufferSize;
+		fIsTruncated = true;
+	}
+
+	/// - Print an error message if the buffer handle was invalid
+	if (status == BM_INVALID_HANDLE) {
+		err::Error("rb::MidasBuffer::ReadBufferOnline") << "Invalid buffer handle: " << fBufferHandle;
+	}
+
+	if(!have_event && rb::Thread::IsRunning(rb::attach::ONLINE_THREAD_NAME)) {
+		err::Info("rb::MidasBuffer::ReadBufferOnline")
+			<< "Received external command to shut down: status = " << status;
+	}
+	
+	/// \returns true if we received an event (full or partial), false otherwise 
+	return have_event;
+	/// \todo Figure out best cm_yield timeout argument
+}
+
+#else // #ifdef MIDASSYS
+
+#define M_NO_MIDASSYS(FUNC) do {																				\
+		err::Error(FUNC) <<																									\
+			"Online functionality requires MIDAS installed on your system"		\
+			; }																																\
+	while (0)
+
+Bool_t rb::MidasBuffer::ConnectOnline(const char* host, const char* experiment, char**, int)
+{
+	M_NO_MIDASSYS("rb::MidasBuffer::ConnectOnline");
+	return false;
+}
+
+void rb::MidasBuffer::DisconnectOnline()
+{
+	M_NO_MIDASSYS("rb::MidasBuffer::DisconnectOnline");
+}
+
+Bool_t rb::MidasBuffer::ReadBufferOnline()
+{
+	M_NO_MIDASSYS("rb::MidasBuffer::ReadBufferOnline");
+	return false;
+}
+
+#endif
+
+rb::MidasBuffer* rb::MidasBuffer::Instance()
+{
+	if(!fgInstance)
+		fgInstance = rb::MidasBuffer::Create();
+	return fgInstance;
+}
+
+rb::BufferSource* rb::BufferSource::New()
+{
+	return rb::MidasBuffer::Instance();
+}
+
+void rb::MidasBuffer::RunStopTransition(Int_t runnum)
+{
+	if(runnum > 0)
+		err::Info("rb::MidasBuffer") << "Stopping run " << runnum;
+}
+
+void rb::MidasBuffer::RunStartTransition(Int_t runnum)
+{
+	if(runnum > 0)
+		err::Info("rb::MidasBuffer") << "Starting run " << runnum;
+}
+
+void rb::MidasBuffer::RunPauseTransition(Int_t runnum)
+{
+	if(runnum > 0)
+		err::Info("rb::MidasBuffer") << "Pausing run " << runnum;
+}
+
+void rb::MidasBuffer::RunResumeTransition(Int_t runnum)
+{
+	if(runnum > 0)
+		err::Info("rb::MidasBuffer") << "Resuming run " << runnum;
+}
+
+
+#ifndef MIDASSYS
+#define CM_SUCCESS 1
+#endif
+
+Int_t rb_run_stop(Int_t runnum, char* err)
+{
+	rb::MidasBuffer::Instance()->RunStopTransition(runnum);
+	return CM_SUCCESS;
+}
+
+Int_t rb_run_start(Int_t runnum, char* err)
+{
+	rb::MidasBuffer::Instance()->RunStartTransition(runnum);
+	return CM_SUCCESS;
+}
+
+Int_t rb_run_pause(Int_t runnum, char* err)
+{
+	rb::MidasBuffer::Instance()->RunPauseTransition(runnum);
+	return CM_SUCCESS;
+}
+
+Int_t rb_run_resume(Int_t runnum, char* err)
+{
+	rb::MidasBuffer::Instance()->RunResumeTransition(runnum);
+	return CM_SUCCESS;
+}
