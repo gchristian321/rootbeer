@@ -162,7 +162,7 @@ void rb::Event::Save::Stop() {
 	TDirectory* current = gDirectory;
 	fFile->cd();
 	fTree->GetCurrentFile();
-	fTree->Write(fTree->GetName());
+	fTree->AutoSave();
 	fTree->ResetBranchAddresses();
 	if(fSaveHistograms) fEvent->fHistManager.WriteAll(fFile.get());
 	if(current) current->cd();
