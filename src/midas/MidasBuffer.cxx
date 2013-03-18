@@ -2,6 +2,8 @@
 /// \author G. Christian
 /// \brief Implements MidasBuffer.hxx
 #include <cassert>
+#include "TMidasFile.h"
+#include "TMidasEvent.h"
 #include "MidasBuffer.hxx"
 
 #ifdef MIDASSYS
@@ -12,9 +14,10 @@
 rb::MidasBuffer* rb::MidasBuffer::fgInstance = 0;
 
 
-rb::MidasBuffer::MidasBuffer(ULong_t size):
+rb::MidasBuffer::MidasBuffer(ULong_t size, Int_t trpStart, Int_t trpStop, Int_t trpPause, Int_t trpResume):
 	fBufferSize(size),
 	fIsTruncated(false),
+	fFile(0),
 	fType(MidasBuffer::NONE)
 {
 	/*!
@@ -23,11 +26,13 @@ rb::MidasBuffer::MidasBuffer(ULong_t size):
 	 */
 	assert(fgInstance == 0);
 	try {
-		fBuffer = new char[size];
+		fBuffer = new Char_t[size];
 	} catch (std::bad_alloc& e) { ///\todo Better (non-fatal) error handling for bad alloc.
 		err::Error("rb::Midas::Buffer::MidasBuffer") << "Couldn't allocate memory!";
 		throw (e);
 	}
+
+	SetTransitionPriorities(trpStart, trpStop, trpPause, trpResume);
 }
 
 rb::MidasBuffer::~MidasBuffer()
@@ -35,6 +40,11 @@ rb::MidasBuffer::~MidasBuffer()
 	if(fgInstance) {
 		delete[] fBuffer;
 		fgInstance = 0;
+		if(fFile) {
+			TMidasFile* pFile = (TMidasFile*)fFile;
+			delete pFile;
+			fFile = 0;
+		}
 	}
 }
 
@@ -44,8 +54,10 @@ Bool_t rb::MidasBuffer::ReadBufferOffline()
 	 * Reads event data into fBuffer
 	 * \todo Could be made more efficient (no copy)??
 	 */
+	assert(fFile);
 	rb::TMidasEvent temp;
-	Bool_t have_event = fFile.Read(&temp);
+	TMidasFile* pFile = (TMidasFile*)fFile;
+	Bool_t have_event = pFile->Read(&temp);
 
 	if(have_event) {
 		memcpy (fBuffer, temp.GetEventHeader(), sizeof(rb::TMidas_EVENT_HEADER));
@@ -69,14 +81,52 @@ Bool_t rb::MidasBuffer::UnpackBuffer()
 	/*!
 	 * Compose a TMidasEvent and then let the user handle it.
 	 */
-	UInt_t datasize = reinterpret_cast<rb::TMidas_EVENT_HEADER*>(fBuffer)->fDataSize;
-	rb::TMidasEvent event;
-	memcpy (event.GetEventHeader(), fBuffer, sizeof(rb::TMidas_EVENT_HEADER));
-	memcpy (event.GetData(), fBuffer + sizeof(rb::TMidas_EVENT_HEADER), datasize);
-	return UnpackEvent(&event);
+	rb::TMidas_EVENT_HEADER* pHeader = reinterpret_cast<rb::TMidas_EVENT_HEADER*>(fBuffer);
+	char* pEvent = fBuffer + sizeof(rb::TMidas_EVENT_HEADER);
+	return UnpackEvent(pHeader, pEvent);
 }
 
+Bool_t rb::MidasBuffer::OpenFile(const char* file_name, char** other, int nother)
+{
+	/*!
+	 * Open MIDAS file w/ TMidasFile::Open(), call run start transition handler.
+	 */
+	fType = MidasBuffer::OFFLINE;
+	RunStartTransition(0);
+	TMidasFile* f = new TMidasFile();
+	bool status = f->Open(file_name);
+	if (status) fFile = f;
+	else delete f;
+	return status;
+}
+
+void rb::MidasBuffer::CloseFile()
+{
+	/*! Close file, do run stop transition */
+	TMidasFile* pFile = (TMidasFile*)fFile;
+	err::Info("rb::MidasBuffer::CloseFile")
+		<< "Closing MIDAS file: \"" << pFile->GetFilename() << "\"";
+	pFile->Close();
+	delete pFile;
+	fFile = 0;
+
+	RunStopTransition(0);
+	fType = MidasBuffer::NONE;
+}
+
+void rb::MidasBuffer::SetTransitionPriorities(Int_t prStart, Int_t prStop,
+																							Int_t prPause, Int_t prResume)
+{
+	fTransitionPriorities[0] = prStart;
+	fTransitionPriorities[1] = prStop;
+	fTransitionPriorities[2] = prPause;
+	fTransitionPriorities[3] = prResume;
+}
+
+
+// ================ ONLINE ============ //
 #ifdef MIDASSYS
+
 #define M_ONLINE_BAIL_OUT cm_disconnect_experiment(); return false
 
 Bool_t rb::MidasBuffer::ConnectOnline(const char* host, const char* experiment, char**, int)
@@ -149,27 +199,7 @@ Bool_t rb::MidasBuffer::ConnectOnline(const char* host, const char* experiment, 
 	fType = MidasBuffer::ONLINE;
 	return true;
 }
-
-void rb::MidasBuffer::SetTransitionPriorities(Int_t prStart, Int_t prStop,
-																							Int_t prPause, Int_t prResume)
-{
-	fTransitionPriorities[0] = prStart;
-	fTransitionPriorities[1] = prStop;
-	fTransitionPriorities[2] = prPause;
-	fTransitionPriorities[3] = prResume;
-}
 		
-Bool_t rb::MidasBuffer::OpenFile(const char* file_name, char** other, int nother)
-{
-	/*!
-	 * Open MIDAS file w/ TMidasFile::Open(), call run start transition handler.
-	 */
-	RunStartTransition(0);
-	fType = MidasBuffer::OFFLINE;
-	bool status = fFile.Open(file_name);
-	return status;
-}
-
 void rb::MidasBuffer::DisconnectOnline()
 {
 	/*! Calls cm_disconnect_experiment() and run stop handler */
@@ -182,16 +212,6 @@ void rb::MidasBuffer::DisconnectOnline()
 	fType = MidasBuffer::NONE;
 	err::Info("rb::MidasBuffer::DisconnectOnline")
 		<< "Disconnecting from experiment";
-}
-
-void rb::MidasBuffer::CloseFile()
-{
-	/*! Close file, do run stop transition */
-	err::Info("rb::MidasBuffer::CloseFile")
-		<< "Closing MIDAS file: \"" << fFile.GetFilename() << "\"";
-	fFile.Close();
-	RunStopTransition(0);
-	fType = MidasBuffer::NONE;
 }
 
 Bool_t rb::MidasBuffer::ReadBufferOnline()
@@ -257,9 +277,8 @@ Bool_t rb::MidasBuffer::ReadBufferOnline()
 
 #define M_NO_MIDASSYS(FUNC) do {																				\
 		err::Error(FUNC) <<																									\
-			"Online functionality requires MIDAS installed on your system"		\
-			; }																																\
-	while (0)
+			"Online functionality requires MIDAS to be installed on your system."; \
+	} while (0)
 
 Bool_t rb::MidasBuffer::ConnectOnline(const char* host, const char* experiment, char**, int)
 {

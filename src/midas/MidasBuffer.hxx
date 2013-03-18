@@ -3,8 +3,6 @@
 /// \brief Generic implementation of rb::BufferSource for MIDAS experiments.
 #ifndef DRAGON_RB_MIDASBUFFER_HXX
 #define DRAGON_RB_MIDASBUFFER_HXX
-#include "TMidasFile.h"
-#include "TMidasEvent.h"
 #include "Buffer.hxx"
 
 #ifdef MIDASSYS
@@ -46,14 +44,14 @@ protected:
 	Int_t fTransitionPriorities[4];
 	
 	/// Offline MIDAS file.
-	rb::TMidasFile fFile;
+	void* fFile;
 
 	/// Type code (online or offline)
 	Int_t fType;
 
 protected:
 	/// Sets fIsTruncated to false, and allocates the internal buffer
-	MidasBuffer(ULong_t size = 1024*1024);
+	MidasBuffer(ULong_t size = 1024*1024, Int_t trpStart = 500, Int_t trpStop = 500, Int_t trpPause = 500, Int_t trpResume = 500);
 
 	/// Frees fBuffer
 	virtual ~MidasBuffer();
@@ -82,7 +80,7 @@ public:
 
 public:
 	/// Pure virtual function to unpack a midas event
-	virtual Bool_t UnpackEvent(TMidasEvent*) = 0;
+	virtual Bool_t UnpackEvent(void* header, char* data) = 0;
 
 	/// Virtual run start transition handler
 	virtual void RunStartTransition(Int_t runnum);
