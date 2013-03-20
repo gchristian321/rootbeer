@@ -8,6 +8,7 @@
 #include <sstream>
 #include <stdexcept>
 
+
 #define OP__(STRM, CLASS, ARGTYPE) CLASS& operator<< (ARGTYPE arg) {	\
     STRM << arg; return *this;						\
   }
@@ -73,6 +74,7 @@ namespace err
     }
   };
 }
+
 }
 
 #define ERR_FILE_LINE "\nFile, line: " << __FILE__ << ", " << __LINE__ << "."

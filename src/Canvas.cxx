@@ -169,11 +169,48 @@ Int_t rb::canvas::GetUpdateRate() {
   return gUpdateRate;
 }
 
+namespace {
+inline Int_t NumSubpads(TVirtualPad* p) {
+	Int_t i = 0;
+	while(p->GetPad(1+i))
+		++i;
+	return i;
+}
+inline TArray* GetArray(TVirtualPad* p) {
+	for(Int_t i=0; i< p->GetListOfPrimitives()->GetEntries(); ++i) {
+		TH1*    hst = dynamic_cast<TH1*>    (gPad->GetListOfPrimitives()->At(i));
+		TArray* arr = dynamic_cast<TArray*> (gPad->GetListOfPrimitives()->At(i));
+		if(hst && arr) return arr;
+	}
+	return 0;
+}
+void InsertPads(TObjArray* arr, TVirtualPad* pad) {
+	Int_t nsub = NumSubpads(pad);
+	if (nsub == 0) arr->Add(pad);
+	else {
+		for (Int_t i=0; i< nsub; ++i) {
+			InsertPads(arr, pad->GetPad(i+1));
+		}
+	}
+}
+inline void ClearPad(TVirtualPad* p) {
+	if(!p) return;
+	TArray* arr = GetArray(p);
+	if(arr) {
+		for(Int_t i=0; i< arr->fN; ++i) //!\bug NOT THREAD SAFE!!
+			arr->SetAt(0., i);
+		p->Modified();
+		p->Update();
+	}
+} }
+
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // void rb::canvas::ClearCurrent()                       //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 void rb::canvas::ClearCurrent() {
   if(gPad) {
+		ClearPad(gPad);
+#if 0
     for(Int_t i = 0; i < gPad->GetListOfPrimitives()->GetEntries(); ++i) {
       TH1*    hst = dynamic_cast<TH1*>    (gPad->GetListOfPrimitives()->At(i));
 			TArray* arr = dynamic_cast<TArray*> (gPad->GetListOfPrimitives()->At(i));
@@ -183,14 +220,26 @@ void rb::canvas::ClearCurrent() {
       gPad->Modified();
       gPad->Update();
     }
-  }
+#endif
+	}
 }
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // void rb::canvas::ClearAll()                           //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 void rb::canvas::ClearAll() {
-  TPad* pInitial = dynamic_cast<TPad*>(gPad);
+	TObjArray allPads;
+	TPad* pInitial = dynamic_cast<TPad*>(gPad);
+	for(Int_t i=0; i< gROOT->GetListOfCanvases()->GetEntries(); ++i) {
+		TPad* p = dynamic_cast<TPad*>(gROOT->GetListOfCanvases()->At(i));
+		if(!p) continue;
+		InsertPads(&allPads, p);
+	}
+	for(Int_t i=0; i< allPads.GetEntries(); ++i) {
+		ClearPad(reinterpret_cast<TVirtualPad*>(allPads[i]));
+	}
+
+#if 0
   TPad* pad = 0;
   for(Int_t i=0; i< gROOT->GetListOfCanvases()->GetEntries(); ++i) {
     pad = dynamic_cast<TPad*>(gROOT->GetListOfCanvases()->At(i));
@@ -201,5 +250,6 @@ void rb::canvas::ClearAll() {
 		gPad->Modified();
 		gPad->Update();
 	}
+#endif
 }
 

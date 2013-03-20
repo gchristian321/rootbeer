@@ -223,7 +223,7 @@ void rb::data::PrintAll() {
 namespace { rb::hist::Manager* const find_manager(Int_t code) {
   rb::Event* event = rb::Rint::gApp()->GetEvent(code);
   if(event == 0) rb::err::Throw() << "Invalid event code: " << code;
-  return event->GetHistManager();
+  return event ? event->GetHistManager() : 0;
 }}
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//

@@ -21,7 +21,7 @@ void TGRbeerFrame::GuiLayout()
    fMainFrame1596->SetLayoutBroken(kTRUE);
    fMainFrame1596->ChangeBackground((Pixel_t)0xd4cf87);
 
-   ULong_t ucolor;        // will reflect user color changes
+   ULong_t ucolor = 0;        // will reflect user color changes
 
    // composite frame
    /* TGCompositeFrame* */ fMainFrame6310 = new TGCompositeFrame(fMainFrame1596,352,428,kVerticalFrame,ucolor);   fMainFrame6310->SetName("fMainFrame6310");

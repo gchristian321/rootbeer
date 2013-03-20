@@ -427,7 +427,7 @@ Int_t rb::WriteCanvases(const char* fname, Bool_t prompt) {
 		gSystem->Exec(rm_cmd.str().c_str());
 	}
 	ofs << "\n}\n";
-	current->cd();
+	if(current) current->cd();
 	return 0;
 }
 

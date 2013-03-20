@@ -10,6 +10,7 @@
 #include <TString.h>
 #include <TSystem.h>
 #include <TDatime.h>
+#include "utils/Assorted.hxx"
 #include "Rint.hxx"
 #include "Buffer.hxx"
 
@@ -59,13 +60,9 @@ rb::attach::File::File(const char* filename, Bool_t stopAtEnd) :
 	if(Rint::gApp()->GetSignals())
 		 Rint::gApp()->GetSignals()->AttachedFile(fname.c_str());
 	if(Rint::gApp()->GetSaveData()) {
-#ifdef RB_DEFAULT_SAVE_DIRECTORY
-		std::string save_fname = RB_DEFAULT_SAVE_DIRECTORY;
+		std::string save_fname = expand_path_std(kSaveStaticDefault, "$RB_SAVEDIR");
 		save_fname += "/";
 		save_fname += fname;
-#else
-		std::string save_fname = fname;
-#endif
 		save_fname = save_fname.substr(0, save_fname.find_last_of("."));
 		save_fname += ".root";
 		start_save(save_fname);
@@ -246,11 +243,7 @@ rb::attach::Online::Online(const char* source, const char* other, char** others,
 		 Rint::gApp()->GetSignals()->Attaching();
 
 	if(Rint::gApp()->GetSaveData()) {
-#ifdef RB_DEFAULT_SAVE_DIR
-		std::string save_fname = RB_DEFAULT_SAVE_DIR ;
-#else
-		std::string save_fname = "";
-#endif
+		std::string save_fname = expand_path_std(kSaveStaticDefault, "$RB_SAVEDIR");
 		save_fname += "Online_";
 		save_fname += get_ts_string().Data();
 		save_fname += ".root";

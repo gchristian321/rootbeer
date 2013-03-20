@@ -17,17 +17,21 @@
 #include "HistGui.hxx"
 #include "hist/Hist.hxx"
 #include "utils/Error.hxx"
-#include "utils/ANSort.hxx"
+#include "utils/Assorted.hxx"
 #include <iostream>
 
 rb::Signals::Signals() { }
 
 rb::Signals::~Signals() { }
 
-namespace { void error_box(const char* message, const char* title = "Error") {
+namespace {
+
+ANSort ansort;
+
+void error_box(const char* message, const char* title = "Error") {
 	new TGMsgBox(gClient->GetRoot(), 0, title, message);
 }
-ANSort ansort;
+
 }
 
 void rb::Signals::UpdateBufferCounter(Int_t n, Bool_t force) {
@@ -77,11 +81,8 @@ void rb::Signals::AttachFile() {
 			 "All Files", "*",
 			 0, 0 };
 	fileInfo.fFileTypes = reinterpret_cast<const char**>(ext);
-#ifdef RB_DEFAULT_FILE_DIRECTORY
-	static TString dirInit = RB_DEFAULT_FILE_DIRECTORY ;
-#else
-	static TString dirInit = "." ;
-#endif
+
+	TString dirInit = expand_path(kFileStaticDefault, "$RB_FILEDIR");
 	fileInfo.fIniDir = StrDup(dirInit);
 
 	new TGFileDialog(gClient->GetRoot(), 0, kFDOpen, &fileInfo);
@@ -99,11 +100,7 @@ void rb::Signals::AttachList() {
 			 "All Files", "*",
 			 0, 0 };
 	fileInfo.fFileTypes = reinterpret_cast<const char**>(ext);
-#ifdef RB_DEFAULT_FILE_DIRECTORY
-	static TString dirInit = RB_DEFAULT_FILE_DIRECTORY ;
-#else
-	static TString dirInit = "." ;
-#endif
+	TString dirInit = expand_path(kFileStaticDefault, "$RB_FILEDIR");
 	fileInfo.fIniDir = StrDup(dirInit);
 
 	new TGFileDialog(gClient->GetRoot(), 0, kFDOpen, &fileInfo);
@@ -126,13 +123,17 @@ void rb::Signals::UpdateCurrent() {
 }
 void rb::Signals::ZeroAll() {
 	rb::canvas::ClearAll();
-	gPad->Modified();
-	gPad->Update();
+	if(gPad) {
+		gPad->Modified();
+		gPad->Update();
+	}
 }
 void rb::Signals::ZeroCurrent() {
 	rb::canvas::ClearCurrent();
-	gPad->Modified();
-	gPad->Update();
+	if(gPad) {
+		gPad->Modified();
+		gPad->Update();
+	}
 }
 void rb::Signals::ClearCurrent() {
 	if(gPad) {
@@ -217,8 +218,10 @@ void rb::Signals::CdCanvas() {
 	if(which >= 0 && which < (int)names.size()) {
 		pads[names[which]]->cd();
 	}
-	gPad->Modified();
-	gPad->Update();
+	if(gPad) {
+		gPad->Modified();
+		gPad->Update();
+	}
 	rb::Rint::gApp()->fRbeerFrame->fSelectCanvas->SetDown(false);
 }
 
@@ -808,11 +811,7 @@ void rb::HistSignals::WriteConfig(Int_t which) {
 			 "All Files", "*",
 			 0, 0 };
 	fileInfo.fFileTypes = reinterpret_cast<const char**>(ext);
-#ifdef RB_DEFAULT_CONFIG_DIRECTORY
-	static TString dirInit = RB_DEFAULT_CONFIG_DIRECTORY ;
-#else
-	static TString dirInit = "." ;
-#endif
+	TString dirInit = expand_path(kConfigStaticDefault, "$RB_CONFIGDIR");
 	fileInfo.fIniDir = StrDup(dirInit);
 
 	new TGFileDialog(gClient->GetRoot(), 0, kFDSave, &fileInfo);
@@ -857,12 +856,10 @@ void rb::HistSignals::ReadConfig(Bool_t type_prompt) {
 			 "All Files", "*",
 			 0, 0 };
 	fileInfo.fFileTypes = reinterpret_cast<const char**>(ext);
-#ifdef RB_DEFAULT_CONFIG_DIRECTORY
-	static TString dirInit = RB_DEFAULT_CONFIG_DIRECTORY ;
-#else
-	static TString dirInit = "." ;
-#endif
+
+	TString dirInit = expand_path(kConfigStaticDefault, "$RB_CONFIGDIR");
 	fileInfo.fIniDir = StrDup(dirInit);
+
 	new TGFileDialog(gClient->GetRoot(), 0, kFDOpen, &fileInfo);
 	if(fileInfo.fFilename != 0) {
 		rb::ReadConfig(fileInfo.fFilename, opt[which].c_str());
@@ -878,12 +875,10 @@ void rb::HistSignals::ReadCanvasConfig() {
 			 "All Files", "*",
 			 0, 0 };
 	fileInfo.fFileTypes = reinterpret_cast<const char**>(ext);
-#ifdef RB_DEFAULT_CONFIG_DIRECTORY
-	static TString dirInit = RB_DEFAULT_CONFIG_DIRECTORY ;
-#else
-	static TString dirInit = "." ;
-#endif
+
+	TString dirInit = expand_path(kConfigStaticDefault, "$RB_CONFIGDIR");
 	fileInfo.fIniDir = StrDup(dirInit);
+
 	new TGFileDialog(gClient->GetRoot(), 0, kFDOpen, &fileInfo);
 	if(fileInfo.fFilename != 0) {
 		rb::ReadCanvases(fileInfo.fFilename);
