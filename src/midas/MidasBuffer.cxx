@@ -4,11 +4,13 @@
 #include <cassert>
 #include "TMidasFile.h"
 #include "TMidasEvent.h"
+#include "Attach.hxx"
 #include "MidasBuffer.hxx"
 
 #ifdef MIDASSYS
 #include "midas.h"
 #endif
+
 
 
 rb::MidasBuffer* rb::MidasBuffer::fgInstance = 0;
@@ -222,60 +224,50 @@ void rb::MidasBuffer::DisconnectOnline()
 Bool_t rb::MidasBuffer::ReadBufferOnline()
 {
 	/*!
-	 * Uses bm_receive_event to directly receive events from "SYNC" shared memory. The function
+	 * Uses bm_receive_event to directly receive events from "SYSTEM" shared memory. The function
 	 * requests events in a loop until it either gets one or receives a signal to exit.
 	 *
 	 * See the list below for what is done in the request loop.
 	 */
 	bool have_event = false;
 	const int timeout = 10;
-	INT size, status;
-	do {
-		size = fBufferSize;
+	INT size = fBufferSize, status;
 
-		/// - Check status of client w/ cm_yield()
-		status = cm_yield(timeout);
+	/// - Check status of client w/ cm_yield()
+	status = cm_yield(timeout);
 
-		/// - Then check for an event
-		if (status != RPC_SHUTDOWN) status = bm_receive_event (fBufferHandle, fBuffer, &size, ASYNC);
+	/// - Then check for an event
+	if (status != RPC_SHUTDOWN) status = bm_receive_event (fBufferHandle, fBuffer, &size, ASYNC);
 
-		/// - If we have an event (full or partial), return to outer loop (rb::attach::Online)
-		if (status == BM_SUCCESS || status == BM_TRUNCATED) have_event = true;
-
-		/// - Exit loop if any of the following are true:
-		///     - We have an event
-		///     - We receive SS_ABORT from bm_receive_event()
-		///     - We receive RPC_SHUTDOWN from cm_yield [odb shutdown signal]
-		///     - We have requested events using an invalid buffer handle
-		///     - We receive an Unattach() signal from ROOTBEER
-	} while ( !have_event &&
-						status != SS_ABORT &&
-						status != RPC_SHUTDOWN && 
-						status != BM_INVALID_HANDLE &&
-						rb::Thread::IsRunning(rb::attach::ONLINE_THREAD_NAME) );
-
-	/// - Print a warning message if the event was truncated
-	if (status == BM_TRUNCATED) {
-		err::Warning("rb::MidasBuffer::ReadBufferOnline")
-			<< "Received a truncated event: event size = "
-			<< ( reinterpret_cast<rb::TMidas_EVENT_HEADER*>(fBuffer)->fDataSize + sizeof(rb::TMidas_EVENT_HEADER) )
-			<< ", max size = " << fBufferSize;
-		fIsTruncated = true;
+	/// - If we have an event (full or partial), return true
+	if (status == BM_SUCCESS || status == BM_TRUNCATED) {
+		///  - Print a warning message if the event was truncated
+		if (status == BM_TRUNCATED) {
+			err::Warning("rb::MidasBuffer::ReadBufferOnline")
+				<< "Received a truncated event: event size = "
+				<< ( reinterpret_cast<rb::TMidas_EVENT_HEADER*>(fBuffer)->fDataSize + sizeof(rb::TMidas_EVENT_HEADER) )
+				<< ", max size = " << fBufferSize;
+			fIsTruncated = true;
+		}
+		return true;
 	}
 
-	/// - Print an error message if the buffer handle was invalid
+	/// - Print an error message if the buffer handle was invalid, and unattach
 	if (status == BM_INVALID_HANDLE) {
 		err::Error("rb::MidasBuffer::ReadBufferOnline") << "Invalid buffer handle: " << fBufferHandle;
+		rb::OnlineAttach::Stop();
 	}
 
-	if(!have_event && rb::Thread::IsRunning(rb::attach::ONLINE_THREAD_NAME)) {
+	/// - If we received a shutdown command from MIDAS, stop the online loop timer
+	if (status == RPC_SHUTDOWN || status == SS_ABORT) {
+		const char* cmd = status == RPC_SHUTDOWN ? "RPC_SHUTDOWN" : "SS_ABORT";
 		err::Info("rb::MidasBuffer::ReadBufferOnline")
-			<< "Received external command to shut down: status = " << status;
+			<< "Received MIDAS command: " << cmd << ", unattaching from online data.";
+		rb::OnlineAttach::Stop();
 	}
-	
-	/// \returns true if we received an event (full or partial), false otherwise 
-	return have_event;
-	/// \todo Figure out best cm_yield timeout argument
+
+	/// - Otherwise, return false (no event, keep looking).
+	return false;
 }
 
 #else // #ifdef MIDASSYS

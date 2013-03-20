@@ -32,4 +32,7 @@
 // #pragma link C++ class TMidasOnline+;
 
 
+#pragma link C++ defined_in ../src/utils/Timer.hxx;
+#pragma link C++ defined_in ../src/Attach.hxx;
+
 #endif // #ifdef __CINT__

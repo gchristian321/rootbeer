@@ -6,6 +6,7 @@
 #include <TROOT.h>
 #include "boost/scoped_ptr.hpp"
 #include "Rint.hxx"
+#include "Attach.hxx"
 #include "Rootbeer.hxx"
 #include "Main.hxx"
 
@@ -45,7 +46,8 @@ int rb::Main::Run(int argc, char** argv)
 	 rbApp.StartSave(false);
 	 rb::AttachFile(fin.c_str());
 	 gSystem->Sleep(1e2);
-	 while(TThread::GetThread("AttachFile"));
+	 while(rb::FileAttached())
+		 assert(0);
 	 rbApp.Terminate(0);
 	 for(int i=0; i< argc2; ++i)
 		 free(argv2[i]);

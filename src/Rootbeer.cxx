@@ -6,14 +6,14 @@
 #include <TString.h>
 #include <TObjArray.h>
 #include <TVirtualPad.h>
-#include "Rootbeer.hxx"
+#include "hist/Hist.hxx"
+#include "utils/Error.hxx"
 #include "Rint.hxx"
 #include "Buffer.hxx"
 #include "Data.hxx"
 #include "Signals.hxx"
-#include "hist/Hist.hxx"
-#include "utils/Error.hxx"
-
+#include "Attach.hxx"
+#include "Rootbeer.hxx"
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // Public interface (Rootbeer.hxx) implementations       //
@@ -24,7 +24,7 @@
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 void rb::AttachOnline(const char* host, const char* other, char** others, int nothers) {
   rb::Unattach();
-  rb::attach::Online::CreateAndRun(host, other, others, nothers);
+	rb::OnlineAttach::Go(host, other, others, nothers);
 }
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
@@ -32,22 +32,25 @@ void rb::AttachOnline(const char* host, const char* other, char** others, int no
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 void rb::AttachFile(const char* filename, Bool_t stop_at_end) {
   rb::Unattach();
-  rb::attach::File::CreateAndRun(filename, stop_at_end);
+	rb::FileAttach::Go(filename, stop_at_end);
 }
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // void rb::AttachList                                   //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-void rb::AttachList(const char* filename) {
+void rb::AttachList(const char* filename) { ///\todo Implement
+	assert(!"Implement me!!");
   rb::Unattach();
-  rb::attach::List::CreateAndRun(filename);
+//  rb::ListAttach::Go(filename);
 }
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // void rb::Unattach()                                   //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 void rb::Unattach() {
-  rb::attach::StopAll();
+	rb::OnlineAttach::Stop();
+	rb::FileAttach::Stop();
+//	rb::ListAttach::Stop();
 }
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
