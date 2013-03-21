@@ -98,15 +98,21 @@ inline rb::Mutex::Mutex(const char* name, Bool_t recursive):
 inline rb::Mutex::~Mutex() { }
 
 inline Int_t rb::Mutex::Lock() {
+	///\todo Get rid of all locks!!
+#if 0
   Int_t ret = TMutex::Lock();
   fId = TThread::SelfId();
 #ifdef RB_LOGGING
   RB_LOG << "  Locked:   " << kName << ", Thread ID: " << TThread::SelfId() << std::endl;
 #endif
   return ret;
+#else
+	return 0;
+#endif
 }
 
 inline Int_t rb::Mutex::TryLock() {
+#if 0
   Int_t ret = TMutex::TryLock();
   if(ret == 0) {
     fId = TThread::SelfId();
@@ -115,19 +121,27 @@ inline Int_t rb::Mutex::TryLock() {
 #endif
   }
   return ret;
+#else
+	return 0;
+#endif
 }
 
 inline Int_t rb::Mutex::UnLock() {
+#if 0
   fId = kIsUnlocked;
 #ifdef RB_LOGGING
     RB_LOG << "UnLocked: " << kName << ", Thread ID: " << TThread::SelfId() << std::endl;
 #endif
   Int_t ret = TMutex::UnLock();
   return ret; 
+#else
+	return 0;
+#endif
 }
 
 inline Bool_t rb::Mutex::IsLocked() {
-  return fId == TThread::SelfId();
+	return true;
+//  return fId == TThread::SelfId();
 }
 
 inline Long_t rb::Mutex::GetId() {
@@ -142,15 +156,20 @@ inline rb::TThreadMutex::TThreadMutex():
 inline rb::TThreadMutex::~TThreadMutex() {}
 
 inline Int_t rb::TThreadMutex::Lock() {
+#if 0
   Int_t ret = TThread::Lock();
   fId = TThread::SelfId();
 #ifdef RB_LOGGING
   RB_LOG << "  Locked:   " << kName << ", Thread ID: " << TThread::SelfId() << std::endl;
 #endif
   return ret;
+#else
+	return 0;
+#endif
 }
 
 inline Int_t rb::TThreadMutex::TryLock() {
+#if 0
   Int_t ret = TThread::TryLock();
   if(ret == 0) {
     fId = TThread::SelfId();
@@ -159,15 +178,22 @@ inline Int_t rb::TThreadMutex::TryLock() {
 #endif
   }
   return ret;
+#else
+	return 0;
+#endif
 }
 
 inline Int_t rb::TThreadMutex::UnLock() {
+#if 0
   fId = kIsUnlocked;
 #ifdef RB_LOGGING
   RB_LOG << "UnLocked: " << kName << ", Thread ID: " << TThread::SelfId() << std::endl;
 #endif
   Int_t ret = TThread::UnLock();
   return ret; 
+#else 
+	return 0;
+#endif
 }
 
 inline rb::TThreadMutex* rb::TThreadMutex::Instance() {
@@ -180,17 +206,17 @@ inline rb::TThreadMutex* rb::TThreadMutex::Instance() {
 
 template <class M>
 rb::ScopedLock<M>::ScopedLock(M& mutex): fMutex(mutex) {
-  fMutex.Lock();
+  // fMutex.Lock();
 }
 
 template <class M>
 rb::ScopedLock<M>::ScopedLock(M* mutex): fMutex(*mutex) {
-  fMutex.Lock();
+  // fMutex.Lock();
 }
 
 template <class M>
 rb::ScopedLock<M>::~ScopedLock() {
-  fMutex.UnLock();
+  // fMutex.UnLock();
 }
 
 
