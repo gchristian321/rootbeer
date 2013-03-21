@@ -17,6 +17,7 @@ rb::MidasBuffer* rb::MidasBuffer::fgInstance = 0;
 
 
 rb::MidasBuffer::MidasBuffer(ULong_t size, Int_t trpStart, Int_t trpStop, Int_t trpPause, Int_t trpResume):
+	fIsConnected(false),
 	fBufferSize(size),
 	fIsTruncated(false),
 	fFile(0),
@@ -134,7 +135,8 @@ void rb::MidasBuffer::SetTransitionPriorities(Int_t prStart, Int_t prStop,
 // ================ ONLINE ============ //
 #ifdef MIDASSYS
 
-#define M_ONLINE_BAIL_OUT fType = MidasBuffer::NONE; cm_disconnect_experiment(); return false
+#define M_ONLINE_BAIL_OUT \
+	fType = MidasBuffer::NONE; cm_disconnect_experiment(); fIsConnected = false; return false
 
 Bool_t rb::MidasBuffer::ConnectOnline(const char* host, const char* experiment, char**, int)
 {
@@ -156,6 +158,8 @@ Bool_t rb::MidasBuffer::ConnectOnline(const char* host, const char* experiment, 
 			<<  host << "\", status = " << status;
 		return false;
 	}
+
+	fIsConnected = true;
 	err::Info("rb::MidasBuffer::ConnectOnline")
 		<< "Connected to experiment \"" << experiment << "\" on host \"" << host;
 
@@ -214,6 +218,7 @@ void rb::MidasBuffer::DisconnectOnline()
 	status = db_get_value (fDb, 0, "/Runinfo/Run number",
 												 &runnumber, &isize, TID_INT, false);
 	cm_disconnect_experiment();
+	fIsConnected = false;
 	if(status == CM_SUCCESS)
 		RunStopTransition(runnumber);
 	fType = MidasBuffer::NONE;
@@ -230,7 +235,7 @@ Bool_t rb::MidasBuffer::ReadBufferOnline()
 	 * See the list below for what is done in the request loop.
 	 */
 	bool have_event = false;
-	const int timeout = 10;
+	const int timeout = 0;
 	INT size = fBufferSize, status;
 
 	/// - Check status of client w/ cm_yield()

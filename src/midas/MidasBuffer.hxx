@@ -22,6 +22,9 @@ private:
 	static MidasBuffer* fgInstance;
 
 protected:
+	/// Are we connected to an online data source?
+	Bool_t fIsConnected;
+
 	/// Return code for online event requests.
 	Int_t fRequestId;
 
@@ -96,6 +99,9 @@ public:
 
 	/// Set transition handler priorities
 	void SetTransitionPriorities(Int_t prStart, Int_t prStop, Int_t prPause, Int_t prResume);
+
+	/// Returns fIsConnected
+	Bool_t IsConnected() const { return fIsConnected; }
 
 	/// Singleton instance
 	static MidasBuffer* Instance();
