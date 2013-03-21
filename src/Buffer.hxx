@@ -3,8 +3,6 @@
 #ifndef BUFFER_HXX
 #define BUFFER_HXX
 #include "Rint.hxx"
-// #include "utils/Save.hxx"
-#include "utils/Thread.hxx"
 #include "utils/boost_scoped_ptr.h"
 
 namespace rb
