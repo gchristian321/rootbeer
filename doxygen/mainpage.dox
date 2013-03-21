@@ -1,10 +1,8 @@
 /*!
   \mainpage ROOTBEER: The ROOT Basic Event ExtractoR
-  \authors G. Christian \n gchristian@triumf.ca \n\n
-  \authors S. Mosby \n mosby@nscl.msu.edu \n\n
-  \authors J.K. Smith \n smithj@nscl.msu.edu \n\n
+  \authors G. Christian \n S. Mosby\n J.K. Smith
 
-
+	\tableofcontents
 
   \n \section intro Introduction
 
@@ -40,14 +38,14 @@
   The basic premise behind ROOTBEER is to extend the normal ROOT package, allowing analysis of incoming online data.
   This essentially means adding the following functionality to what is already contained within ROOT:
 
-        -# Attaching to an online stream of data and calculating a pre-compiled set of parameters.
-	-# Unpacking the data into histograms. The histograms should have the ability to be dynamically created,
-	gated, drawn, analyzed, and destroyed.
-	-# The ability to dynamically change how data is analyzed in a simple way, i.e. changing calibration variables
-	and the like. Also, it should be possible to calculate and display "compound" parameters that depend on the
-	pre-compiled ones.
-	-# User access to the CINT command line and all of it's normal functionality.
-	-# A user-friendly GUI, allowing a short learning curve for those not familiar with ROOT.
+  -# Attaching to an online stream of data and calculating a pre-compiled set of parameters.
+  -# Unpacking the data into histograms. The histograms should have the ability to be dynamically created,
+  gated, drawn, analyzed, and destroyed.
+  -# The ability to dynamically change how data is analyzed in a simple way, i.e. changing calibration variables
+  and the like. Also, it should be possible to calculate and display "compound" parameters that depend on the
+  pre-compiled ones.
+  -# User access to the CINT command line and all of it's normal functionality.
+  -# A user-friendly GUI, allowing a short learning curve for those not familiar with ROOT.
 
   The ROOTBEER code is essentially a framework facilitating the display of data in histograms.  The real work of
   unpacking and analyzing the data collected in a given experiment will need to be implemented as C++ code (or C code
@@ -60,7 +58,6 @@
   There's no reason to re-invent the wheel, and really all we need/want to do is to add the things listed above to
   what's already in ROOT.  Furthermore, we want to preserve the normal, offline user interface as much as possible
   so that use of ROOTBEER will feel natural to those already accustomed to ROOT and CINT.
-
   For more detailed information about how to use ROOTBEER and how to extend it to you own experiment,
   follow the links below.
 
@@ -79,6 +76,8 @@
 
 
   \page install Installation
+
+	\tableofcontents
 
   \n \section op Operating Systems & Prerequisites
   Currently, ROOTBEER has only been tested on Unix-based systems (Linux and Apple OS/X). This doesn't mean it won't
@@ -293,7 +292,9 @@
 
 
   \page gui Graphical User Interface
-	
+
+	\tableofcontents
+
 	Below is a basic screenshot of the rootbeer graphical user interface (GUI). In this section, we'll go over
 	what the various buttons do and how you can use them.
 
@@ -505,6 +506,7 @@
 
   \page data Customizing for Your Experiment
 
+	\tableofcontents
 
   - <a href=#data_prereq><b>Prerequisites</b></a>
   - <a href=#data_intro><b>Introduction</b></a>
@@ -858,6 +860,8 @@
 
 
   \page develop Developers
+
+	\tableofcontents
 
   \todo This page should contain some basic instructions for those wishing to contribute to rootbeer, including a
 	bit about how to get started, desired features, coding standards, caveats, and so on.

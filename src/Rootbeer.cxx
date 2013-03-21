@@ -414,3 +414,17 @@ rb::hist::Base* rb::hist::NewBit(const char* name, const char* title, Int_t nbit
   }
   return hist;
 }
+
+// TODO LIST (GENERAL) //
+
+///\todo Fix data and variables for non-threaded version. A lot of the mutex protective crap can be done away with.
+/// And if you ever re-instate threads again, learn about CINT's built in protections (it may now lock a mutex w/
+/// every keystroke).
+///
+///\todo Make the gui better: scalable, etc. User configurable, somehow? Perhaps long term, a better solution is to 
+/// try to use a GUI library that's truly easy to work with and set it up as a user-configurable thing from the get-go.
+///
+///\todo Attach list still needs implementing.
+///
+///\todo Write librbNscl to implement generic NSCL DAQ connections.
+///

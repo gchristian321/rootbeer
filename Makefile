@@ -39,7 +39,7 @@ LINK=$(CXX) $(LIBS) $(RPATH)
 
 
 #### MAIN PROGRAM ####
-all:  $(RBLIB)/libRootbeer.so $(RBLIB)/libRbMidas.so
+all:  $(RBLIB)/libRootbeer.so $(RBLIB)/librbMidas.so
 
 #### ROOTBEER LIBRARY ####
 SOURCES=($shell ls $(SRC)/*.cxx $(SRC)/hist/*.cxx
@@ -61,6 +61,10 @@ $(RBLIB)/libRootbeer.so: $(CINT)/RBDictionary.cxx $(OBJECTS)
 	$(CXX) $(LDFLAGS) $(OBJECTS) $(CINT)/RBDictionary.cxx $(LIBS) \
 -o $@ \
 
+$(OBJ)/midas/MidasBuffer.o: $(SRC)/midas/MidasBuffer.cxx $(CINT)/MidasDict.cxx $(CINT)/RBDictionary.cxx
+	$(CXX) $(FPIC) $(MIDASFLAGS) -c $< \
+-o $@  \
+
 $(OBJ)/midas/%.o: $(SRC)/midas/%.cxx $(CINT)/MidasDict.cxx
 	$(CXX) $(FPIC) $(MIDASFLAGS) -c $< \
 -o $@  \
@@ -75,7 +79,7 @@ $(SRC)/utils/Mutex.hxx $(SRC)/utils/LockingPointer.hxx $(SRC)/utils/Assorted.hxx
 	rootcint -f $@ -c $(CXXFLAGS) -p $(HEADERS) $(CINT)/Linkdef.h \
 
 
-### libRbMidas.so ###
+### librbMidas.so ###
 MIDAS_SOURCES=$(shell ls $(SRC)/midas/*.cxx)
 MIDAS_HEADERS1=$(shell ls $(SRC)/midas/*.h $(SRC)/midas/*.hxx)
 MIDAS_HEADERS=$(MIDAS_HEADERS1:$(SRC)/midas/MidasLinkdef.h= )
@@ -100,12 +104,12 @@ MIDASFLAGS += -DMIDAS_EXPT_NAME=\"$(MIDAS_EXPT_NAME)\"
 endif
 endif
 
-libRbMidas: $(RBLIB)/libRbMidas.so
-$(RBLIB)/libRbMidas.so: $(MIDAS_OBJECTS) $(CINT)/MidasDict.cxx
+librbMidas: $(RBLIB)/librbMidas.so
+$(RBLIB)/librbMidas.so: $(MIDAS_OBJECTS) $(CINT)/MidasDict.cxx
 	$(CXX) $(LDFLAGS) $(MIDAS_OBJECTS) $(CINT)/MidasDict.cxx \
 -o $@ \
 
-$(CINT)/MidasDict.cxx: $(MIDAS_HEADERS) $(SRC)/midas/MidasLinkdef.h $(CINT)/RBDictionary.cxx
+$(CINT)/MidasDict.cxx: $(MIDAS_HEADERS) $(SRC)/midas/MidasLinkdef.h
 	rootcint -f $@ -c $(CXXFLAGS) -p $(MIDAS_HEADERS) $(SRC)/midas/MidasLinkdef.h \
 
 
@@ -115,10 +119,9 @@ clean:
 	rm -f $(RBLIB)/*.so rootbeer $(CINT)/*Dict*.h $(CINT)/*Dict*.cxx $(OBJ)/*.o $(OBJ)/*/*.o
 
 midasclean:
-	rm -f $(RBLIB)/libRbMidas.so $(CINT)/MidasDict.* $(OBJ)/midas/*.o
-
+	rm -f $(RBLIB)/librbMidas.so $(CINT)/MidasDict.* $(OBJ)/midas/*.o
 
 #### FOR DOXYGEN ####
 
 doc:
-	cd $(PWD)/doxygen ; doxygen Doxyfile ; cd latex; make; cd $(PWD)
+	doxygen doxygen/Doxyfile
