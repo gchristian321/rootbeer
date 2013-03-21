@@ -86,16 +86,25 @@ void TGRbeerFrame::GuiLayout()
    fGroupCanvas->AddFrame(fLabelName, new TGLayoutHints(kLHintsLeft | kLHintsTop,2,2,2,2));
    fLabelName->MoveResize(210,145,35,22);
 
-   /* TGTextButton* */ fSelectCanvas = new TGTextButton(fGroupCanvas,"Cd");
-   fSelectCanvas->SetFont(ufont->GetFontStruct());
-   fSelectCanvas->SetTextJustify(36);
-   fSelectCanvas->SetMargins(0,0,0,0);
-   fSelectCanvas->SetWrapLength(-1);
-   fSelectCanvas->Resize(91,24);
-   fGroupCanvas->AddFrame(fSelectCanvas, new TGLayoutHints(kLHintsLeft | kLHintsTop,2,2,2,2));
-   fSelectCanvas->MoveResize(110,132,95,24);
+   /* TGTextButton* */ fLogy = new TGCheckButton(fGroupCanvas, "Log y"); fLogy->ChangeBackground(ucolor);
+   fLogy->SetFont(ufont->GetFontStruct());
+   fLogy->SetTextJustify(36);
+   fLogy->SetMargins(0,0,0,0);
+   fLogy->SetWrapLength(-1);
+   fGroupCanvas->AddFrame(fLogy, new TGLayoutHints(kLHintsLeft | kLHintsTop,2,2,2,2));
+   fLogy->MoveResize(110,132,95,14);
+
+   /* TGTextButton* */ fLogz = new TGCheckButton(fGroupCanvas, "Log z"); fLogz->ChangeBackground(ucolor);
+   fLogz->SetFont(ufont->GetFontStruct());
+   fLogz->SetTextJustify(36);
+   fLogz->SetMargins(0,0,0,0);
+   fLogz->SetWrapLength(-1);
+   fGroupCanvas->AddFrame(fLogz, new TGLayoutHints(kLHintsLeft | kLHintsTop,2,2,2,2));
+   fLogz->MoveResize(165,132,65,14);
+
    /* TGNumberEntry* */ fUpdateRate = new TGNumberEntry(fGroupCanvas, (Double_t) 0,6,-1,(TGNumberFormat::EStyle) 5);   fGroupCanvas->AddFrame(fUpdateRate, new TGLayoutHints(kLHintsLeft | kLHintsTop,2,2,2,2));
    fUpdateRate->MoveResize(110,28,59,22);
+
 
    /* TGLabel* */ fLabelRate = new TGLabel(fGroupCanvas,"Rate [sec.]",TGLabel::GetDefaultGC()(),TGLabel::GetDefaultFontStruct(),kChildFrame,ucolor);   fLabelRate->SetTextJustify(36);
    fLabelRate->SetMargins(0,0,0,0);
@@ -525,7 +534,7 @@ void TGRbeerFrame::GuiLayout()
    MakeConnections(); 
 }  
 
-// TGMainFrame *fRbeerFrame = 0;TGCompositeFrame *fMainFrame1596 = 0;TGCompositeFrame *fMainFrame6310 = 0;TGGroupFrame *fGroupCanvas = 0;TGTextButton *fZeroAll = 0;TGTextButton *fDivideCurrent = 0;TGTextEntry *fEntryName = 0;TGTextButton *fCreateNew = 0;TGLabel *fLabelName = 0;TGTextButton *fSelectCanvas = 0;TGNumberEntry *fUpdateRate = 0;TGLabel *fLabelRate = 0;TGTextButton *fStartRefresh = 0;TGTextButton *fRefreshCurrent = 0;TGTextButton *fRefreshAll = 0;TGTextButton *fZeroCurrent = 0;TGTextButton *fClearCurrent = 0;TGGroupFrame *fGroupConfig = 0;TGTextButton *fConfigLoad = 0;TGTextButton *fConfigSave = 0;TGGroupFrame *fGroupData = 0;TGTextButton *fAttachOnline = 0;TGTextButton *fAttachFile = 0;TGTextButton *fAttachList = 0;TGTextButton *fUnattach = 0;TGTextEntry *fEntryHost = 0;TGLabel *fLabelHost = 0;TGTextEntry *fEntryPort = 0;TGTextEntry *fFilteFrEntry = 0;TGLabel *fLabelPort = 0;TGCheckButton *fIsContinuous = 0;TGCheckButton *fSaveData = 0;TGCheckButton *fSaveHist = 0;TGLabel *fLabelSource = 0;TGLabel *fLabelDataSource = 0;TGLabel *fNbuffersLabelDivider = 0;TGLabel *fNbuffersLabel = 0;TGLabel *fNbuffers = 0;
+// TGMainFrame *fRbeerFrame = 0;TGCompositeFrame *fMainFrame1596 = 0;TGCompositeFrame *fMainFrame6310 = 0;TGGroupFrame *fGroupCanvas = 0;TGTextButton *fZeroAll = 0;TGTextButton *fDivideCurrent = 0;TGTextEntry *fEntryName = 0;TGTextButton *fCreateNew = 0;TGLabel *fLabelName = 0;TGTextButton *fLogy = 0;TGNumberEntry *fUpdateRate = 0;TGLabel *fLabelRate = 0;TGTextButton *fStartRefresh = 0;TGTextButton *fRefreshCurrent = 0;TGTextButton *fRefreshAll = 0;TGTextButton *fZeroCurrent = 0;TGTextButton *fClearCurrent = 0;TGGroupFrame *fGroupConfig = 0;TGTextButton *fConfigLoad = 0;TGTextButton *fConfigSave = 0;TGGroupFrame *fGroupData = 0;TGTextButton *fAttachOnline = 0;TGTextButton *fAttachFile = 0;TGTextButton *fAttachList = 0;TGTextButton *fUnattach = 0;TGTextEntry *fEntryHost = 0;TGLabel *fLabelHost = 0;TGTextEntry *fEntryPort = 0;TGTextEntry *fFilteFrEntry = 0;TGLabel *fLabelPort = 0;TGCheckButton *fIsContinuous = 0;TGCheckButton *fSaveData = 0;TGCheckButton *fSaveHist = 0;TGLabel *fLabelSource = 0;TGLabel *fLabelDataSource = 0;TGLabel *fNbuffersLabelDivider = 0;TGLabel *fNbuffersLabel = 0;TGLabel *fNbuffers = 0;
 // ================================================== //
 
 /*namespace pix { enum Color_t {
@@ -576,7 +585,8 @@ void TGRbeerFrame::MakeConnections() {
 	RB_BUTTON_CONNECT(fCreateNew, "CreateNew()");
 	RB_BUTTON_CONNECT(fDivideCurrent, "DivideCurrent()");
 	RB_BUTTON_CONNECT(fStartRefresh, "Update()");
-	RB_BUTTON_CONNECT(fSelectCanvas, "CdCanvas()");
+	RB_BUTTON_CONNECT(fLogy, "ToggleLog(=1)");
+	RB_BUTTON_CONNECT(fLogz, "ToggleLog(=2)");
 	RB_BUTTON_CONNECT(fClearCurrent, "ClearCurrent()");
 	RB_BUTTON_CONNECT(fSetFilter, "SetFilter()");
 
@@ -611,6 +621,11 @@ void TGRbeerFrame::MakeConnections() {
 	RB_SIGNALS->Connect("Unattaching()", "TGTextButton", fSaveData, "SetEnabled(=true)");
 	RB_SIGNALS->Connect("Unattaching()", "rb::Signals", RB_SIGNALS, "EnableSaveHists()");
 	fSaveData->Clicked();
+
+	Connect("TCanvas", "ProcessedEvent(Int_t, Int_t, Int_t, TObject*)",
+					"rb::Signals", RB_SIGNALS, "DoubleClickCanvas(Int_t, Int_t, Int_t, TObject*)");	
+
+	Connect("TCanvas", "Modified()", "rb::Signals", RB_SIGNALS, "SyncWithGpad()");
 }
  
 TGRbeerFrame::~TGRbeerFrame() {

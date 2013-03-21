@@ -208,21 +208,44 @@ void rb::Signals::SyncCanvases() {
 	}
 }
 
-void rb::Signals::CdCanvas() {
-	SyncCanvases();
-	std::vector<std::string> names;
-	for(std::map<std::string, TPad*>::iterator it = pads.begin(); it!=pads.end(); ++it)
-		 names.push_back(it->first);
-	int which = -1;
-	new TGSelectDialog(gClient->GetRoot(), 0, "Select Canvas:", "Select Canvas", &names, &which);
-	if(which >= 0 && which < (int)names.size()) {
-		pads[names[which]]->cd();
+namespace { 
+bool gpad_log_x() { return gPad->GetLogx(); }
+bool gpad_log_y() { return gPad->GetLogy(); }
+bool gpad_log_z() { return gPad->GetLogz(); }
+void gpad_set_log_x(bool on) { gPad->SetLogx(on); }
+void gpad_set_log_y(bool on) { gPad->SetLogy(on); }
+void gpad_set_log_z(bool on) { gPad->SetLogz(on); }
+bool(*isLog[3])()      = { gpad_log_x, gpad_log_y, gpad_log_z };
+void(*setLog[3])(bool) = { gpad_set_log_x, gpad_set_log_y, gpad_set_log_z };
+}
+
+void rb::Signals::ToggleLog(Int_t axis) {
+	if(!gPad) return;
+	if(axis < 0 || axis > 2) {
+		std::cerr << "Invalid axis: " << axis << "! ::" << __FILE__ << ", " << __LINE__ << "\n";
+		return;
 	}
-	if(gPad) {
-		gPad->Modified();
-		gPad->Update();
+	
+	TGCheckButton* logButtons[3] =
+		{ 0, rb::Rint::gApp()->fRbeerFrame->fLogy, rb::Rint::gApp()->fRbeerFrame->fLogz };
+	bool isAxisLog = isLog[axis]();
+	setLog[axis](!isAxisLog);
+	gPad->Modified();
+	gPad->Update();
+	logButtons[axis]->SetOn(isAxisLog);
+}
+
+void rb::Signals::DoubleClickCanvas(Int_t event, Int_t, Int_t, TObject* selected) {
+	if (event == kButton1Double && selected->InheritsFrom(TVirtualPad::Class())) {
+		static_cast<TVirtualPad*>(selected)->cd();
+		if(gPad){ gPad->Modified(); gPad->Update(); }
 	}
-	rb::Rint::gApp()->fRbeerFrame->fSelectCanvas->SetDown(false);
+}
+
+void rb::Signals::SyncWithGpad() {
+	if(!gPad) return;
+	rb::Rint::gApp()->fRbeerFrame->fLogy->SetOn(gPad->GetLogy());
+	rb::Rint::gApp()->fRbeerFrame->fLogz->SetOn(gPad->GetLogz());
 }
 
 void rb::Signals::DivideCurrent() {
@@ -266,6 +289,7 @@ void rb::Signals::SetFilter() {
   cout << "Filter type: " << filter_text << ".\tValue: " << filter << ".\n";
   
 }
+
 
 // =========== HIST ============ //
 rb::HistSignals::HistSignals():
@@ -884,3 +908,4 @@ void rb::HistSignals::ReadCanvasConfig() {
 		rb::ReadCanvases(fileInfo.fFilename);
 	}
 }
+

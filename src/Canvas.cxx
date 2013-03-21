@@ -36,7 +36,7 @@ void RecursiveUpdatePad(TVirtualPad* pad) {
 			return;
 		}
 
-		pad->cd();
+//		pad->cd();
 		TList* primitives = pad->GetListOfPrimitives();
 		for(Int_t i=0; i< primitives->GetEntries(); ++i) {
 			TVirtualPad* subpad = dynamic_cast<TVirtualPad*>(primitives->At(i));
