@@ -19,6 +19,7 @@
 #pragma link C++ class TGSelectDialog+;
 #pragma link C++ class TGDivideSelect+;
 
+#pragma link C++ class rb::ClassFormula+;
 #pragma link C++ class rb::hist::Base+;
 #pragma link C++ class rb::hist::D1+;
 #pragma link C++ class rb::hist::D2+;

@@ -45,13 +45,13 @@ all:  $(RBLIB)/libRootbeer.so $(RBLIB)/librbMidas.so
 SOURCES=($shell ls $(SRC)/*.cxx $(SRC)/hist/*.cxx
 
 OBJECTS=$(OBJ)/hist/Hist.o $(OBJ)/hist/Manager.o \
-$(OBJ)/Formula.o \
+$(OBJ)/Formula.o $(OBJ)/ClassFormula.o \
 $(OBJ)/Data.o $(OBJ)/Event.o $(OBJ)/Attach.o $(OBJ)/Canvas.o $(OBJ)/WriteConfig.o \
 $(OBJ)/Rint.o $(OBJ)/Signals.o $(OBJ)/Rootbeer.o $(OBJ)/Gui.o $(OBJ)/HistGui.o \
 $(OBJ)/TGSelectDialog.o $(OBJ)/TGDivideSelect.o $(OBJ)/Main.o
 
 HEADERS=$(SRC)/Main.hxx $(SRC)/Rootbeer.hxx $(SRC)/Rint.hxx $(SRC)/Data.hxx $(SRC)/Buffer.hxx $(SRC)/Attach.hxx $(SRC)/Event.hxx \
-$(SRC)/Signals.hxx $(SRC)/Formula.hxx $(SRC)/utils/LockingPointer.hxx $(SRC)/utils/Mutex.hxx \
+$(SRC)/Signals.hxx $(SRC)/Formula.hxx $(SRC)/ClassFormula.hxx $(SRC)/utils/LockingPointer.hxx $(SRC)/utils/Mutex.hxx \
 $(SRC)/hist/Hist.hxx $(SRC)/hist/Visitor.hxx $(SRC)/hist/Manager.hxx $(SRC)/TGSelectDialog.h $(SRC)/TGDivideSelect.h \
 $(SRC)/HistGui.hxx $(SRC)/Gui.hxx $(SRC)/utils/*.h*
 

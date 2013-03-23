@@ -90,6 +90,8 @@ public:
 	virtual ~MReader() { }
 	/// \brief Casts the value at address to a Double_t
 	virtual Double_t ReadValue() = 0;
+	/// \brief Virtual clone function
+	virtual MReader* Clone() = 0;
 	/// \brief Static "creation" function
 	//! \details Returns the appropriate derived type based on the passed string.
 	//! The string should correspond to the return value of TDataMember::GetRealTypeName().
@@ -113,6 +115,10 @@ public:
 	virtual Double_t ReadValue() {
 		T* pData = reinterpret_cast<T*>(fAddress);
 		return static_cast<Double_t>(*pData);
+	}
+	/// Returns a copy of the current object
+	virtual MReader* Clone() {
+		return new Reader(*this);
 	}
 };
 

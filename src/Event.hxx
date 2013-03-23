@@ -44,6 +44,12 @@ private:
 	//! Pointer to the event tree
 	boost::scoped_ptr<volatile TTree> fTree;
 
+	//! Name of fTree's branch
+	std::string fBranchname;
+
+	//! Name of the class in fTree's branch
+	std::string fClassname;
+
 	//! Memory address of fTree's branch (the actual class)
 	volatile Long_t fClassAddr;
 

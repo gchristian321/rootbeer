@@ -7,7 +7,7 @@
 #include "utils/Logger.hxx"
 
 namespace {
-const bool formulaPrint = false;
+const bool formulaPrint = true;
 }
 
 namespace rb { rb::Mutex gDataMutex("gDataMutex"); }
@@ -95,6 +95,15 @@ rb::DataFormula* rb::Event::InitFormula::Operate(rb::Event* const event, const c
 	assert(pTree->GetListOfBranches()->GetEntries() == 1);
 
 	LockFreePointer<Long_t> pAddr(event->fClassAddr);
+	//
+	// ClassFormula should handle it all
+	rb::ClassDataFormula* clform =
+		new rb::ClassDataFormula(formula_arg, formula_arg,
+														 event->fBranchname.c_str(), event->fClassname.c_str(),
+														 reinterpret_cast<void*>(*pAddr));
+	if(clform->IsZombie() == false) return clform;
+	delete clform;
+
 	// Try constant 
 	rb::ConstantDataFormula* constant = new rb::ConstantDataFormula(formula_arg);
 	if(constant->IsZombie() == false) {
@@ -126,6 +135,8 @@ Bool_t rb::Event::BranchAdd::Operate(rb::Event* const event, const char* name, c
 	if(branch) {
 		LockingPointer<Long_t> pAddr(event->fClassAddr, gDataMutex);
 		*pAddr = reinterpret_cast<Long_t>(*address);
+		event->fBranchname = name;
+		event->fClassname = classname;
 	}
   return branch != 0;
 }

@@ -6,6 +6,7 @@
 #include "utils/boost_scoped_ptr.h"
 #include "utils/boost_ptr_vector.h"
 #include "utils/Critical.hxx"
+#include "ClassFormula.hxx"
 
 
 // =========== Forward Declarations =========== //
@@ -103,6 +104,20 @@ public:
 	virtual Double_t Evaluate() { return fValue; }
 	/// \brief Returns true if fIsFormulaConstant == false
 	virtual Bool_t IsZombie() { return fIsFormulaConstant == false; }
+};
+
+/// \brief DataFormula class using rb::ClassFormula
+/// \todo Stop using DataFormula entirely, this is just a hack to
+/// integrate rb::ClassFormula quickly.
+class ClassDataFormula : public DataFormula
+{
+public:
+	ClassFormula fClassFormula;
+public:
+	ClassDataFormula(const char* name, const char* formula, const char* branchName, const char* className, void* classAddr):
+		fClassFormula(name,formula,branchName,className,classAddr) { }
+	virtual Double_t Evaluate() { return fClassFormula.Eval(); }
+	virtual Bool_t IsZombie() { return !fClassFormula.GetNdim(); }
 };
 
 
