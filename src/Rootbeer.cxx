@@ -415,3 +415,13 @@ rb::hist::Base* rb::hist::NewBit(const char* name, const char* title, Int_t nbit
   return hist;
 }
 
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+//  rb::hist::ClearAll                                   //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+void rb::hist::ClearAll() {
+	rb::EventVector_t events = Rint::gApp()->GetEventVector();
+	for(EventVector_t::iterator it = events.begin(); it != events.end(); ++it) {
+		rb::hist::Manager* manager = find_manager(it->first);
+		if(manager) manager->ClearAll();
+	}	
+}

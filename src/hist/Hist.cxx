@@ -478,4 +478,3 @@ void rb::hist::Scaler::Extend(double factor) {
 		pHist->SetBins(newBins, Min, newMax);
 	}
 }
-

@@ -211,6 +211,11 @@ extern rb::hist::Base* NewScaler(const char* name, const char* title,
 rb::hist::Base* NewBit (const char* name, const char* title, Int_t nbits, const char* param,
 												const char* gate = "", Int_t event_code = 1);
 
+
+
+/// Zero all histograms
+void ClearAll();
+
 }
 }
 
