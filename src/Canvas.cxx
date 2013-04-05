@@ -172,14 +172,13 @@ Int_t rb::canvas::GetUpdateRate() {
 namespace {
 inline Int_t NumSubpads(TVirtualPad* p) {
 	Int_t i = 0;
-	while(p->GetPad(1+i))
-		++i;
+	while(p->GetPad(1+i)) ++i;
 	return i;
 }
 inline TArray* GetArray(TVirtualPad* p) {
 	for(Int_t i=0; i< p->GetListOfPrimitives()->GetEntries(); ++i) {
-		TH1*    hst = dynamic_cast<TH1*>    (gPad->GetListOfPrimitives()->At(i));
-		TArray* arr = dynamic_cast<TArray*> (gPad->GetListOfPrimitives()->At(i));
+		TH1*    hst = dynamic_cast<TH1*>    (p->GetListOfPrimitives()->At(i));
+		TArray* arr = dynamic_cast<TArray*> (p->GetListOfPrimitives()->At(i));
 		if(hst && arr) return arr;
 	}
 	return 0;
@@ -197,8 +196,7 @@ inline void ClearPad(TVirtualPad* p) {
 	if(!p) return;
 	TArray* arr = GetArray(p);
 	if(arr) {
-		for(Int_t i=0; i< arr->fN; ++i) //!\bug NOT THREAD SAFE!!
-			arr->SetAt(0., i);
+		for(Int_t i=0; i< arr->fN; ++i) arr->SetAt(0., i);
 		p->Modified();
 		p->Update();
 	}
@@ -208,20 +206,7 @@ inline void ClearPad(TVirtualPad* p) {
 // void rb::canvas::ClearCurrent()                       //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 void rb::canvas::ClearCurrent() {
-  if(gPad) {
-		ClearPad(gPad);
-#if 0
-    for(Int_t i = 0; i < gPad->GetListOfPrimitives()->GetEntries(); ++i) {
-      TH1*    hst = dynamic_cast<TH1*>    (gPad->GetListOfPrimitives()->At(i));
-			TArray* arr = dynamic_cast<TArray*> (gPad->GetListOfPrimitives()->At(i));
-      if(hst && arr) {
-				for(Int_t i=0; i< arr->fN; ++i) arr->SetAt(0., i);
-			}
-      gPad->Modified();
-      gPad->Update();
-    }
-#endif
-	}
+  if(gPad) ClearPad(gPad);
 }
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
@@ -238,18 +223,4 @@ void rb::canvas::ClearAll() {
 	for(Int_t i=0; i< allPads.GetEntries(); ++i) {
 		ClearPad(reinterpret_cast<TVirtualPad*>(allPads[i]));
 	}
-
-#if 0
-  TPad* pad = 0;
-  for(Int_t i=0; i< gROOT->GetListOfCanvases()->GetEntries(); ++i) {
-    pad = dynamic_cast<TPad*>(gROOT->GetListOfCanvases()->At(i));
-    if(pad) RecursiveClearPad(pad);
-  }
-  if(pInitial) pInitial->cd();
-		if(gPad) {
-		gPad->Modified();
-		gPad->Update();
-	}
-#endif
 }
-
