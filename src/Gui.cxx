@@ -12,6 +12,7 @@ void TGRbeerFrame::GuiLayout()
    // main frame
    // /* TGMainFrame* */ fRbeerFrame = new TGMainFrame(gClient->GetRoot(),10,10,kMainFrame | kVerticalFrame);
    this->SetName("fRbeerFrame");
+	 this->SetWindowName("rootbeer");
    this->SetLayoutBroken(kTRUE);
    this->ChangeBackground((Pixel_t)0xd4cf87);
 

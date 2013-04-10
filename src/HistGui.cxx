@@ -9,6 +9,7 @@ void TGHistVarFrame::HistGuiLayout()
    // main frame
    // /* TGMainFrame* */ this = new TGMainFrame(gClient->GetRoot(),10,10,kMainFrame | kVerticalFrame);
 	 this->SetName("fHistVarFrame");
+	 this->SetWindowName("rootbeer histograms");
    this->SetLayoutBroken(kTRUE);
 
    // composite frame
