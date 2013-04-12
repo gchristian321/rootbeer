@@ -1,7 +1,12 @@
 //! \file WriteConfig.cxx
 //! \brief Implements methods related to saving configuration files.
-//!  \details Put in a separate file because they're verbose and we want to avoid cluttering
-//!  Rootbeer.cxx
+//! \details Put in a separate file because they're verbose and we want to avoid cluttering
+//! Rootbeer.cxx
+//! \todo This whole thing should be scrapped redone with a better method. As is, it's very buggy
+//! and will be near possible to maintain/fix. I was thinking something more like providing SavePrimitive()
+//! methods for the rb::hist classes as well as directories and then using that. Another option is to forget
+//! the "primitive" method entirely and use something more along the lines of TObject::Write, possible with
+//! XML files.
 #include <iostream>
 #include <fstream>
 #include <TCanvas.h>
@@ -51,11 +56,11 @@ void write_summary_hist(rb::hist::Summary* rbhist, std::ostream& ofs) {
 	ofs << "  rb::hist::NewSummary(\"" << rbhist->GetName() << "\", \"" << title << "\", " ;
 	Int_t orientation = rbhist->GetOrientation();
 	Bool_t vertical = orientation == rb::hist::Summary::VERTICAL;
-	TAxis* axis = vertical? rbhist->GetXaxis() : rbhist->GetYaxis();
+	TAxis* axis = vertical? rbhist->GetYaxis() : rbhist->GetXaxis();
 	std::string orient_arg =  vertical? "v" : "h";
 	ofs << axis->GetNbins() << ", " << axis->GetBinLowEdge(1) << ", " << axis->GetBinLowEdge(1+axis->GetNbins()) <<", ";
 	std::string param = rbhist->GetInitialParams();
-	ofs << "\"" << param << "\", \"" << rbhist->GetGate() << "\", \"" << orient_arg << "\", " << rbhist->GetEventCode() << ");\n";
+	ofs << "\"" << param << "\", \"" << rbhist->GetGate() << "\", " << rbhist->GetEventCode() <<  ", \"" << orient_arg << "\");\n";
 }
 
 void write_bit_hist(rb::hist::Bit* rbhist, std::ostream& ofs) {

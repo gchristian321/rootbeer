@@ -123,7 +123,7 @@ TDirectory* rb::Mkdir(const char* name, const char* title) {
 	}
 
 	TDirectory* current = gDirectory;
-	gROOT->cd();
+	// gROOT->cd();
 	TString sdp(name);
 	std::auto_ptr<TObjArray> dirs (sdp.Tokenize("/"));
 	for (int i=0; i< dirs->GetEntries(); ++i) {
@@ -140,8 +140,8 @@ TDirectory* rb::Mkdir(const char* name, const char* title) {
 	else current->cd();
 	if(Rint::gApp()->GetHistSignals()) Rint::gApp()->GetHistSignals()->SyncHistTree();
 	return newDir;
-
 }
+
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // void rb::SetTCutGOverwrite                            //
