@@ -11,8 +11,8 @@ RBLIB=$(PWD)/lib
 
 INCFLAGS=-I$(SRC)
 OPTIMIZE=-O3
-DEBUG=
-#-DDEBUG -DRB_LOGGING
+DEBUG= -DDEBUG
+#-DRB_LOGGING
 
 ROOTLIBS:= $(shell root-config --glibs) -lXMLParser -lThread -lTreePlayer
 ROOTFLAGS:= $(shell root-config --cflags)

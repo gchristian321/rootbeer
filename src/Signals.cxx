@@ -717,12 +717,39 @@ void rb::HistSignals::HistTreeItemClicked(TGListTreeItem* item, Int_t btn) {
 		SyncHistMenu(GetSelectedHist());
 		HistTreeItemClicked(item->GetParent(), btn);
 
-		// Set option to "colz" if 2d
 		rb::hist::Base* hist = hist_map.find(item)->second;
+
+		// Set option to "colz" if 2d
 		if(hist->InheritsFrom(rb::hist::D2::Class()) ||
 			 hist->InheritsFrom(rb::hist::Summary::Class())) 
 		{
 			rb::Rint::gApp()->fHistFrame->fDrawOptionEntry->SetText("colz");
+		}
+
+		// Populate parameter box w/ correct params
+		TGComboBox* boxes[3] = {
+			rb::Rint::gApp()->fHistFrame->fParamX,
+			rb::Rint::gApp()->fHistFrame->fParamY,
+			rb::Rint::gApp()->fHistFrame->fParamZ
+		};
+		TAxis* axes[3] = { hist->GetXaxis(), hist->GetYaxis(), hist->GetZaxis() };
+		TGNumberEntryField* numEntry[3][3] = { 
+			{ rb::Rint::gApp()->fHistFrame->fBinsX, rb::Rint::gApp()->fHistFrame->fLowX, rb::Rint::gApp()->fHistFrame->fHighX },
+			{ rb::Rint::gApp()->fHistFrame->fBinsY, rb::Rint::gApp()->fHistFrame->fLowY, rb::Rint::gApp()->fHistFrame->fHighY },
+			{ rb::Rint::gApp()->fHistFrame->fBinsZ, rb::Rint::gApp()->fHistFrame->fLowZ, rb::Rint::gApp()->fHistFrame->fHighZ },
+		};
+
+		for(UInt_t ax = 0; ax < hist->GetNdimensions(); ++ax) {
+			if(boxes[ax] && boxes[ax]->GetTextEntry()) {
+				// params
+				boxes[ax]->GetTextEntry()->SetText(hist->GetParam(ax).c_str());
+				
+				// bins & range
+				Int_t nbins = axes[ax]->GetNbins();
+				numEntry[ax][0]->SetNumber(nbins);
+				numEntry[ax][1]->SetNumber(axes[ax]->GetBinLowEdge(1));
+				numEntry[ax][2]->SetNumber(axes[ax]->GetBinLowEdge(nbins+1));
+			}
 		}
 	}
 	else if (directory_map.count(item)) Cd(item, btn);
