@@ -448,7 +448,10 @@ void rb::HistSignals::EnableHistFields(Int_t code) {
 
 void rb::HistSignals::CreateHistogram() {
 	if(GetSelectedHist()) {
-		delete GetSelectedHist();
+		if(rb::Rint::gApp()->fHistFrame->fHistReplaceButton->IsDown()) {
+			delete GetSelectedHist();
+			rb::Rint::gApp()->fHistFrame->fHistReplaceButton->SetDown(kFALSE);
+		}
 	};
 
 	Int_t type = rb::Rint::gApp()->fHistFrame->fTypeEntry->GetSelected();
@@ -645,7 +648,7 @@ void rb::HistSignals::RegateHist() {
 
 void rb::HistSignals::SyncHistMenu(rb::hist::Base* hist) {
 	if(!hist) return;
-	//	1d, 2d, 3d, summary [h], summary [v], gamma1, gamma2, gamma3, bit
+	//	1d, 2d, 3d, scaler, summary [h], summary [v], gamma1, gamma2, gamma3, bit
   //   0,  1,  2,     3,          4,          5,      6,      7,     8
 	int code = -1;
 	if(0);
@@ -661,23 +664,27 @@ void rb::HistSignals::SyncHistMenu(rb::hist::Base* hist) {
 		rb::Rint::gApp()->fHistFrame->fTypeEntry->Select(2);
 		code = 2;
 	}
+	else if(dynamic_cast<rb::hist::Scaler*>(hist)) {
+		rb::Rint::gApp()->fHistFrame->fTypeEntry->Select(3);
+		code = 3;
+	}
 	else if(dynamic_cast<rb::hist::Summary*>(hist)) {
 		if(!dynamic_cast<rb::hist::Summary*>(hist)->GetOrientation()) {
-			rb::Rint::gApp()->fHistFrame->fTypeEntry->Select(3);
-			code = 3;
-		}
-		else {
 			rb::Rint::gApp()->fHistFrame->fTypeEntry->Select(4);
 			code = 4;
 		}
+		else {
+			rb::Rint::gApp()->fHistFrame->fTypeEntry->Select(5);
+			code = 5;
+		}
 	}
 	else if(dynamic_cast<rb::hist::Gamma*>(hist)) {
-		rb::Rint::gApp()->fHistFrame->fTypeEntry->Select(4 + hist->GetNdimensions());
-		code = 4 + hist->GetNdimensions();
+		rb::Rint::gApp()->fHistFrame->fTypeEntry->Select(5 + hist->GetNdimensions());
+		code = 5 + hist->GetNdimensions();
 	}
 	else { // bit
-		rb::Rint::gApp()->fHistFrame->fTypeEntry->Select(8);
-		code = 8;
+		rb::Rint::gApp()->fHistFrame->fTypeEntry->Select(9);
+		code = 9;
 	}	
 
 	rb::Rint::gApp()->fHistFrame->fNameEntry->SetText(hist->GetName());
@@ -694,31 +701,8 @@ void rb::HistSignals::SyncHistMenu(rb::hist::Base* hist) {
 	}
 	rb::Rint::gApp()->fHistFrame->fEventEntry->Select(hist->GetEventCode());
 
-/*
-	TGComboBox* par_boxes[] = { rb::Rint::gApp()->fHistFrame->fParamX, rb::Rint::gApp()->fHistFrame->fParamY, rb::Rint::gApp()->fHistFrame->fParamZ };
-	for(int i=0; i< get_dim(code); ++i) {
-		TGLBEntry* entry = par_boxes[i]->FindEntry(hist->GetParam(i).c_str());
-		if(entry) {
-			par_boxes[i]->Select(entry->EntryId());
-			par_boxes[i]->Selected(entry->EntryId());
-		}
-	}
-*/
-}
-
-void rb::HistSignals::HistTreeKeyPressed(TGListTreeItem* item, UInt_t keycode, UInt_t mask) {
-	// Apparently this doesn't work....
-	// printf("KEY PRESSED: 0x%x 0x%x\n", keycode, mask);
-}
-
-void rb::HistSignals::HistTreeItemClicked(TGListTreeItem* item, Int_t btn) {
-	if(0 && btn);
-	else if (hist_map.count(item)) {
-		SyncHistMenu(GetSelectedHist());
-		HistTreeItemClicked(item->GetParent(), btn);
-
-		rb::hist::Base* hist = hist_map.find(item)->second;
-
+	// Sync other stuff (parameters, option, etc)
+	{
 		// Set option to "colz" if 2d
 		if(hist->InheritsFrom(rb::hist::D2::Class()) ||
 			 hist->InheritsFrom(rb::hist::Summary::Class())) 
@@ -751,6 +735,65 @@ void rb::HistSignals::HistTreeItemClicked(TGListTreeItem* item, Int_t btn) {
 				numEntry[ax][2]->SetNumber(axes[ax]->GetBinLowEdge(nbins+1));
 			}
 		}
+	}
+
+/*
+	TGComboBox* par_boxes[] = { rb::Rint::gApp()->fHistFrame->fParamX, rb::Rint::gApp()->fHistFrame->fParamY, rb::Rint::gApp()->fHistFrame->fParamZ };
+	for(int i=0; i< get_dim(code); ++i) {
+		TGLBEntry* entry = par_boxes[i]->FindEntry(hist->GetParam(i).c_str());
+		if(entry) {
+			par_boxes[i]->Select(entry->EntryId());
+			par_boxes[i]->Selected(entry->EntryId());
+		}
+	}
+*/
+}
+
+void rb::HistSignals::HistTreeKeyPressed(TGListTreeItem* item, UInt_t keycode, UInt_t mask) {
+	// Apparently this doesn't work....
+	// printf("KEY PRESSED: 0x%x 0x%x\n", keycode, mask);
+}
+
+void rb::HistSignals::HistTreeItemClicked(TGListTreeItem* item, Int_t btn) {
+	if(0 && btn);
+	else if (hist_map.count(item)) {
+		SyncHistMenu(GetSelectedHist());
+		HistTreeItemClicked(item->GetParent(), btn);
+
+		// rb::hist::Base* hist = hist_map.find(item)->second;
+
+		// // Set option to "colz" if 2d
+		// if(hist->InheritsFrom(rb::hist::D2::Class()) ||
+		// 	 hist->InheritsFrom(rb::hist::Summary::Class())) 
+		// {
+		// 	rb::Rint::gApp()->fHistFrame->fDrawOptionEntry->SetText("colz");
+		// }
+
+		// // Populate parameter box w/ correct params
+		// TGComboBox* boxes[3] = {
+		// 	rb::Rint::gApp()->fHistFrame->fParamX,
+		// 	rb::Rint::gApp()->fHistFrame->fParamY,
+		// 	rb::Rint::gApp()->fHistFrame->fParamZ
+		// };
+		// TAxis* axes[3] = { hist->GetXaxis(), hist->GetYaxis(), hist->GetZaxis() };
+		// TGNumberEntryField* numEntry[3][3] = { 
+		// 	{ rb::Rint::gApp()->fHistFrame->fBinsX, rb::Rint::gApp()->fHistFrame->fLowX, rb::Rint::gApp()->fHistFrame->fHighX },
+		// 	{ rb::Rint::gApp()->fHistFrame->fBinsY, rb::Rint::gApp()->fHistFrame->fLowY, rb::Rint::gApp()->fHistFrame->fHighY },
+		// 	{ rb::Rint::gApp()->fHistFrame->fBinsZ, rb::Rint::gApp()->fHistFrame->fLowZ, rb::Rint::gApp()->fHistFrame->fHighZ },
+		// };
+
+		// for(UInt_t ax = 0; ax < hist->GetNdimensions(); ++ax) {
+		// 	if(boxes[ax] && boxes[ax]->GetTextEntry()) {
+		// 		// params
+		// 		boxes[ax]->GetTextEntry()->SetText(hist->GetParam(ax).c_str());
+				
+		// 		// bins & range
+		// 		Int_t nbins = axes[ax]->GetNbins();
+		// 		numEntry[ax][0]->SetNumber(nbins);
+		// 		numEntry[ax][1]->SetNumber(axes[ax]->GetBinLowEdge(1));
+		// 		numEntry[ax][2]->SetNumber(axes[ax]->GetBinLowEdge(nbins+1));
+		// 	}
+		// }
 	}
 	else if (directory_map.count(item)) Cd(item, btn);
 	else;
@@ -945,3 +988,13 @@ void rb::HistSignals::ReadCanvasConfig() {
 	}
 }
 
+void rb::HistSignals::ToggleCreateReplace() {
+	// Currently empry, leave at create / replace
+#if 0
+	Bool_t down = rb::Rint::gApp()->fHistFrame->fHistReplaceButton->IsDown();
+	if(down)
+		rb::Rint::gApp()->fHistFrame->fHistCreateButton->SetText("Create");
+	else
+		rb::Rint::gApp()->fHistFrame->fHistCreateButton->SetText("Replace");
+#endif
+}

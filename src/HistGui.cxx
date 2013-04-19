@@ -591,6 +591,11 @@ fHistRegateButton->SetFont(ufont->GetFontStruct());
    fHistCreateFrame->AddFrame(fHistRegateButton, new TGLayoutHints(kLHintsLeft | kLHintsTop,2,2,2,2));
    fHistRegateButton->MoveResize(150,315,98,24);
 
+	 fHistReplaceButton = new TGCheckButton(fHistCreateFrame, "Replace");
+	 fHistCreateFrame->AddFrame(fHistReplaceButton,  new TGLayoutHints(kLHintsLeft | kLHintsTop,2,2,2,2));
+	 fHistReplaceButton->MoveResize(150+98+10,320,70,24);
+	 fHistReplaceButton->SetDown(kFALSE);
+
 
    // "Configuration File" group frame
    /* TGGroupFrame* */ fHistConfigFrame = new TGGroupFrame(fHistCreateFrame,"Configuration File");   fHistConfigFrame->SetLayoutBroken(kTRUE);
@@ -1030,6 +1035,7 @@ void TGHistVarFrame::MakeHistConnections() {
 	fCommandEntry->Connect("ReturnPressed()", "rb::HistSignals", RB_HIST_SIGNALS, "HistMemberFn()");
 	fMkdirButton->Connect("Pressed()",  "rb::HistSignals", RB_HIST_SIGNALS, "Mkdir()");
 	fHistRegateButton->Connect("Pressed()", "rb::HistSignals", RB_HIST_SIGNALS, "RegateHist()");
+	fHistReplaceButton->Connect("Pressed()", "rb::HistSignals", RB_HIST_SIGNALS, "ToggleCreateReplace()");
 
 
 	RB_HIST_SIGNALS->Connect("NewOrDeleteHist()", "rb::HistSignals", RB_HIST_SIGNALS, "SyncHistTree()");

@@ -74,6 +74,7 @@ public:
 	Bool_t IsHistFromGui();
 	void CreateHistogram();
 	void SyncHistTree();
+	void ToggleCreateReplace();
 	rb::hist::Base* GetSelectedHist();
 	void HistTreeKeyPressed(TGListTreeItem*, UInt_t, UInt_t);
 	void HistTreeItemClicked(TGListTreeItem*, Int_t);
