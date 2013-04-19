@@ -120,7 +120,7 @@ clean:
 	rm -f $(RBLIB)/*.so rootbeer $(CINT)/*Dict*.h $(CINT)/*Dict*.cxx $(OBJ)/*.o $(OBJ)/*/*.o
 
 midasclean:
-	rm -f $(RBLIB)/librbMidas.so $(CINT)/MidasDict.* $(OBJ)/midas/*.o
+	rm -f $(RBLIB)/librbMidas.so.devl $(CINT)/MidasDict.* $(OBJ)/midas/*.o
 
 #### FOR DOXYGEN ####
 

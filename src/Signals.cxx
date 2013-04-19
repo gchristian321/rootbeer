@@ -634,6 +634,7 @@ void rb::HistSignals::DrawHist(TGListTreeItem* item, Int_t btn) {
 		hist_map.find(item)->second->Draw(rb::Rint::gApp()->fHistFrame->fDrawOptionEntry->GetText());
 		gPad->Modified();
 		gPad->Update();
+		rb::Rint::gApp()->fHistFrame->fDrawOptionEntry->SetText("");
 	}
 }
 
@@ -715,6 +716,14 @@ void rb::HistSignals::HistTreeItemClicked(TGListTreeItem* item, Int_t btn) {
 	else if (hist_map.count(item)) {
 		SyncHistMenu(GetSelectedHist());
 		HistTreeItemClicked(item->GetParent(), btn);
+
+		// Set option to "colz" if 2d
+		rb::hist::Base* hist = hist_map.find(item)->second;
+		if(hist->InheritsFrom(rb::hist::D2::Class()) ||
+			 hist->InheritsFrom(rb::hist::Summary::Class())) 
+		{
+			rb::Rint::gApp()->fHistFrame->fDrawOptionEntry->SetText("colz");
+		}
 	}
 	else if (directory_map.count(item)) Cd(item, btn);
 	else;
