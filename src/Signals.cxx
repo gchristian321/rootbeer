@@ -998,3 +998,8 @@ void rb::HistSignals::ToggleCreateReplace() {
 		rb::Rint::gApp()->fHistFrame->fHistCreateButton->SetText("Replace");
 #endif
 }
+
+void rb::HistSignals::HandleEvent(Event_t* event)
+{
+	;
+}

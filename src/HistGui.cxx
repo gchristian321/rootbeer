@@ -214,26 +214,38 @@ fDeleteButton->SetFont(ufont->GetFontStruct());
    // "Create New" group frame
    /* TGGroupFrame* */ fHistCreateFrame = new TGGroupFrame(fCompositeFrame717,"Create New");   fHistCreateFrame->SetLayoutBroken(kTRUE);
 
-   /* TGNumberEntryField* */ fHighX = new TGNumberEntryField(fHistCreateFrame, 0, (Double_t) 0);   fHistCreateFrame->AddFrame(fHighX, new TGLayoutHints(kLHintsLeft | kLHintsTop,2,2,2,2));
+   /* TGNumberEntryField* */ fHighX = new TGNumberEntryField(fHistCreateFrame, 6, (Double_t) 0);   fHistCreateFrame->AddFrame(fHighX, new TGLayoutHints(kLHintsLeft | kLHintsTop,2,2,2,2));
    fHighX->MoveResize(436,103,59,22);
-   /* TGNumberEntryField* */ fLowX = new TGNumberEntryField(fHistCreateFrame, 1, (Double_t) 0);   fHistCreateFrame->AddFrame(fLowX, new TGLayoutHints(kLHintsLeft | kLHintsTop,2,2,2,2));
+   /* TGNumberEntryField* */ fLowX = new TGNumberEntryField(fHistCreateFrame, 5, (Double_t) 0);   fHistCreateFrame->AddFrame(fLowX, new TGLayoutHints(kLHintsLeft | kLHintsTop,2,2,2,2));
    fLowX->MoveResize(372,103,59,22);
-   /* TGNumberEntryField* */ fBinsX = new TGNumberEntryField(fHistCreateFrame, 2, (Double_t) 0);   fHistCreateFrame->AddFrame(fBinsX, new TGLayoutHints(kLHintsLeft | kLHintsTop,2,2,2,2));
+   /* TGNumberEntryField* */ fBinsX = new TGNumberEntryField(fHistCreateFrame, 4, (Double_t) 0);   fHistCreateFrame->AddFrame(fBinsX, new TGLayoutHints(kLHintsLeft | kLHintsTop,2,2,2,2));
    fBinsX->MoveResize(308,103,59,22);
 
-   /* TGNumberEntryField* */ fBinsY = new TGNumberEntryField(fHistCreateFrame, 3, (Double_t) 0);   fHistCreateFrame->AddFrame(fBinsY, new TGLayoutHints(kLHintsLeft | kLHintsTop,2,2,2,2));
+	 fBinsX->Associate(this);
+	 fLowX->Associate(this);
+	 fHighX->Associate(this);
+
+   /* TGNumberEntryField* */ fBinsY = new TGNumberEntryField(fHistCreateFrame, 8, (Double_t) 0);   fHistCreateFrame->AddFrame(fBinsY, new TGLayoutHints(kLHintsLeft | kLHintsTop,2,2,2,2));
    fBinsY->MoveResize(308,135,59,22);
-   /* TGNumberEntryField* */ fLowY = new TGNumberEntryField(fHistCreateFrame, 4, (Double_t) 0);   fHistCreateFrame->AddFrame(fLowY, new TGLayoutHints(kLHintsLeft | kLHintsTop,2,2,2,2));
+   /* TGNumberEntryField* */ fLowY = new TGNumberEntryField(fHistCreateFrame, 9, (Double_t) 0);   fHistCreateFrame->AddFrame(fLowY, new TGLayoutHints(kLHintsLeft | kLHintsTop,2,2,2,2));
    fLowY->MoveResize(372,135,59,22);
-   /* TGNumberEntryField* */ fHighY = new TGNumberEntryField(fHistCreateFrame, 5, (Double_t) 0);   fHistCreateFrame->AddFrame(fHighY, new TGLayoutHints(kLHintsLeft | kLHintsTop,2,2,2,2));
+   /* TGNumberEntryField* */ fHighY = new TGNumberEntryField(fHistCreateFrame, 10, (Double_t) 0);   fHistCreateFrame->AddFrame(fHighY, new TGLayoutHints(kLHintsLeft | kLHintsTop,2,2,2,2));
    fHighY->MoveResize(436,135,59,22);
 
-   /* TGNumberEntryField* */ fBinsZ = new TGNumberEntryField(fHistCreateFrame, 6, (Double_t) 0);   fHistCreateFrame->AddFrame(fBinsZ, new TGLayoutHints(kLHintsLeft | kLHintsTop,2,2,2,2));
+	 fBinsY->Associate(this);
+	 fLowY->Associate(this);
+	 fHighY->Associate(this);
+
+   /* TGNumberEntryField* */ fBinsZ = new TGNumberEntryField(fHistCreateFrame, 12, (Double_t) 0);   fHistCreateFrame->AddFrame(fBinsZ, new TGLayoutHints(kLHintsLeft | kLHintsTop,2,2,2,2));
    fBinsZ->MoveResize(308,167,59,22);
-   /* TGNumberEntryField* */ fLowZ = new TGNumberEntryField(fHistCreateFrame, 7, (Double_t) 0);   fHistCreateFrame->AddFrame(fLowZ, new TGLayoutHints(kLHintsLeft | kLHintsTop,2,2,2,2));
+   /* TGNumberEntryField* */ fLowZ = new TGNumberEntryField(fHistCreateFrame, 13, (Double_t) 0);   fHistCreateFrame->AddFrame(fLowZ, new TGLayoutHints(kLHintsLeft | kLHintsTop,2,2,2,2));
    fLowZ->MoveResize(372,167,59,22);
-   /* TGNumberEntryField* */ fHighZ = new TGNumberEntryField(fHistCreateFrame, 8, (Double_t) 0);   fHistCreateFrame->AddFrame(fHighZ, new TGLayoutHints(kLHintsLeft | kLHintsTop,2,2,2,2));
+   /* TGNumberEntryField* */ fHighZ = new TGNumberEntryField(fHistCreateFrame, 14, (Double_t) 0);   fHistCreateFrame->AddFrame(fHighZ, new TGLayoutHints(kLHintsLeft | kLHintsTop,2,2,2,2));
    fHighZ->MoveResize(436,167,59,22);
+
+	 fBinsZ->Associate(this);
+	 fLowZ->Associate(this);
+	 fHighZ->Associate(this);
 
 	 fBinsX->SetFormat(TGNumberFormat::kNESInteger, TGNumberFormat::kNEANonNegative);
 	 fBinsY->SetFormat(TGNumberFormat::kNESInteger, TGNumberFormat::kNEANonNegative);
@@ -389,12 +401,13 @@ fDeleteButton->SetFont(ufont->GetFontStruct());
    valEntry798.fFont = ufont->GetFontHandle();
    valEntry798.fGraphicsExposures = kFALSE;
    uGC = gClient->GetGC(&valEntry798, kTRUE);
-   /* TGTextEntry* */ fGateEntry = new TGTextEntry(fHistCreateFrame, new TGTextBuffer(14),-1,uGC->GetGC(),ufont->GetFontStruct(),kSunkenFrame | kDoubleBorder | kOwnBackground);   fGateEntry->SetMaxLength(4096);
+   /* TGTextEntry* */ fGateEntry = new TGTextEntry(fHistCreateFrame, new TGTextBuffer(14),15,uGC->GetGC(),ufont->GetFontStruct(),kSunkenFrame | kDoubleBorder | kOwnBackground);   fGateEntry->SetMaxLength(4096);
    fGateEntry->SetAlignment(kTextLeft);
    fGateEntry->SetText("");
    fGateEntry->Resize(256,fGateEntry->GetDefaultHeight());
    fHistCreateFrame->AddFrame(fGateEntry, new TGLayoutHints(kLHintsLeft | kLHintsTop,2,2,2,2));
    fGateEntry->MoveResize(39,226,256,22);
+	 fGateEntry->Associate(this);
 
    ufont = gClient->GetFont("-*-helvetica--*-*-12-*-*-*-*-*-*-*");
 
@@ -424,12 +437,13 @@ fDeleteButton->SetFont(ufont->GetFontStruct());
    valEntry800.fFont = ufont->GetFontHandle();
    valEntry800.fGraphicsExposures = kFALSE;
    uGC = gClient->GetGC(&valEntry800, kTRUE);
-   /* TGTextEntry* */ fNameEntry = new TGTextEntry(fHistCreateFrame, new TGTextBuffer(14),-1,uGC->GetGC(),ufont->GetFontStruct(),kSunkenFrame | kDoubleBorder | kOwnBackground);   fNameEntry->SetMaxLength(4096);
+   /* TGTextEntry* */ fNameEntry = new TGTextEntry(fHistCreateFrame, new TGTextBuffer(14),1,uGC->GetGC(),ufont->GetFontStruct(),kSunkenFrame | kDoubleBorder | kOwnBackground);   fNameEntry->SetMaxLength(4096);
    fNameEntry->SetAlignment(kTextLeft);
    fNameEntry->SetText("");
    fNameEntry->Resize(112,fNameEntry->GetDefaultHeight());
    fHistCreateFrame->AddFrame(fNameEntry, new TGLayoutHints(kLHintsLeft | kLHintsTop,2,2,2,2));
    fNameEntry->MoveResize(151,48,112,22);
+	 fNameEntry->Associate(this);
 
    ufont = gClient->GetFont("-*-helvetica-medium-r-*-*-12-*-*-*-*-*-iso8859-1");
 
@@ -442,12 +456,13 @@ fDeleteButton->SetFont(ufont->GetFontStruct());
    valEntry801.fFont = ufont->GetFontHandle();
    valEntry801.fGraphicsExposures = kFALSE;
    uGC = gClient->GetGC(&valEntry801, kTRUE);
-   /* TGTextEntry* */ fTitleEntry = new TGTextEntry(fHistCreateFrame, new TGTextBuffer(14),-1,uGC->GetGC(),ufont->GetFontStruct(),kSunkenFrame | kDoubleBorder | kOwnBackground);   fTitleEntry->SetMaxLength(4096);
+   /* TGTextEntry* */ fTitleEntry = new TGTextEntry(fHistCreateFrame, new TGTextBuffer(14),2,uGC->GetGC(),ufont->GetFontStruct(),kSunkenFrame | kDoubleBorder | kOwnBackground);   fTitleEntry->SetMaxLength(4096);
    fTitleEntry->SetAlignment(kTextLeft);
    fTitleEntry->SetText("");
    fTitleEntry->Resize(216,fTitleEntry->GetDefaultHeight());
    fHistCreateFrame->AddFrame(fTitleEntry, new TGLayoutHints(kLHintsLeft | kLHintsTop,2,2,2,2));
    fTitleEntry->MoveResize(272,48,216,22);
+	 fTitleEntry->Associate(this);
 
    ufont = gClient->GetFont("-*-helvetica--*-*-12-*-*-*-*-*-*-*");
 
@@ -469,26 +484,32 @@ fDeleteButton->SetFont(ufont->GetFontStruct());
    gClient->GetColorByName("#ffffff",ucolor);
 
    // combo box
-   /* TGComboBox* */ fParamZ = new TGComboBox(fHistCreateFrame,"",-1,kHorizontalFrame | kSunkenFrame | kDoubleBorder | kOwnBackground);   fParamZ->Resize(264,22);
+   /* TGComboBox* */ fParamZ = new TGComboBox(fHistCreateFrame,"",11,kHorizontalFrame | kSunkenFrame | kDoubleBorder | kOwnBackground);   fParamZ->Resize(264,22);
    fParamZ->Select(-1);
    fHistCreateFrame->AddFrame(fParamZ, new TGLayoutHints(kLHintsLeft | kLHintsTop,2,2,2,2));
    fParamZ->MoveResize(39,167,264,22);
+//	 fParamZ->Associate(this);
+	 fParamZ->GetTextEntry()->Associate(this);
 
    gClient->GetColorByName("#ffffff",ucolor);
 
    // combo box
-   /* TGComboBox* */ fParamY = new TGComboBox(fHistCreateFrame,"",-1,kHorizontalFrame | kSunkenFrame | kDoubleBorder | kOwnBackground);   fParamY->Resize(264,22);
+   /* TGComboBox* */ fParamY = new TGComboBox(fHistCreateFrame,"",7,kHorizontalFrame | kSunkenFrame | kDoubleBorder | kOwnBackground);   fParamY->Resize(264,22);
    fParamY->Select(-1);
    fHistCreateFrame->AddFrame(fParamY, new TGLayoutHints(kLHintsLeft | kLHintsTop,2,2,2,2));
    fParamY->MoveResize(39,135,264,22);
+//	 fParamY->Associate(this);
+	 fParamY->GetTextEntry()->Associate(this);
 
    gClient->GetColorByName("#ffffff",ucolor);
 
    // combo box
-   /* TGComboBox* */ fParamX = new TGComboBox(fHistCreateFrame,"",-1,kHorizontalFrame | kSunkenFrame | kDoubleBorder | kOwnBackground);   fParamX->Resize(264,22);
+   /* TGComboBox* */ fParamX = new TGComboBox(fHistCreateFrame,"",3,kHorizontalFrame | kSunkenFrame | kDoubleBorder | kOwnBackground);   fParamX->Resize(264,22);
    fParamX->Select(0);
    fHistCreateFrame->AddFrame(fParamX, new TGLayoutHints(kLHintsLeft | kLHintsTop,2,2,2,2));
    fParamX->MoveResize(39,103,264,22);
+//	 fParamX->Associate(this);
+	 fParamX->GetTextEntry()->Associate(this);
 
    gClient->GetColorByName("#ffffff",ucolor);
 
@@ -1077,6 +1098,8 @@ void TGHistVarFrame::MakeHistConnections() {
 	fSetVarButton->Connect("Pressed()", "rb::HistSignals", RB_HIST_SIGNALS, "SetVariable()");
 	RB_HIST_SIGNALS->SyncVariables();
 
+	fHistTab->Connect("ProcessedEvent(Event_t*)", "rb::HistSignals", RB_HIST_SIGNALS, "HandleEvent(Event_t*)");
+
 }
 
 
@@ -1162,6 +1185,59 @@ void TGHistVarFrame::DeleteMembers() {
 	delete fConfigLoadMethodOverwrite;
 	delete fConfigLoadMethodCumulate;
 }
+
+namespace { void next_incr(Int_t& n) { if(n<14) ++n; else n = 0; } }
+Bool_t TGHistVarFrame::ProcessMessage(Long_t msg, Long_t parm1, Long_t parm2)
+{
+	switch (GET_MSG(msg)) {
+	case kC_TEXTENTRY:
+		switch (GET_SUBMSG(msg)) {
+		case kTE_TAB:
+			{
+				TGFrame* widgets[15] = {
+					fNameEntry, fTitleEntry,
+					fParamX, fBinsX, fLowX, fHighX,
+					fParamY, fBinsY, fLowY, fHighY,
+					fParamZ, fBinsZ, fLowZ, fHighZ,
+					fGateEntry
+				};
+				Int_t next = parm1 < 15 ? parm1 : 0;
+
+				TGTextEntry* enext = 0;
+				enext1:
+				if(widgets[next]->InheritsFrom(TGTextEntry::Class())) {
+					if(static_cast<TGTextEntry*>(widgets[next])->IsEnabled() == kTRUE) {
+						enext = static_cast<TGTextEntry*>(widgets[next]);
+					}
+				}
+				else if(widgets[next]->InheritsFrom(TGComboBox::Class())) {
+					if(static_cast<TGComboBox*>(widgets[next])->IsEnabled() == kTRUE) {
+						enext = static_cast<TGComboBox*>(widgets[next])->GetTextEntry();
+					}
+				}
+				else {
+					std::cout << "Wrong widget type! " << ERR_FILE_LINE << "\n";
+					return false;
+				}
+
+				if(enext == 0) {
+					next_incr(next);
+					goto enext1;
+				}
+				enext->SetFocus();
+				break;
+			}
+		default:
+			break;
+		}
+
+	default:
+		break;
+	}
+
+	return kTRUE;
+}
+
 
 #undef RB_HIST_SIGNALS
 #undef RB_BUTTON_CONNECT

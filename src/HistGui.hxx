@@ -240,6 +240,9 @@ public:
 
 	/// \brief Create all TQObject connections between signals emitted from gui objects and rb::Signals
 	void MakeHistConnections();
+	
+	/// \brief Process GUI message
+	Bool_t ProcessMessage(Long_t msg, Long_t parm1, Long_t parm2);
 
 private:
 	/// Memory cleanup

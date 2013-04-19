@@ -92,6 +92,7 @@ public:
 	void DeleteHist();
 	void HistMemberFn();
 	void Quit();
+	void HandleEvent(Event_t*);
 
 // === Variables/Config === //
 	enum { WRITE_ALL, WRITE_CANVAS, WRITE_VAR, WRITE_HIST };
