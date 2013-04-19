@@ -674,12 +674,17 @@ void rb::data::Wrapper<T>::Init(Event* event, Bool_t makeVisible, const char* ar
   }
   // Map "visible" classes for CINT
   if (makeVisible) {
+		std::stringstream cmd;
+		cmd << cl->GetName() << "* " << kBranchName << " = (" << cl->GetName() << "*)";
 #ifdef RB_DATA_ON_STACK
     data::Mapper mapper (kBranchName, cl->GetName(), reinterpret_cast<Long_t>(&fData), true);
+		cmd << &fData;
 #else
     data::Mapper mapper (kBranchName, cl->GetName(), reinterpret_cast<Long_t>(fData.get()), true);
+		cmd << fData.get();
 #endif
     mapper.MapClass();
+		gROOT->ProcessLine(cmd.str().c_str());
   }
   // Add as a branch in the event's internal tree.
   if(event) {

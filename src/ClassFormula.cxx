@@ -1,9 +1,110 @@
 #include <iostream>
+#include <TRegexp.h>
+#include <TObjString.h>
 #include <TFormulaPrimitive.h>
 #include "Data.hxx"
 #include "ClassFormula.hxx"
 
 
+
+
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+//      Class rb::ClassMemberParser       //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+
+
+rb::ClassMemberParser::ClassMemberParser():
+	fTokens(0) {
+}
+
+rb::ClassMemberParser::ClassMemberParser(const char* member):
+	fTokens(0) {
+	///
+	/// Calls Parse() on _member_
+	///
+	Parse(member);
+}
+
+void rb::ClassMemberParser::Parse(const char* member) {
+	///
+	/// Splits the argument _member_ into indirection levels and figures out
+	/// the array indices. For example, `a.b[5].c[2][4]` gets parsed into:
+	///      a : index = 0
+	///      b : index = 5
+	///      c : index = 2, 4
+	///
+	TString tstring(member);
+	tstring.ReplaceAll(" ", "");
+	tstring.ReplaceAll("->", ".");
+	tstring.ReplaceAll(".at(", "_stl_vector_at(");
+	fTokens.reset(tstring.Tokenize("."));
+	ParseArrayIndices();
+}
+
+namespace {
+static TString dummy ("");
+TString& get_token(TObjArray& arr, Int_t index) {
+	TObjString* objstr = static_cast<TObjString*>(arr.At(index));
+	return objstr ? objstr->String() : dummy;
+} }
+
+TString& rb::ClassMemberParser::GetToken(Int_t index) const {
+	///
+	/// \returns The token at indirection level _index_
+	///
+	return fTokens.get() ? get_token(*fTokens, index) : dummy;
+}
+
+Int_t rb::ClassMemberParser::GetIndex(Int_t indir, Int_t dim) const {
+	///
+	/// \returns Array index at indirection level _indir_ and for dimension _dim_.
+	/// In the case of either argument being invalid, returns -1.
+	///
+	try { return fArrayIndices.at(indir).at(dim); }
+	catch (std::exception& e) { return -1; }
+}
+
+void rb::ClassMemberParser::ParseArrayIndices() {
+	///
+	/// Helper function for Parse()
+	///
+	TRegexp arr("[0-9]");
+	for (Int_t i=0; i< fTokens->GetEntries(); ++i) {
+		TString& member = GetToken(i);
+		std::vector<Int_t> indices;
+		std::auto_ptr<TObjArray> strindices (member.Tokenize("["));
+		
+		if(member.First("[") > 0) {
+			member = get_token(*strindices, 0);
+			member += "[]";
+		}
+
+		for(Int_t j=1; j< strindices->GetEntries(); ++j) {
+			TString strj = get_token(*strindices, j);
+			strj = strj(0, strj.Length()-1);
+			indices.push_back(strj.Atoi());
+		}
+
+		if(indices.empty()) indices.push_back(0);
+		fArrayIndices.push_back(indices);
+	}
+}
+
+void rb::ClassMemberParser::Print() const {
+	for(Int_t i=0; i< fTokens->GetEntries(); ++i) {
+		std::cout << (const char*)GetToken(i);
+		for(UInt_t j=0; j< fArrayIndices.at(i).size(); ++j) {
+			std::cout << "[" << fArrayIndices[i][j] << "]";
+		}
+		std::cout << std::endl;
+	}
+}
+
+
+
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+//        Class rb::ClassFormula          //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 
 rb::ClassFormula::ClassFormula(const char* name, const char* expression,
 															 const char* branchName, const char* className,

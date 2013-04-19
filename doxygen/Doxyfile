@@ -673,6 +673,7 @@ INPUT                  = /Users/dragon/packages/rootbeer/src \
                          /Users/dragon/packages/rootbeer/src/utils \
                          /Users/dragon/packages/rootbeer/src/user \
                          /Users/dragon/packages/rootbeer/src/hist \
+                         /Users/dragon/packages/rootbeer/src/midas \
                          /Users/dragon/packages/rootbeer/user/Makefile.user \
                          /Users/dragon/packages/rootbeer/doxygen
 

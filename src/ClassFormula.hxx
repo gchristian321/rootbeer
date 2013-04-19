@@ -1,13 +1,45 @@
 #ifndef RB_CLASS_FORMULA_HEADER
 #define RB_CLASS_FORMULA_HEADER
+#include <memory>
 #include <vector>
+#include <TString.h>
 #include <TFormula.h>
+#include <TObjArray.h>
 
 
 namespace rb
 {
 
 namespace data { class MReader; }
+
+
+/// Helper class to parse string expressions specifying data members.
+class ClassMemberParser {
+private:
+	/// One token for each level of indirection, e.g `a.b.c` -> fTokens = `("a","b","c")`
+	std::auto_ptr<TObjArray> fTokens;
+	/// Array indices belonging to each level of indirection
+	std::vector<std::vector<Int_t> > fArrayIndices;
+public:
+	/// Empty contstructor, no action
+	ClassMemberParser();
+	/// Parses _member_ argument into indirection tokens an array indices.
+	ClassMemberParser(const char* member);
+	/// Get the array index of a given indirection level and dimension
+	Int_t GetIndex(Int_t indir, Int_t dim) const;
+	/// Returns the number of levels of indirection
+	Int_t GetNindir() const { return fTokens.get() ? fTokens->GetEntries() : 0; }
+	/// Returns the string specifying a single level of indirection
+	TString& GetToken(Int_t index) const;
+	/// Prints a summary of all members
+	void Print() const;
+	/// Explicitly parse a string
+	void Parse(const char* member);
+private:
+	/// Figure out the array indices at all indirection levels.
+	void ParseArrayIndices();
+};
+
 
 /// Class to evaluate furmula expressions containing class members.
 /*!
