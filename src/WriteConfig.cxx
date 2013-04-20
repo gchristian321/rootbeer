@@ -2,10 +2,10 @@
 //! \brief Implements methods related to saving configuration files.
 //! \details Put in a separate file because they're verbose and we want to avoid cluttering
 //! Rootbeer.cxx
-//! \todo This whole thing should be scrapped redone with a better method. As is, it's very buggy
+//! \todo This whole thing should be scrapped redone with a better method. As is, it's buggy
 //! and will be near possible to maintain/fix. I was thinking something more like providing SavePrimitive()
 //! methods for the rb::hist classes as well as directories and then using that. Another option is to forget
-//! the "primitive" method entirely and use something more along the lines of TObject::Write, possible with
+//! the "primitive" method entirely and use something more along the lines of TObject::Write, possibly with
 //! XML files.
 #include <iostream>
 #include <fstream>
@@ -343,7 +343,7 @@ void write_canvas_hist(TH1* th1, std::ostream& ofs) {
 				const std::string dir_path = dir->GetPath();
 						
 				ofs << "  if(rb::Cd(\"" << dir_path << "\", true) &&  rb::Rint::gApp()->FindHistogram(\"" << hist->GetName() << "\"))\n"
-						<< "      rb::Rint::gApp()->FindHistogram(\"" << hist->GetName() << "\")->Draw();\n";
+						<< "      rb::Rint::gApp()->FindHistogram(\"" << hist->GetName() << "\")->Draw(\"" << th1->GetDrawOption() << "\");\n";
 				break;
 			}
 		}
@@ -370,6 +370,16 @@ void recurse_pad(TPad* pad, TCanvas* owner, std::vector<Int_t>& path, std::ostre
 		}
 	}
 }
+inline Int_t NumSubpads(TVirtualPad* p) {
+	Int_t i = 0;
+	while(p->GetPad(1+i)) ++i;
+	return i;
+}
+void write_canvas(TCanvas* c, std::ostream& ofs) {
+	ofs << "TCanvas* ctemp = new TCanvas(\"" << c->GetName() << "\", \"" << c->GetTitle()
+			<< "\", " << c->GetWindowTopX() << ", " << c->GetWindowTopY() << ", "
+			<< c->GetWindowWidth() << ", " << c->GetWindowHeight()<<")\n";
+}
 
 }
 
@@ -393,7 +403,12 @@ Int_t rb::WriteCanvases(const char* fname, Bool_t prompt) {
 	for(Int_t i=0; i< gROOT->GetListOfCanvases()->GetEntries(); ++i) {
 		TCanvas* canvas = dynamic_cast<TCanvas*>(gROOT->GetListOfCanvases()->At(i));
 	 	if(!canvas) continue;
-		canvas->SaveSource(tmpfile.str().c_str());
+		{
+			Int_t gei = gErrorIgnoreLevel;
+			gErrorIgnoreLevel = 5001;
+			canvas->SaveSource(tmpfile.str().c_str());
+			gErrorIgnoreLevel = gei;
+		}
 		std::ifstream ifs(tmpfile.str().c_str());
 		std::string line, pad_name = "";
 		for(int i=0; i< 3; ++i) std::getline(ifs, line);
@@ -408,7 +423,9 @@ Int_t rb::WriteCanvases(const char* fname, Bool_t prompt) {
 				pad_name = line.substr(line.find("(")+2, line.find(",") - (line.find("(")+2)-1);
 				ofs << line << "\n";
 			}
-			else if(line.find("   TH1D *") < line.size()) {
+			else if(line.find("   TH1D *") < line.size() ||
+							line.find("   TH2D *") < line.size() ||
+							line.find("   TH3D *") < line.size() ) {
 				std::stringstream cmd;
 				cmd << pad_name << "->cd();";
 				gROOT->ProcessLine(cmd.str().c_str());
@@ -418,8 +435,13 @@ Int_t rb::WriteCanvases(const char* fname, Bool_t prompt) {
 							 write_canvas_hist(dynamic_cast<TH1*>(gPad->GetListOfPrimitives()->At(i)), ofs);
 					}
 				}
-				while(line.find("->Draw()") > line.size()) {
+				int nwhitespace = 0;
+				while(1) {
 					std::getline(ifs, line);
+					TString ts(line.c_str());
+					if(ts.IsWhitespace()) ++nwhitespace;
+					if(nwhitespace == 2) break;
+					if(ifs.good() == false) break;
 				}
 			}
 			else if (line == "}");
@@ -430,7 +452,13 @@ Int_t rb::WriteCanvases(const char* fname, Bool_t prompt) {
 		std::stringstream rm_cmd;
 		rm_cmd << "rm -f " << tmpfile.str();
 		gSystem->Exec(rm_cmd.str().c_str());
+
+		if(NumSubpads(gPad) != 0)
+			ofs << gPad->GetName() << "->cd(1);\n";
+		else
+			ofs << gPad->GetName() << "->cd( );\n";
 	}
+
 	ofs << "\n}\n";
 	if(current) current->cd();
 	return 0;
@@ -471,5 +499,6 @@ Int_t rb::ReadCanvases(const char* fname) {
 			;
 	std::string cmd = ".x "; cmd += fname;
 	gROOT->ProcessLine(cmd.c_str());
+
   return 0;
 }

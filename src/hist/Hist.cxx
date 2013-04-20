@@ -214,6 +214,11 @@ Int_t rb::hist::Base::Fill() {
 Int_t rb::hist::Base::Write(const char* name, Int_t option, Int_t bufsize) {
 	return visit::hist::Write::Do(fHistVariant, name, option, bufsize);
 }
+Bool_t rb::hist::Base::CompareTH1 (TH1* th1) {
+	TH1* this_ = visit::hist::Cast::Do(fHistVariant);
+	if(th1 == this_) return true;
+	else return false;
+}
 
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//

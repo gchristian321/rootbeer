@@ -167,11 +167,7 @@ public:
 	Bool_t UseDefaultTitle() { return kUseDefaultTitle; }
 
 	/// Returns true if the argument is equal to the wrapped histogram
-	Bool_t CompareTH1(TH1* th1) {
-		TH1* this_ = visit::hist::Cast::Do(fHistVariant);
-		if(th1 == this_) return true;
-		else return false;
-	}
+	Bool_t CompareTH1(TH1* th1);
 
 	/// \brief Function to change the histogram gate.
 	//! \details Updates \c fGate to reflect the new gate formula. Returns 0 if successful,
