@@ -197,16 +197,26 @@ Bool_t rb::MidasBuffer::ConnectOnline(const char* host, const char* experiment, 
 	cm_register_transition(TR_PAUSE,  rb_run_pause,  fTransitionPriorities[2]);
 	cm_register_transition(TR_RESUME, rb_run_resume, fTransitionPriorities[3]);
 
-	/// - Call run start transition handler
-	Int_t runstate, isize = sizeof(Int_t);
-	status = db_get_value (fDb, 0, "/Runinfo/State", &runstate, &isize, TID_INT, false);
-	if(status == CM_SUCCESS && runstate == 0x3) {
-		Int_t runnumber, isize = sizeof(Int_t);
-		status = db_get_value (fDb, 0, "/Runinfo/Run number",
-													 &runnumber, &isize, TID_INT, false);
-		if(status == CM_SUCCESS)
-			RunStartTransition(runnumber);
+	/// - Call run start transition handler if any of the following are true:
+	///    -# State is running
+	///    -# State is paused
+	///    -# Transition is in progress
+	Int_t runstate, transition, isize = sizeof(Int_t);
+	if(1)
+		status = db_get_value (fDb, 0, "/Runinfo/State", &runstate, &isize, TID_INT, false);
+	if(status == CM_SUCCESS)
+		status = db_get_value (fDb, 0, "/Runinfo/Transition in progress", &transition, &isize, TID_INT, false);
+
+	if(status == CM_SUCCESS) {
+		if (runstate == STATE_RUNNING || runstate == STATE_PAUSED || transition != 0) {
+			Int_t runnumber, isize = sizeof(Int_t);
+			status = db_get_value (fDb, 0, "/Runinfo/Run number", &runnumber, &isize, TID_INT, false);
+			if(status == CM_SUCCESS)
+				RunStartTransition(runnumber);
+		}
 	}
+	if(status != CM_SUCCESS)
+		cm_msg(MERROR, "rootbeer", "Error reading from ODB, status = %d", status);
 
 	return true;
 }
