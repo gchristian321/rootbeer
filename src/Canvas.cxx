@@ -175,13 +175,17 @@ inline Int_t NumSubpads(TVirtualPad* p) {
 	while(p->GetPad(1+i)) ++i;
 	return i;
 }
-inline TArray* GetArray(TVirtualPad* p) {
+inline bool GetArray(TVirtualPad* p, TArray*& arr1, TH1*& hst1) {
 	for(Int_t i=0; i< p->GetListOfPrimitives()->GetEntries(); ++i) {
 		TH1*    hst = dynamic_cast<TH1*>    (p->GetListOfPrimitives()->At(i));
 		TArray* arr = dynamic_cast<TArray*> (p->GetListOfPrimitives()->At(i));
-		if(hst && arr) return arr;
+		if(hst && arr) {
+			hst1 = hst;
+			arr1 = arr;
+			return true;
+		}
 	}
-	return 0;
+	return false;
 }
 void InsertPads(TObjArray* arr, TVirtualPad* pad) {
 	Int_t nsub = NumSubpads(pad);
@@ -194,9 +198,15 @@ void InsertPads(TObjArray* arr, TVirtualPad* pad) {
 }
 inline void ClearPad(TVirtualPad* p) {
 	if(!p) return;
-	TArray* arr = GetArray(p);
-	if(arr) {
-		for(Int_t i=0; i< arr->fN; ++i) arr->SetAt(0., i);
+	TArray* arr = 0;
+	TH1* hst = 0;
+	bool isH1 = GetArray(p, arr, hst);
+	if(isH1) {
+		assert(hst && arr);
+		for(Int_t i=0; i< arr->fN; ++i) {
+			hst->SetBinContent(i, 0);
+		}
+		hst->SetEntries(0);
 		p->Modified();
 		p->Update();
 	}
@@ -213,6 +223,16 @@ void rb::canvas::ClearCurrent() {
 // void rb::canvas::ClearAll()                           //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 void rb::canvas::ClearAll() {
+	/// \attention Now clears all histograms, whether displayed in a canvas
+	///  or not. This seems to be what users expect when they click the "ZeroAll"
+	///  button, and really it does make more sense.
+	/// 
+	rb::hist::ClearAll();
+
+	// Previous version of the code, clears only those displayed in a
+	// canvas. May be desirable to re-implement this functionality at some
+	// point, but with a UI that clearly distinguishes it from clearing everything.
+#if 0
 	TObjArray allPads;
 	TPad* pInitial = dynamic_cast<TPad*>(gPad);
 	for(Int_t i=0; i< gROOT->GetListOfCanvases()->GetEntries(); ++i) {
@@ -223,4 +243,5 @@ void rb::canvas::ClearAll() {
 	for(Int_t i=0; i< allPads.GetEntries(); ++i) {
 		ClearPad(reinterpret_cast<TVirtualPad*>(allPads[i]));
 	}
+#endif
 }

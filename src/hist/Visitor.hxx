@@ -41,7 +41,9 @@ namespace hist
 struct Clear : public rb::visit::Locked<void>
 {
 	 template <class T> void operator() (T& t) const {
-		 for(Int_t p = 0; p < t.fN; ++p) t.fArray[p] = 0.;
+		 for(Int_t p = 0; p < t.fN; ++p)
+			 t.SetBinContent(p, 0);
+		 t.SetEntries(0);
 	 }
 	 static void Do(HistVariant& hist) {
 		 boost::apply_visitor(Clear(), hist);
