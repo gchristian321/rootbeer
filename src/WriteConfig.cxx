@@ -410,7 +410,7 @@ Int_t rb::WriteCanvases(const char* fname, Bool_t prompt) {
 			gErrorIgnoreLevel = gei;
 		}
 		std::ifstream ifs(tmpfile.str().c_str());
-		std::string line, pad_name = "";
+		std::string line, pad_name = "", canvas_name = "";
 		for(int i=0; i< 3; ++i) std::getline(ifs, line);
 		while(1) {
 			std::getline(ifs, line);
@@ -418,10 +418,19 @@ Int_t rb::WriteCanvases(const char* fname, Bool_t prompt) {
 			if(line.find("------------>Primitives in pad") < line.size()) {
 				pad_name = line.substr(std::string("// ------------>Primitives in pad: ").size());
 				ofs << line << "\n";
+				if(canvas_name.empty() == false)
+					ofs << "   " << canvas_name << "->cd();" << "\n\n";
+				while(1) {
+					std::getline(ifs, line);
+					TString ts(line.c_str());
+					if(ts.IsWhitespace() || ifs.good() == false) break;
+					ofs << line << "\n";
+				}
 			}
 			else if(line.find("   TCanvas *") < line.size()) {
 				pad_name = line.substr(line.find("(")+2, line.find(",") - (line.find("(")+2)-1);
 				ofs << line << "\n";
+        canvas_name = pad_name;
 			}
 			else if(line.find("   TH1D *") < line.size() ||
 							line.find("   TH2D *") < line.size() ||
@@ -435,8 +444,9 @@ Int_t rb::WriteCanvases(const char* fname, Bool_t prompt) {
 							 write_canvas_hist(dynamic_cast<TH1*>(gPad->GetListOfPrimitives()->At(i)), ofs);
 					}
 				}
+				ofs << "\n";
 				int nwhitespace = 0;
-				while(1) {
+				while(0) {
 					std::getline(ifs, line);
 					TString ts(line.c_str());
 					if(ts.IsWhitespace()) ++nwhitespace;
@@ -445,18 +455,18 @@ Int_t rb::WriteCanvases(const char* fname, Bool_t prompt) {
 				}
 			}
 			else if (line == "}");
-			else {
+			else if (0) {
 				ofs << line << "\n";
 			}
 		}
 		std::stringstream rm_cmd;
 		rm_cmd << "rm -f " << tmpfile.str();
-		gSystem->Exec(rm_cmd.str().c_str());
+//		gSystem->Exec(rm_cmd.str().c_str());
 
 		if(NumSubpads(gPad) != 0)
-			ofs << gPad->GetName() << "->cd(1);\n";
+			ofs << "   " << gPad->GetName() << "->cd(1);\n";
 		else
-			ofs << gPad->GetName() << "->cd( );\n";
+			ofs << "   " << gPad->GetName() << "->cd( );\n";
 	}
 
 	ofs << "\n}\n";
