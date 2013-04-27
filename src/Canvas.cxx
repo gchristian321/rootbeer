@@ -5,6 +5,7 @@
 #include <TCanvas.h>
 #include <TArrayL.h>
 #include <TArrayL64.h>
+#include <TException.h>
 #include "Rint.hxx"
 #include "Rootbeer.hxx"
 #include "hist/Hist.hxx"
@@ -83,7 +84,18 @@ public:
 	 // Gets called whenever the timer times out (i.e. every _rate_ seconds).
 	 // NOTE: Must call the Reset() function at the end, otherwise this just keeps executing forever.
 	 Bool_t Notify() {
-		 rb::canvas::UpdateAll();
+		 // Use ROOT's macro based try... catch functionality to spot
+		 // X11 errors
+		 TRY {
+			 rb::canvas::UpdateAll();
+		 } CATCH(i) {
+			 rb::err::Error("UpdateTimer::Notify")
+				 << "Caught ROOT exception 2, likely due to X11 error. "
+				 << "Aborting program." << ERR_FILE_LINE;
+			 rb::Rint::gApp()->Terminate(2);
+		 }
+		 ENDTRY;
+
 		 this->Reset();
 		 return true;
 	 }
@@ -228,7 +240,7 @@ void rb::canvas::ClearAll() {
 	///  button, and really it does make more sense.
 	/// 
 	rb::hist::ClearAll();
-
+	rb::canvas::UpdateAll();
 	// Previous version of the code, clears only those displayed in a
 	// canvas. May be desirable to re-implement this functionality at some
 	// point, but with a UI that clearly distinguishes it from clearing everything.
