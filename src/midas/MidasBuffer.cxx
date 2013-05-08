@@ -354,6 +354,7 @@ void rb::MidasBuffer::RunResumeTransition(Int_t runnum)
 
 Int_t rb_run_stop(Int_t runnum, char* err)
 {
+	bm_empty_buffers();
 	rb::MidasBuffer::Instance()->RunStopTransition(runnum);
 	return CM_SUCCESS;
 }
