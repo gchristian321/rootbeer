@@ -147,7 +147,7 @@ Bool_t rb::MidasBuffer::ConnectOnline(const char* host, const char* experiment, 
 	 * See list below for what's specifically handled by this function.
 	 */
 	INT status;
-	char syncbuf[] = "SYSTEM";
+	char systembuf[] = "SYSTEM";
 	fType = MidasBuffer::ONLINE;
 
 	/// - Connect to MIDAS experiment
@@ -171,27 +171,27 @@ Bool_t rb::MidasBuffer::ConnectOnline(const char* host, const char* experiment, 
 		M_ONLINE_BAIL_OUT;
 	}
 
-	/// - Connect to "SYNC" shared memory buffer
-  status = bm_open_buffer(syncbuf, 2*MAX_EVENT_SIZE, &fBufferHandle);
+	/// - Connect to "SYSTEM" shared memory buffer
+  status = bm_open_buffer(systembuf, 2*MAX_EVENT_SIZE, &fBufferHandle);
 	if (status != CM_SUCCESS) {
 		err::Error("rb::MidasBuffer::ConnectOnline")
-			<< "Error opening \"" << syncbuf << "\" shared memory buffer, status = "
+			<< "Error opening \"" << systembuf << "\" shared memory buffer, status = "
 			<< status;
 		M_ONLINE_BAIL_OUT;
 	}
 
-	/// - Request (nonblocking) all types of events from the "SYNC" buffer
+	/// - Request (nonblocking) all types of events from the "SYSTEM" buffer
 	status = bm_request_event(fBufferHandle, -1, -1, GET_NONBLOCKING, &fRequestId, NULL);
 	if (status != CM_SUCCESS) {
 		err::Error("rb::MidasBuffer::ConnectOnline")
-			<< "Error requesting events from \"" << syncbuf << "\", status = "
+			<< "Error requesting events from \"" << systembuf << "\", status = "
 			<< status;
 		M_ONLINE_BAIL_OUT;
 	}
 
 	/// - Register transition handlers
 	/// \note Stop transition needs to have a 'late' (>700) priority to receive
-	///  events flushed from the "SYNC" buffer at the end of the run
+	///  events flushed from the "SYSTEM" buffer at the end of the run
 	cm_register_transition(TR_START,  rb_run_start,  fTransitionPriorities[0]);
 	cm_register_transition(TR_STOP,   rb_run_stop,   fTransitionPriorities[1]);
 	cm_register_transition(TR_PAUSE,  rb_run_pause,  fTransitionPriorities[2]);
