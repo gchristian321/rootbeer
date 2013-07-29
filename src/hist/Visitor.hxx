@@ -3,6 +3,7 @@
 #ifndef __MAKECINT__
 #ifndef VISITOR_HXX
 #define VISITOR_HXX
+#include <cassert>
 #include <TH1.h>
 #include <TH1D.h>
 #include <TH2D.h>
@@ -40,7 +41,9 @@ namespace hist
 struct Clear : public rb::visit::Locked<void>
 {
 	 template <class T> void operator() (T& t) const {
-		 for(Int_t p = 0; p < t.fN; ++p) t.fArray[p] = 0.;
+		 for(Int_t p = 0; p < t.fN; ++p)
+			 t.SetBinContent(p, 0);
+		 t.SetEntries(0);
 	 }
 	 static void Do(HistVariant& hist) {
 		 boost::apply_visitor(Clear(), hist);
@@ -126,6 +129,22 @@ public:
 	 Fill(Double_t x, Double_t y, Double_t z): x_(x), y_(y), z_(z) {}
 private:
 	 Double_t x_, y_, z_;
+};
+
+/// Sets bin content
+struct SetBinContent : public rb::visit::Locked<void>
+{
+public:
+	void operator() (TH1D& hst) const { return hst.SetBinContent(nbin_, val_); }
+	void operator() (TH2D& hst) const { assert(!"Shouldn't get here!"); }
+	void operator() (TH3D& hst) const { assert(!"Shouldn't get here!"); }
+	static void Do(HistVariant& hist, Int_t nbin, Double_t val) {
+		return boost::apply_visitor(SetBinContent(nbin, val), hist);
+	}
+	SetBinContent(Int_t nbin, Double_t val): nbin_(nbin), val_(val) {}
+private:
+	Int_t nbin_;
+	Double_t val_;
 };
 
 } // namespace hist

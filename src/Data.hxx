@@ -7,6 +7,7 @@
 #define DATA_HXX
 #include <iostream>
 #include <sstream>
+#include <cassert>
 #include <vector>
 #include <TROOT.h>
 #include <TTree.h>
@@ -32,48 +33,95 @@ namespace data
 class MBasic
 {
 public:
-	 typedef std::map<std::string, MBasic*> Map_t;
+	typedef std::map<std::string, MBasic*> Map_t;
 protected:
-	 //! Maps the base name of each data class to a pointer to its corresponding
-	 //! data::MBasic instance
-	 static MBasic::Map_t& fgAll();
-	 //! The type of basic data (int, double, etc.)
-	 const TDataMember* fDataMember;
+	//! Maps the base name of each data class to a pointer to its corresponding
+	//! data::MBasic instance
+	static MBasic::Map_t& fgAll() {
+		static MBasic::Map_t* m = new MBasic::Map_t();
+		return *m;
+	}
+	//! The type of basic data (int, double, etc.)
+	const TDataMember* fDataMember;
 public:
-	 //! Sets fDataMember
-	 MBasic(const TDataMember* d);
-	 //! Nothing to do
-	 virtual ~MBasic() {}
-	 //! Pure virtual, see rb::data::Basic
-	 virtual Double_t GetValue() = 0;
-	 //! Pure virtual, see rb::data::Basic
-	 virtual void SetValue(Double_t newval) = 0;
-   //! Returns a vector containing the names of all variables.
-	 static std::vector<std::string> GetAll();
-	 //! Search for an instance of Basic*
-	 //! \param [in] leafName The name (how it would be referred to in TTree::Draw) of the class instance being searched for.
-	 static MBasic* Find(const char* leafName);
-	 //! Allocate a \c new instance of data::MBasic.
-	 //! \returns A heap allocated instance of a data::MBasic-derived class (i.e. some data::Basic template class). It is
-	 //! automatically caseted to the correct type based on the <i>basic_type_name</i> input parameter.
-	 static void New(const char* name, volatile void* addr, TDataMember* element);
+	//! Sets fDataMember
+	MBasic(const TDataMember* d): fDataMember(d) {}
+	//! Nothing to do
+	virtual ~MBasic() {}
+	//! Pure virtual, see rb::data::Basic
+	virtual Double_t GetValue() = 0;
+	//! Pure virtual, see rb::data::Basic
+	virtual void SetValue(Double_t newval) = 0;
+	//! Pure virtual, see rb::data::Basic
+	virtual Long_t GetAddress() = 0;
+	//! Returns the leaf name of this instance
+	const char* GetLeafName();
+	//! Returns a vector containing the names of all variables.
+	static std::vector<std::string> GetAll();
+	//! Search for an instance of Basic*
+	//! \param [in] leafName The name (how it would be referred to in TTree::Draw) of the class instance being searched for.
+	static MBasic* Find(const char* leafName);
+	//! Allocate a \c new instance of data::MBasic.
+	//! \returns A heap allocated instance of a data::MBasic-derived class (i.e. some data::Basic template class). It is
+	//! automatically caseted to the correct type based on the <i>basic_type_name</i> input parameter.
+	static void New(const char* name, volatile void* addr, TDataMember* element);
 
-	 //! Prints or writes to a stream information on each entry in fgAll.
-	 class Printer
-	 {
-	 public:
-			//! Save the constructor syntax for each element to a std::ostream
-			void SavePrimitive(std::ostream& strm);
-			//! Print the full name and value of each data::MBasic instance
-			void PrintAll();
-	 };
+  //! Prints or writes to a stream information on each entry in fgAll.
+	class Printer
+	{
+ public:
+		//! Save the constructor syntax for each element to a std::ostream
+		void SavePrimitive(std::ostream& strm);
+		//! Print the full name and value of each data::MBasic instance
+		void PrintAll();
+	};
+
 };
-inline rb::data::MBasic::MBasic(const TDataMember* d) :
-	fDataMember(d) {}
-inline MBasic::Map_t& MBasic::fgAll() {
-	static MBasic::Map_t* m = new MBasic::Map_t();
-	return *m;
-}
+
+/// \brief Class to read the data contained at a memory address, and translate it into a Double_t.
+//! \details This is an abstract class: implementations are templates that act on the actual type
+//! stored at the address.
+class MReader
+{
+public:
+	/// \brief Constructor, empty
+	MReader() { }
+	/// \brief Destructor, empty
+	virtual ~MReader() { }
+	/// \brief Casts the value at address to a Double_t
+	virtual Double_t ReadValue() = 0;
+	/// \brief Virtual clone function
+	virtual MReader* Clone() = 0;
+	/// \brief Static "creation" function
+	//! \details Returns the appropriate derived type based on the passed string.
+	//! The string should correspond to the return value of TDataMember::GetRealTypeName().
+	//! \returns Address of the newly created MBasic; 0 if passed an invalid type name.
+	static MReader* New(const char* typeName, Long_t dataAddress);
+};
+
+/// \brief Derived classes of MReader for the various basic data types.
+template <class T>
+class Reader: public MReader
+{
+private:
+	/// \brief Address where the data of interest are stored.
+	Long_t fAddress;
+public:
+	/// \brief Sets fAddress
+	Reader(Long_t address): fAddress(address) { }
+	/// \brief Empty
+	~Reader() { }
+	/// Casts the data at fAddress first to \e T, then to Double_t
+	virtual Double_t ReadValue() {
+		T* pData = reinterpret_cast<T*>(fAddress);
+		return static_cast<Double_t>(*pData);
+	}
+	/// Returns a copy of the current object
+	virtual MReader* Clone() {
+		return new Reader(*this);
+	}
+};
+
 
 /// \brief Allows access to basic data members of user classes in CINT.
 //! \details The motivation behind this class is to allow users to have safe
@@ -154,47 +202,86 @@ template <class T>
 class Basic : public MBasic
 {
 private:
-	 //! Memory address of the basic data
-	 //! \note Marked volatile so that all access has to be through LockingPointers.
-	 volatile T * fAddress;
+	//! Memory address of the basic data
+	//! \note Marked volatile so that all access has to be through LockingPointers.
+	volatile T * fAddress;
 public:
-	 /// \brief Sets fAddress and inserts \c this into data::MBasic::fgAll.
-	 //! \details Also, in the case of an array, it iterates through the whole array and
-	 //! creates a new instance of data::Basic for each element.
-	 Basic(const char* name, volatile void* addr, const TDataMember* d);
-	 //! Return the value of the data stored at fAddress
-	 Double_t GetValue();
-	 //! Change the value of the data stored at fAddress
-	 void SetValue(Double_t newval);
-	 //! Nothing to do
-	 virtual ~Basic();
+	/// \brief Sets fAddress and inserts \c this into data::MBasic::fgAll.
+	//! \details Also, in the case of an array, it iterates through the whole array and
+	//! creates a new instance of data::Basic for each element.
+	Basic(const char* name, volatile void* addr, const TDataMember* d);
+	//! Return the value of the data stored at fAddress
+	Double_t GetValue();
+	//! Change the value of the data stored at fAddress
+	void SetValue(Double_t newval);
+	//! Return the memory location of the basic data
+	Long_t GetAddress();
+	//! Nothing to do
+	virtual ~Basic();
+};
+
+/// \brief Const version of Basic<T>
+template <class T>
+class ConstBasic : public MBasic
+{
+private:
+	//! Memory address of the basic data
+	//! \note Marked volatile so that all access has to be through LockingPointers.
+	const T* const fAddress;
+public:
+	/// \brief Sets fAddress and inserts \c this into data::MBasic::fgAll.
+	//! \details Also, in the case of an array, it iterates through the whole array and
+	//! creates a new instance of data::Basic for each element.
+	ConstBasic(const char* name, volatile void* addr, const TDataMember* d);
+	//! Return the value of the data stored at fAddress
+	Double_t GetValue();
+	//! Not allowed - gives warning message
+	void SetValue(Double_t);
+	//! Return the memory location of the basic data
+	Long_t GetAddress();
+	//! Nothing to do
+	virtual ~ConstBasic();
 };
 
 //! Helper class to perform the actual mapping of name -> address for basic data members of user classes.
 class Mapper
 {
 private:
-	 //! Branch name used for this instance.
-	 const std::string kBranchName;
-	 //! Name of the class known to TClass.
-	 const std::string kClassName;
-	 //! Base memory address of the class.
-	 const Long_t kBase;
+	//! Branch name used for this instance.
+	const std::string kBranchName;
+	//! Name of the class known to TClass.
+	const std::string kClassName;
+	//! Base memory address of the class.
+	const Long_t kBase;
 public:
-	 //! Set constants, call Message() is callMessage is false
-	 Mapper(const char* branchname, const char* classname, Long_t base_address, Bool_t call_message);
-	 //! Recurses through a class structure, and for each basic data member, creates a new
-	 //! instance of rb::data::Basic.
-	 void MapClass();
-	 //! Similar to MapClass(), except if isn't concerned with addresses and it fills an external vector.
-	 void ReadBranches(std::vector<std::string>& branches);
+	//! Set constants, call Message() is callMessage is false
+	Mapper(const char* branchname, const char* classname, Long_t base_address, Bool_t call_message);
+	//! Recurses through a class structure, and for each basic data member, creates a new
+	//! instance of rb::data::Basic.
+	void MapClass();
+	//! Similar to MapClass(), except if isn't concerned with addresses and it fills an external vector.
+	void ReadBranches(std::vector<std::string>& branches);
+	//! \brief Finds the address of a specific piece of data.
+	//! \returns The address at which the indicated datum is located, or 0 if the data isn't present.
+	//! \param [in] name Name of the data to search for
+	//! \param [out] data_member Optional, is set to the TDataMember corresponding to \e name
+	Long_t FindBasicAddr(const char* name, TDataMember** data_member = 0);
+	//! \brief Finds the address of a specific piece of data.
+	//! \returns The address at which the indicated datum is located, or 0 if the data isn't present.
+	//! \param [in] name Name of the data to search for
+	//! \param [out] data_member Optional, is set to the TDataMember corresponding to \e name
+	MReader* FindBasicReader(const char* name, TDataMember** data_member = 0);
 private:
-	 //! Handle a basic element, create a new instance of MBasic data for each array element.
-	 void HandleBasic(TDataMember* d, const char* name);
-	 //! Insert basic element names into a vector of strings, handles arrays similar to HandleBasic
-	 void InsertBasic(TDataMember* d, std::vector<std::string>& v_names, const char* name);
-	 //! Adds a message to rb::Rint::fMessage indicating that a class's basic data has been mapped out.
-	 void Message();
+	//! Handle a basic element, create a new instance of MBasic data for each array element.
+	void HandleBasic(TDataMember* d, const char* name);
+	//! Insert basic element names into a vector of strings, handles arrays similar to HandleBasic
+	void InsertBasic(TDataMember* d, std::vector<std::string>& v_names, const char* name);
+	//! Handle a STL element, create a new instance of MBasic data for each array element.
+	void HandleSTL(TDataMember* d, const char* name);
+	//! Insert STL element names into a vector of strings, handles arrays similar to HandleSTL
+	void InsertSTL(TDataMember* d, std::vector<std::string>& v_names, const char* name);
+	//! Adds a message to rb::Rint::fMessage indicating that a class's basic data has been mapped out.
+	void Message();
 };
 inline Mapper::Mapper(const char* branchname, const char* classname, Long_t base_address, Bool_t call_message) :
 	kBranchName(branchname), kClassName(classname), kBase(base_address) {
@@ -211,88 +298,113 @@ template <class T>
 class Wrapper
 {
 private:
-	 /// \brief The name assigned to the TTree branch starting with this class instance.
-	 //! \details For example, if we have some class:
-	 //! \code
-	 //! class C {
-	 //!    int a;
-	 //!    // etc //
-	 //! };
-	 //! \endcode
-	 //! and set kBranchName to <tt>fC</tt>, then TTree branch names would look like
-	 //! <tt>fC.a</tt>, etc.
-	 const char* kBranchName;
+	/// \brief The name assigned to the TTree branch starting with this class instance.
+	//! \details For example, if we have some class:
+	//! \code
+	//! class C {
+	//!    int a;
+	//!    // etc //
+	//! };
+	//! \endcode
+	//! and set kBranchName to <tt>fC</tt>, then TTree branch names would look like
+	//! <tt>fC.a</tt>, etc.
+	const char* kBranchName;
 #ifdef RB_DATA_ON_STACK
-	 /// Instance of the user data class.
-	 T fData;
+	/// Instance of the user data class.
+	T fData;
 #else
-	 /// Pointer to the user data class.
-	 boost::scoped_ptr<T> fData;
+	/// Pointer to the user data class.
+	boost::scoped_ptr<T> fData;
 #endif
-	 /// \brief Pointer-to-pointer of the data.
-	 //! \details Used for TBranch creation.
-	 //! \note The void** pointer passed to TTree::Branch needs to stay in scope for the lifetime
-	 //! of the Branch. This is why we include this here as a class member rather than just assigning
-	 //! a temporary when creating branches.
-	 void * fDataVoidPtr;
+	/// \brief Pointer-to-pointer of the data.
+	//! \details Used for TBranch creation.
+	//! \note The void** pointer passed to TTree::Branch needs to stay in scope for the lifetime
+	//! of the Branch. This is why we include this here as a class member rather than just assigning
+	//! a temporary when creating branches.
+	void * fDataVoidPtr;
 
-	 /// Does most of the work for the constructor.
-	 void Init(Event* event, Bool_t makeVisible, const char* args, Int_t bufsize);
+	/// Does most of the work for the constructor.
+	void Init(Event* event, Bool_t makeVisible, const char* args, Int_t bufsize);
 public:
-	 /// \details Allocates memory to the user data class and sets internal variables.
-	 //!
-	 //! \param [in] name Name of the user data class. This is how you will refer to it in the
-	 //! interactive CINT session, i.e. <tt>t->Draw("name.whatever");</tt>. Note that if you
-	 //! end this with a "<tt>.</tt>", full branch name specifications will be required to
-	 //! read data from a TTree, e.g. <tt>t->Draw("name.whatever")</tt> required over just
-	 //! <tt>t->Draw("whatever");</tt>
-	 //!
-	 //! \param [in] event Pointer to an rb::Event instance. If this is non-null, then
-	 //! \c this intance will be added as a branch in the Tree within the event. A null
-	 //! pointer is ignored and this instance won't be added as a branch in any trees.
-	 //!
-	 //! \param [in] makeVisible Specifies whether or not you want to make the class visible
-	 //! in CINT.  If this is selected true, then you will be able to change or read the values of
-	 //! basic data types in your user data class using SetData() and GetData().  If selected false,
-	 //! you won't have direct access to the data (in CINT) and will only be able to view it in histograms.
-	 //! Generally, one wants to specify true for variables and false for parameters (or add comment
-	 //! fields as explained in the rb::data::Basic <T> documentation.
-	 //!
-	 //! \param [in] args Optional arguments to pass to the user data class's constructor. They should
-	 //! be in the literal format that would appear if writing the constructor directly in code. For
-	 //! example, consider that class
-	 //! \code
-	 //! struct MyClass {
-	 //!   MyClass(const char* str, int val);
-	 //!   // ... //
-	 //! };
-	 //! \endcode
-	 //! To call the constructor with str == "mine" and val == 37:
-	 //! \code
-	 //! rb::data::Wrapper<MyClass>("myClassName", kFALSE /*(not visible)*/, "\"mine\", 37");
-	 //! \endcode
-	 //! If this argument is left as the default (empty string), the user class is constructed
-	 //! without any arguments, i.e. <tt>new MyClass()</tt>.
-	 Wrapper(const char* name, Event* event = 0, Bool_t makeVisible = true, const char* args = "", Int_t bufsize = 32000);
+	/// \details Allocates memory to the user data class and sets internal variables.
+	//!
+	//! \param [in] name Name of the user data class. This is how you will refer to it in the
+	//! interactive CINT session, i.e. <tt>t->Draw("name.whatever");</tt>. Note that if you
+	//! end this with a "<tt>.</tt>", full branch name specifications will be required to
+	//! read data from a TTree, e.g. <tt>t->Draw("name.whatever")</tt> required over just
+	//! <tt>t->Draw("whatever");</tt>
+	//!
+	//! \param [in] event Pointer to an rb::Event instance. If this is non-null, then
+	//! \c this intance will be added as a branch in the Tree within the event. A null
+	//! pointer is ignored and this instance won't be added as a branch in any trees.
+	//!
+	//! \param [in] makeVisible Specifies whether or not you want to make the class visible
+	//! in CINT.  If this is selected true, then you will be able to change or read the values of
+	//! basic data types in your user data class using SetData() and GetData().  If selected false,
+	//! you won't have direct access to the data (in CINT) and will only be able to view it in histograms.
+	//! Generally, one wants to specify true for variables and false for parameters (or add comment
+	//! fields as explained in the rb::data::Basic <T> documentation.
+	//!
+	//! \param [in] args Optional arguments to pass to the user data class's constructor. They should
+	//! be in the literal format that would appear if writing the constructor directly in code. For
+	//! example, consider that class
+	//! \code
+	//! struct MyClass {
+	//!   MyClass(const char* str, int val);
+	//!   // ... //
+	//! };
+	//! \endcode
+	//! To call the constructor with str == "mine" and val == 37:
+	//! \code
+	//! rb::data::Wrapper<MyClass>("myClassName", kFALSE /*(not visible)*/, "\"mine\", 37");
+	//! \endcode
+	//! If this argument is left as the default (empty string), the user class is constructed
+	//! without any arguments, i.e. <tt>new MyClass()</tt>.
+	Wrapper(const char* name, Event* event = 0, Bool_t makeVisible = true, const char* args = "", Int_t bufsize = 32000);
 
-	 /// \details Frees memory allocated to the user class.
-	 virtual ~Wrapper();
+	/// \brief Constructor version for when no default constructor is available for class \e T
+	//! \details Overloads the constructor for cases where no default constructor is available
+	//! for the wrapped class. This is done by adding a "dummy" bool as the second argument, but
+	//! other than that the use is identical to the other constructor. The reason this is needed is
+	//! to allow \e static (compile time) decisions about how to construct the object (new T() vs.
+	//! gROOT->ProcessLineFast()). Previously this was only done at runtime which only will compile
+	//! if a dfault construtor exists for the class \e T.
+	Wrapper(const char* name, Bool_t, Event* event = 0, Bool_t makeVisible = true, const char* args = "", Int_t bufsize = 32000);
 
-	 /// Pointer access to the internal data.
-	 //! \returns Pointer to fData.
-	 T* Get();
+	/// \details Frees memory allocated to the user class.
+	virtual ~Wrapper();
 
-	 /// Identical to Get()
-	 //! Included for syntactic compatability with smart pointers (auto_ptr, etc.)
-	 T* get();
+	/// Pointer access to the internal data.
+	//! \returns Pointer to fData.
+	T* Get();
 
-	 /// Indirection operator
-	 //! \returns Pointer to fData.
-	 T* operator-> ();
+	/// Identical to Get()
+	//! Included for syntactic compatability with smart pointers (auto_ptr, etc.)
+	T* get();
 
-	 /// Dereference operator
-	 //! \returns reference to fData.
-	 T& operator* ();
+	/// Indirection operator
+	//! \returns Pointer to fData.
+	T* operator-> ();
+
+	/// Dereference operator
+	//! \returns reference to fData.
+	T& operator* ();
+
+	/// Pointer access to the internal data (const)
+	//! \returns Pointer to fData.
+	T* Get() const;
+
+	/// Identical to Get() (const)
+	//! Included for syntactic compatability with smart pointers (auto_ptr, etc.)
+	T* get() const;
+
+	/// Indirection operator (const)
+	//! \returns Pointer to fData.
+	T* operator-> () const;
+
+	/// Dereference operator (const)
+	//! \returns reference to fData.
+	T& operator* () const;
 };
 } // namespace data
 } // namespace rb
@@ -308,7 +420,7 @@ public:
 // Constructor                //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 template <class T>
-rb::data::Basic<T>::Basic(const char* name, volatile void* addr, const TDataMember* d) :
+inline rb::data::Basic<T>::Basic(const char* name, volatile void* addr, const TDataMember* d) :
   MBasic(d), fAddress(reinterpret_cast<volatile T*>(addr)) {
   fgAll().insert(std::make_pair<std::string, MBasic*>(name, this));
 }
@@ -334,6 +446,59 @@ inline void rb::data::Basic<T>::SetValue(Double_t newval) {
   LockingPointer<T> p(fAddress, gDataMutex);
   *p = T(newval);
 }
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// Long_t rb::data::Basic<T>::GetAddress()   //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+template <class T>
+inline Long_t rb::data::Basic<T>::GetAddress() {
+  LockingPointer<T> p(fAddress, gDataMutex);
+  return reinterpret_cast<Long_t>(p.Get());
+}
+
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// Template Class                         //
+// rb::data::ConstBasic<T> Implementation //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// Constructor                //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+template <class T>
+inline rb::data::ConstBasic<T>::ConstBasic(const char* name, volatile void* addr, const TDataMember* d) :
+  MBasic(d), fAddress((const T*)addr) {
+  fgAll().insert(std::make_pair<std::string, MBasic*>(name, this));
+}
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// Destructor                 //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+template <class T>
+inline rb::data::ConstBasic<T>::~ConstBasic() {
+}
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// Double_t rb::data::ConstBasic<T>::GetValue()   //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+template <class T>
+inline Double_t rb::data::ConstBasic<T>::GetValue() {
+	RB_LOCKGUARD(gDataMutex);
+  return *((T*)fAddress);
+}
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// void rb::data::ConstBasic<T>::SetValue()       //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+template <class T>
+inline void rb::data::ConstBasic<T>::SetValue(Double_t) {
+	rb::err::Error("SetValue")
+		<< "Cannot change the value of const data member: \""
+		<< GetLeafName() << "\"";
+}
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// Long_t rb::data::ConstBasic<T>::GetAddress()   //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+template <class T>
+inline Long_t rb::data::ConstBasic<T>::GetAddress() {
+	RB_LOCKGUARD(gDataMutex);
+  return (Long_t)fAddress;
+}
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // Template Class                        //
@@ -342,6 +507,7 @@ inline void rb::data::Basic<T>::SetValue(Double_t newval) {
 namespace
 {
 #ifndef RB_DATA_ON_STACK
+// Optional CINT contstruction
 template<class T> T* Construct(const char* args) {
 	// Allocate new instance of T
 	T* data = 0;
@@ -352,9 +518,26 @@ template<class T> T* Construct(const char* args) {
 		data = reinterpret_cast<T*> (gROOT->ProcessLineFast(cmd.str().c_str()));
 	}
 	if (!data) {
-		err::Error("Data::Init") <<
-			 "Couldn't create a new instance of the template class " << "(typeid.name(): "<< 
-			 typeid(T).name() << ", constructor arguments: " << args << ").";
+		rb::err::Error("Data::Init") <<
+			"Couldn't create a new instance of the template class " << "(typeid.name(): "<< 
+			typeid(T).name() << ", constructor arguments: " << args << ")." << ERR_FILE_LINE;
+		data = 0;
+	}
+	return data;
+}
+// Force CINT construction
+template<class T> T* Construct(const char* args, Bool_t) {
+	// Allocate new instance of T
+	T* data = 0;
+	// Force use of CINT to construct
+	std::stringstream cmd;
+	cmd << "new " << TClass::GetClass(typeid(T))->GetName() << "(" << args  << ");";
+	data = reinterpret_cast<T*> (gROOT->ProcessLineFast(cmd.str().c_str()));
+
+	if (!data) {
+		rb::err::Error("Data::Init") <<
+			"Couldn't create a new instance of the template class " << "(typeid.name(): "<< 
+			typeid(T).name() << ", constructor arguments: " << args << ")." << ERR_FILE_LINE;
 		data = 0;
 	}
 	return data;
@@ -366,7 +549,8 @@ template<class T> T* Construct(const char* args) {
 // Constructor                //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 template <class T>
-inline rb::data::Wrapper<T>::Wrapper(const char* name, Event* event, Bool_t makeVisible, const char* args, Int_t bufsize):
+inline rb::data::Wrapper<T>::Wrapper(const char* name, Event* event, Bool_t makeVisible,
+																		 const char* args, Int_t bufsize):
   kBranchName(name),
 #ifdef RB_DATA_ON_STACK
   fData(),  fDataVoidPtr(&fData)
@@ -376,6 +560,25 @@ inline rb::data::Wrapper<T>::Wrapper(const char* name, Event* event, Bool_t make
 {
   Init(event, makeVisible, args, bufsize);
 }
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// Constructor (v2)           //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+template <class T>
+inline rb::data::Wrapper<T>::Wrapper(const char* name, Bool_t, Event* event,
+																		 Bool_t makeVisible, const char* args, Int_t bufsize):
+	kBranchName(name),
+#ifdef RB_DATA_ON_STACK
+	fData(), fDataVoidPtr(&fData)
+#else
+	fData(Construct<T>(args, true)), fDataVoidPtr(fData.get())
+#endif
+{
+#ifdef RB_DATA_ON_STACK
+	assert(0 && "Dynamic constructor not available with stack data, recompile with RB_DATA_ON_STACK not defined.");
+#endif
+	Init(event, makeVisible, args, bufsize);
+}
+
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // Destructor                 //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
@@ -418,36 +621,78 @@ inline T& rb::data::Wrapper<T>::operator* () {
   return *fData;
 #endif
 }
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// T* rb::data::Wrapper<T>::Get()                                 //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+template <class T>
+inline T* rb::data::Wrapper<T>::Get() const {
+#ifdef RB_DATA_ON_STACK
+  return &fData;
+#else
+  return fData.get();
+#endif
+}
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// T* rb::data::Wrapper<T>::operator-> ()                         //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+template <class T>
+inline T* rb::data::Wrapper<T>::get() const {
+  return Get();
+}
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// T* rb::data::Wrapper<T>::operator-> ()                         //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+template <class T>
+inline T* rb::data::Wrapper<T>::operator->() const {
+  return Get();
+}
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// T* rb::data::Wrapper<T>::operator() ()                         //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+template <class T>
+inline T& rb::data::Wrapper<T>::operator* () const {
+#ifdef RB_DATA_ON_STACK
+  return fData;
+#else
+  return *fData;
+#endif
+}
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // void rb::data::Wrapper<T>::Init()                               //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+
 template <class T>
 void rb::data::Wrapper<T>::Init(Event* event, Bool_t makeVisible, const char* args, Int_t bufsize) {
   // Figure out class name
   TClass* cl = TClass::GetClass(typeid(T));
   if(!cl) {
-    Error("Data::Init",
-					"CINT Does not know about a class you asked it to create "
-					"(typeid.name(): %s, constructor arguments: %s). "
-					"Check UserLinkdef.h to make sure a dictionary is properly generated.",
-					typeid(T).name(), args);
+    rb::err::Error("Data::Init")
+			<< "CINT Does not know about a class you asked it to create "
+			<<"(typeid.name(): " << typeid(T).name() <<", constructor arguments: " << args << "). "
+			"Check UserLinkdef.h to make sure a dictionary is properly generated." << ERR_FILE_LINE;
     return;
   }
   // Map "visible" classes for CINT
   if (makeVisible) {
+		std::stringstream cmd;
+		cmd << cl->GetName() << "* " << kBranchName << " = (" << cl->GetName() << "*)";
 #ifdef RB_DATA_ON_STACK
     data::Mapper mapper (kBranchName, cl->GetName(), reinterpret_cast<Long_t>(&fData), true);
+		cmd << &fData;
 #else
     data::Mapper mapper (kBranchName, cl->GetName(), reinterpret_cast<Long_t>(fData.get()), true);
+		cmd << fData.get();
 #endif
     mapper.MapClass();
+		gROOT->ProcessLine(cmd.str().c_str());
   }
   // Add as a branch in the event's internal tree.
   if(event) {
     Bool_t add_success = Event::BranchAdd::Operate(event, kBranchName, cl->GetName(), &fDataVoidPtr, bufsize);
-    if(!add_success) err::Error("data::Wrapper::Init") << "Unsuccessful attempt to add the branch " << kBranchName;
+    if(!add_success)
+			rb::err::Error("data::Wrapper::Init") << "Unsuccessful attempt to add the branch " << kBranchName << ERR_FILE_LINE;
   }
-  else err::Error("data::Wrapper::Init") << "Event pointer == 0";
+  else rb::err::Error("data::Wrapper::Init") << "Event pointer == 0" << ERR_FILE_LINE;
 }
 
 #endif // #ifndef __MAKECINT__

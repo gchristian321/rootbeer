@@ -27,7 +27,7 @@ namespace
 	ret = sstr.str();
 	if(!gROOT->FindObject(ret.c_str())) break;
       }
-      err::Info("rb::hist::Base") << "The name " << name <<
+      rb::err::Info("rb::hist::Base") << "The name " << name <<
 	" is already in use, creating " << name << "_" << n-1 << " instead.";
     }
     return ret;
@@ -58,7 +58,7 @@ namespace
     StringVector_t par = tokenize(param, ':');
     reverse_vector(par);
     if(par.size() != ndimensions)
-      err::Throw() << "Invalid parameter specificaton: \"" << param << "\" for a(n) "
+      rb::err::Throw() << "Invalid parameter specificaton: \"" << param << "\" for a(n) "
 		   << ndimensions << " dimensional histogram.";
     return par;
   }
@@ -80,7 +80,8 @@ rb::hist::Base::Base(const char* name, const char* title, const char* param, con
 		     Int_t nbinsx, Double_t xlow, Double_t xhigh):
   kEventCode(event_code), kDimensions(1), fManager(manager), fHistogramClone(0), kInitialParams(param), fParams(0), fGate(0),
   fHistVariant(TH1D(name, title, nbinsx, xlow, xhigh))
-{ }
+{  }
+
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // Constructor (2d)                                      //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
@@ -90,7 +91,8 @@ rb::hist::Base::Base(const char* name, const char* title, const char* param, con
 		     Int_t nbinsy, Double_t ylow, Double_t yhigh):
   kEventCode(event_code), kDimensions(2), fManager(manager), fHistogramClone(0), kInitialParams(param), fParams(0), fGate(0),
   fHistVariant(TH2D(name, title, nbinsx, xlow, xhigh, nbinsy, ylow, yhigh))
-{ }
+{  }
+
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // Constructor (3d)                                      //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
@@ -101,7 +103,8 @@ rb::hist::Base::Base(const char* name, const char* title, const char* param, con
 		     Int_t nbinsz, Double_t zlow, Double_t zhigh):
   kEventCode(event_code), kDimensions(3), fManager(manager), fHistogramClone(0), kInitialParams(param), fParams(0), fGate(0),
   fHistVariant(TH3D(name, title, nbinsx, xlow, xhigh, nbinsy, ylow, yhigh, nbinsz, zlow, zhigh))
-{ }
+{  }
+
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // void rb::hist::Base::Init()                           //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
@@ -126,10 +129,10 @@ void rb::hist::Base::Init(const char* name, const char* title, const char* param
   if(gDirectory) {
     fDirectory = gDirectory;
     fDirectory->Append(this, kTRUE);
-		if(gApp()->GetHistSignals()) gApp()->GetHistSignals()->NewOrDeleteHist();
+		if(Rint::gApp()->GetHistSignals()) Rint::gApp()->GetHistSignals()->NewOrDeleteHist();
   }
   else {
-    err::Warning("Hist::Init") << "gDirectory == 0; not adding to any ROOT collections.";
+    rb::err::Warning("Hist::Init") << "gDirectory == 0; not adding to any ROOT collections.";
     fDirectory = gDirectory;
   }
 }
@@ -138,8 +141,7 @@ void rb::hist::Base::Init(const char* name, const char* title, const char* param
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 rb::hist::Base::~Base() {
 	fManager->Remove(this); // locks TTHREAD_GLOBAL_MUTEX while running
-	Destruct();
-	if(gApp()->GetHistSignals()) gApp()->GetHistSignals()->NewOrDeleteHist();
+	if(Rint::gApp()->GetHistSignals()) Rint::gApp()->GetHistSignals()->NewOrDeleteHist();
 }
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // void rb::hist::Base::InitParams()                     //
@@ -199,6 +201,7 @@ Int_t rb::hist::Base::FillUnlocked() {
 // rb::hist::Base::Fill() [locked data]                  //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 Int_t rb::hist::Base::Fill() {
+	RB_LOG << "Filling...\n";
   Double_t gate = fGate->Eval(0);
   if(!Bool_t(gate)) return 0;
   std::vector<Double_t> axes;
@@ -210,6 +213,11 @@ Int_t rb::hist::Base::Fill() {
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 Int_t rb::hist::Base::Write(const char* name, Int_t option, Int_t bufsize) {
 	return visit::hist::Write::Do(fHistVariant, name, option, bufsize);
+}
+Bool_t rb::hist::Base::CompareTH1 (TH1* th1) {
+	TH1* this_ = visit::hist::Cast::Do(fHistVariant);
+	if(th1 == this_) return true;
+	else return false;
 }
 
 
@@ -225,12 +233,9 @@ rb::hist::Summary::Summary (const char* name, const char* title, const char* par
 			    hist::Manager* manager, Int_t event_code,
 			    Int_t nbins, Double_t low, Double_t high, Option_t* orientation):
   Base(name, title, param, gate, manager, event_code, 1, 0, 1, 1, 0, 1),
-  fBins(nbins), fLow(low), fHigh(high)
-{
-  SetOrientation(orientation);
-  Init(name, title, param, gate, event_code);
-  fLockOnConstruction.Unlock();
-}
+  fBins(nbins), fLow(low), fHigh(high), kOrientArg(orientation)
+{  }
+
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // void rb::hist::Summary::SetOrientation()              //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
@@ -240,7 +245,7 @@ void rb::hist::Summary::SetOrientation(Option_t* orientation) {
   if(orient == "v") kOrientation = VERTICAL;
   else if(orient == "h") kOrientation = HORIZONTAL;
   else {
-    err::Warning("rb::hist::Summary::Summary")
+    rb::err::Warning("rb::hist::Summary::Summary")
       << "Orientation specification " << orientation
       << " is not understood. Defaulting to vertical.";
     kOrientation = VERTICAL;
@@ -265,7 +270,7 @@ namespace
   inline void add_range(long* pos, StringVector_t::iterator& it, StringVector_t& pars) {
     Int_t lower = str2int(subrange(pos[0]+1, pos[1], *it));
     Int_t upper = str2int(subrange(pos[1]+1, pos[2], *it));
-    if(lower > upper)	err::Throw() << "Invalid parameter specification: lower index ("
+    if(lower > upper)	rb::err::Throw() << "Invalid parameter specification: lower index ("
 				     << lower << ") > upper index (" << upper << ").";
     std::string base = subrange(0, pos[0], *it);
     for(Int_t i=lower; i <= upper; ++i) {
@@ -331,10 +336,8 @@ rb::hist::Gamma::Gamma (const char* name, const char* title, const char* param, 
 			hist::Manager* manager, Int_t event_code,
 			Int_t nbins, Double_t low, Double_t high):
   Base(name, title, param, gate, manager, event_code, nbins, low, high)
-{
-  Init(name, title, param, gate, event_code);
-  fLockOnConstruction.Unlock();
-}
+{  }
+
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // Constructor (2d)                                      //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
@@ -344,10 +347,8 @@ rb::hist::Gamma::Gamma (const char* name, const char* title, const char* param, 
 			Int_t nbinsy, Double_t ylow, Double_t yhigh,
 			Int_t nbinsz, Double_t zlow, Double_t zhigh):
   Base(name, title, param, gate, manager, event_code, nbinsx, xlow, xhigh, nbinsy, ylow, yhigh, nbinsz, zlow, zhigh)
-{
-  Init(name, title, param, gate, event_code);
-  fLockOnConstruction.Unlock();
-}
+{  }
+
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // Constructor (2d)                                      //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
@@ -356,10 +357,8 @@ rb::hist::Gamma::Gamma (const char* name, const char* title, const char* param, 
 			Int_t nbinsx, Double_t xlow, Double_t xhigh,
 			Int_t nbinsy, Double_t ylow, Double_t yhigh):
   Base(name, title, param, gate, manager, event_code, nbinsx, xlow, xhigh, nbinsy, ylow, yhigh)
-{
-  Init(name, title, param, gate, event_code);
-  fLockOnConstruction.Unlock();
-}
+{  }
+
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // void rb::hist::Gamma::InitParams() [virtual]          //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
@@ -372,7 +371,7 @@ void rb::hist::Gamma::InitParams(const char* params, Int_t event_code) {
     fStops.push_back(temp.size());
     if(kDimensions > 0) {
       if(*(fStops.end()-1) != *(fStops.begin()))
-	err::Throw() << "Invalid parameter specification (\"" << params << "\").\n"
+	rb::err::Throw() << "Invalid parameter specification (\"" << params << "\").\n"
 		     << "Multiple dimensional gamma histograms must consist of ordered pairs of parameters\n"
 		     << "(i.e. you need to specify the same number of paramaters for each side of the ':').\n";
     }
@@ -406,13 +405,12 @@ Int_t rb::hist::Gamma::DoFill(const std::vector<Double_t>& params) {
 rb::hist::Bit::Bit(const char* name, const char* title, const char* param, const char* gate,
 		   hist::Manager* manager, Int_t event_code,
 		   Int_t n_bits, Double_t ignored1, Double_t ignored2):
-  Base(name, title, param, gate, manager, event_code, n_bits, 0, n_bits), kNumBits(n_bits)
-{
-  Init(name, title, param, gate, event_code);
-  fLockOnConstruction.Unlock();
-}
+  Base(name, title, param, gate, manager, event_code, n_bits, 0, n_bits),
+	kNumBits(n_bits)
+{  }
+
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-// void rb::hist::Summary::InitParams() [virtual]        //
+// void rb::hist::Bit::InitParams() [virtual]            //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 void rb::hist::Bit::InitParams(const char* params, Int_t event_code) {
   std::vector<std::string> par(1, params);
@@ -422,7 +420,7 @@ void rb::hist::Bit::InitParams(const char* params, Int_t event_code) {
   if(paxis) paxis->SetNdivisions(119);
 }
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-// Int_t rb::hist::Summary::DoFill() [virtual]           //
+// Int_t rb::hist::Bit::DoFill() [virtual]               //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 Int_t rb::hist::Bit::DoFill(const std::vector<Double_t>& params) {
   Int_t ret = 0;
@@ -436,3 +434,52 @@ Int_t rb::hist::Bit::DoFill(const std::vector<Double_t>& params) {
   return ret;
 }
 
+
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// Class                                                 //
+// rb::hist::Scaler                                      //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// Constructor                                           //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+rb::hist::Scaler::Scaler(const char* name, const char* title, const char* param, const char* gate,
+												 hist::Manager* manager, Int_t event_code,
+												 Int_t nbins, Double_t low, Double_t high):
+  Base(name, title, param, gate, manager, event_code, nbins, low, high),
+	fNumEvents(0)
+{  }
+
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// void rb::hist::Scaler::Clear() [virtual]              //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+void rb::hist::Scaler::Clear() {
+	rb::hist::Base::Clear();
+	fNumEvents = 0;
+}
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// Int_t rb::hist::Scaler::DoFill() [virtual]            //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+Int_t rb::hist::Scaler::DoFill(const std::vector<Double_t>& params) {
+	this->Extend(1.5);
+	visit::hist::SetBinContent::Do(fHistVariant, fNumEvents++, params[0]);
+	return params[0];
+}
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// Int_t rb::hist::Scaler::Extend() [private]            //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+void rb::hist::Scaler::Extend(double factor) {
+	rb::ScopedLock<rb::Mutex> LOCK (TTHREAD_GLOBAL_MUTEX);
+	TH1* pHist = visit::hist::Cast::Do(fHistVariant);
+
+	if (pHist->GetNbinsX() <= fNumEvents) {
+		const double Max = pHist->GetBinLowEdge(pHist->GetNbinsX() + 1);
+		const double Min = pHist->GetBinLowEdge(1);
+		const double binWidth = (Max - Min) / pHist->GetNbinsX();
+
+		const double newMax = Max*factor;
+		const Int_t newBins = (newMax - Min) / binWidth;
+
+		pHist->SetBins(newBins, Min, newMax);
+	}
+}

@@ -18,16 +18,19 @@ rb::Rint::Rint(const char* appClassName, int* argc, char** argv,
 	       void* options, int numOptions, Bool_t liteLogo) :
   TRint(appClassName, argc, argv, options, numOptions, kTRUE),
 	fSignals(0), fHistSignals(0),
-	fSaveData(false), fSaveHists(false),
-	fRbeerFrame(0), fHistFrame(0)
-{
-  RegisterEvents();
-  SetPrompt("rootbeer [%d] ");
-  PrintLogo(liteLogo);
-  std::cout << fMessage.str() << std::endl;
+	fSaveData(false), fSaveHists(false) {
+        RegisterEvents();
+        SetPrompt("rootbeer [%d] ");
+        PrintLogo(liteLogo);
+        std::cout << fMessage.str() << std::endl;
 
 	std::set<std::string> flags(argv, argv + *argc);
 	if(!(flags.count("-ng") || !gClient)) InitGui();
+
+	for(EventMap_t::iterator it = fEvents.begin(); it != fEvents.end(); ++it) {
+	  Int_t key = it->first;
+	  fFilterCondition[key] = "";
+	};
 }
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // void rb::Rint::Terminate()                            //
@@ -58,14 +61,6 @@ void rb::Rint::InitGui() {
 	fHistFrame->HistGuiLayout();
 }
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-// void rb::Rint::InitGui()                              //
-//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-void rb::Rint::CloseGui() {
-	if(fRbeerFrame) { delete fRbeerFrame; fRbeerFrame = 0; }
-	if(fHistFrame)  { delete fHistFrame;  fHistFrame  = 0; }
-
-}
-//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // Events_t rb::Rint::GetEvent()                         //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 rb::Event* rb::Rint::GetEvent(Int_t code) {
@@ -75,10 +70,10 @@ rb::Event* rb::Rint::GetEvent(Int_t code) {
 // EventVector_t rb::Rint::GetEventVector()              //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 rb::EventVector_t rb::Rint::GetEventVector() {
+	EventVector_t out;
 	EventMap_t::iterator it = fEvents.begin();
-	EventVector_t out; if(!fEvents.size()) return out;
-	while(it != fEvents.end()) {
-		out.push_back(std::make_pair(it->first, it->second.second)); ++it;
+	for (; it != fEvents.end(); ++it) {
+		out.push_back(std::make_pair(it->first, it->second.second));
 	}
 	return out;
 }
@@ -120,9 +115,9 @@ void rb::Rint::PrintLogo(Bool_t lite) {
     std::cout << "                                                           \n"
 	      << "                            ___                                  \n"
 	      << "                          .'   '.                                \n"
-	      << "                         /       \\           oOoOo              \n"
+	      << "                         /       \\           oOoOo               \n"
 	      << "                        |         |       ,==|||||               \n"
-	      << "                         \\       /       _|| |||||              \n"
+	      << "                         \\       /        || |||||               \n"
 	      << "                          '.___.'    _.-'^|| |||||               \n"
 	      << "                        __/_______.-'     '==HHHHH               \n"
 	      << "                   _.-'` /                   \"\"\"\"\"          \n"

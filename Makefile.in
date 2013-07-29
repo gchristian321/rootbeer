@@ -11,8 +11,8 @@ RBLIB=$(PWD)/lib
 
 INCFLAGS=-I$(SRC)
 OPTIMIZE=-O3
-DEBUG= -DDEBUG
-#-DRB_LOGGING
+DEBUG=
+#-ggdb -O0 -DDEBUG -DRB_LOGGING
 
 ROOTLIBS:= $(shell root-config --glibs) -lXMLParser -lThread -lTreePlayer
 ROOTFLAGS:= $(shell root-config --cflags)
@@ -39,20 +39,19 @@ LINK=$(CXX) $(LIBS) $(RPATH)
 
 
 #### MAIN PROGRAM ####
-all:  $(RBLIB)/libRootbeer.so $(RBLIB)/librbMidas.so
+all:  $(RBLIB)/libRootbeer.so $(RBLIB)/libRbMidas.so
 
 #### ROOTBEER LIBRARY ####
 SOURCES=($shell ls $(SRC)/*.cxx $(SRC)/hist/*.cxx
 
 OBJECTS=$(OBJ)/hist/Hist.o $(OBJ)/hist/Manager.o \
-$(OBJ)/Formula.o $(OBJ)/ClassFormula.o $(OBJ)/ClassData.o \
-$(OBJ)/Data.o $(OBJ)/Event.o $(OBJ)/Attach.o $(OBJ)/Canvas.o $(OBJ)/WriteConfig.o \
+$(OBJ)/Formula.o \
+$(OBJ)/Data.o $(OBJ)/Event.o $(OBJ)/Buffer.o $(OBJ)/Canvas.o $(OBJ)/WriteConfig.o \
 $(OBJ)/Rint.o $(OBJ)/Signals.o $(OBJ)/Rootbeer.o $(OBJ)/Gui.o $(OBJ)/HistGui.o \
 $(OBJ)/TGSelectDialog.o $(OBJ)/TGDivideSelect.o $(OBJ)/Main.o
 
-HEADERS=$(SRC)/Main.hxx $(SRC)/Rootbeer.hxx $(SRC)/Rint.hxx $(SRC)/Data.hxx $(SRC)/Buffer.hxx $(SRC)/Attach.hxx $(SRC)/Event.hxx \
-$(SRC)/Signals.hxx $(SRC)/Formula.hxx $(SRC)/ClassFormula.hxx $(SRC)/ClassData.hxx \
-$(SRC)/utils/LockingPointer.hxx $(SRC)/utils/Mutex.hxx \
+HEADERS=$(SRC)/Main.hxx $(SRC)/Rootbeer.hxx $(SRC)/Rint.hxx $(SRC)/Data.hxx $(SRC)/Buffer.hxx $(SRC)/Event.hxx \
+$(SRC)/Signals.hxx $(SRC)/Formula.hxx $(SRC)/utils/LockingPointer.hxx $(SRC)/utils/Mutex.hxx \
 $(SRC)/hist/Hist.hxx $(SRC)/hist/Visitor.hxx $(SRC)/hist/Manager.hxx $(SRC)/TGSelectDialog.h $(SRC)/TGDivideSelect.h \
 $(SRC)/HistGui.hxx $(SRC)/Gui.hxx $(SRC)/utils/*.h*
 
@@ -61,10 +60,6 @@ RBlib: $(RBLIB)/libRootbeer.so
 $(RBLIB)/libRootbeer.so: $(CINT)/RBDictionary.cxx $(OBJECTS)
 	$(CXX) $(LDFLAGS) $(OBJECTS) $(CINT)/RBDictionary.cxx $(LIBS) \
 -o $@ \
-
-$(OBJ)/midas/MidasBuffer.o: $(SRC)/midas/MidasBuffer.cxx $(CINT)/MidasDict.cxx $(CINT)/RBDictionary.cxx
-	$(CXX) $(FPIC) $(MIDASFLAGS) -c $< \
--o $@  \
 
 $(OBJ)/midas/%.o: $(SRC)/midas/%.cxx $(CINT)/MidasDict.cxx
 	$(CXX) $(FPIC) $(MIDASFLAGS) -c $< \
@@ -80,7 +75,7 @@ $(SRC)/utils/Mutex.hxx $(SRC)/utils/LockingPointer.hxx $(SRC)/utils/Assorted.hxx
 	rootcint -f $@ -c $(CXXFLAGS) -p $(HEADERS) $(CINT)/Linkdef.h \
 
 
-### librbMidas.so ###
+### libRbMidas.so ###
 MIDAS_SOURCES=$(shell ls $(SRC)/midas/*.cxx)
 MIDAS_HEADERS1=$(shell ls $(SRC)/midas/*.h $(SRC)/midas/*.hxx)
 MIDAS_HEADERS=$(MIDAS_HEADERS1:$(SRC)/midas/MidasLinkdef.h= )
@@ -105,12 +100,12 @@ MIDASFLAGS += -DMIDAS_EXPT_NAME=\"$(MIDAS_EXPT_NAME)\"
 endif
 endif
 
-librbMidas: $(RBLIB)/librbMidas.so
-$(RBLIB)/librbMidas.so: $(MIDAS_OBJECTS) $(CINT)/MidasDict.cxx
+libRbMidas: $(RBLIB)/libRbMidas.so
+$(RBLIB)/libRbMidas.so: $(MIDAS_OBJECTS) $(CINT)/MidasDict.cxx
 	$(CXX) $(LDFLAGS) $(MIDAS_OBJECTS) $(CINT)/MidasDict.cxx \
 -o $@ \
 
-$(CINT)/MidasDict.cxx: $(MIDAS_HEADERS) $(SRC)/midas/MidasLinkdef.h
+$(CINT)/MidasDict.cxx: $(MIDAS_HEADERS) $(SRC)/midas/MidasLinkdef.h $(CINT)/RBDictionary.cxx
 	rootcint -f $@ -c $(CXXFLAGS) -p $(MIDAS_HEADERS) $(SRC)/midas/MidasLinkdef.h \
 
 
@@ -120,9 +115,10 @@ clean:
 	rm -f $(RBLIB)/*.so rootbeer $(CINT)/*Dict*.h $(CINT)/*Dict*.cxx $(OBJ)/*.o $(OBJ)/*/*.o
 
 midasclean:
-	rm -f $(RBLIB)/librbMidas.so.devl $(CINT)/MidasDict.* $(OBJ)/midas/*.o
+	rm -f $(RBLIB)/libRbMidas.so $(CINT)/MidasDict.* $(OBJ)/midas/*.o
+
 
 #### FOR DOXYGEN ####
 
 doc:
-	doxygen doxygen/Doxyfile
+	cd $(PWD)/doxygen ; doxygen Doxyfile ; cd latex; make; cd $(PWD)

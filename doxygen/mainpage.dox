@@ -1,114 +1,8 @@
-//! \file main.cc
-//! \brief Implements the \c main program and Doxygen documentation.
-#include <set>
-#include <TROOT.h>
-#include "Rint.hxx"
-#include "Rootbeer.hxx"
-
-
-#ifndef RB_UNPACK_ONLY
-
-/// \brief The \c main ROOTBEER function.
-//! \details Creates an instance of \c rb::Rint and runs it.
-int main(int argc, char** argv)
-{
-	std::set<std::string> args(argv, argv+argc);
-	Bool_t lite = args.count("-l");
-  rb::Rint rbApp("Rootbeer", &argc, argv, 0, 0, lite);
-  gROOT->ProcessLine("gStyle->SetOptTitle(kTRUE)");
-  rbApp.Run();
-  return 0;
-}
-
-
-#else
-#include <cassert>
-
-namespace {
-void usage() {
-	std::cout << "usage: rbunpack <input file>\n\n";
-	exit(1);
-}
-void handle_args(int argc, char** argv, std::string& fin) {
-	if(argc != 2) usage();
-	fin  = argv[1];
-} }
-
-/// \brief Main function for a separate program to convert data files to root trees.
-int main(int argc, char** argv)
-{
-	std::string fin;
-	handle_args(argc, argv, fin);
-	assert(strlen(argv[0]) > 3);
-	sprintf(argv[0], "-ng");
-	rb::Rint rbApp("Rootbeer", &argc, argv, 0, 0, true);
-	rbApp.StartSave(false);
-	rb::AttachFile(fin.c_str());
-	gSystem->Sleep(1e2);
-	while(TThread::GetThread("AttachFile"));
-	rbApp.Terminate(0);
-}
-
-
-
-#endif
-
-
-
-// ----- END CODE ---- //
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 /*!
   \mainpage ROOTBEER: The ROOT Basic Event ExtractoR
-  \authors G. Christian \n gchristian@triumf.ca \n\n
-  \authors S. Mosby \n mosby@nscl.msu.edu \n\n
-  \authors J.K. Smith \n smithj@nscl.msu.edu \n\n
+  \authors G. Christian \n S. Mosby\n J.K. Smith
 
-
+	\tableofcontents
 
   \n \section intro Introduction
 
@@ -144,14 +38,14 @@ int main(int argc, char** argv)
   The basic premise behind ROOTBEER is to extend the normal ROOT package, allowing analysis of incoming online data.
   This essentially means adding the following functionality to what is already contained within ROOT:
 
-        -# Attaching to an online stream of data and calculating a pre-compiled set of parameters.
-	-# Unpacking the data into histograms. The histograms should have the ability to be dynamically created,
-	gated, drawn, analyzed, and destroyed.
-	-# The ability to dynamically change how data is analyzed in a simple way, i.e. changing calibration variables
-	and the like. Also, it should be possible to calculate and display "compound" parameters that depend on the
-	pre-compiled ones.
-	-# User access to the CINT command line and all of it's normal functionality.
-	-# A user-friendly GUI, allowing a short learning curve for those not familiar with ROOT.
+  -# Attaching to an online stream of data and calculating a pre-compiled set of parameters.
+  -# Unpacking the data into histograms. The histograms should have the ability to be dynamically created,
+  gated, drawn, analyzed, and destroyed.
+  -# The ability to dynamically change how data is analyzed in a simple way, i.e. changing calibration variables
+  and the like. Also, it should be possible to calculate and display "compound" parameters that depend on the
+  pre-compiled ones.
+  -# User access to the CINT command line and all of it's normal functionality.
+  -# A user-friendly GUI, allowing a short learning curve for those not familiar with ROOT.
 
   The ROOTBEER code is essentially a framework facilitating the display of data in histograms.  The real work of
   unpacking and analyzing the data collected in a given experiment will need to be implemented as C++ code (or C code
@@ -164,7 +58,6 @@ int main(int argc, char** argv)
   There's no reason to re-invent the wheel, and really all we need/want to do is to add the things listed above to
   what's already in ROOT.  Furthermore, we want to preserve the normal, offline user interface as much as possible
   so that use of ROOTBEER will feel natural to those already accustomed to ROOT and CINT.
-
   For more detailed information about how to use ROOTBEER and how to extend it to you own experiment,
   follow the links below.
 
@@ -183,6 +76,8 @@ int main(int argc, char** argv)
 
 
   \page install Installation
+
+	\tableofcontents
 
   \n \section op Operating Systems & Prerequisites
   Currently, ROOTBEER has only been tested on Unix-based systems (Linux and Apple OS/X). This doesn't mean it won't
@@ -397,7 +292,9 @@ int main(int argc, char** argv)
 
 
   \page gui Graphical User Interface
-	
+
+	\tableofcontents
+
 	Below is a basic screenshot of the rootbeer graphical user interface (GUI). In this section, we'll go over
 	what the various buttons do and how you can use them.
 
@@ -609,6 +506,7 @@ int main(int argc, char** argv)
 
   \page data Customizing for Your Experiment
 
+	\tableofcontents
 
   - <a href=#data_prereq><b>Prerequisites</b></a>
   - <a href=#data_intro><b>Introduction</b></a>
@@ -963,13 +861,31 @@ int main(int argc, char** argv)
 
   \page develop Developers
 
+	\tableofcontents
+
   \todo This page should contain some basic instructions for those wishing to contribute to rootbeer, including a
 	bit about how to get started, desired features, coding standards, caveats, and so on.
 
 
 
+	\page dothis Things to do
 
+	\todo - Fix data and variables for non-threaded version. A lot of the mutex protective crap can be done away with.
+	And if you ever re-instate threads again, learn about CINT's built in protections (it may now lock a mutex w/
+	every keystroke).
 
+	\todo - Make the gui better: scalable, etc. User configurable, somehow? Perhaps long term, a better solution is to 
+	try to use a GUI library that's truly easy to work with and set it up as a user-configurable thing from the get-go.
+
+	\todo - Attach list still needs implementing.
+
+	\todo - Write librbNscl to implement generic NSCL DAQ connections.
+
+	\todo - Finish configure script
+
+	\todo - Update various needed parts of documentation since changes
+
+	\todo - Clean up code related to the new implementation of rb::ClassFormula, and test ClassFormula more.
 
 
 

@@ -15,19 +15,19 @@
 virtual void Add(TF1* h1, Double_t c1 = 1, Option_t* option = "")
 {
   rb::ScopedLock<rb::Mutex> LOCK (TTHREAD_GLOBAL_MUTEX);
-  return AS_TH1->Add(h1, c1, option);
+  /*return*/ AS_TH1->Add(h1, c1, option);
 }
 /// <a href = "http://root.cern.ch/root/html/TH1.html#TH1:Add">*** TH1 Member Function ***</a>
 virtual void Add(const TH1* h1, Double_t c1 = 1)
 {
   rb::ScopedLock<rb::Mutex> LOCK (TTHREAD_GLOBAL_MUTEX);
-  return AS_TH1->Add(h1, c1);
+  /*return*/ AS_TH1->Add(h1, c1);
 }
 /// <a href = "http://root.cern.ch/root/html/TH1.html#TH1:Add">*** TH1 Member Function ***</a>
 virtual void Add(const TH1* h, const TH1* h2, Double_t c1 = 1, Double_t c2 = 1)
 {
   rb::ScopedLock<rb::Mutex> LOCK (TTHREAD_GLOBAL_MUTEX);
-  return AS_TH1->Add(h, h2, c1, c2);
+  /*return*/ AS_TH1->Add(h, h2, c1, c2);
 }
 /// <a href = "http://root.cern.ch/root/html/TH1.html#TH1:AddBinContent">*** TH1 Member Function ***</a>
 virtual void AddBinContent(Int_t bin)
@@ -81,19 +81,19 @@ virtual Int_t DistancetoPrimitive(Int_t px, Int_t py)
 virtual void Divide(TF1* f1, Double_t c1 = 1)
 {
   rb::ScopedLock<rb::Mutex> LOCK (TTHREAD_GLOBAL_MUTEX);
-  return AS_TH1->Divide(f1, c1);
+  /*return*/ AS_TH1->Divide(f1, c1);
 }
 /// <a href = "http://root.cern.ch/root/html/TH1.html#TH1:Divide">*** TH1 Member Function ***</a>
 virtual void Divide(const TH1* h1)
 {
   rb::ScopedLock<rb::Mutex> LOCK (TTHREAD_GLOBAL_MUTEX);
-  return AS_TH1->Divide(h1);
+  /*return*/ AS_TH1->Divide(h1);
 }
 /// <a href = "http://root.cern.ch/root/html/TH1.html#TH1:Divide">*** TH1 Member Function ***</a>
 virtual void Divide(const TH1* h1, const TH1* h2, Double_t c1 = 1, Double_t c2 = 1, Option_t* option = "")
 {
   rb::ScopedLock<rb::Mutex> LOCK (TTHREAD_GLOBAL_MUTEX);
-  return AS_TH1->Divide(h1, h2, c1, c2, option);
+  /*return*/ AS_TH1->Divide(h1, h2, c1, c2, option);
 }
 /// <a href = "http://root.cern.ch/root/html/TH1.html#TH1:Draw">*** TH1 Member Function ***</a>
 virtual void Draw(Option_t* option = "")
@@ -759,19 +759,19 @@ virtual Long64_t Merge(TCollection* list)
 virtual void Multiply(TF1* h1, Double_t c1 = 1)
 {
   rb::ScopedLock<rb::Mutex> LOCK (TTHREAD_GLOBAL_MUTEX);
-  return AS_TH1->Multiply(h1, c1);
+  /*return*/ AS_TH1->Multiply(h1, c1);
 }
 /// <a href = "http://root.cern.ch/root/html/TH1.html#TH1:Multiply">*** TH1 Member Function ***</a>
 virtual void Multiply(const TH1* h1)
 {
   rb::ScopedLock<rb::Mutex> LOCK (TTHREAD_GLOBAL_MUTEX);
-  return AS_TH1->Multiply(h1);
+  /*return*/ AS_TH1->Multiply(h1);
 }
 /// <a href = "http://root.cern.ch/root/html/TH1.html#TH1:Multiply">*** TH1 Member Function ***</a>
 virtual void Multiply(const TH1* h1, const TH1* h2, Double_t c1 = 1, Double_t c2 = 1, Option_t* option = "")
 {
   rb::ScopedLock<rb::Mutex> LOCK (TTHREAD_GLOBAL_MUTEX);
-  return AS_TH1->Multiply(h1, h2, c1, c2, option);
+  /*return*/ AS_TH1->Multiply(h1, h2, c1, c2, option);
 }
 /// <a href = "http://root.cern.ch/root/html/TH1.html#TH1:Paint">*** TH1 Member Function ***</a>
 virtual void Paint(Option_t* option = "")

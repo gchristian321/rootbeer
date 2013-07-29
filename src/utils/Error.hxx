@@ -1,12 +1,13 @@
 //! \file Error.hxx
 //! \brief Defines C++ style error printing classes.
 #ifndef __MAKECINT__
-#ifndef ERROR_HXX
-#define ERROR_HXX
+#ifndef ROOTBEER_ERROR_HXX
+#define ROOTBEER_ERROR_HXX
 #include <iostream>
 #include <string>
 #include <sstream>
 #include <stdexcept>
+
 
 #define OP__(STRM, CLASS, ARGTYPE) CLASS& operator<< (ARGTYPE arg) {	\
     STRM << arg; return *this;						\
@@ -28,6 +29,8 @@
   OP__(STRM, CL, float)				\
   OP__(STRM, CL, const std::string&)
 
+namespace rb
+{
 namespace err
 {
   struct Strm
@@ -70,6 +73,8 @@ namespace err
       throw(std::invalid_argument(fStrm.str().c_str()));
     }
   };
+}
+
 }
 
 #define ERR_FILE_LINE "\nFile, line: " << __FILE__ << ", " << __LINE__ << "."

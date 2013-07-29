@@ -145,108 +145,112 @@ namespace rb { class HistSignals; }
 class TGHistVarFrame : public TGMainFrame
 {
 private:
-	 TGCompositeFrame *fMainFrame2592;
-	 TGCompositeFrame *fMainFrame2438;
-	 TGCompositeFrame *fMainFrame1180;
-	 TGCompositeFrame *fMainFrame2078;
-	 TGCompositeFrame *fMainFrame4698;
-	 TGCompositeFrame *fMainFrame1001;
-	 TGCompositeFrame *fMainFrame942;
-	 TGCompositeFrame *fMainFrame1678;
-	 TGCompositeFrame *fMainFrame909;
-	 TGCompositeFrame *fMainFrame1598;
-	 TGCompositeFrame *fMainFrame2824;
-	 TGTab *fHistTab;
-	 TGCanvas *fHistCanvas;
-	 TGListTree *fHistTree;
-	 TGTextButton *fCommandOk; // "OK"
-	 TGTextButton *fQuit; // "Quit"
-	 TGTextButton *fVarQuit; // "Quit"
-	 TGTextEntry *fCommandEntry;
-	 TGLabel *fCommandLabel; // "Command (member function)"
-	 TGTextButton *fDrawButton; // "Draw"
-	 TGTextButton *fDeleteButton; // "Delete"
-	 TGGroupFrame *fHistCreateFrame; // "Create New"
-	 TGNumberEntryField *fHighX;
-	 TGNumberEntryField *fLowX;
-	 TGNumberEntryField *fBinsX;
-	 TGNumberEntryField *fBinsY;
-	 TGNumberEntryField *fLowY;
-	 TGNumberEntryField *fHighY;
-	 TGNumberEntryField *fBinsZ;
-	 TGNumberEntryField *fLowZ;
-	 TGNumberEntryField *fHighZ;
-	 TGLabel *fLabelX; // "x"
-	 TGLabel *fLabelY; // "y"
-	 TGLabel *fLabelZ; // "z"
-	 TGLabel *fLabelParameter; // "Parameter"
-	 TGLabel *fLabelBins; // "Bins"
-	 TGLabel *fLabelLow; // "Low"
-	 TGLabel *fLabelHigh; // "High"
-	 TGComboBox *fTypeEntry;
-	 TGTextEntry *fGateEntry;
-	 TGLabel *fGateLabel; // "Gate"
-	 TGTextEntry *fNameEntry;
-	 TGTextEntry *fTitleEntry;
-	 TGLabel *fTypeLabel; // "Type"
-	 TGComboBox *fParamZ; // ""
-	 TGComboBox *fParamY; // ""
-	 TGComboBox *fParamX; // ""
-	 TGComboBox *fEventEntry;
-	 TGLabel *fEventLabel; // "Event type"
-	 TGLabel *fNameLabel; // "Name"
-	 TGLabel *fTitleLabel; // "Title"
-	 TGTextButton *fHistCreateButton; // "Create/Replace"
-	 TGTextButton *fHistRegateButton; // "Regate"
-	 TGGroupFrame *fHistConfigFrame; // "Configuration File"
-	 TGTextButton *fHistSaveButton; // "Save"
-	 TGTextButton *fHistLoadButton; // "Load"
-	 TGTextEntry *fDrawOptionEntry;
-	 TGTextButton *fMkdirButton; // "New Directory"
-	 TGLabel *fDrawOptionLabel; // "Draw option:"
-	 TGGroupFrame *fVariablesFrame; // "Variables"
-	 TGCanvas *fVariablesCanvas;
-	 TGListTree *fVariablesTree;
-	 TGTextButton *fReadVarButton; // "Read Value"
-	 TGTextButton *fSetVarButton; // "Set Value"
-	 TGNumberEntryField *fVarEntry;
-	 TGGroupFrame *fConfigAllFrame; // "Configuration Files"
-	 TGTextButton *fConfigHistSaveButton; // "Save Histograms"
-	 TGTextButton *fConfigVarSaveButton; // "Save Variables"
-	 TGTextButton *fConfigCanvasSaveButton; // "Save Canvases"
-	 TGTextButton *fConfigAllSaveButton; // "Save All"
-	 TGTextButton *fConfigAllLoadButton; // "Load"
-	 TGGroupFrame *fConfigLoadMethodFrame; // "Load Method"
-	 TGRadioButton *fConfigLoadMethodReset; // "Reset"
-	 TGRadioButton *fConfigLoadMethodOverwrite; // "Overwrite"
-	 TGRadioButton *fConfigLoadMethodCumulate; // "Cumulate"
+	TGCompositeFrame *fMainFrame2592;
+	TGCompositeFrame *fMainFrame2438;
+	TGCompositeFrame *fMainFrame1180;
+	TGCompositeFrame *fMainFrame2078;
+	TGCompositeFrame *fMainFrame4698;
+	TGCompositeFrame *fMainFrame1001;
+	TGCompositeFrame *fMainFrame942;
+	TGCompositeFrame *fMainFrame1678;
+	TGCompositeFrame *fMainFrame909;
+	TGCompositeFrame *fMainFrame1598;
+	TGCompositeFrame *fMainFrame2824;
+	TGTab *fHistTab;
+	TGCanvas *fHistCanvas;
+	TGListTree *fHistTree;
+	TGTextButton *fCommandOk; // "OK"
+	TGTextButton *fQuit; // "Quit"
+	TGTextButton *fVarQuit; // "Quit"
+	TGTextEntry *fCommandEntry;
+	TGLabel *fCommandLabel; // "Command (member function)"
+	TGTextButton *fDrawButton; // "Draw"
+	TGTextButton *fDeleteButton; // "Delete"
+	TGGroupFrame *fHistCreateFrame; // "Create New"
+	TGNumberEntryField *fHighX;
+	TGNumberEntryField *fLowX;
+	TGNumberEntryField *fBinsX;
+	TGNumberEntryField *fBinsY;
+	TGNumberEntryField *fLowY;
+	TGNumberEntryField *fHighY;
+	TGNumberEntryField *fBinsZ;
+	TGNumberEntryField *fLowZ;
+	TGNumberEntryField *fHighZ;
+	TGLabel *fLabelX; // "x"
+	TGLabel *fLabelY; // "y"
+	TGLabel *fLabelZ; // "z"
+	TGLabel *fLabelParameter; // "Parameter"
+	TGLabel *fLabelBins; // "Bins"
+	TGLabel *fLabelLow; // "Low"
+	TGLabel *fLabelHigh; // "High"
+	TGComboBox *fTypeEntry;
+	TGTextEntry *fGateEntry;
+	TGLabel *fGateLabel; // "Gate"
+	TGTextEntry *fNameEntry;
+	TGTextEntry *fTitleEntry;
+	TGLabel *fTypeLabel; // "Type"
+	TGComboBox *fParamZ; // ""
+	TGComboBox *fParamY; // ""
+	TGComboBox *fParamX; // ""
+	TGComboBox *fEventEntry;
+	TGLabel *fEventLabel; // "Event type"
+	TGLabel *fNameLabel; // "Name"
+	TGLabel *fTitleLabel; // "Title"
+	TGCheckButton *fHistReplaceButton;
+	TGTextButton *fHistCreateButton; // "Create/Replace"
+	TGTextButton *fHistRegateButton; // "Regate"
+	TGGroupFrame *fHistConfigFrame; // "Configuration File"
+	TGTextButton *fHistSaveButton; // "Save"
+	TGTextButton *fHistLoadButton; // "Load"
+	TGTextEntry *fDrawOptionEntry;
+	TGTextButton *fMkdirButton; // "New Directory"
+	TGLabel *fDrawOptionLabel; // "Draw option:"
+	TGGroupFrame *fVariablesFrame; // "Variables"
+	TGCanvas *fVariablesCanvas;
+	TGListTree *fVariablesTree;
+	TGTextButton *fReadVarButton; // "Read Value"
+	TGTextButton *fSetVarButton; // "Set Value"
+	TGNumberEntryField *fVarEntry;
+	TGGroupFrame *fConfigAllFrame; // "Configuration Files"
+	TGTextButton *fConfigHistSaveButton; // "Save Histograms"
+	TGTextButton *fConfigVarSaveButton; // "Save Variables"
+	TGTextButton *fConfigCanvasSaveButton; // "Save Canvases"
+	TGTextButton *fConfigAllSaveButton; // "Save All"
+	TGTextButton *fConfigAllLoadButton; // "Load"
+	TGGroupFrame *fConfigLoadMethodFrame; // "Load Method"
+	TGRadioButton *fConfigLoadMethodReset; // "Reset"
+	TGRadioButton *fConfigLoadMethodOverwrite; // "Overwrite"
+	TGRadioButton *fConfigLoadMethodCumulate; // "Cumulate"
 
 public:
-	 /// \brief Create a new rootbeer histogram/variable gui window
-	 /// \details Simply calls the TGMainFrame constructor
-	 TGHistVarFrame(const TGWindow* p = 0, UInt_t w = 1, UInt_t h = 1, UInt_t options = kVerticalFrame) :
-		 TGMainFrame(p, w, h, options) { }
+	/// \brief Create a new rootbeer histogram/variable gui window
+	/// \details Simply calls the TGMainFrame constructor
+	TGHistVarFrame(const TGWindow* p = 0, UInt_t w = 1, UInt_t h = 1, UInt_t options = kVerticalFrame) :
+		TGMainFrame(p, w, h, options) { }
 
-	 /// \brief Free all resources upon window destruction.
-	 /// \details Closes all signal/socket connections (by calling destructors of TQObjects).
-	 /// \todo See todo for TGRbeerFrame, same situation here.
-	 ~TGHistVarFrame();
+	/// \brief Free all resources upon window destruction.
+	/// \details Closes all signal/socket connections (by calling destructors of TQObjects).
+	/// \todo See todo for TGRbeerFrame, same situation here.
+	~TGHistVarFrame();
 
-	 /// \brief Set up the layout of the gui components.
-	 /// \note Most of the code in this function was generated by TGuiBuilder, then modified by hand to tweak
-	 /// the look and to be made compatible with the class layout.
-	 void HistGuiLayout();
+	/// \brief Set up the layout of the gui components.
+	/// \note Most of the code in this function was generated by TGuiBuilder, then modified by hand to tweak
+	/// the look and to be made compatible with the class layout.
+	void HistGuiLayout();
 
-	 /// \brief Create all TQObject connections between signals emitted from gui objects and rb::Signals
-	 void MakeHistConnections();
+	/// \brief Create all TQObject connections between signals emitted from gui objects and rb::Signals
+	void MakeHistConnections();
+	
+	/// \brief Process GUI message
+	Bool_t ProcessMessage(Long_t msg, Long_t parm1, Long_t parm2);
 
 private:
-	 /// Memory cleanup
-	 void DeleteMembers();
+	/// Memory cleanup
+	void DeleteMembers();
 
 public:
-	 /// Allow rb::Signals access to class data.
-	 friend class rb::HistSignals;
+	/// Allow rb::Signals access to class data.
+	friend class rb::HistSignals;
 };
 
 

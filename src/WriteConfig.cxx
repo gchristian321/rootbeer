@@ -1,7 +1,12 @@
 //! \file WriteConfig.cxx
 //! \brief Implements methods related to saving configuration files.
-//!  \details Put in a separate file because they're verbose and we want to avoid cluttering
-//!  Rootbeer.cxx
+//! \details Put in a separate file because they're verbose and we want to avoid cluttering
+//! Rootbeer.cxx
+//! \todo This whole thing should be scrapped redone with a better method. As is, it's buggy
+//! and will be near possible to maintain/fix. I was thinking something more like providing SavePrimitive()
+//! methods for the rb::hist classes as well as directories and then using that. Another option is to forget
+//! the "primitive" method entirely and use something more along the lines of TObject::Write, possibly with
+//! XML files.
 #include <iostream>
 #include <fstream>
 #include <TCanvas.h>
@@ -51,11 +56,11 @@ void write_summary_hist(rb::hist::Summary* rbhist, std::ostream& ofs) {
 	ofs << "  rb::hist::NewSummary(\"" << rbhist->GetName() << "\", \"" << title << "\", " ;
 	Int_t orientation = rbhist->GetOrientation();
 	Bool_t vertical = orientation == rb::hist::Summary::VERTICAL;
-	TAxis* axis = vertical? rbhist->GetXaxis() : rbhist->GetYaxis();
+	TAxis* axis = vertical? rbhist->GetYaxis() : rbhist->GetXaxis();
 	std::string orient_arg =  vertical? "v" : "h";
 	ofs << axis->GetNbins() << ", " << axis->GetBinLowEdge(1) << ", " << axis->GetBinLowEdge(1+axis->GetNbins()) <<", ";
 	std::string param = rbhist->GetInitialParams();
-	ofs << "\"" << param << "\", \"" << rbhist->GetGate() << "\", \"" << orient_arg << "\", " << rbhist->GetEventCode() << ");\n";
+	ofs << "\"" << param << "\", \"" << rbhist->GetGate() << "\", " << rbhist->GetEventCode() <<  ", \"" << orient_arg << "\");\n";
 }
 
 void write_bit_hist(rb::hist::Bit* rbhist, std::ostream& ofs) {
@@ -301,19 +306,22 @@ void rb::ReadConfig(const char* filename, Option_t* option) {
   else if(!opt.CompareTo("r")) {
 		std::vector<TObject*> objects = get_object_vector(gROOT->GetList());
 		for(std::vector<TObject*>::iterator it = objects.begin(); it != objects.end(); ++it) {
-			if (try_delete<TDirectory>(*it));
-			else if (try_delete<rb::hist::Base>(*it));
+			if (try_delete<TDirectory>(*it))
+				;
+			else if (try_delete<rb::hist::Base>(*it))
+				;
 		}
 		std::vector<TObject*> specials = get_object_vector(gROOT->GetList());
 		for(std::vector<TObject*>::iterator it = specials.begin(); it != specials.end(); ++it) {
-			try_delete<TCutG>(*it);
+			try_delete<TCutG>(*it)
+				;
 		}
     ReadConfig(filename, "c");
   }
   else {
     Error("ReadConfig", "Valid options are: \"r\" (reset), \"o\" (overwrite), and \"c\" (cumulate).");
   }
-	if(gApp()->GetHistSignals()) gApp()->GetHistSignals()->SyncHistTree();
+	if(Rint::gApp()->GetHistSignals()) Rint::gApp()->GetHistSignals()->SyncHistTree();
 }
 
 namespace {
@@ -327,15 +335,15 @@ Int_t get_n_subpads(TPad* pad) {
 void write_canvas_hist(TH1* th1, std::ostream& ofs) {
 	rb::hist::Base* hist = 0;
 	if(th1) {
-		rb::EventVector_t events = rb::gApp()->GetEventVector();
+		rb::EventVector_t events = rb::Rint::gApp()->GetEventVector();
 		for(UInt_t k = 0; k< events.size(); ++k) {
-			hist = rb::gApp()->GetEvent(events[k].first)->FindHistogram(th1);
+			hist = rb::Rint::gApp()->GetEvent(events[k].first)->FindHistogram(th1);
 			if(hist) {
 				TDirectory* dir = hist->GetDirectory();
 				const std::string dir_path = dir->GetPath();
 						
-				ofs << "  if(rb::Cd(\"" << dir_path << "\", true) &&  rb::gApp()->FindHistogram(\"" << hist->GetName() << "\"))\n"
-						<< "      rb::gApp()->FindHistogram(\"" << hist->GetName() << "\")->Draw();\n";
+				ofs << "  if(rb::Cd(\"" << dir_path << "\", true) &&  rb::Rint::gApp()->FindHistogram(\"" << hist->GetName() << "\"))\n"
+						<< "      rb::Rint::gApp()->FindHistogram(\"" << hist->GetName() << "\")->Draw(\"" << th1->GetDrawOption() << "\");\n";
 				break;
 			}
 		}
@@ -362,6 +370,16 @@ void recurse_pad(TPad* pad, TCanvas* owner, std::vector<Int_t>& path, std::ostre
 		}
 	}
 }
+inline Int_t NumSubpads(TVirtualPad* p) {
+	Int_t i = 0;
+	while(p->GetPad(1+i)) ++i;
+	return i;
+}
+void write_canvas(TCanvas* c, std::ostream& ofs) {
+	ofs << "TCanvas* ctemp = new TCanvas(\"" << c->GetName() << "\", \"" << c->GetTitle()
+			<< "\", " << c->GetWindowTopX() << ", " << c->GetWindowTopY() << ", "
+			<< c->GetWindowWidth() << ", " << c->GetWindowHeight()<<")\n";
+}
 
 }
 
@@ -385,9 +403,14 @@ Int_t rb::WriteCanvases(const char* fname, Bool_t prompt) {
 	for(Int_t i=0; i< gROOT->GetListOfCanvases()->GetEntries(); ++i) {
 		TCanvas* canvas = dynamic_cast<TCanvas*>(gROOT->GetListOfCanvases()->At(i));
 	 	if(!canvas) continue;
-		canvas->SaveSource(tmpfile.str().c_str());
+		{
+			Int_t gei = gErrorIgnoreLevel;
+			gErrorIgnoreLevel = 5001;
+			canvas->SaveSource(tmpfile.str().c_str());
+			gErrorIgnoreLevel = gei;
+		}
 		std::ifstream ifs(tmpfile.str().c_str());
-		std::string line, pad_name = "";
+		std::string line, pad_name = "", canvas_name = "";
 		for(int i=0; i< 3; ++i) std::getline(ifs, line);
 		while(1) {
 			std::getline(ifs, line);
@@ -395,12 +418,23 @@ Int_t rb::WriteCanvases(const char* fname, Bool_t prompt) {
 			if(line.find("------------>Primitives in pad") < line.size()) {
 				pad_name = line.substr(std::string("// ------------>Primitives in pad: ").size());
 				ofs << line << "\n";
+				if(canvas_name.empty() == false)
+					ofs << "   " << canvas_name << "->cd();" << "\n\n";
+				while(1) {
+					std::getline(ifs, line);
+					TString ts(line.c_str());
+					if(ts.IsWhitespace() || ifs.good() == false) break;
+					ofs << line << "\n";
+				}
 			}
 			else if(line.find("   TCanvas *") < line.size()) {
 				pad_name = line.substr(line.find("(")+2, line.find(",") - (line.find("(")+2)-1);
 				ofs << line << "\n";
+        canvas_name = pad_name;
 			}
-			else if(line.find("   TH1D *") < line.size()) {
+			else if(line.find("   TH1D *") < line.size() ||
+							line.find("   TH2D *") < line.size() ||
+							line.find("   TH3D *") < line.size() ) {
 				std::stringstream cmd;
 				cmd << pad_name << "->cd();";
 				gROOT->ProcessLine(cmd.str().c_str());
@@ -410,21 +444,33 @@ Int_t rb::WriteCanvases(const char* fname, Bool_t prompt) {
 							 write_canvas_hist(dynamic_cast<TH1*>(gPad->GetListOfPrimitives()->At(i)), ofs);
 					}
 				}
-				while(line.find("->Draw()") > line.size()) {
+				ofs << "\n";
+				int nwhitespace = 0;
+				while(0) {
 					std::getline(ifs, line);
+					TString ts(line.c_str());
+					if(ts.IsWhitespace()) ++nwhitespace;
+					if(nwhitespace == 2) break;
+					if(ifs.good() == false) break;
 				}
 			}
 			else if (line == "}");
-			else {
+			else if (0) {
 				ofs << line << "\n";
 			}
 		}
 		std::stringstream rm_cmd;
 		rm_cmd << "rm -f " << tmpfile.str();
-		gSystem->Exec(rm_cmd.str().c_str());
+//		gSystem->Exec(rm_cmd.str().c_str());
+
+		if(NumSubpads(gPad) != 0)
+			ofs << "   " << gPad->GetName() << "->cd(1);\n";
+		else
+			ofs << "   " << gPad->GetName() << "->cd( );\n";
 	}
+
 	ofs << "\n}\n";
-	current->cd();
+	if(current) current->cd();
 	return 0;
 }
 
@@ -459,8 +505,10 @@ Int_t rb::WriteCanvases(const char* fname, Bool_t prompt) {
 Int_t rb::ReadCanvases(const char* fname) {
 	std::vector<TObject*> canvases = get_object_vector(gROOT->GetListOfCanvases());
 	for(std::vector<TObject*>::iterator it = canvases.begin(); it != canvases.end(); ++it)
-		 try_delete<TCanvas>(*it);
+		try_delete<TCanvas>(*it)
+			;
 	std::string cmd = ".x "; cmd += fname;
 	gROOT->ProcessLine(cmd.c_str());
+
   return 0;
 }

@@ -73,7 +73,6 @@ TGSelectDialog::TGSelectDialog(const TGWindow *p, const TGWindow *main,
    fCancel = new TGTextButton(hf, "&Cancel", 2);
    fCancel->Associate(this);
    hf->AddFrame(fCancel, new TGLayoutHints(kLHintsCenterY | kLHintsExpandX, 5, 5, 0, 0));
-   height = fCancel->GetDefaultHeight();
    width  = TMath::Max(width, fCancel->GetDefaultWidth());
 
    // place button frame (hf) at the bottom
