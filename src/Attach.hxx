@@ -79,6 +79,58 @@ inline void FileAttach::Go(const char* filename, Bool_t stopAtEnd) {
 }
 
 
+// \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// \\\\\\\\\\\\  LIST  \\\\\\\\\\\\//
+// \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+
+//! Class for attaching to offline lists
+class ListAttach
+{
+private:
+	//! Timeout time
+	Long_t fTimeout;
+	//! Pointer to TTimer object
+	boost::scoped_ptr<TTimer> fTimer;
+	//! Pointer to a BufferSource derived class used for getting and unpacking buffers.
+	boost::scoped_ptr<BufferSource> fBuffer;
+	//! Name (path) of the offline list.
+	std::string kListName;
+	//! File names in the list
+	std::vector<std::string> fFileNames;
+	//! Current file index
+	size_t fFileIndex;
+	//! Buffer counter
+	Long_t fNbuffers;
+
+public:
+	//! \details Take care of EOF cleanup
+	virtual ~ListAttach();
+	//! \brief Open the list, loop contents and use fBuffer to extract and unpack data.
+	void TimerAction();
+		//! \brief Conststructs a \c new instance of rb::ListAttach and calls StartLoop()
+	static void Go(const char* filename);
+	//! \brief Stop timer and end attachment
+	static void Stop();
+
+private:
+	//! \brief Set kListName, initialize fBuffer to the result
+	//! of BufferSource::New()
+	ListAttach(const char* filename);
+	//! Start running the loop
+	void StartLoop();
+};
+
+inline void rb::ListAttach::StartLoop() {
+	fTimer.reset(new AttachTimer<ListAttach>(fTimeout, this));
+	fTimer->Start();
+}
+
+inline void ListAttach::Go(const char* listname) {
+	ListAttach * f = new ListAttach(listname);
+	f->StartLoop();
+}
+
+
 // // \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // // \\\\\\\\\\\\ ONLINE \\\\\\\\\\\\//
 // // \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
@@ -136,6 +188,7 @@ inline void OnlineAttach::Go(const char* source, const char* other, char** other
 }
 
 Bool_t FileAttached();
+Bool_t ListAttached();
 Bool_t OnlineAttached();
 
 } // namespace rb
@@ -143,6 +196,7 @@ Bool_t OnlineAttached();
 
 #ifdef __MAKECINT__
 #pragma link C++ class rb::AttachTimer<rb::FileAttach>+;
+#pragma link C++ class rb::AttachTimer<rb::ListAttach>+;
 #pragma link C++ class rb::AttachTimer<rb::OnlineAttach>+;
 #endif
 

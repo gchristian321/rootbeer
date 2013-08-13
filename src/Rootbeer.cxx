@@ -31,17 +31,16 @@ void rb::AttachOnline(const char* host, const char* other, char** others, int no
 // void rb::AttachFile                                   //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 void rb::AttachFile(const char* filename, Bool_t stop_at_end) {
-  rb::Unattach();
+  if(!ListAttached()) rb::Unattach();
 	rb::FileAttach::Go(filename, stop_at_end);
 }
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // void rb::AttachList                                   //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-void rb::AttachList(const char* filename) { ///\todo Implement
-	assert(!"Implement me!!");
+void rb::AttachList(const char* filename) {
   rb::Unattach();
-//  rb::ListAttach::Go(filename);
+  rb::ListAttach::Go(filename);
 }
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
@@ -50,7 +49,7 @@ void rb::AttachList(const char* filename) { ///\todo Implement
 void rb::Unattach() {
 	rb::OnlineAttach::Stop();
 	rb::FileAttach::Stop();
-//	rb::ListAttach::Stop();
+	rb::ListAttach::Stop();
 }
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//

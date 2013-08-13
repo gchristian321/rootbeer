@@ -58,10 +58,6 @@ inline Int_t find_timer(TClass* timerclass, TTimer*& output) {
 	return retval;
 }
 
-Bool_t ListAttached() {
-	return kFALSE;
-}
-
 void start_save(const std::string& save_fname) {
 	TDirectory* current = gDirectory;
 	if(!current) current = gROOT;
@@ -98,6 +94,10 @@ Bool_t rb::OnlineAttached() {
 	return check_attached<rb::OnlineAttach>();
 }
 
+Bool_t rb::ListAttached() {
+	return check_attached<rb::ListAttach>();
+}
+
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 //\\\\\\\\\\\\ Class rb::FileAttached \\\\\\\\\\\\//
@@ -110,7 +110,12 @@ rb::FileAttach::FileAttach(const char* filename, Bool_t stopAtEnd):
 	kFileName(filename),
 	kStopAtEnd(stopAtEnd),
 	fNbuffers(0) {
-	rb::Unattach();
+
+	TString file1 = kFileName;
+	gSystem->ExpandPathName(file1);
+	kFileName = file1;
+
+	if(!ListAttached()) rb::Unattach();
 	call_begin_run(); 	// call begin run on all events
 
 	if(!ListAttached()) {
@@ -195,6 +200,54 @@ void rb::FileAttach::TimerAction() {
   fBuffer->CloseFile();
 	fTimer->TurnOff();
 };
+
+
+
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+//\\\\\\\\\\\\ Class rb::ListAttached \\\\\\\\\\\\//
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+
+rb::ListAttach::ListAttach(const char* filename):
+	fTimeout(ATTACH_TIMEOUT),
+	fTimer(0),
+	fBuffer(0),
+	kListName(filename),
+	fNbuffers(0),
+	fFileIndex(0) {
+	rb::Unattach();
+
+	// parse input file
+	std::ifstream ifs(kListName.c_str());
+	std::string line;
+	while(1) {
+		std::getline(ifs, line);
+		if(!ifs.good()) break;
+
+		line = line.substr(0, line.find("#"));
+		fFileNames.push_back(line);
+	}
+
+}
+
+rb::ListAttach::~ListAttach() {
+}
+
+void rb::ListAttach::Stop() {
+	TTimer* t;
+	while(find_timer(rb::AttachTimer<rb::ListAttach>::Class(), t)) {
+		t->TurnOff();
+	}	
+}
+
+void rb::ListAttach::TimerAction() {
+	if(rb::FileAttached() == false) {
+		size_t index = fFileIndex++;
+		if(index < fFileNames.size())
+			rb::AttachFile(fFileNames.at(index).c_str(), kTRUE);
+		else
+			fTimer->TurnOff();
+	}
+}
 
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
