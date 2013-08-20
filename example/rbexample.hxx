@@ -3,6 +3,11 @@
 
 // C++ / ROOT includes
 #include <memory>
+///
+/// \file rbexample.hxx
+/// \brief Shows a simple example of how to tie in user analysis
+/// codes with ROOTBEER.
+///
 #include <fstream>
 #include <iostream>
 #include <TRandom3.h>

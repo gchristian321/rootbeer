@@ -1,3 +1,6 @@
+///
+/// \file Linkdef.h
+/// \brief Example user linkdef file
 #ifdef __MAKECINT__ 
 
 #pragma link off all globals; 
