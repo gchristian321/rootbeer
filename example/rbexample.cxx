@@ -87,14 +87,14 @@ Bool_t ExampleBuffer::ReadBufferOnline()
 	times[0] =  fOnline->Uniform(100, 200);
 	double which = fOnline->Uniform(0,1);
 	if(which > 0.85) {
-		energies[0] = fOnline->Gaus(511,20);
+		energies[indices[0]] = fOnline->Gaus(511,20);
 	} else {
-		energies[0] = fOnline->Exp(800);
+		energies[indices[0]] = fOnline->Exp(800);
 	}
 
 	for(Int_t i=1; i< ndetectors; ++i) {
-		energies[i] = fOnline->Exp(300);
-		times[i] = fOnline->Uniform(100, 200);
+		energies[indices[i]] = fOnline->Exp(300);
+		times[indices[i]] = fOnline->Uniform(100, 200);
 	}
 
 	uint32_t both[64];

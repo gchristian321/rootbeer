@@ -2,3 +2,4 @@
 *.so
 rbexample
 AnalyzerDict.*
+genfile*

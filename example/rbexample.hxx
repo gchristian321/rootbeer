@@ -3,6 +3,7 @@
 
 // C++ / ROOT includes
 #include <memory>
+#include <fstream>
 #include <iostream>
 #include <TRandom3.h>
 
