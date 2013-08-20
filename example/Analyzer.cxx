@@ -1,4 +1,3 @@
-///
 /// \file Analyzer.cxx
 /// \brief Example analysis codes for an experiment.
 ///
