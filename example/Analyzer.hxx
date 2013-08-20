@@ -1,6 +1,11 @@
+///
+/// \file Analyzer.hxx
+/// \brief Example analysis codes for an experiment.
+///
 #ifndef ROOTBEER_ANALYZER_ANALYZER_HXX
 #define ROOTBEER_ANALYZER_ANALYZER_HXX
 
+/// Number of detector channels
 static const int NUM_CHANNELS = 32;
 
 /// Sample Class for a detector

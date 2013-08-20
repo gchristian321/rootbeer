@@ -1,3 +1,7 @@
+///
+/// \file Analyzer.hxx
+/// \brief Example analysis codes for an experiment.
+///
 #include <string.h>
 #include <stdint.h>
 #include <algorithm>
