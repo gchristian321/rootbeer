@@ -399,7 +399,7 @@ Int_t rb::WriteCanvases(const char* fname, Bool_t prompt) {
       << "\n"
       << "{\n\n";
 	std::stringstream tmpfile;
-	tmpfile << "TEMP_" << ts.GetTime();
+	tmpfile << "/tmp/ROOTBEER_TEMP_" << ts.GetTime();
 	for(Int_t i=0; i< gROOT->GetListOfCanvases()->GetEntries(); ++i) {
 		TCanvas* canvas = dynamic_cast<TCanvas*>(gROOT->GetListOfCanvases()->At(i));
 	 	if(!canvas) continue;

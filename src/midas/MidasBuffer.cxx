@@ -251,6 +251,10 @@ Bool_t rb::MidasBuffer::ReadBufferOnline()
 	/// - Check status of client w/ cm_yield()
 	status = cm_yield(timeout);
 
+	cm_set_watchdog_params(TRUE,  60*1000);
+	cm_watchdog(0);
+	cm_set_watchdog_params(FALSE, 60*1000);
+
 	/// - Then check for an event
 	if (status != RPC_SHUTDOWN) status = bm_receive_event (fBufferHandle, fBuffer, &size, ASYNC);
 
