@@ -461,8 +461,8 @@ void rb::hist::Scaler::Clear() {
 // Int_t rb::hist::Scaler::DoFill() [virtual]            //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 Int_t rb::hist::Scaler::DoFill(const std::vector<Double_t>& params) {
-	this->Extend(1.5);
-	visit::hist::SetBinContent::Do(fHistVariant, fNumEvents++, params[0]);
+	// this->Extend(1.5);
+	visit::hist::SetBinContent::Do(fHistVariant, 1 + fNumEvents++, params[0]);
 	return params[0];
 }
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
