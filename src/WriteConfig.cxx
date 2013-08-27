@@ -73,6 +73,16 @@ void write_bit_hist(rb::hist::Bit* rbhist, std::ostream& ofs) {
 	ofs << "\"" << param << "\", \"" << rbhist->GetGate() << "\", " << rbhist->GetEventCode() << ");\n";
 }
 
+void write_scaler_hist(rb::hist::Scaler* rbhist, std::ostream& ofs) {
+	std::string title = rbhist->UseDefaultTitle() ? "" : rbhist->GetTitle();
+	for(int i=0; i< ntabs; ++i) ofs << "    ";
+	ofs << "  rb::hist::NewScaler(\"" << rbhist->GetName() << "\", \"" << title << "\", " ;
+	TAxis* axis = rbhist->GetXaxis();
+	ofs << axis->GetNbins() << ", " << axis->GetBinLowEdge(1) << ", " << axis->GetBinLowEdge(1 + axis->GetNbins()) << ", ";
+	std::string param = rbhist->GetInitialParams();
+	ofs << "\"" << param << "\", \"" << rbhist->GetGate() << "\", " << rbhist->GetEventCode() << ");\n";
+}
+
 /// Write a histogram constructor format to a stream.
 void write_hist(TObject* object, std::ostream& ofs) {
   rb::hist::Base* rbhist = dynamic_cast<rb::hist::Base*>(object);
@@ -82,11 +92,13 @@ void write_hist(TObject* object, std::ostream& ofs) {
 	std::string class_name = rbhist->ClassName();
 	class_name = class_name.substr(std::string("rb::hist::").size());
 	if(class_name == "D1" || class_name == "D2" || class_name == "D3" || class_name == "Gamma")
-		 write_std_hist(rbhist, ofs);
+		write_std_hist(rbhist, ofs);
 	else if(class_name == "Summary")
-		 write_summary_hist(static_cast<rb::hist::Summary*>(rbhist), ofs);
+		write_summary_hist(static_cast<rb::hist::Summary*>(rbhist), ofs);
 	else if(class_name == "Bit")
-		 write_bit_hist(static_cast<rb::hist::Bit*>(rbhist), ofs);
+		write_bit_hist(static_cast<rb::hist::Bit*>(rbhist), ofs);
+	else if(class_name == "Scaler")
+		write_scaler_hist(static_cast<rb::hist::Scaler*>(rbhist), ofs);
 	else;
 }
 
