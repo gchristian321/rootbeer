@@ -26,6 +26,10 @@ namspace boost { template <class T> class scoped_ptr; }
 // #define RB_DATA_ON_STACK
 namespace rb
 {
+
+typedef struct mxml_struct XmlNode;
+typedef struct mxml_writer XmlWriter;
+
 namespace data
 {
 /// \brief Abstract base class facilitating access to the values of basic data members of user's classes in CINT.
@@ -70,6 +74,8 @@ public:
 	class Printer
 	{
  public:
+		//! Write constructor elements as an XML node
+		void SaveXML(rb::XmlWriter*);
 		//! Save the constructor syntax for each element to a std::ostream
 		void SavePrimitive(std::ostream& strm);
 		//! Print the full name and value of each data::MBasic instance

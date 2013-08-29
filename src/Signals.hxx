@@ -99,7 +99,9 @@ public:
 	void ClickedLoadButton(Int_t);
 	void WriteConfig(Int_t which);
 	void ReadConfig(Bool_t);
+	void ReadHistConfig(Bool_t);
 	void ReadCanvasConfig();
+	void ReadVariablesConfig();
 	void SyncVariables();
 	void ReadVariable(TGListTreeItem*, Int_t);
 	void ReadVariable();

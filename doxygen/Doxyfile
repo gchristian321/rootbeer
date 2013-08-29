@@ -674,6 +674,7 @@ INPUT                  = /Users/gchristian/packages/rootbeer/src \
                          /Users/gchristian/packages/rootbeer/src/user \
                          /Users/gchristian/packages/rootbeer/src/hist \
                          /Users/gchristian/packages/rootbeer/src/midas \
+			 /Users/gchristian/packages/rootbeer/src/mxml \
                          /Users/gchristian/packages/rootbeer/example \
                          /Users/gchristian/packages/rootbeer/doxygen
 

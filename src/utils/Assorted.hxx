@@ -52,6 +52,10 @@ inline TString expand_path(const TString& static_, const TString& dynamic_) {
 	if(expandResult == kTRUE) { // Not in environment
 		out = static_;
 	}
+	FileStat_t dummy;
+	if(gSystem->GetPathInfo(out, dummy)) { // Directory doesn't exist
+		out = static_;
+	}
 	return out;
 }
 inline std::string expand_path_std(const TString& static_, const char* dynamic_) {

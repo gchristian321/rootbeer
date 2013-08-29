@@ -169,3 +169,17 @@ rb::BufferSource* rb::BufferSource::New()
 	/// `new ExampleBuffer()`
 	return new ExampleBuffer();
 }
+
+const char** rb::BufferSource::GetDefaultExtensions()
+{
+	///
+	/// Here we tell rootbeer what type of extensions to look for by 
+	/// default when attaching to file via the GUI.
+	static const char* ext[] = {
+		"Example data file", "*dat", 
+		"All files", "*.*",
+		0, 0
+	};
+
+	return ext;
+}

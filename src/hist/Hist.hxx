@@ -26,8 +26,13 @@
 #include "utils/Critical.hxx"
 #include "utils/nocopy.h"
 
+
 namespace rb
 {
+
+typedef struct mxml_struct XmlNode;
+typedef struct mxml_writer XmlWriter;
+
 namespace hist
 {
 
@@ -157,6 +162,9 @@ public:
 	Base() : kEventCode(0), kDimensions(0), fManager(0) {}
 
 public:
+	/// Construct a new histogram from an XML node
+	static Base* ConstructXML(rb::XmlNode*, Bool_t replace = kFALSE);
+
 	/// Destructor
 	virtual ~Base();
 
@@ -183,6 +191,9 @@ public:
 
 	/// Write to disk
 	Int_t Write(const char* name = 0, Int_t option = 0, Int_t bufsize = 0);
+
+	/// \brief Write constructor information as an XML node
+	virtual void WriteXML(rb::XmlWriter*);
 
 #ifndef __MAKECINT__
 	/// Unlocked version of Fill().
@@ -268,6 +279,8 @@ protected:
 		Base(name, title, param, gate, manager, event_code, nbinsx, xlow, xhigh)
 		{ }
 public:
+  /// \brief XML constructor output
+	virtual void WriteXML(rb::XmlWriter*);
 	friend class rb::hist::Manager;
 	ClassDef(rb::hist::D1, 0);
 };
@@ -282,6 +295,8 @@ protected:
 		Base(name, title, param, gate, manager, event_code, nbinsx, xlow, xhigh, nbinsy, ylow, yhigh)
 		{ }
 public:
+  /// \brief XML constructor output
+	virtual void WriteXML(rb::XmlWriter*);
 	friend class rb::hist::Manager;
 	ClassDef(rb::hist::D2, 0);
 };
@@ -299,6 +314,8 @@ protected:
 		{ }
 
 public:
+  /// \brief XML constructor output
+	virtual void WriteXML(rb::XmlWriter*);
 	friend class rb::hist::Manager;
 	ClassDef(rb::hist::D3, 0);
 };
@@ -326,6 +343,8 @@ private:
 	const std::string kOrientArg;
 
 public:
+  /// \brief XML constructor output
+	virtual void WriteXML(rb::XmlWriter*);
 	/// Override hist::Base parameter initialization
 	virtual void InitParams(const char* params, Int_t event_code);
 	/// Override hist::Base filling procedure
@@ -412,6 +431,8 @@ protected:
 	virtual Int_t DoFill(const std::vector<Double_t>& params);
 
 public:
+  /// \brief XML constructor output
+	virtual void WriteXML(rb::XmlWriter*);
 	friend class rb::hist::Manager;
 	ClassDef(rb::hist::Bit, 0);
 };
@@ -426,6 +447,8 @@ private:
 	/// Event counter
 	Long64_t fNumEvents;
 public:
+  /// \brief XML constructor output
+	virtual void WriteXML(rb::XmlWriter*);
 	/// Override clear, needs to also set fNumEvents = 0
 	virtual void Clear();
 protected:
@@ -451,6 +474,7 @@ public:
 };
 
 } // namespace hist
+
 } // namespace rb
 
 
