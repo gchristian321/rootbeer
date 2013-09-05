@@ -2,525 +2,600 @@
 //! \brief Implements methods related to saving configuration files.
 //! \details Put in a separate file because they're verbose and we want to avoid cluttering
 //! Rootbeer.cxx
-//! \todo This whole thing should be scrapped redone with a better method. As is, it's buggy
-//! and will be near possible to maintain/fix. I was thinking something more like providing SavePrimitive()
-//! methods for the rb::hist classes as well as directories and then using that. Another option is to forget
-//! the "primitive" method entirely and use something more along the lines of TObject::Write, possibly with
-//! XML files.
-#include <iostream>
+#include <vector>
 #include <fstream>
+#include <iostream>
 #include <TCanvas.h>
-#include <TFrame.h>
-#include <TTimeStamp.h>
 #include <TCutG.h>
 #include "Rootbeer.hxx"
 #include "Rint.hxx"
 #include "Data.hxx"
 #include "Signals.hxx"
+#include "utils/Assorted.hxx"
 #include "hist/Hist.hxx"
-using namespace std;
+#include "mxml/mxml.hxx"
 
 
-namespace {
 
-/// Tells the writing functions how many tabs to indent by.
-Int_t ntabs = 2;
-
-// Some helper functions, etc.
-
-/// Return axis based on number code
-TAxis* get_axis(rb::hist::Base* hst, UInt_t n) {
-  switch(n) {
-  case 0: return hst->GetXaxis(); break;
-  case 1: return hst->GetYaxis(); break;
-  case 2: return hst->GetZaxis(); break;
-  default: return 0;
-  }
-}
-
-void write_std_hist(rb::hist::Base* rbhist, std::ostream& ofs) {
-	std::string title = rbhist->UseDefaultTitle() ? "" : rbhist->GetTitle();
-	for(int i=0; i< ntabs; ++i) ofs << "    ";
-	ofs << "  rb::hist::New(\"" << rbhist->GetName() << "\", \"" << title << "\", " ;
-	for(UInt_t dim = 0; dim < rbhist->GetNdimensions(); ++dim) {
-		TAxis* axis = get_axis(rbhist, dim);
-    ofs << axis->GetNbins() << ", " << axis->GetBinLowEdge(1) << ", " << axis->GetBinLowEdge(1+axis->GetNbins()) <<", ";
-	}
-	std::string param = rbhist->GetInitialParams();
-	ofs << "\"" << param << "\", \"" << rbhist->GetGate() << "\", " << rbhist->GetEventCode() << ");\n";
-}
-
-void write_summary_hist(rb::hist::Summary* rbhist, std::ostream& ofs) {
-	std::string title = rbhist->UseDefaultTitle() ? "" : rbhist->GetTitle();
-	for(int i=0; i< ntabs; ++i) ofs << "    ";
-	ofs << "  rb::hist::NewSummary(\"" << rbhist->GetName() << "\", \"" << title << "\", " ;
-	Int_t orientation = rbhist->GetOrientation();
-	Bool_t vertical = orientation == rb::hist::Summary::VERTICAL;
-	TAxis* axis = vertical? rbhist->GetYaxis() : rbhist->GetXaxis();
-	std::string orient_arg =  vertical? "v" : "h";
-	ofs << axis->GetNbins() << ", " << axis->GetBinLowEdge(1) << ", " << axis->GetBinLowEdge(1+axis->GetNbins()) <<", ";
-	std::string param = rbhist->GetInitialParams();
-	ofs << "\"" << param << "\", \"" << rbhist->GetGate() << "\", " << rbhist->GetEventCode() <<  ", \"" << orient_arg << "\");\n";
-}
-
-void write_bit_hist(rb::hist::Bit* rbhist, std::ostream& ofs) {
-	std::string title = rbhist->UseDefaultTitle() ? "" : rbhist->GetTitle();
-	for(int i=0; i< ntabs; ++i) ofs << "    ";
-	ofs << "  rb::hist::NewBit(\"" << rbhist->GetName() << "\", \"" << title << "\", " ;
-	TAxis* axis = rbhist->GetXaxis();
-	ofs << axis->GetNbins() << ", ";
-	std::string param = rbhist->GetInitialParams();
-	ofs << "\"" << param << "\", \"" << rbhist->GetGate() << "\", " << rbhist->GetEventCode() << ");\n";
-}
-
-void write_scaler_hist(rb::hist::Scaler* rbhist, std::ostream& ofs) {
-	std::string title = rbhist->UseDefaultTitle() ? "" : rbhist->GetTitle();
-	for(int i=0; i< ntabs; ++i) ofs << "    ";
-	ofs << "  rb::hist::NewScaler(\"" << rbhist->GetName() << "\", \"" << title << "\", " ;
-	TAxis* axis = rbhist->GetXaxis();
-	ofs << axis->GetNbins() << ", " << axis->GetBinLowEdge(1) << ", " << axis->GetBinLowEdge(1 + axis->GetNbins()) << ", ";
-	std::string param = rbhist->GetInitialParams();
-	ofs << "\"" << param << "\", \"" << rbhist->GetGate() << "\", " << rbhist->GetEventCode() << ");\n";
-}
-
-/// Write a histogram constructor format to a stream.
-void write_hist(TObject* object, std::ostream& ofs) {
-  rb::hist::Base* rbhist = dynamic_cast<rb::hist::Base*>(object);
-  if(!rbhist) return;
-  TH1* hst = rbhist->GetHist();
-  if(!hst) return;
-	std::string class_name = rbhist->ClassName();
-	class_name = class_name.substr(std::string("rb::hist::").size());
-	if(class_name == "D1" || class_name == "D2" || class_name == "D3" || class_name == "Gamma")
-		write_std_hist(rbhist, ofs);
-	else if(class_name == "Summary")
-		write_summary_hist(static_cast<rb::hist::Summary*>(rbhist), ofs);
-	else if(class_name == "Bit")
-		write_bit_hist(static_cast<rb::hist::Bit*>(rbhist), ofs);
-	else if(class_name == "Scaler")
-		write_scaler_hist(static_cast<rb::hist::Scaler*>(rbhist), ofs);
-	else;
-}
-
-/// Write a diretory constructor to a stream.
-Bool_t write_directory(TObject* object, std::ostream& ofs) {
-  TDirectory* dir = dynamic_cast<TDirectory*>(object);
-  if(!dir) return kFALSE;
-  TDirectory* mother = dir->GetMotherDir();
-  if(!mother) return kFALSE;
-	mother->cd();
-	std::string title = "";
-	if(gDirectory != gROOT) { title = gDirectory->GetTitle(); title += "/"; }
-	title += dir->GetName();
-  ofs << "\n"; for(int i=0; i< ntabs; ++i) ofs << "    ";
-	ofs << "  rb::Mkdir(\"" << dir->GetName() << "\", \"" << title << "\");\n";
-  ++ntabs;
-  return kTRUE;
-}
-
-/// Recurse through all directories, write their owned histograms
-/// to a stream as well as the directory constructors themselves.
-void recurse_directory(TDirectory* dir, std::ostream& ofs, Bool_t top = true) {
-  for(Int_t i=0; i< dir->GetList()->GetEntries(); ++i) {
-    write_hist(dir->GetList()->At(i), ofs);
-  }
-  //  ++ntabs;
-  for(Int_t i=0; i< dir->GetList()->GetEntries(); ++i) {
-    if(write_directory(dir->GetList()->At(i), ofs)) {
-      recurse_directory(static_cast<TDirectory*>(dir->GetList()->At(i)), ofs, false);
-    }
-  }
-	if(!top) {
-		for(int i=0; i< ntabs; ++i) ofs << "    ";
-		ofs << "  " << "gDirectory->GetMotherDir()->cd();\n";
-	}
-  --ntabs;
-}
-
-inline void write_hists_and_directories(std::ostream& ofs) {
-  TDirectory* dirInitial = gDirectory;
-  std::string initialName = (dirInitial == gROOT) ? "gROOT" : dirInitial->GetName();
-
-  gROOT->cd();
-  ofs << "  // DIRECTORIES AND HISTOGRAMS //\n";
-  ofs << "  // gROOT\n";
-	ofs << "  gROOT->cd();\n";
-  recurse_directory(gROOT, ofs);
-  dirInitial->cd();
-}
-
-
-/// Save a TCutG.
-void write_cut(TObject* obj, std::ostream& ofs)
-{
-  TCutG* cut = dynamic_cast<TCutG*>(obj);
-  if(!cut) return;
-  const char* nme   = cut->GetName();
-  const char* varx  = cut->GetVarX();
-  const char* vary  = cut->GetVarY();
-  const Width_t www = cut->GetLineWidth();
-  const Color_t ccc = cut->GetLineColor();
-  Int_t np = cut->GetN();
-
-  Double_t xx, yy;
-  std::stringstream sX, sY;
-  sX << "     Double_t px[] = { " ;
-  sY << "     Double_t py[] = { " ;
-  for(Int_t i=0; i< np; ++i) {
-    cut->GetPoint(i, xx, yy);
-    if(i < np-1) {
-      sX << xx << ", ";
-      sY << yy << ", ";
-    } else {
-      sX << xx << " };\n";
-      sY << yy << " };\n";
-    }
-  }
-  ofs << sX.str() << sY.str();
-  ofs << "     TCutG* " << nme << " = rb::CreateTCutG(\"" << nme << "\", " << np << ", px, py, ";
-	ofs << "\"" << varx << "\", \"" << vary << "\", " << www << ", " << ccc << ");\n";
-}
-
-
-/// Ask user to overwrite a file or not.
-Bool_t overwrite(const char* fname) {
-  Bool_t out = kTRUE;
-  ifstream ifs(fname, ios::in);
-  if(ifs.good()) {
-    std::string answer;
-    cout << "The file " << fname << " already exists. Overwrite (y/n)?\n";
-    cin  >> answer;
-    if(!(answer == "y" || answer == "Y")) out = kFALSE;
-  }
-  ifs.close();
-  return out;
-}
-} // namespace
-
-// Write rootbeer configuration file
-Int_t rb::WriteConfig(const char* fname, Bool_t prompt) {
-  if(prompt) {
-    if(!overwrite(fname))
-			 return 1;
-  }
-  TTimeStamp ts; std::string ts_str = ts.AsString("l");
-
-  ofstream ofs(fname, ios::out);
-  ofs << "// ROOTBEER CONFIGURATION FILE \n"
-      << "// " << fname << "\n"
-      << "// Generated on " << ts_str << "\n"
-      << "\n"
-      << "{\n\n";
-
-  ofs << "  // CONTOUR GATES //\n";
-  for(Int_t i=0; i< gROOT->GetListOfSpecials()->GetEntries(); ++i) {
-    write_cut(gROOT->GetListOfSpecials()->At(i), ofs);
-  }
-  ofs << "\n\n";
-
-  write_hists_and_directories(ofs);
-
-  ofs << "\n\n" << "  // VARIABLES //\n";
-  data::MBasic::Printer p;
-  p.SavePrimitive(ofs);
-
-  ofs << "\n}";
-  return 0;
-}
-
-// Just write the histograms.
-Int_t rb::WriteHistograms(const char* fname, Bool_t prompt) {
-  if(prompt) {
-    if(!overwrite(fname))
-			 return 1;
-  }
-  TTimeStamp ts; std::string ts_str = ts.AsString("l");
-
-  ofstream ofs(fname, ios::out);
-  ofs << "// ROOTBEER HISTOGRAM CONFIGURATION FILE \n"
-      << "// " << fname << "\n"
-      << "// Generated on " << ts_str << "\n"
-      << "\n"
-      << "{\n\n";
-
-  write_hists_and_directories(ofs);
-
-
-  ofs << "\n}";
-  return 0;
-}
-
-Int_t rb::WriteVariables(const char* fname, Bool_t prompt) {
-  if(prompt) {
-    if(!overwrite(fname))
-			 return 1;
-  }
-  TTimeStamp ts; std::string ts_str = ts.AsString("l");
-
-  ofstream ofs(fname, ios::out);
-  ofs << "// ROOTBEER VARIABLE CONFIGURATION FILE \n"
-      << "// " << fname << "\n"
-      << "// Generated on " << ts_str << "\n"
-      << "\n"
-      << "{\n\n";
-
-
-  ofs << "\n\n" << "  // VARIABLES //\n";
-  data::MBasic::Printer p;
-  p.SavePrimitive(ofs);
-
-  ofs << "\n}";
-  return 0;
-}
-
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// GENERIC HELPER FUNCTIONS               //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 
 namespace {
-std::vector<TObject*>
-get_object_vector(TSeqCollection* collection) {
-	std::vector<TObject*> out;
-	for(int i=0; i< collection->GetSize(); ++i)
-		 out.push_back(collection->At(i));
-	return out;
+
+//
+// Check for existance of a file, returns true if okay to proceed
+// (and overwrite if existing), false otherwise.
+Bool_t check_file(const char* name) {
+	Bool_t retval = true;
+	std::ifstream ifs(name);
+	if(ifs.good()) {
+		std::string answer;
+		std::cout << "The file " << name << " exists. Overwrite (y/n)?\n";
+		std::cin  >> answer;
+		if(!(answer == "y" || answer == "Y")) {
+			std::cout << "Aborting...\n";
+			retval = false;
+		}
+	}
+	return retval;
 }
 
-template <class T>
-Bool_t try_delete(TObject* object) {
-	Bool_t ret = true;
-	T* t = dynamic_cast<T*>(object);
-	if(t) delete t;
-	else ret = false;
-	return ret;
+//
+// Create an XML writer into a new file
+rb::XmlWriter* get_xml_writer(const char* filename, bool prompt, int& code) {
+	code = 0;
+	TString filename1 = filename;
+	{
+		TErrorIgnore ignore(5001);
+		gSystem->ExpandPathName(filename1);
+	}
+	if(prompt && check_file(filename1) == false) {
+		code = 1;
+		return 0;
+	}
+	
+	rb::XmlWriter* writer = rb::mxml_open_file(filename1);
+	if(!writer) code = -1;
+	return writer;
+}
+
+//
+// Find the XML tree in a file
+rb::XmlNode* get_xml_tree(const char* filename, TString& errmsg) {
+	TString filename1 = filename;
+	{
+		TErrorIgnore ignore(5001);
+		gSystem->ExpandPathName(filename1);
+	}
+	char err[4096]; int errcode;
+	rb::XmlNode *tree = rb::mxml_parse_file(filename1, err, sizeof(err), &errcode);
+	if(!tree) errmsg = err;
+	return tree;
 } }
 
-void rb::ReadConfig(const char* filename, Option_t* option) {
-  ifstream ifs(filename);
-  if(ifs.fail()) {
-    Error("ReadConfig", "The file %s wasn't found or isn't readable.", filename);
-    return;
-  }
-  ifs.close();
+		
 
-  TString opt(option);
-  opt.ToLower();
-  if(0);
-  else if(!opt.CompareTo("c")) {
-    std::stringstream sstr;
-    sstr << ".x " << filename;
-    gROOT->ProcessLine(sstr.str().c_str());
-  }
-  else if(!opt.CompareTo("o")) {
-		Bool_t changed1 = rb::hist::Base::SetOverwrite(true);
-		Bool_t changed2 = rb::SetTCutGOverwrite(true);
-		ReadConfig(filename, "c");
-		if(changed1) rb::hist::Base::SetOverwrite(false);
-		if(changed2) rb::SetTCutGOverwrite(false);
-  }
-  else if(!opt.CompareTo("r")) {
-		std::vector<TObject*> objects = get_object_vector(gROOT->GetList());
-		for(std::vector<TObject*>::iterator it = objects.begin(); it != objects.end(); ++it) {
-			if (try_delete<TDirectory>(*it))
-				;
-			else if (try_delete<rb::hist::Base>(*it))
-				;
-		}
-		std::vector<TObject*> specials = get_object_vector(gROOT->GetList());
-		for(std::vector<TObject*>::iterator it = specials.begin(); it != specials.end(); ++it) {
-			try_delete<TCutG>(*it)
-				;
-		}
-    ReadConfig(filename, "c");
-  }
-  else {
-    Error("ReadConfig", "Valid options are: \"r\" (reset), \"o\" (overwrite), and \"c\" (cumulate).");
-  }
-	if(Rint::gApp()->GetHistSignals()) Rint::gApp()->GetHistSignals()->SyncHistTree();
-}
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// XML VARIABLES                        //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+// WRITE                                //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 
 namespace {
-Int_t get_n_subpads(TPad* pad) {
-	Int_t out = 0;
-	for(Int_t i=0; i< pad->GetListOfPrimitives()->GetEntries(); ++i) {
-		if(dynamic_cast<TPad*>(pad->GetListOfPrimitives()->At(i))) ++out;
-	}
-	return out;
-}
-void write_canvas_hist(TH1* th1, std::ostream& ofs) {
-	rb::hist::Base* hist = 0;
-	if(th1) {
-		rb::EventVector_t events = rb::Rint::gApp()->GetEventVector();
-		for(UInt_t k = 0; k< events.size(); ++k) {
-			hist = rb::Rint::gApp()->GetEvent(events[k].first)->FindHistogram(th1);
-			if(hist) {
-				TDirectory* dir = hist->GetDirectory();
-				const std::string dir_path = dir->GetPath();
-						
-				ofs << "  if(rb::Cd(\"" << dir_path << "\", true) &&  rb::Rint::gApp()->FindHistogram(\"" << hist->GetName() << "\"))\n"
-						<< "      rb::Rint::gApp()->FindHistogram(\"" << hist->GetName() << "\")->Draw(\"" << th1->GetDrawOption() << "\");\n";
-				break;
-			}
-		}
-	}
-}
-void recurse_pad(TPad* pad, TCanvas* owner, std::vector<Int_t>& path, std::ostream& ofs) {
-	for(Int_t i=0; i< pad->GetListOfPrimitives()->GetEntries(); ++i) {
-		*(path.end()-1)++;
-		TH1* th1 = dynamic_cast<TH1*>(pad->GetListOfPrimitives()->At(i));
-		TPad* subpad = dynamic_cast<TPad*>(pad->GetListOfPrimitives()->At(i));
-		if(th1) {
-			ofs << "Int_t path[" << path.size() << "] = { ";
-			for(UInt_t j=0; j< path.size(); ++j) {
-				ofs << path[j];
-				if(j<path.size()-1) ofs << ", ";
-			}
-			ofs << " };\n";
-			ofs << "rb::CdPad(" << owner->GetName() << ", path, " << path.size() << ");\n";
-			write_canvas_hist(th1, ofs);
-		}
-		else if(subpad) {
-			path.push_back(0);
-			recurse_pad(subpad, owner, path, ofs);
-		}
-	}
-}
-inline Int_t NumSubpads(TVirtualPad* p) {
-	Int_t i = 0;
-	while(p->GetPad(1+i)) ++i;
-	return i;
-}
-void write_canvas(TCanvas* c, std::ostream& ofs) {
-	ofs << "TCanvas* ctemp = new TCanvas(\"" << c->GetName() << "\", \"" << c->GetTitle()
-			<< "\", " << c->GetWindowTopX() << ", " << c->GetWindowTopY() << ", "
-			<< c->GetWindowWidth() << ", " << c->GetWindowHeight()<<")\n";
-}
+void write_variable_nodes(rb::XmlWriter* writer) {
+	mxml_write_comment(writer, "ROOTBEER Variables");
+	mxml_start_element(writer, "variables");
+	rb::data::MBasic::Printer p;
+  p.SaveXML(writer);
+	mxml_end_element(writer);
+} }
 
-}
-
-Int_t rb::WriteCanvases(const char* fname, Bool_t prompt) {
-	TVirtualPad* current = 0;
-	if(gPad) current = gPad;
-  if(prompt) {
-    if(!overwrite(fname))
-			 return 1;
-  }
-  TTimeStamp ts; std::string ts_str = ts.AsString("l");
-
-  ofstream ofs(fname, ios::out);
-  ofs << "// ROOTBEER CANVAS CONFIGURATION FILE \n"
-      << "// " << fname << "\n"
-      << "// Generated on " << ts_str << "\n"
-      << "\n"
-      << "{\n\n";
-	std::stringstream tmpfile;
-	tmpfile << "TEMP_" << ts.GetTime();
-	for(Int_t i=0; i< gROOT->GetListOfCanvases()->GetEntries(); ++i) {
-		TCanvas* canvas = dynamic_cast<TCanvas*>(gROOT->GetListOfCanvases()->At(i));
-	 	if(!canvas) continue;
-		{
-			Int_t gei = gErrorIgnoreLevel;
-			gErrorIgnoreLevel = 5001;
-			canvas->SaveSource(tmpfile.str().c_str());
-			gErrorIgnoreLevel = gei;
-		}
-		std::ifstream ifs(tmpfile.str().c_str());
-		std::string line, pad_name = "", canvas_name = "";
-		for(int i=0; i< 3; ++i) std::getline(ifs, line);
-		while(1) {
-			std::getline(ifs, line);
-			if(!ifs.good()) break;
-			if(line.find("------------>Primitives in pad") < line.size()) {
-				pad_name = line.substr(std::string("// ------------>Primitives in pad: ").size());
-				ofs << line << "\n";
-				if(canvas_name.empty() == false)
-					ofs << "   " << canvas_name << "->cd();" << "\n\n";
-				while(1) {
-					std::getline(ifs, line);
-					TString ts(line.c_str());
-					if(ts.IsWhitespace() || ifs.good() == false) break;
-					ofs << line << "\n";
-				}
-			}
-			else if(line.find("   TCanvas *") < line.size()) {
-				pad_name = line.substr(line.find("(")+2, line.find(",") - (line.find("(")+2)-1);
-				ofs << line << "\n";
-        canvas_name = pad_name;
-			}
-			else if(line.find("   TH1D *") < line.size() ||
-							line.find("   TH2D *") < line.size() ||
-							line.find("   TH3D *") < line.size() ) {
-				std::stringstream cmd;
-				cmd << pad_name << "->cd();";
-				gROOT->ProcessLine(cmd.str().c_str());
-				if(gPad) {
-					for(Int_t i=0; i< gPad->GetListOfPrimitives()->GetEntries(); ++i) {
-						if(dynamic_cast<TH1*>(gPad->GetListOfPrimitives()->At(i)))
-							 write_canvas_hist(dynamic_cast<TH1*>(gPad->GetListOfPrimitives()->At(i)), ofs);
-					}
-				}
-				ofs << "\n";
-				int nwhitespace = 0;
-				while(0) {
-					std::getline(ifs, line);
-					TString ts(line.c_str());
-					if(ts.IsWhitespace()) ++nwhitespace;
-					if(nwhitespace == 2) break;
-					if(ifs.good() == false) break;
-				}
-			}
-			else if (line == "}");
-			else if (0) {
-				ofs << line << "\n";
-			}
-		}
-		std::stringstream rm_cmd;
-		rm_cmd << "rm -f " << tmpfile.str();
-//		gSystem->Exec(rm_cmd.str().c_str());
-
-		if(NumSubpads(gPad) != 0)
-			ofs << "   " << gPad->GetName() << "->cd(1);\n";
-		else
-			ofs << "   " << gPad->GetName() << "->cd( );\n";
-	}
-
-	ofs << "\n}\n";
-	if(current) current->cd();
+Int_t rb::WriteVariablesXML(const char* filename, Bool_t prompt) {
+	int code;
+	XmlWriter* writer = get_xml_writer(filename, prompt, code);
+	if(!writer) return code;
+	
+	write_variable_nodes(writer);
+	mxml_close_file(writer);
 	return 0;
 }
 
-  // ofs << "// ROOTBEER CANVAS CONFIGURATION FILE \n"
-  //     << "// " << fname << "\n"
-  //     << "// Generated on " << ts_str << "\n"
-  //     << "\n"
-  //     << "{\n\n";
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+// READ                                 //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 
-	// for(Int_t i=0; i< gROOT->GetListOfCanvases()->GetEntries(); ++i) {
-	// 	TCanvas* canvas = dynamic_cast<TCanvas*>(gROOT->GetListOfCanvases()->At(i));
-	// 	if(!canvas) continue;		
-	// 	ofs << "  TCanvas* " << canvas->GetName() << " = new TCanvas(\""
-	// 			<< canvas->GetName() << "\", \"" << canvas->GetTitle() << "\", "
-	// 			<< canvas->GetWindowTopX() << ", " << canvas->GetWindowTopY() << ", "
-	// 			<< canvas->GetWw() << ", " << canvas->GetWh() << ");\n";
-	// 	if(get_n_subpads(canvas))
-	// 		 ofs << "  " << canvas->GetName() << "->Divide"
-			
-	// 	for(Int_t j=0; j< canvas->GetListOfPrimitives()->GetEntries(); ++j) {
-	// 		TH1* th1 = dynamic_cast<TH1*>(canvas->GetListOfPrimitives()->At(j));
-	// 		TPad* pad = dynamic_cast<TPad*>(canvas->GetListOfPrimitives()->At(j));
-	// 		std::vector<Int_t> path;
-	// 		if(th1) write_canvas_hist(th1, ofs);
-	// 		else if(pad) recurse_pad(pad, canvas, path, ofs);
-	// 	}
-	// }
-	// ofs <<"\n}\n";
-  // return 0;
-// }
+namespace {
+void read_variables_tree(rb::XmlNode* tree, bool quiet) {
+	rb::XmlNode* varsnode = rb::mxml_find_node(tree, "variables");
+	if(!varsnode) {
+		if(!quiet) rb::err::Error("ReadVariablesXML") << "No \"variables\" node";
+		return;
+	}
+	
+	for(int i=0; i< rb::mxml_get_number_of_children(varsnode); ++i) {
+		rb::XmlNode* child = rb::mxml_subnode(varsnode, i);
+		if(!strcmp(rb::mxml_get_name(child), "var")) {
+			TString name  = rb::mxml_get_attribute(child, "name");
+			TString type  = rb::mxml_get_attribute(child, "type");
+			TString value = rb::mxml_get_value(child);			
 
-Int_t rb::ReadCanvases(const char* fname) {
-	std::vector<TObject*> canvases = get_object_vector(gROOT->GetListOfCanvases());
-	for(std::vector<TObject*>::iterator it = canvases.begin(); it != canvases.end(); ++it)
-		try_delete<TCanvas>(*it)
+			if(!type.Contains("const"))
+				rb::data::SetValue(name, value.Atof());
+		}
+	}
+} }
+
+void rb::ReadVariablesXML(const char* filename) {
+	TString err;
+	XmlNode *tree = get_xml_tree(filename, err);
+	if(!tree) {
+		rb::err::Error("ReadVariablesXML") << err << "\n";
+	} else {
+		read_variables_tree(tree, false);
+	}
+
+	if(tree) rb::mxml_free_tree(tree);
+}
+
+
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// XML HISTOGRAMS                       //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+// WRITE                                //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+namespace {
+void write_dir(rb::XmlWriter *w, TDirectory* dir) {
+	mxml_start_element(w, "TDirectory");
+	mxml_write_attribute(w, "name", dir->GetName());
+	mxml_write_attribute(w, "title", dir->GetTitle());
+}
+
+void recurse_dir(rb::XmlWriter *w, TDirectory* dir, bool writeHead = true) {
+	if(writeHead) write_dir(w, dir);
+	for(int i=0; i< dir->GetList()->GetEntries(); ++i) {
+		TObject* obj = dir->GetList()->At(i); 
+		if(obj->InheritsFrom(TDirectory::Class())) {
+			recurse_dir(w, (TDirectory*)obj);
+		}
+		else if (obj->InheritsFrom(rb::hist::Base::Class())) {
+			static_cast<rb::hist::Base*>(obj)->WriteXML(w);
+		}
+	}
+	mxml_end_element(w);
+}
+
+void write_cuts_xml(rb::XmlWriter* w) {
+	for(Int_t i=0; i< gROOT->GetListOfSpecials()->GetEntries(); ++i) {
+		TObject* special = gROOT->GetListOfSpecials()->At(i);
+		if(special->InheritsFrom(TCutG::Class())) {
+			TCutG* cut = (TCutG*)special;
+			rb::mxml_start_element(w, "TCutG");
+			rb::mxml_write_attribute(w, "name",  cut->GetName());
+			rb::mxml_write_attribute(w, "title", cut->GetTitle());
+			rb::mxml_write_attribute(w, "varx",  cut->GetVarX());
+			rb::mxml_write_attribute(w, "vary",  cut->GetVarY());
+			rb::mxml_write_attribute(w, "lw", Form("%d", cut->GetLineWidth()));
+			rb::mxml_write_attribute(w, "lc", Form("%d", cut->GetLineColor()));
+
+			for(int i=0; i< cut->GetN(); ++i) {
+				rb::mxml_start_element(w, "point");
+				Double_t x, y; cut->GetPoint(i, x, y);
+				rb::mxml_write_value(w, Form("%lf %lf", x, y));
+				rb::mxml_end_element(w);
+			}
+
+			rb::mxml_end_element(w);
+		}
+	}
+} 
+
+void write_hist_nodes(rb::XmlWriter* writer) {
+	mxml_write_comment(writer, "Graphical Cuts");
+	mxml_start_element(writer, "cuts");
+	write_cuts_xml(writer);
+	mxml_end_element(writer);
+
+	mxml_write_comment(writer, "ROOTBEER Histograms");
+	mxml_start_element(writer, "histograms");
+	recurse_dir(writer, gROOT, false);
+	mxml_end_element(writer);
+} }
+
+
+Int_t rb::WriteHistXML(const char* filename, Bool_t prompt) {
+	int code;
+	XmlWriter* writer = get_xml_writer(filename, prompt, code);
+	if(!writer) return code;
+
+	write_hist_nodes(writer);
+	mxml_close_file(writer);
+	return 0;
+}
+
+
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+// READ                                 //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+namespace {
+void recurse_dir_read(rb::XmlNode* node, TDirectory* parent, bool replace) {
+	if(!parent) {
+		std::cerr << "Error: parent == 0\n";
+		return;
+	}
+	parent->cd();
+	TDirectory* dir = parent;
+	if(!strcmp(rb::mxml_get_name(node), "TDirectory")) {
+		string name = rb::mxml_get_attribute(node, "name");
+		string title = rb::mxml_get_attribute(node, "title");
+
+		std::stringstream cmd;
+		cmd << "rb::Mkdir(\"" << name << "\", \"" << title << "\");";
+		dir = (TDirectory*)gROOT->ProcessLineFast(cmd.str().c_str());
+	}
+	for(int i=0; i< rb::mxml_get_number_of_children(node); ++i) {
+		rb::mxml_struct *node1 = rb::mxml_subnode(node, i);
+		if(!node1)
+			continue;
+		else if(!strcmp(rb::mxml_get_name(node1), "TDirectory"))
+			recurse_dir_read(node1, dir, replace);
+		else {
+			rb::hist::Base::ConstructXML(node1, replace);
+		}
+	}
+}
+
+void delete_all_hists_and_dirs() {
+	gROOT->cd();
+	for(int i=0; i< gROOT->GetList()->GetEntries(); ++i) {
+		delete gROOT->GetList()->At(i);
+	}
+	rb::Rint::gApp()->GetHistSignals()->SyncHistTree(); 
+}
+
+void read_cut(rb::XmlNode* node, bool replace) {
+	std::vector<Double_t> xpoints, ypoints;
+	for(int i=0; i< mxml_get_number_of_children(node); ++i) {
+		rb::XmlNode* point = mxml_subnode(node, i);
+		if(!strcmp(mxml_get_name(point), "point")) {
+			Double_t x, y;
+			char* val = mxml_get_value(point);
+			sscanf(val, "%lf %lf", &x, &y);
+
+			xpoints.push_back(x);
+			ypoints.push_back(y);
+		}
+	}
+
+	TString name  = mxml_get_attribute(node, "name");
+	TString title = mxml_get_attribute(node, "title");
+	TString varx  = mxml_get_attribute(node, "varx");
+	TString vary  = mxml_get_attribute(node, "vary");
+	Width_t lw = atoi(mxml_get_attribute(node, "lw"));
+	Color_t lc = atoi(mxml_get_attribute(node, "lc"));
+
+	TObject* existing = gROOT->GetListOfSpecials()->FindObject(name);
+	if(existing && existing->InheritsFrom(TCutG::Class())) {
+		if (replace) existing->Delete();
+		else return;
+	}
+
+	TCutG* cut = new TCutG(name, xpoints.size(), &xpoints[0], &ypoints[0]);
+	cut->SetVarX(varx);
+	cut->SetVarY(vary);	
+	cut->SetTitle(title);
+	cut->SetLineWidth(lw);
+	cut->SetLineColor(lc);
+} 
+
+void read_hist_tree(rb::XmlNode* tree, Option_t* option, bool quiet) {
+	// figure out option
+	Int_t replace;
+	TString opt1(option);
+	opt1.ToLower();
+	if     (opt1 == "r") replace = 2; // reset
+	else if(opt1 == "o") replace = 1; // overwrite
+	else if(opt1 == "c") replace = 0; // cumulate
+	else {
+		rb::err::Warning("ReadHistXML")
+			<< "Option " << option << " not valid, defaulting to \"reset\".";
+		replace = 2;
+	}
+
+	if(replace == 2) { // reset
+		// delete cuts
+		for(int i=0; i< gROOT->GetListOfSpecials()->GetEntries(); ++i) {
+			if(gROOT->GetListOfSpecials()->At(i)->InheritsFrom(TCutG::Class()))
+				gROOT->GetListOfSpecials()->At(i)->Delete();
+		}
+		// delete hists
+		delete_all_hists_and_dirs();
+		replace = 0;
+	}
+
+	rb::XmlNode* histnode = rb::mxml_find_node(tree, "histograms");
+	if(!histnode) {
+		if(!quiet) rb::err::Error("ReadHistXML") << "No \"histograms\" node";
+		return;
+	}
+
+	//
+	// read cuts
+	rb::XmlNode* cutnode = rb::mxml_find_node(tree, "cuts");
+	if(cutnode) {
+		for(int i=0; i< rb::mxml_get_number_of_children(cutnode); ++i) {
+			rb::XmlNode* child = rb::mxml_subnode(cutnode, i);
+			if(!strcmp(rb::mxml_get_name(child), "TCutG")) read_cut(child, replace);
+		}
+	}
+
+	//
+	// read histograms
+	recurse_dir_read(histnode, gROOT, replace);
+} }
+
+void rb::ReadHistXML(const char* filename, Option_t* option)
+{
+	TString err;
+	XmlNode *tree = get_xml_tree(filename, err);
+	if(!tree) {
+		rb::err::Error("ReadHistXML") << err << "\n";
+	} else {
+		read_hist_tree(tree, option, false);
+	}
+
+	if(tree) rb::mxml_free_tree(tree);
+}
+
+
+
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// XML CANVAS                           //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+// WRITE                                //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+namespace {
+void write_canvas_hist(rb::XmlWriter* w, TH1* hst) {
+	rb::hist::Base* hrb = (rb::hist::Base*)gROOT->ProcessLineFast(hst->GetName());
+	if(!hrb) return;
+
+	TString path = "";
+	TDirectory* dir = hrb->GetDirectory();
+	while(dir->GetMotherDir()) {
+		path.Insert(0, "/");
+		path.Insert(0, dir->GetName());
+		dir = dir->GetMotherDir();
+	}
+	
+	mxml_start_element(w, "rb_hist_Base");
+	mxml_write_attribute(w, "path", path);
+	mxml_write_attribute(w, "name", hrb->GetName());
+	mxml_write_attribute(w, "opt",  hrb->GetDrawOption());
+	mxml_end_element(w);
+}
+
+void recurse_pad(rb::XmlWriter* w, TPad* pad) {
+	pad->cd();
+	if(!pad->InheritsFrom(TCanvas::Class())) {
+		mxml_start_element(w, "TPad");
+		mxml_write_attribute(w, "name",   pad->GetName());
+		mxml_write_attribute(w, "title",  pad->GetTitle());
+		mxml_write_attribute(w, "xlow",   Form("%f", pad->GetXlowNDC()));
+		mxml_write_attribute(w, "ylow",   Form("%f", pad->GetYlowNDC()));
+		mxml_write_attribute(w, "xhigh",  Form("%f", pad->GetXlowNDC() + pad->GetWNDC()));
+		mxml_write_attribute(w, "yhigh",  Form("%f", pad->GetYlowNDC() + pad->GetHNDC()));
+		mxml_write_attribute(w, "color",  Form("%d", pad->GetFillColor()));
+	}
+	for(Int_t i=0; i< pad->GetListOfPrimitives()->GetEntries(); ++i) {
+		TObject* obj =  pad->GetListOfPrimitives()->At(i);
+		if(obj->InheritsFrom(TPad::Class()))
+			recurse_pad(w, (TPad*)obj);
+		else if(obj->InheritsFrom(TH1::Class())) {
+			if( std::string(obj->GetName()).substr(0, std::string("(rb::hist::Base*)").size()) == "(rb::hist::Base*)")
+				write_canvas_hist(w, (TH1*)obj);
+		}
+	}
+	if(!pad->InheritsFrom(TCanvas::Class()))
+		mxml_end_element(w);
+} 
+
+void write_canvas_nodes(rb::XmlWriter* writer) {
+	TVirtualPad* pcur = gPad;
+	mxml_write_comment(writer, "ROOTBEER Canvas Configuration");
+	mxml_start_element(writer, "canvas");
+
+	for(Int_t i=0; i< gROOT->GetListOfCanvases()->GetEntries(); ++i) {
+		TCanvas* canvas = (TCanvas*)gROOT->GetListOfCanvases()->At(i);
+		mxml_start_element(writer, "TCanvas");
+		mxml_write_attribute(writer, "name",  canvas->GetName());
+		mxml_write_attribute(writer, "title", canvas->GetTitle());
+		mxml_write_attribute(writer, "width",  Form("%d", canvas->GetWw()));
+		mxml_write_attribute(writer, "height", Form("%d", canvas->GetWh()));
+		mxml_write_attribute(writer, "xpos",   Form("%d", canvas->GetWindowTopX()));
+		mxml_write_attribute(writer, "ypos",   Form("%d", canvas->GetWindowTopY()));
+		
+		recurse_pad(writer, canvas);
+		
+		mxml_end_element(writer);
+	}
+
+	mxml_end_element(writer);	
+	if(pcur) pcur->cd();
+} }
+
+Int_t rb::WriteCanvasXML(const char* filename, Bool_t prompt) {
+	int code;
+	XmlWriter* writer = get_xml_writer(filename, prompt, code);
+	if(!writer) return code;
+	
+	write_canvas_nodes(writer);
+	mxml_close_file(writer);
+	return 0;
+}
+
+
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+// READ                                 //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+namespace {
+TPad* create_pad(rb::XmlNode* child, Int_t& nsub) {
+	TString name   =      rb::mxml_get_attribute(child, "name");
+	TString title  =      rb::mxml_get_attribute(child, "title");
+	Double_t xlow  = atof(rb::mxml_get_attribute(child, "xlow"));
+	Double_t xhigh = atof(rb::mxml_get_attribute(child, "xhigh"));
+	Double_t ylow  = atof(rb::mxml_get_attribute(child, "ylow"));
+	Double_t yhigh = atof(rb::mxml_get_attribute(child, "yhigh"));
+	Color_t  color = atoi(rb::mxml_get_attribute(child, "color"));
+
+	TPad* p = new TPad(name, title, xlow, ylow, xhigh, yhigh, color);
+	p->SetNumber(++nsub);
+	p->Draw();
+	
+	return p;
+}
+
+void draw_hist_pad(rb::XmlNode* child) {
+	TString dirpath = rb::mxml_get_attribute(child, "path");
+	TString hstname = rb::mxml_get_attribute(child, "name");
+
+	TDirectory* current = gDirectory;
+	Bool_t cd = gROOT->cd(dirpath);
+	if(!cd) {
+		rb::err::Warning("ReadCanvasXML")
+			<< "Specified directory \"" << dirpath << "\" for the histogram \""
+			<< hstname << "\" does not exist.";
+	} else {
+		TObject* hhh = gDirectory->Get(hstname);
+		if(!hhh || !hhh->InheritsFrom(rb::hist::Base::Class())) {
+			rb::err::Warning("ReadCanvasXML")
+				<< "Specified histogram \"" << hstname << "\" does not exist in the directory \""
+				<< dirpath << "\".";
+		}
+		const char* option  = rb::mxml_get_attribute(child, "opt");
+		const char* opt = option ? option : "";
+		static_cast<rb::hist::Base*>(hhh)->Draw(opt);
+	}			
+	current->cd();
+}
+
+void recurse_canvas_read(rb::XmlNode* node, TPad* parent) {
+	if(!parent) {
+		std::cerr << "Error: parent == 0\n";
+		return;
+	}
+	parent->cd();
+	TPad* pad = parent;
+	Int_t nsub = 0;
+
+	for(int i=0; i< rb::mxml_get_number_of_children(node); ++i) {
+		parent->cd();
+		rb::XmlNode* child = rb::mxml_subnode(node, i);
+		if(!child)
+			continue;
+		else if(!strcmp(rb::mxml_get_name(child), "TPad")) {
+			TPad* p = create_pad(child, nsub);
+			recurse_canvas_read(child, p);
+		}
+		else if (!strcmp(rb::mxml_get_name(child), "rb_hist_Base")) {
+			draw_hist_pad(child);
+		}
+		else {
 			;
-	std::string cmd = ".x "; cmd += fname;
-	gROOT->ProcessLine(cmd.c_str());
+		}
+	}
+}
 
-  return 0;
+void read_canvas_tree(rb::XmlNode* tree, bool quiet) {
+	rb::XmlNode* canvases = mxml_find_node(tree, "canvas");
+	if(!canvases) {
+		if(!quiet) rb::err::Error("ReadCanvasXML") << "No \"canvas\" node";
+		return;
+	}
+
+	for(Int_t i=0; i< gROOT->GetListOfCanvases()->GetEntries(); ++i) {
+		static_cast<TCanvas*>(gROOT->GetListOfCanvases()->At(i))->Close();
+	}
+
+	for(int i=0; i< rb::mxml_get_number_of_children(canvases); ++i) {
+		rb::XmlNode* child = rb::mxml_subnode(canvases, i);
+
+		if(!strcmp(rb::mxml_get_name(child), "TCanvas")) {
+			TString name  = rb::mxml_get_attribute(child, "name");
+			TString title = rb::mxml_get_attribute(child, "title");
+			Int_t ww = atoi(rb::mxml_get_attribute(child, "width"));
+			Int_t hh = atoi(rb::mxml_get_attribute(child, "height"));
+			Int_t xx = atoi(rb::mxml_get_attribute(child, "xpos"));
+			Int_t yy = atoi(rb::mxml_get_attribute(child, "ypos"));
+
+			TCanvas* c = new TCanvas(name, title, ww, hh);
+			Int_t diffx = ww - c->GetWw(), diffy = hh - c->GetWh();
+			c->SetWindowSize(ww + diffx, hh + diffy);
+			c->SetWindowPosition(xx - diffx, yy - diffy);
+
+			recurse_canvas_read(child,  c);
+		}
+	}
+} }
+
+void rb::ReadCanvasXML(const char* filename) {
+	TString filename1 = filename;
+	{
+		TErrorIgnore ignore(5001);
+		gSystem->ExpandPathName(filename1);
+	}
+	TString err;
+	XmlNode *tree = get_xml_tree(filename, err);
+	if(!tree) {
+		rb::err::Error("ReadCanvasXML") << err << "\n";
+	} else {
+		read_canvas_tree(tree, false);
+	}
+
+	if(tree) rb::mxml_free_tree(tree);
+}
+
+
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// XML ALL                              //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+// WRITE                                //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+
+Int_t rb::WriteConfigXML(const char* filename, Bool_t prompt) {
+	int code;
+	XmlWriter* writer = get_xml_writer(filename, prompt, code);
+	if(!writer) return code;
+	
+	write_hist_nodes(writer);
+	write_canvas_nodes(writer);
+	write_variable_nodes(writer);
+
+	mxml_close_file(writer);
+	return 0;
+}
+
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+// READ                                 //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+
+void rb::ReadConfigXML(const char* filename, Option_t* option) {
+	TString err;
+	XmlNode *tree = get_xml_tree(filename, err);
+	if(!tree) {
+		rb::err::Error("ReadConfigXML") << err << "\n";
+	} else {
+		read_hist_tree(tree, option, true);
+		read_canvas_tree(tree, true);
+		read_variables_tree(tree, true);
+	}
+
+	if(tree) rb::mxml_free_tree(tree);
 }

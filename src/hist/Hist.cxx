@@ -8,6 +8,8 @@
 #include "Formula.hxx"
 #include "Rint.hxx"
 #include "Signals.hxx"
+#include "Rootbeer.hxx"
+#include "mxml/mxml.hxx"
 
 typedef std::vector<std::string> StringVector_t;
 
@@ -119,7 +121,10 @@ void rb::hist::Base::Init(const char* name, const char* title, const char* param
   kDefaultTitle = default_title(gate, param);
   kUseDefaultTitle = std::string(title).empty();
   fTitle = kUseDefaultTitle ? kDefaultTitle.c_str() : title;
-  visit::hist::DoMember(fHistVariant, &TH1::SetNameTitle, fName.Data(), fTitle.Data());
+
+	std::stringstream sstr;
+	sstr << std::hex << "(rb::hist::Base*)" << this;
+  visit::hist::DoMember(fHistVariant, &TH1::SetNameTitle, sstr.str().c_str() /*fName.Data()*/, fTitle.Data());
 
   // Set gate and parameters
   InitParams(param, event_code);
@@ -214,6 +219,15 @@ Int_t rb::hist::Base::Fill() {
 Int_t rb::hist::Base::Write(const char* name, Int_t option, Int_t bufsize) {
 	return visit::hist::Write::Do(fHistVariant, name, option, bufsize);
 }
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// rb::hist::Base::WriteXML()                            //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+void rb::hist::Base::WriteXML(rb::XmlWriter*) {
+	rb::err::Warning("WriteXML")
+		<< "Not implemented for class " << ClassName() << ", the histogram \""
+		<< GetName() << "\" will not be saved.";
+}
+
 Bool_t rb::hist::Base::CompareTH1 (TH1* th1) {
 	TH1* this_ = visit::hist::Cast::Do(fHistVariant);
 	if(th1 == this_) return true;
@@ -482,4 +496,266 @@ void rb::hist::Scaler::Extend(double factor) {
 
 		pHist->SetBins(newBins, Min, newMax);
 	}
+}
+
+
+
+
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// rb::hist::XXXXX:WriteXML()                            //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+
+namespace {
+TAxis* get_axis(rb::hist::Base* h, Int_t n) {
+	switch(n) {
+	case 0: return h->GetXaxis(); case 1: return h->GetYaxis(); case 2: return h->GetZaxis();
+	default: return 0;
+	}
+}
+
+const char* get_axis(Int_t n) {
+	switch(n) {
+	case 0: return "x"; case 1: return "y"; case 2: return "z";
+	default: return 0;
+	}
+}
+
+void write_attributes(rb::XmlWriter* w, rb::hist::Base* hist) {
+	rb::mxml_write_attribute(w, "linecolor",   Form("%d", hist->GetHist()->GetLineColor()));
+	rb::mxml_write_attribute(w, "linewidth",   Form("%d", hist->GetHist()->GetLineWidth()));
+	rb::mxml_write_attribute(w, "linestyle",   Form("%d", hist->GetHist()->GetLineStyle()));
+																												                                
+	rb::mxml_write_attribute(w, "markercolor", Form("%d", hist->GetHist()->GetMarkerColor()));
+	rb::mxml_write_attribute(w, "markersize",  Form("%f", hist->GetHist()->GetMarkerSize ()));
+	rb::mxml_write_attribute(w, "markerstyle", Form("%d", hist->GetHist()->GetMarkerStyle()));
+																												                                
+	rb::mxml_write_attribute(w, "fillcolor",   Form("%d", hist->GetHist()->GetFillColor()));
+	rb::mxml_write_attribute(w, "fillstyle",   Form("%d", hist->GetHist()->GetFillStyle()));
+}
+
+void write_xml(rb::XmlWriter* w, rb::hist::Base* h, Int_t ndim) {
+	std::string title = h->UseDefaultTitle() ? "" : h->GetTitle();
+	mxml_start_element(w, Form("rb_hist_D%d", ndim));
+	mxml_write_attribute(w, "name", h->GetName());
+	mxml_write_attribute(w, "title", title.c_str());
+
+	for(Int_t i=0; i< ndim; ++i) {
+		Int_t nbins = get_axis(h, i)->GetNbins();
+		mxml_write_attribute(w, Form("%sbins",  get_axis(i)), Form("%d", nbins));
+		mxml_write_attribute(w, Form("%slow",   get_axis(i)), Form("%f", get_axis(h, i)->GetBinLowEdge(1)));
+		mxml_write_attribute(w, Form("%shigh",  get_axis(i)), Form("%f", get_axis(h, i)->GetBinLowEdge(nbins+1)));
+	}
+
+	mxml_write_attribute(w, "param", h->GetInitialParams());
+	mxml_write_attribute(w, "gate",  h->GetGate().c_str());
+	mxml_write_attribute(w, "event", Form("%d", h->GetEventCode()));
+
+	write_attributes(w, h);
+	mxml_end_element(w);
+} }
+
+void rb::hist::D1::WriteXML(rb::XmlWriter* w) {
+	write_xml(w, this, 1);
+}
+
+void rb::hist::D2::WriteXML(rb::XmlWriter* w) {
+	write_xml(w, this, 2);
+}
+
+void rb::hist::D3::WriteXML(rb::XmlWriter* w) {
+	write_xml(w, this, 3);
+}
+
+void rb::hist::Summary::WriteXML(rb::XmlWriter* w) {
+	std::string title = UseDefaultTitle() ? "" : GetTitle();
+
+	Bool_t vertical = GetOrientation() == rb::hist::Summary::VERTICAL;
+	const char* orient = vertical ? "v" : "h";
+	TAxis* axis = vertical? GetYaxis() : GetXaxis();
+
+	mxml_start_element(w, "rb_hist_Summary");
+	mxml_write_attribute(w, "name", GetName());
+	mxml_write_attribute(w, "title", title.c_str());
+
+	mxml_write_attribute(w, "bins", Form("%d", axis->GetNbins()));
+	mxml_write_attribute(w, "low",  Form("%f", axis->GetBinLowEdge(1)));
+	mxml_write_attribute(w, "high", Form("%f", axis->GetBinLowEdge(1 + axis->GetNbins())));
+
+	mxml_write_attribute(w, "param", GetInitialParams());
+	mxml_write_attribute(w, "gate",  GetGate().c_str());
+	mxml_write_attribute(w, "event", Form("%d", GetEventCode()));
+	mxml_write_attribute(w, "orient", orient);
+
+	write_attributes(w, this);
+	mxml_end_element(w);
+}
+
+void rb::hist::Scaler::WriteXML(rb::XmlWriter* w) {
+	std::string title = UseDefaultTitle() ? "" : GetTitle();
+
+	mxml_start_element(w, "rb_hist_Scaler");
+	mxml_write_attribute(w, "name", GetName());
+	mxml_write_attribute(w, "title", title.c_str());
+
+	mxml_write_attribute(w, "bins", Form("%d", GetXaxis()->GetNbins()));
+	mxml_write_attribute(w, "low",  Form("%f", GetXaxis()->GetBinLowEdge(1)));
+	mxml_write_attribute(w, "high", Form("%f", GetXaxis()->GetBinLowEdge(1 + GetXaxis()->GetNbins())));
+
+	mxml_write_attribute(w, "param", GetInitialParams());
+	mxml_write_attribute(w, "gate",  GetGate().c_str());
+	mxml_write_attribute(w, "event", Form("%d", GetEventCode()));
+
+	write_attributes(w, this);
+	mxml_end_element(w);
+}
+
+void rb::hist::Bit::WriteXML(rb::XmlWriter* w) {
+	std::string title = UseDefaultTitle() ? "" : GetTitle();
+
+	mxml_start_element(w, "rb_hist_Bit");
+	mxml_write_attribute(w, "name", GetName());
+	mxml_write_attribute(w, "title", title.c_str());
+
+	mxml_write_attribute(w, "bins", Form("%d", GetXaxis()->GetNbins()));
+
+	mxml_write_attribute(w, "param", GetInitialParams());
+	mxml_write_attribute(w, "gate",  GetGate().c_str());
+	mxml_write_attribute(w, "event", Form("%d", GetEventCode()));
+
+	write_attributes(w, this);
+	mxml_end_element(w);
+}
+
+
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// rb::hist::Base::ReadXML()                                  //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+
+namespace {
+template <int N>
+rb::hist::Base* construct_hist(rb::XmlNode* node) {
+	const char* name = mxml_get_attribute(node, "name");
+	const char* title = mxml_get_attribute(node, "title");
+
+	Int_t bins[N]; Double_t low[N], high[N];
+	for(int i=0; i< N; ++i) {
+		bins[i]  = atoi(mxml_get_attribute(node, Form("%sbins",   get_axis(i))));
+		low[i]   = atof(mxml_get_attribute(node, Form("%slow",    get_axis(i))));
+		high[i]  = atof(mxml_get_attribute(node, Form("%shigh",   get_axis(i))));
+	}
+
+	const char* param = mxml_get_attribute(node, "param");
+	const char* gate  = mxml_get_attribute(node, "gate");
+	Int_t event  = atoi(mxml_get_attribute(node, "event"));
+
+	rb::hist::Base* hst = 0;
+	switch(N) {
+	case 1:
+		hst = rb::hist::New(name, title, bins[0], low[0], high[0], param, gate, event);
+		break;
+	case 2:
+		hst = rb::hist::New(name, title, bins[0], low[0], high[0], bins[1], low[1], high[1], param, gate, event);
+		break;
+	case 3:
+		hst = rb::hist::New(name, title, bins[0], low[0], high[0], bins[1], low[1], high[1],
+												bins[2], low[2], high[2], param, gate, event);
+		break;
+	default:
+		break;
+	}
+	return hst;
+}
+
+template <Int_t N>
+rb::hist::Base* construct_hist1(rb::XmlNode* node) {
+	const char* name  = mxml_get_attribute(node, "name");
+	const char* title = mxml_get_attribute(node, "title");
+	Int_t bins     = atoi(mxml_get_attribute(node, "bins"));
+
+	Double_t low, high;
+	if(N==1 || N==2) {
+		low   = atof(mxml_get_attribute(node, "low" ));
+		high  = atof(mxml_get_attribute(node, "high"));
+	}
+
+	const char* param  = mxml_get_attribute(node, "param");
+	const char* gate   = mxml_get_attribute(node, "gate");
+	Int_t event   = atoi(mxml_get_attribute(node, "event"));
+	const char* orient = 0;
+
+	rb::hist::Base* hst;
+
+	switch(N) {
+	case 1:
+		orient = mxml_get_attribute(node, "orient");
+		hst = rb::hist::NewSummary(name, title, bins, low, high, param, gate, event, orient);
+		break;
+	case 2:
+		hst = rb::hist::NewScaler(name, title, bins, low, high, param, gate, event);
+		break;
+	case 3:
+		hst = rb::hist::NewBit(name, title, bins, param, gate, event);
+		break;
+	default:
+		break;
+	}
+
+	return hst;
+}
+
+void set_attributes(rb::XmlNode* node, rb::hist::Base* hist) {
+	const char* lc = rb::mxml_get_attribute(node, "linecolor");
+	const char* lw = rb::mxml_get_attribute(node, "linewidth");
+	const char* ls = rb::mxml_get_attribute(node, "linestyle");
+
+	const char* mc = rb::mxml_get_attribute(node, "markercolor");
+	const char* mw = rb::mxml_get_attribute(node, "markersize");
+	const char* ms = rb::mxml_get_attribute(node, "markerstyle");
+	
+	const char* fc = rb::mxml_get_attribute(node, "fillcolor");
+	const char* fs = rb::mxml_get_attribute(node, "fillstyle");
+
+	if(lc) hist->SetLineColor(atoi(lc));
+	if(lw) hist->SetLineWidth(atoi(lw));
+	if(ls) hist->SetLineStyle(atoi(ls));
+
+	if(mc) hist->SetMarkerColor(atoi(mc));
+	if(mw) hist->SetMarkerSize (atof(mw));
+	if(ms) hist->SetMarkerStyle(atoi(ms));
+
+	if(fc) hist->SetFillColor(atoi(fc));
+	if(fs) hist->SetFillStyle(atoi(fs));
+}
+
+typedef rb::hist::Base* (*XmlReader_t) (rb::XmlNode*);
+}
+
+rb::hist::Base* rb::hist::Base::ConstructXML(rb::XmlNode* node, Bool_t replace)
+{
+	static std::map<std::string, XmlReader_t> readers;
+	if(readers.empty()) {
+		readers.insert(std::make_pair("rb_hist_D1", construct_hist<1>));
+		readers.insert(std::make_pair("rb_hist_D2", construct_hist<2>));
+		readers.insert(std::make_pair("rb_hist_D3", construct_hist<3>));
+		readers.insert(std::make_pair("rb_hist_Summary", construct_hist1<1>));
+		readers.insert(std::make_pair("rb_hist_Scaler",  construct_hist1<2>));
+		readers.insert(std::make_pair("rb_hist_Bit",     construct_hist1<3>));
+	}
+
+	rb::hist::Base* hist = 0;
+	std::string type = mxml_get_name(node);
+	std::map<std::string, XmlReader_t>::iterator it = readers.find(type);
+	if(it != readers.end()) {
+		if(replace) {
+			const char* name = mxml_get_attribute(node, "name");
+			if(name && gDirectory->Get(name) &&
+				 gDirectory->Get(name)->InheritsFrom(rb::hist::Base::Class())) {
+				gDirectory->Get(name)->Delete();
+			}	
+		}
+		hist = it->second(node);
+		set_attributes(node, hist);
+	}
+
+	return hist;
 }

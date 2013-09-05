@@ -327,6 +327,15 @@ rb::BufferSource* rb::BufferSource::New()
 	return rb::MidasBuffer::Instance();
 }
 
+const char** rb::BufferSource::GetDefaultExtensions() {
+  static const char* ext[] = {
+		"MIDAS files", "*.mid",
+		"All files", "*.*",
+		0, 0
+	};
+	return ext;
+}
+
 void rb::MidasBuffer::RunStopTransition(Int_t runnum)
 {
 	if(runnum > 0)

@@ -1,5 +1,7 @@
 //! \file Signals.cxx
 //! \brief Implements rb::Signals
+#include <memory>
+#include <iostream>
 #include <algorithm>
 #include <TROOT.h>
 #include <TString.h>
@@ -10,6 +12,7 @@
 #include "TGDivideSelect.h"
 #include "Signals.hxx"
 #include "Rootbeer.hxx"
+#include "Buffer.hxx"
 #include "Event.hxx"
 #include "Data.hxx"
 #include "Rint.hxx"
@@ -18,7 +21,6 @@
 #include "hist/Hist.hxx"
 #include "utils/Error.hxx"
 #include "utils/Assorted.hxx"
-#include <iostream>
 
 rb::Signals::Signals() { }
 
@@ -67,20 +69,15 @@ void rb::Signals::EnableSaveHists() {
 }
 
 void rb::Signals::AttachOnline() {
-	rb::AttachOnline(rb::Rint::gApp()->fRbeerFrame->fEntryHost->GetText(), rb::Rint::gApp()->fRbeerFrame->fEntryPort->GetText());
+	rb::AttachOnline(rb::Rint::gApp()->fRbeerFrame->fEntryHost->GetText(),
+									 rb::Rint::gApp()->fRbeerFrame->fEntryPort->GetText());
 }
 
 void rb::Signals::AttachFile() {
 	Bool_t continuous = !rb::Rint::gApp()->fRbeerFrame->fIsContinuous->IsOn();
 
 	TGFileInfo fileInfo;
-	const char* ext[] =
-		 { "MIDAS Files", "*.mid",
-			 "Zipped MIDAS Files", "*.mid.gz",
-			 "NSCL Event Files", "*.evt",
-			 "All Files", "*",
-			 0, 0 };
-	fileInfo.fFileTypes = reinterpret_cast<const char**>(ext);
+	fileInfo.fFileTypes = rb::BufferSource::GetDefaultExtensions();
 
 	TString dirInit = expand_path(kFileStaticDefault, "$RB_FILEDIR");
 	fileInfo.fIniDir = StrDup(dirInit);
@@ -908,27 +905,45 @@ void rb::HistSignals::SyncVariables() {
 void rb::HistSignals::WriteConfig(Int_t which) {
 	TGFileInfo fileInfo;
 	const char* ext[] =
-		 { "ROOT macro files", "*.[Cc]",
-			 "ROOT macro files", "*.cc",
-			 "ROOT macro files", "*.cxx",
-			 "All Files", "*",
-			 0, 0 };
+		{ "XML files", "*.xml",
+			"All Files", "*",
+			0, 0 };
 	fileInfo.fFileTypes = reinterpret_cast<const char**>(ext);
-	TString dirInit = expand_path(kConfigStaticDefault, "$RB_CONFIGDIR");
+
+	TString dirInit;
+	switch(which) {
+	case WRITE_CANVAS:
+		dirInit = expand_path(kConfigStaticDefault, "$RB_CONFIGDIR/canvas");
+		break;
+	case WRITE_HIST:
+		dirInit = expand_path(kConfigStaticDefault, "$RB_CONFIGDIR/histograms");
+		break;
+	case WRITE_VAR:
+		dirInit = expand_path(kConfigStaticDefault, "$RB_CONFIGDIR/variables");
+		break;
+	default:
+		dirInit = expand_path(kConfigStaticDefault, "$RB_CONFIGDIR");
+		break;
+	}
 	fileInfo.fIniDir = StrDup(dirInit);
 
 	new TGFileDialog(gClient->GetRoot(), 0, kFDSave, &fileInfo);
 	if(fileInfo.fFilename != 0) {
 		switch(which) {
 		case WRITE_HIST:
-			rb::WriteHistograms(fileInfo.fFilename, false); break;
-		case WRITE_VAR:
-			rb::WriteVariables(fileInfo.fFilename, false); break;
+			rb::WriteHistXML(fileInfo.fFilename, false);
+			break;
 		case WRITE_CANVAS:
-			rb::WriteCanvases(fileInfo.fFilename, false); break;
+			rb::WriteCanvasXML(fileInfo.fFilename, false);
+			break;
+		case WRITE_VAR:
+			rb::WriteVariablesXML(fileInfo.fFilename, false);
+			break;
 		case WRITE_ALL:
-			rb::WriteConfig(fileInfo.fFilename, false); break;
-		default: break;
+			rb::WriteConfigXML(fileInfo.fFilename, false);
+			break;			
+		default:
+			break;
 		}
  	}
 }
@@ -953,9 +968,7 @@ void rb::HistSignals::ReadConfig(Bool_t type_prompt) {
 	}
 	TGFileInfo fileInfo;
 	const char* ext[] =
-		 { "ROOT macro files", "*.[Cc]",
-			 "ROOT macro files", "*.cc",
-			 "ROOT macro files", "*.cxx",
+		 { "XML files", "*.xml",
 			 "All Files", "*",
 			 0, 0 };
 	fileInfo.fFileTypes = reinterpret_cast<const char**>(ext);
@@ -965,31 +978,80 @@ void rb::HistSignals::ReadConfig(Bool_t type_prompt) {
 
 	new TGFileDialog(gClient->GetRoot(), 0, kFDOpen, &fileInfo);
 	if(fileInfo.fFilename != 0) {
-		rb::ReadConfig(fileInfo.fFilename, opt[which].c_str());
+		rb::ReadConfigXML(fileInfo.fFilename, opt[which].c_str());
+	}
+}
+
+void rb::HistSignals::ReadHistConfig(Bool_t type_prompt) {
+	TGRadioButton* buttons[3] = {	rb::Rint::gApp()->fHistFrame->fConfigLoadMethodReset,
+																rb::Rint::gApp()->fHistFrame->fConfigLoadMethodOverwrite,
+																rb::Rint::gApp()->fHistFrame->fConfigLoadMethodCumulate };
+	std::string opt[3] = {"r", "o", "c"};
+	int which = 0;
+	if(!type_prompt) {
+		for(which=0; which< 3; ++which) {
+			if(buttons[which]->IsOn()) break;
+		}
+	}
+	else {
+		which = -1;
+		std::string arr_names[3] = { "Reset", "Overwrite", "Cumulate" };
+		std::vector<std::string> names(arr_names, arr_names+3);	
+		new TGSelectDialog(gClient->GetRoot(), 0, "Select Method:", "Select Method", &names, &which);
+		if(which < 0) return;
+	}
+	TGFileInfo fileInfo;
+	const char* ext[] =
+		 { "XML files", "*.xml",
+			 "All Files", "*",
+			 0, 0 };
+	fileInfo.fFileTypes = reinterpret_cast<const char**>(ext);
+
+	TString dirInit = expand_path(kConfigStaticDefault, "$RB_CONFIGDIR/histograms");
+	fileInfo.fIniDir = StrDup(dirInit);
+
+	new TGFileDialog(gClient->GetRoot(), 0, kFDOpen, &fileInfo);
+	if(fileInfo.fFilename != 0) {
+		rb::ReadHistXML(fileInfo.fFilename, opt[which].c_str());
 	}
 }
 
 void rb::HistSignals::ReadCanvasConfig() {
 	TGFileInfo fileInfo;
 	const char* ext[] =
-		 { "ROOT macro files", "*.[Cc]",
-			 "ROOT macro files", "*.cc",
-			 "ROOT macro files", "*.cxx",
-			 "All Files", "*",
-			 0, 0 };
+		{ "XML files", "*.xml",
+			"All Files", "*",
+			0, 0 };
 	fileInfo.fFileTypes = reinterpret_cast<const char**>(ext);
 
-	TString dirInit = expand_path(kConfigStaticDefault, "$RB_CONFIGDIR");
+	TString dirInit = expand_path(kConfigStaticDefault, "$RB_CONFIGDIR/canvas");
 	fileInfo.fIniDir = StrDup(dirInit);
 
 	new TGFileDialog(gClient->GetRoot(), 0, kFDOpen, &fileInfo);
 	if(fileInfo.fFilename != 0) {
-		rb::ReadCanvases(fileInfo.fFilename);
+		rb::ReadCanvasXML(fileInfo.fFilename);
+	}
+}
+
+void rb::HistSignals::ReadVariablesConfig() {
+	TGFileInfo fileInfo;
+	const char* ext[] =
+		{ "XML files", "*.xml",
+			"All Files", "*",
+			0, 0 };
+	fileInfo.fFileTypes = reinterpret_cast<const char**>(ext);
+
+	TString dirInit = expand_path(kConfigStaticDefault, "$RB_CONFIGDIR/variables");
+	fileInfo.fIniDir = StrDup(dirInit);
+
+	new TGFileDialog(gClient->GetRoot(), 0, kFDOpen, &fileInfo);
+	if(fileInfo.fFilename != 0) {
+		rb::ReadVariablesXML(fileInfo.fFilename);
 	}
 }
 
 void rb::HistSignals::ToggleCreateReplace() {
-	// Currently empry, leave at create / replace
+	// Currently empty, leave at create / replace
 #if 0
 	Bool_t down = rb::Rint::gApp()->fHistFrame->fHistReplaceButton->IsDown();
 	if(down)

@@ -44,7 +44,7 @@ all:  $(RBLIB)/libRootbeer.so $(RBLIB)/librbMidas.so
 #### ROOTBEER LIBRARY ####
 SOURCES=($shell ls $(SRC)/*.cxx $(SRC)/hist/*.cxx
 
-OBJECTS=$(OBJ)/hist/Hist.o $(OBJ)/hist/Manager.o \
+OBJECTS=$(OBJ)/mxml/mxml.o $(OBJ)/mxml/strlcpy.o $(OBJ)/hist/Hist.o $(OBJ)/hist/Manager.o \
 $(OBJ)/Formula.o $(OBJ)/ClassFormula.o $(OBJ)/ClassData.o \
 $(OBJ)/Data.o $(OBJ)/Event.o $(OBJ)/Attach.o $(OBJ)/Canvas.o $(OBJ)/WriteConfig.o \
 $(OBJ)/Rint.o $(OBJ)/Signals.o $(OBJ)/Rootbeer.o $(OBJ)/Gui.o $(OBJ)/HistGui.o \
@@ -54,7 +54,7 @@ HEADERS=$(SRC)/Main.hxx $(SRC)/Rootbeer.hxx $(SRC)/Rint.hxx $(SRC)/Data.hxx $(SR
 $(SRC)/Signals.hxx $(SRC)/Formula.hxx $(SRC)/ClassFormula.hxx $(SRC)/ClassData.hxx \
 $(SRC)/utils/LockingPointer.hxx $(SRC)/utils/Mutex.hxx \
 $(SRC)/hist/Hist.hxx $(SRC)/hist/Visitor.hxx $(SRC)/hist/Manager.hxx $(SRC)/TGSelectDialog.h $(SRC)/TGDivideSelect.h \
-$(SRC)/HistGui.hxx $(SRC)/Gui.hxx $(SRC)/utils/*.h*
+$(SRC)/HistGui.hxx $(SRC)/Gui.hxx $(SRC)/utils/*.h* $(SRC)/mxml/*.hxx
 
 
 RBlib: $(RBLIB)/libRootbeer.so
@@ -68,6 +68,10 @@ $(OBJ)/midas/MidasBuffer.o: $(SRC)/midas/MidasBuffer.cxx $(CINT)/MidasDict.cxx $
 
 $(OBJ)/midas/%.o: $(SRC)/midas/%.cxx $(CINT)/MidasDict.cxx
 	$(CXX) $(FPIC) $(MIDASFLAGS) -c $< \
+-o $@  \
+
+$(OBJ)/mxml/%.o: $(SRC)/mxml/%.cxx $(SRC)/mxml/*.hxx $(CINT)/RBDictionary.hxx
+	$(CXX) $(FPIC) -c $< \
 -o $@  \
 
 $(OBJ)/%.o: $(SRC)/%.cxx $(CINT)/RBDictionary.cxx

@@ -876,8 +876,6 @@
 	\todo - Make the gui better: scalable, etc. User configurable, somehow? Perhaps long term, a better solution is to 
 	try to use a GUI library that's truly easy to work with and set it up as a user-configurable thing from the get-go.
 
-	\todo - Attach list still needs implementing.
-
 	\todo - Write librbNscl to implement generic NSCL DAQ connections.
 
 	\todo - Finish configure script

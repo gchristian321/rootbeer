@@ -164,7 +164,7 @@ void TGRbeerFrame::GuiLayout()
    fGroupConfig->SetLayoutBroken(kTRUE);
 
    gClient->GetColorByName("#ffcc00",ucolor);
-   /* TGTextButton* */ fConfigLoad = new TGTextButton(fGroupConfig,"Load");
+   /* TGTextButton* */ fConfigLoad = new TGTextButton(fGroupConfig,"Load Canvases");
    fConfigLoad->SetFont(ufont->GetFontStruct());
    fConfigLoad->SetTextJustify(36);
    fConfigLoad->SetMargins(0,0,0,0);
@@ -173,7 +173,7 @@ void TGRbeerFrame::GuiLayout()
 
    fConfigLoad->ChangeBackground(ucolor);
    fGroupConfig->AddFrame(fConfigLoad, new TGLayoutHints(kLHintsLeft | kLHintsTop,2,2,2,2));
-   fConfigLoad->MoveResize(12,56,64,24);
+   fConfigLoad->MoveResize(12-5,56,64+30,24);
 
    ufont = gClient->GetFont("-*-helvetica-medium-r-*-*-12-*-*-*-*-*-iso8859-1");
 
@@ -188,7 +188,7 @@ void TGRbeerFrame::GuiLayout()
    uGC = gClient->GetGC(&valButton1868, kTRUE);
 
    gClient->GetColorByName("#0000ff",ucolor);
-   /* TGTextButton* */ fConfigSave = new TGTextButton(fGroupConfig,"Save",-1,uGC->GetGC());
+   /* TGTextButton* */ fConfigSave = new TGTextButton(fGroupConfig,"Save Canvases",-1,uGC->GetGC());
    fConfigSave->SetFont(ufont->GetFontStruct());
    fConfigSave->SetTextJustify(36);
    fConfigSave->SetMargins(0,0,0,0);
@@ -197,12 +197,12 @@ void TGRbeerFrame::GuiLayout()
 
    fConfigSave->ChangeBackground(ucolor);
    fGroupConfig->AddFrame(fConfigSave, new TGLayoutHints(kLHintsLeft | kLHintsTop,2,2,2,2));
-   fConfigSave->MoveResize(12,24,64,24);
+   fConfigSave->MoveResize(12-5,24,64+30,24);
 
    fGroupConfig->SetLayoutManager(new TGVerticalLayout(fGroupConfig));
    fGroupConfig->Resize(88,96);
    fGroupCanvas->AddFrame(fGroupConfig, new TGLayoutHints(kLHintsLeft | kLHintsTop,2,2,2,2));
-   fGroupConfig->MoveResize(228,55,88,96);
+   fGroupConfig->MoveResize(228-9,55,88+18,96);
 
    ufont = gClient->GetFont("-*-helvetica-medium-r-*-*-12-*-*-*-*-*-iso8859-1");
 

@@ -11,6 +11,7 @@
 #include <TRealData.h>
 #include "Rint.hxx"
 #include "Data.hxx"
+#include "mxml/mxml.hxx"
 #include "utils/Error.hxx"
 #include "utils/Assorted.hxx"
 
@@ -258,12 +259,36 @@ rb::data::MBasic* rb::data::MBasic::Find(const char* name) {
 // rb::data::MBasic::Printer             //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+// void rb::data::MBasic::Printer::SaveXML(XmlWriter*) //
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
+void rb::data::MBasic::Printer::SaveXML(rb::XmlWriter* writer) {
+  if(fgAll().empty()) return;
+	ANSort ansort;
+  rb::data::MBasic::Map_t::iterator it;
+	std::vector<std::string> names;
+  for(it = fgAll().begin(); it != fgAll().end(); ++it) {
+		names.push_back(it->first);
+	}
+	std::sort(names.begin(), names.end(), ansort);
+	for(UInt_t i=0; i< names.size(); ++i) {
+		it = fgAll().find(names[i]);
+		std::stringstream val;
+		val << it->second->GetValue();
+		mxml_start_element(writer, "var");
+		mxml_write_attribute(writer, "name", it->first.c_str());
+		mxml_write_attribute(writer, "type", it->second->fDataMember->GetTrueTypeName());
+		mxml_write_value(writer, val.str().c_str());
+		mxml_end_element(writer);
+  }
+}
+
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 // void rb::data::MBasic::Printer::SavePrimitive()   //
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-namespace { ANSort ansort; }
 void rb::data::MBasic::Printer::SavePrimitive(std::ostream& strm) {
   if(fgAll().empty()) return;
+	ANSort ansort;
   rb::data::MBasic::Map_t::iterator it;
 	std::vector<std::string> names;
   for(it = fgAll().begin(); it != fgAll().end(); ++it) {
@@ -295,6 +320,7 @@ void rb::data::MBasic::Printer::PrintAll() {
   while(it != fgAll().end()) {
     names.push_back(it->first); ++it;
 	}
+	ANSort ansort;
 	std::sort(names.begin(), names.end(), ansort);
 
 	for(UInt_t i=0; i< names.size(); ++i) {

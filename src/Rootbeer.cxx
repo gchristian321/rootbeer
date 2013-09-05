@@ -2,7 +2,6 @@
 //! \brief Implements the user interface functions.
 #include <memory>
 #include <iostream>
-#include <TCutG.h>
 #include <TString.h>
 #include <TObjArray.h>
 #include <TVirtualPad.h>
@@ -139,49 +138,6 @@ TDirectory* rb::Mkdir(const char* name, const char* title) {
 	else current->cd();
 	if(Rint::gApp()->GetHistSignals()) Rint::gApp()->GetHistSignals()->SyncHistTree();
 	return newDir;
-}
-
-
-//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-// void rb::SetTCutGOverwrite                            //
-//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-namespace { Bool_t gTCutGOverwrite = false; }
-Bool_t rb::SetTCutGOverwrite(Bool_t on) {
-	Bool_t ret = (on != gTCutGOverwrite);
-	gTCutGOverwrite = on;
-	return ret;
-}
-
-//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-// void rb::CreateTCutG                                  //
-//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
-TCutG* rb::CreateTCutG(const char* name, Int_t n, const Double_t* x, const Double_t* y,
-											 const char* varx, const char* vary, Width_t lineWidth, Color_t lineColor) {
-	std::string Name = name;
-	if(dynamic_cast<TCutG*>(gROOT->GetListOfSpecials()->FindObject(name))) {
-		if(gTCutGOverwrite) {
-			delete dynamic_cast<TCutG*>(gROOT->GetListOfSpecials()->FindObject(name));
-			Name = name;
-		}
-		else {
-			std::stringstream ssname;
-			ssname << name;
-			int i=1;
-			while(dynamic_cast<TCutG*>(gROOT->GetListOfSpecials()->FindObject(ssname.str().c_str()))) {
-				ssname.str("");
-				ssname << name << "_" << i++;
-			}
-			Name = ssname.str();
-		}
-	}
-	TCutG* cutg = new TCutG(Name.c_str(), n, x, y);
-	if(cutg) {
-		cutg->SetVarX(varx);
-		cutg->SetVarY(vary);
-		cutg->SetLineWidth(lineWidth);
-		cutg->SetLineColor(lineColor);
-	}
-	return cutg;
 }
 
 

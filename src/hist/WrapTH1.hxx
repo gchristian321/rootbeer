@@ -1031,18 +1031,18 @@ virtual void SetMinimum(Double_t minimum = -0x00000000000000457)
   rb::ScopedLock<rb::Mutex> LOCK (TTHREAD_GLOBAL_MUTEX);
   return AS_TH1->SetMinimum(minimum);
 }
-/// <a href = "http://root.cern.ch/root/html/TH1.html#TH1:SetName">*** TH1 Member Function ***</a>
-virtual void SetName(const char* name)
-{
-  rb::ScopedLock<rb::Mutex> LOCK (TTHREAD_GLOBAL_MUTEX);
-  return AS_TH1->SetName(name);
-}
-/// <a href = "http://root.cern.ch/root/html/TH1.html#TH1:SetNameTitle">*** TH1 Member Function ***</a>
-virtual void SetNameTitle(const char* name, const char* title)
-{
-  rb::ScopedLock<rb::Mutex> LOCK (TTHREAD_GLOBAL_MUTEX);
-  return AS_TH1->SetNameTitle(name, title);
-}
+// /// <a href = "http://root.cern.ch/root/html/TH1.html#TH1:SetName">*** TH1 Member Function ***</a>
+// virtual void SetName(const char* name)
+// {
+//   rb::ScopedLock<rb::Mutex> LOCK (TTHREAD_GLOBAL_MUTEX);
+//   return AS_TH1->SetName(name);
+// }
+// /// <a href = "http://root.cern.ch/root/html/TH1.html#TH1:SetNameTitle">*** TH1 Member Function ***</a>
+// virtual void SetNameTitle(const char* name, const char* title)
+// {
+//   rb::ScopedLock<rb::Mutex> LOCK (TTHREAD_GLOBAL_MUTEX);
+//   return AS_TH1->SetNameTitle(name, title);
+// }
 /// <a href = "http://root.cern.ch/root/html/TH1.html#TH1:SetNdivisions">*** TH1 Member Function ***</a>
 virtual void SetNdivisions(Int_t n = 510, Option_t* axis = "X")
 {
@@ -1254,5 +1254,9 @@ virtual void SetMarkerStyle(Style_t mstyle = 1)
   rb::ScopedLock<rb::Mutex> LOCK (TTHREAD_GLOBAL_MUTEX);
   return AS_TH1->SetMarkerStyle(mstyle);
 }
-
+virtual Option_t* GetDrawOption()
+{
+  rb::ScopedLock<rb::Mutex> LOCK (TTHREAD_GLOBAL_MUTEX);
+  return AS_TH1->GetDrawOption();
+}
 #undef AS_TH1
