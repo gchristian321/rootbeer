@@ -24,6 +24,15 @@
 namespace {
 
 //
+// Update gPad if it exists
+inline void update_gPad() {
+	if(gPad) {
+		gPad->Modified();
+		gPad->Update();
+	}
+}
+
+//
 // Check for existance of a file, returns true if okay to proceed
 // (and overwrite if existing), false otherwise.
 Bool_t check_file(const char* name) {
@@ -138,6 +147,7 @@ void rb::ReadVariablesXML(const char* filename) {
 	}
 
 	if(tree) rb::mxml_free_tree(tree);
+	update_gPad();
 }
 
 
@@ -349,6 +359,7 @@ void rb::ReadHistXML(const char* filename, Option_t* option)
 	}
 
 	if(tree) rb::mxml_free_tree(tree);
+	update_gPad();
 }
 
 
@@ -558,6 +569,7 @@ void rb::ReadCanvasXML(const char* filename) {
 	}
 
 	if(tree) rb::mxml_free_tree(tree);
+	update_gPad();
 }
 
 
