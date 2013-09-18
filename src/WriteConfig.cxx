@@ -569,7 +569,13 @@ void rb::ReadCanvasXML(const char* filename) {
 	}
 
 	if(tree) rb::mxml_free_tree(tree);
-	update_gPad();
+
+	for(Int_t i=0; i< gROOT->GetListOfCanvases()->GetEntries(); ++i) {
+		TCanvas* canvas = static_cast<TCanvas*>(gROOT->GetListOfCanvases()->At(i));
+		if(!canvas || !canvas->InheritsFrom(TVirtualPad::Class())) continue;
+		canvas->Modified();
+		canvas->Update();
+	}
 }
 
 
